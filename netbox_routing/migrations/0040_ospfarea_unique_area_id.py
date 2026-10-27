@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('extras', '0145_taggeditem_object_id_bigint'),
-        ('netbox_routing', '0035_total_model_ordering'),
+        ('netbox_routing', '0039_bfdprofile_multiplier_min'),
         ('users', '0016_default_ordering_indexes'),
     ]
 
