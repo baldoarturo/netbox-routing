@@ -49,35 +49,57 @@ A plugin for tracking all kinds of routing information
 
 ## Installation
 
-Install the python module
-
-`pip install netbox-routing`
-
-To install, simply include this plugin in the plugins configuration section of netbox.
-
-Example:
-```python
-    PLUGINS = [
-        'netbox_routing'
-    ],
-```
+Follows the standard [NetBox plugin installation procedure](https://netboxlabs.com/docs/netbox/plugins/#installing-plugins).
 
 > [!NOTE]
-> If you utilize netbox-bgp this plugin is not compatible, however there is now a migration tool built in.
-> 
-> You will need to remove `netbox-bgp` from the plugin list, and make sure `netbox-routing` is installed.
+> PyPI publishing is disabled in this fork for now, so the plugin is installed straight from GitHub instead of `pip install netbox-routing`.
 
-Once installed, run the migrations:
+### Bare metal
 
-`python netbox/manage.py migrate`
+The steps below assume NetBox lives in `/opt/netbox`; adjust paths to match your environment.
 
-Run the static collections:
+1. Install the package into the NetBox virtual environment:
 
-`python netbox/manage.py collectstatic --no-input`
+   ```shell
+   source /opt/netbox/venv/bin/activate
+   pip install git+https://github.com/baldoarturo/netbox-routing.git
+   ```
 
-If migrating from `netbox-bgp` run migrate-netbox-bgp:
+2. Add it to `local_requirements.txt` so it is reinstalled whenever NetBox is upgraded:
 
-`python netbox/manage.py migrate-netbox-bgp`
+   ```shell
+   echo "git+https://github.com/baldoarturo/netbox-routing.git" >> /opt/netbox/local_requirements.txt
+   ```
+
+3. Enable the plugin in `configuration.py`:
+
+   ```python
+   PLUGINS = [
+       'netbox_routing',
+   ]
+   ```
+
+4. Apply the database migrations and collect static files:
+
+   ```shell
+   python3 /opt/netbox/netbox/manage.py migrate
+   python3 /opt/netbox/netbox/manage.py collectstatic --no-input
+   ```
+
+5. Restart NetBox (e.g. `sudo systemctl restart netbox netbox-rq`).
+
+### Docker
+
+Plugins in Docker are installed by building a custom image, not with `pip` inside a running container. Follow the [netbox-docker plugin instructions](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins) and use the same git URL as the package, and `netbox_routing` as the plugin name in `PLUGINS`. Migrations and `collectstatic` run automatically when the container starts.
+
+### Migrating from netbox-bgp
+
+> [!NOTE]
+> This plugin is not compatible with `netbox-bgp`, but there is a built-in migration tool.
+>
+> Remove `netbox-bgp` from `PLUGINS`, make sure `netbox-routing` is installed, then run:
+>
+> `python3 /opt/netbox/netbox/manage.py migrate-netbox-bgp`
 
 ## Configuration
 
