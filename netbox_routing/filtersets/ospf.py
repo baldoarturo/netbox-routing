@@ -170,13 +170,13 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
     interface_id = django_filters.ModelMultipleChoiceFilter(
         field_name='interface',
         queryset=Interface.objects.all(),
-        label='Area (ID)',
+        label='Interface (ID)',
     )
     interface = django_filters.ModelMultipleChoiceFilter(
         field_name='interface__name',
         queryset=Interface.objects.all(),
         to_field_name='name',
-        label='Area',
+        label='Interface',
     )
 
     class Meta:

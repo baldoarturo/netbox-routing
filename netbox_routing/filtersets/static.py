@@ -42,7 +42,7 @@ class StaticRouteFilterSet(NetBoxModelFilterSet):
 
     next_hop = django_filters.CharFilter(
         method='filter_address',
-        label='Prefix',
+        label='Next Hop',
     )
 
     class Meta:
