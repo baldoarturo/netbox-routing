@@ -68,7 +68,6 @@ __all__ = (
 )
 
 
-@register_model_view(BGPAddressFamily, name='settings')
 class BGPSettingViewMixin:
     child_model = BGPSetting
     table = BGPSettingTable
