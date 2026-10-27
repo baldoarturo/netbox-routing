@@ -104,7 +104,7 @@ class OSPFInterface(PrimaryModel):
     instance = models.ForeignKey(
         to='netbox_routing.OSPFInstance',
         related_name='interfaces',
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         blank=False,
         null=False,
     )
