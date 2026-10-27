@@ -1,7 +1,7 @@
 import django_filters
 import netaddr
 from django.db.models import Q
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from ipam.models import Prefix
 from netbox.filtersets import NetBoxModelFilterSet

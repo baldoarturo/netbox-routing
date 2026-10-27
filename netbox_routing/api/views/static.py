@@ -5,6 +5,6 @@ from netbox_routing.models import StaticRoute
 
 
 class StaticRouteViewSet(NetBoxModelViewSet):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     serializer_class = StaticRouteSerializer
     filterset_class = filtersets.StaticRouteFilterSet

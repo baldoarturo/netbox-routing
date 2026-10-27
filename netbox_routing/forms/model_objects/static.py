@@ -1,4 +1,4 @@
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device
 from ipam.models import VRF
@@ -72,8 +72,3 @@ class StaticRouteForm(PrimaryModelForm):
             self.fields['devices'].initial = self.instance.devices.all().values_list(
                 'id', flat=True
             )
-
-    def save(self, *args, **kwargs):
-        instance = super().save(*args, **kwargs)
-        instance.devices.set(self.cleaned_data['devices'])
-        return instance
