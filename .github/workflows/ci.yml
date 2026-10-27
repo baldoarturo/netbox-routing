@@ -30,6 +30,7 @@ jobs:
           POSTGRES_USER: netbox
           POSTGRES_PASSWORD: netbox
         options: >-
+          --tmpfs /var/lib/postgresql
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -38,6 +39,14 @@ jobs:
           - 5432:5432
 
     steps:
+      - name: Make Postgres fast (CI only, data is disposable)
+        run: |
+          export PGPASSWORD=netbox
+          for s in "fsync=off" "synchronous_commit=off" "full_page_writes=off"; do
+            psql -h localhost -U netbox -d postgres -c "ALTER SYSTEM SET $s;"
+          done
+          psql -h localhost -U netbox -d postgres -c "SELECT pg_reload_conf();"
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
