@@ -12,3 +12,4 @@ __all__ = ('StaticRouteFilter',)
 class StaticRouteFilter(VRFMixin, DeviceMixin, PrimaryModelFilter):
     prefix: StrFilterLookup | None = strawberry_django.filter_field()
     next_hop: BaseFilterLookup[str] | None = strawberry_django.filter_field()
+    interface_next_hop: StrFilterLookup | None = strawberry_django.filter_field()
