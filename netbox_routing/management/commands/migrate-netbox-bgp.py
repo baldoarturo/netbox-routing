@@ -1,7 +1,7 @@
 import uuid
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from netbox.context_managers import event_tracking
 from netbox_routing.models.bgp import *

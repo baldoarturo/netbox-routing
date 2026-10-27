@@ -40,7 +40,7 @@ __all__ = (
 
 @register_model_view(StaticRoute, name='list', path='', detail=False)
 class StaticRouteListView(ObjectListView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     table = StaticRouteTable
     filterset = StaticRouteFilterSet
     filterset_form = StaticRouteFilterForm
@@ -48,7 +48,7 @@ class StaticRouteListView(ObjectListView):
 
 @register_model_view(StaticRoute)
 class StaticRouteView(ObjectView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -65,7 +65,7 @@ class StaticRouteView(ObjectView):
 
 @register_model_view(StaticRoute, name='devices')
 class StaticRouteDevicesView(ObjectChildrenView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     child_model = Device
     table = DeviceTable
     filterset = DeviceFilterSet
@@ -83,18 +83,18 @@ class StaticRouteDevicesView(ObjectChildrenView):
 @register_model_view(StaticRoute, name='add', detail=False)
 @register_model_view(StaticRoute, name='edit')
 class StaticRouteEditView(ObjectEditView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     form = StaticRouteForm
 
 
 @register_model_view(StaticRoute, name='delete')
 class StaticRouteDeleteView(ObjectDeleteView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
 
 
 @register_model_view(StaticRoute, name='bulk_edit', detail=False)
 class StaticRouteBulkEditView(BulkEditView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     filterset = StaticRouteFilterSet
     table = StaticRouteTable
     form = StaticRouteBulkEditForm
@@ -102,12 +102,12 @@ class StaticRouteBulkEditView(BulkEditView):
 
 @register_model_view(StaticRoute, name='bulk_delete', detail=False)
 class StaticRouteBulkDeleteView(BulkDeleteView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     filterset = StaticRouteFilterSet
     table = StaticRouteTable
 
 
 @register_model_view(StaticRoute, name='bulk_import', detail=False)
 class StaticRouteBulkImportView(BulkImportView):
-    queryset = StaticRoute.objects.all()
+    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
     model_form = StaticRouteImportForm

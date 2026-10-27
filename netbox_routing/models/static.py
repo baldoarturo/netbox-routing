@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import CheckConstraint, Q
 from django.urls import reverse
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
 from ipam.fields import IPNetworkField
@@ -30,6 +30,7 @@ class StaticRoute(PrimaryModel):
         null=True,
     )
     interface_next_hop = models.CharField(
+        max_length=100,
         verbose_name='Interface Next Hop',
         help_text='Forwarding interface, for routes without IP address as next hop',
         blank=True,
@@ -65,6 +66,7 @@ class StaticRoute(PrimaryModel):
         'devices',
         'prefix',
         'next_hop',
+        'interface_next_hop',
         'vrf',
         'metric',
         'permanent',
