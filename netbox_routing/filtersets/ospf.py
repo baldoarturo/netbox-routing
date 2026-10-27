@@ -65,7 +65,7 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             | Q(device__name__icontains=value)
             | Q(router_id__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
     def filter_rid(self, queryset, name, value):
         try:
@@ -112,7 +112,7 @@ class OSPFAreaFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         qs_filter = Q(area_id__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
     def filter_aid(self, queryset, name, value):
         try:
@@ -202,4 +202,4 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             | Q(interface__label__icontains=value)
             | Q(interface__device__name__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)

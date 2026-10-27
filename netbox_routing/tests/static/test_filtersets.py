@@ -1,6 +1,7 @@
 import netaddr
 from django.test import TestCase
 
+from dcim.models import Device
 from ipam.models import VRF
 from utilities.testing import create_test_device
 
@@ -68,3 +69,15 @@ class StaticRouteTestCase(TestCase):
     def test_metric(self):
         params = {'metric': [1]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_q_device_name(self):
+        params = {'q': 'Device 2'}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_q_matching_several_devices_returns_route_once(self):
+        route = StaticRoute.objects.get(name='Route 1')
+        route.devices.add(*Device.objects.all())
+        params = {'q': 'Device'}
+        qs = self.filterset(params, self.queryset).qs
+        self.assertEqual(qs.filter(pk=route.pk).count(), 1)
+        self.assertEqual(qs.count(), 3)
