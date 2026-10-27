@@ -787,7 +787,7 @@ class BFDProfile(PrimaryModel):
     )
     multiplier = models.PositiveSmallIntegerField(
         verbose_name=_('Multiplier'),
-        validators=[MinValueValidator(0), MaxValueValidator(255)],
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
     )
     hold = models.PositiveIntegerField(
         verbose_name=_('Hold Time'),
