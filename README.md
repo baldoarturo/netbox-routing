@@ -31,21 +31,21 @@ A plugin for tracking all kinds of routing information
 
 # Requirements
 
-* Netbox 4.5+
+* NetBox 4.7+
 * Python 3.12+
 
 ## Compatibility Matrix
 
-|       | Netbox 3.2.x   | NetBox 4.1.x   | Netbox 4.2.x   | NetBox 4.3.x - 4.4.x | NetBox 4.5.x   | NetBox 4.6.x   | NetBox 4.7.x   |
-|-------|----------------|----------------|----------------|----------------------|----------------|----------------|----------------|
-| 0.1.x | Compatible     | Not Compatible | Not Compatible | Not Compatible       | Not Compatible | Not Compatible | Not Compatible |
-| 0.2.x | Not Compatible | Compatible     | Not Compatible | Not Compatible       | Not Compatible | Not Compatible | Not Compatible |
-| 0.3.0 | Not Compatible | Not Compatible | Compatible     | Not Compatible       | Not Compatible | Not Compatible | Not Compatible |
-| 0.3.1 | Not Compatible | Not Compatible | Not Compatible | Compatible           | Not Compatible | Not Compatible | Not Compatible |
-| 0.3.2 | Not Compatible | Not Compatible | Not Compatible | Not Compatible       | Compatible     | Not Compatible | Not Compatible |
-| 0.4.x | Not Compatible | Not Compatible | Not Compatible | Not Compatible       | Compatible     | Not Compatible | Not Compatible |
-| 0.5.0 | Not Compatible | Not Compatible | Not Compatible | Not Compatible       | Not Compatible | Compatible     | Not Compatible |
-| 0.5.x | Not Compatible | Not Compatible | Not Compatible | Not Compatible       | Not Compatible | Compatible     | Compatible     |
+| NetBox Version | Plugin Version |
+| -------------- | -------------- |
+| 3.2.x | 0.1.x |
+| 4.1.x | 0.2.x |
+| 4.2.x | 0.3.0 |
+| 4.3.x | 0.3.1 |
+| 4.4.x | 0.3.1 |
+| 4.5.x | 0.4.x |
+| 4.6.x | 0.5.0 |
+| 4.7.x | 0.5.1 and later |
 
 ## Installation
 
