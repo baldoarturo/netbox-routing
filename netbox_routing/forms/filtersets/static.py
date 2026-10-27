@@ -3,7 +3,7 @@ from dcim.models import Device
 from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing.models import StaticRoute
 from utilities.forms.fields import DynamicModelMultipleChoiceField, TagFilterField
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from utilities.forms.rendering import FieldSet
 from django import forms

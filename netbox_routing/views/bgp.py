@@ -68,7 +68,6 @@ __all__ = (
 )
 
 
-@register_model_view(BGPAddressFamily, name='settings')
 class BGPSettingViewMixin:
     child_model = BGPSetting
     table = BGPSettingTable
@@ -136,7 +135,7 @@ class BGPSettingBulkDeleteView(BulkDeleteView):
 #
 @register_model_view(BGPPeerTemplate, name='list', path='', detail=False)
 class BGPPeerTemplateListView(ObjectListView):
-    queryset = BGPPeerTemplate.objects.all()
+    queryset = BGPPeerTemplate.objects.select_related('remote_as', 'tenant')
     filterset = BGPPeerTemplateFilterSet
     filterset_form = BGPPeerTemplateFilterForm
     table = BGPPeerTemplateTable
@@ -144,7 +143,7 @@ class BGPPeerTemplateListView(ObjectListView):
 
 @register_model_view(BGPPeerTemplate)
 class BGPPeerTemplateView(ObjectView):
-    queryset = BGPPeerTemplate.objects.all()
+    queryset = BGPPeerTemplate.objects.select_related('remote_as', 'tenant')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -161,18 +160,18 @@ class BGPPeerTemplateView(ObjectView):
 @register_model_view(BGPPeerTemplate, name='add', detail=False)
 @register_model_view(BGPPeerTemplate, name='edit')
 class BGPPeerTemplateEditView(ObjectEditView):
-    queryset = BGPPeerTemplate.objects.all()
+    queryset = BGPPeerTemplate.objects.select_related('remote_as', 'tenant')
     form = BGPPeerTemplateForm
 
 
 @register_model_view(BGPPeerTemplate, name='delete')
 class BGPPeerTemplateDeleteView(ObjectDeleteView):
-    queryset = BGPPeerTemplate.objects.all()
+    queryset = BGPPeerTemplate.objects.select_related('remote_as', 'tenant')
 
 
 @register_model_view(BGPPeerTemplate, name='bulk_edit', detail=False)
 class BGPPeerTemplateBulkEditView(BulkEditView):
-    queryset = BGPPeerTemplate.objects.all()
+    queryset = BGPPeerTemplate.objects.select_related('remote_as', 'tenant')
     filterset = BGPPeerTemplateFilterSet
     form = BGPPeerTemplateBulkEditForm
     table = BGPPeerTemplateTable
@@ -180,14 +179,16 @@ class BGPPeerTemplateBulkEditView(BulkEditView):
 
 @register_model_view(BGPPeerTemplate, name='bulk_delete', detail=False)
 class BGPPeerTemplateBulkDeleteView(BulkDeleteView):
-    queryset = BGPPeerTemplate.objects.all()
+    queryset = BGPPeerTemplate.objects.select_related('remote_as', 'tenant')
     filterset = BGPPeerTemplateFilterSet
     table = BGPPeerTemplateTable
 
 
 @register_model_view(BGPPolicyTemplate, name='list', path='', detail=False)
 class BGPPolicyTemplateListView(ObjectListView):
-    queryset = BGPPolicyTemplate.objects.all()
+    queryset = BGPPolicyTemplate.objects.select_related(
+        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+    )
     filterset = BGPPolicyTemplateFilterSet
     filterset_form = BGPPolicyTemplateFilterForm
     table = BGPPolicyTemplateTable
@@ -195,7 +196,9 @@ class BGPPolicyTemplateListView(ObjectListView):
 
 @register_model_view(BGPPolicyTemplate)
 class BGPPolicyTemplateView(ObjectView):
-    queryset = BGPPolicyTemplate.objects.all()
+    queryset = BGPPolicyTemplate.objects.select_related(
+        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -213,18 +216,24 @@ class BGPPolicyTemplateView(ObjectView):
 @register_model_view(BGPPolicyTemplate, name='add', detail=False)
 @register_model_view(BGPPolicyTemplate, name='edit')
 class BGPPolicyTemplateEditView(ObjectEditView):
-    queryset = BGPPolicyTemplate.objects.all()
+    queryset = BGPPolicyTemplate.objects.select_related(
+        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+    )
     form = BGPPolicyTemplateForm
 
 
 @register_model_view(BGPPolicyTemplate, name='delete')
 class BGPPolicyTemplateDeleteView(ObjectDeleteView):
-    queryset = BGPPolicyTemplate.objects.all()
+    queryset = BGPPolicyTemplate.objects.select_related(
+        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+    )
 
 
 @register_model_view(BGPPolicyTemplate, name='bulk_edit', detail=False)
 class BGPPolicyTemplateBulkEditView(BulkEditView):
-    queryset = BGPPolicyTemplate.objects.all()
+    queryset = BGPPolicyTemplate.objects.select_related(
+        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+    )
     filterset = BGPPolicyTemplateFilterSet
     form = BGPPolicyTemplateBulkEditForm
     table = BGPPolicyTemplateTable
@@ -232,14 +241,18 @@ class BGPPolicyTemplateBulkEditView(BulkEditView):
 
 @register_model_view(BGPPolicyTemplate, name='bulk_delete', detail=False)
 class BGPPolicyTemplateBulkDeleteView(BulkDeleteView):
-    queryset = BGPPolicyTemplate.objects.all()
+    queryset = BGPPolicyTemplate.objects.select_related(
+        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+    )
     filterset = BGPPolicyTemplateFilterSet
     table = BGPPolicyTemplateTable
 
 
 @register_model_view(BGPSessionTemplate, name='list', path='', detail=False)
 class BGPSessionTemplateListView(ObjectListView):
-    queryset = BGPSessionTemplate.objects.all()
+    queryset = BGPSessionTemplate.objects.select_related(
+        'parent', 'local_as', 'remote_as', 'bfd', 'tenant'
+    )
     filterset = BGPSessionTemplateFilterSet
     filterset_form = BGPSessionTemplateFilterForm
     table = BGPSessionTemplateTable
@@ -247,7 +260,9 @@ class BGPSessionTemplateListView(ObjectListView):
 
 @register_model_view(BGPSessionTemplate)
 class BGPSessionTemplateView(ObjectView):
-    queryset = BGPSessionTemplate.objects.all()
+    queryset = BGPSessionTemplate.objects.select_related(
+        'parent', 'local_as', 'remote_as', 'bfd', 'tenant'
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -265,18 +280,24 @@ class BGPSessionTemplateView(ObjectView):
 @register_model_view(BGPSessionTemplate, name='add', detail=False)
 @register_model_view(BGPSessionTemplate, name='edit')
 class BGPSessionTemplateEditView(ObjectEditView):
-    queryset = BGPSessionTemplate.objects.all()
+    queryset = BGPSessionTemplate.objects.select_related(
+        'parent', 'local_as', 'remote_as', 'bfd', 'tenant'
+    )
     form = BGPSessionTemplateForm
 
 
 @register_model_view(BGPSessionTemplate, name='delete')
 class BGPSessionTemplateDeleteView(ObjectDeleteView):
-    queryset = BGPSessionTemplate.objects.all()
+    queryset = BGPSessionTemplate.objects.select_related(
+        'parent', 'local_as', 'remote_as', 'bfd', 'tenant'
+    )
 
 
 @register_model_view(BGPSessionTemplate, name='bulk_edit', detail=False)
 class BGPSessionTemplateBulkEditView(BulkEditView):
-    queryset = BGPSessionTemplate.objects.all()
+    queryset = BGPSessionTemplate.objects.select_related(
+        'parent', 'local_as', 'remote_as', 'bfd', 'tenant'
+    )
     filterset = BGPSessionTemplateFilterSet
     form = BGPSessionTemplateBulkEditForm
     table = BGPSessionTemplateTable
@@ -284,7 +305,9 @@ class BGPSessionTemplateBulkEditView(BulkEditView):
 
 @register_model_view(BGPSessionTemplate, name='bulk_delete', detail=False)
 class BGPSessionTemplateBulkDeleteView(BulkDeleteView):
-    queryset = BGPSessionTemplate.objects.all()
+    queryset = BGPSessionTemplate.objects.select_related(
+        'parent', 'local_as', 'remote_as', 'bfd', 'tenant'
+    )
     filterset = BGPSessionTemplateFilterSet
     table = BGPSessionTemplateTable
 
@@ -294,7 +317,7 @@ class BGPSessionTemplateBulkDeleteView(BulkDeleteView):
 #
 @register_model_view(BGPRouter, name='list', path='', detail=False)
 class BGPRouterListView(ObjectListView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     filterset = BGPRouterFilterSet
     filterset_form = BGPRouterFilterForm
     table = BGPRouterTable
@@ -302,7 +325,7 @@ class BGPRouterListView(ObjectListView):
 
 @register_model_view(BGPRouter)
 class BGPRouterView(ObjectView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -321,18 +344,18 @@ class BGPRouterView(ObjectView):
 @register_model_view(BGPRouter, name='add', detail=False)
 @register_model_view(BGPRouter, name='edit')
 class BGPRouterEditView(ObjectEditView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     form = BGPRouterForm
 
 
 @register_model_view(BGPRouter, name='delete')
 class BGPRouterDeleteView(ObjectDeleteView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
 
 
 @register_model_view(BGPRouter, name='bulk_edit', detail=False)
 class BGPRouterBulkEditView(BulkEditView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     filterset = BGPRouterFilterSet
     form = BGPRouterBulkEditForm
     table = BGPRouterTable
@@ -340,14 +363,14 @@ class BGPRouterBulkEditView(BulkEditView):
 
 @register_model_view(BGPRouter, name='bulk_delete', detail=False)
 class BGPRouterBulkDeleteView(BulkDeleteView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     filterset = BGPRouterFilterSet
     table = BGPRouterTable
 
 
 @register_model_view(BGPRouter, name='settings')
 class BGPRouterSettingsView(BGPSettingViewMixin, ObjectChildrenView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     tab = ViewTab(
         label='Settings',
         badge=lambda obj: BGPRouterSettingsView.child_model.objects.filter(
@@ -361,7 +384,7 @@ class BGPRouterSettingsView(BGPSettingViewMixin, ObjectChildrenView):
 
 @register_model_view(BGPRouter, name='peer_templates')
 class BGPRouterPeerTemplatesView(ObjectChildrenView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     child_model = BGPPeerTemplate
     filterset = BGPPeerTemplateFilterSet
     filterset_form = BGPPeerTemplateFilterForm
@@ -378,7 +401,7 @@ class BGPRouterPeerTemplatesView(ObjectChildrenView):
 
 @register_model_view(BGPRouter, name='policy_templates')
 class BGPRouterPolicyTemplatesView(ObjectChildrenView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     child_model = BGPPolicyTemplate
     filterset = BGPPolicyTemplateFilterSet
     filterset_form = BGPPolicyTemplateFilterForm
@@ -395,7 +418,7 @@ class BGPRouterPolicyTemplatesView(ObjectChildrenView):
 
 @register_model_view(BGPRouter, name='session_templates')
 class BGPRouterSessionTemplatesView(ObjectChildrenView):
-    queryset = BGPRouter.objects.all()
+    queryset = BGPRouter.objects.select_related('asn', 'tenant')
     child_model = BGPSessionTemplate
     filterset = BGPSessionTemplateFilterSet
     filterset_form = BGPSessionTemplateFilterForm
@@ -415,7 +438,7 @@ class BGPRouterSessionTemplatesView(ObjectChildrenView):
 #
 @register_model_view(BGPScope, name='list', path='', detail=False)
 class BGPScopeListView(ObjectListView):
-    queryset = BGPScope.objects.all()
+    queryset = BGPScope.objects.select_related('router__asn', 'vrf', 'tenant')
     filterset = BGPScopeFilterSet
     filterset_form = BGPScopeFilterForm
     table = BGPScopeTable
@@ -423,7 +446,7 @@ class BGPScopeListView(ObjectListView):
 
 @register_model_view(BGPScope)
 class BGPScopeView(ObjectView):
-    queryset = BGPScope.objects.all()
+    queryset = BGPScope.objects.select_related('router__asn', 'vrf', 'tenant')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -441,18 +464,18 @@ class BGPScopeView(ObjectView):
 @register_model_view(BGPScope, name='add', detail=False)
 @register_model_view(BGPScope, name='edit')
 class BGPScopeEditView(ObjectEditView):
-    queryset = BGPScope.objects.all()
+    queryset = BGPScope.objects.select_related('router__asn', 'vrf', 'tenant')
     form = BGPScopeForm
 
 
 @register_model_view(BGPScope, name='delete')
 class BGPScopeDeleteView(ObjectDeleteView):
-    queryset = BGPScope.objects.all()
+    queryset = BGPScope.objects.select_related('router__asn', 'vrf', 'tenant')
 
 
 @register_model_view(BGPScope, name='bulk_edit', detail=False)
 class BGPScopeBulkEditView(BulkEditView):
-    queryset = BGPScope.objects.all()
+    queryset = BGPScope.objects.select_related('router__asn', 'vrf', 'tenant')
     filterset = BGPScopeFilterSet
     form = BGPScopeBulkEditForm
     table = BGPScopeTable
@@ -460,7 +483,7 @@ class BGPScopeBulkEditView(BulkEditView):
 
 @register_model_view(BGPScope, name='bulk_delete', detail=False)
 class BGPScopeBulkDeleteView(BulkDeleteView):
-    queryset = BGPScope.objects.all()
+    queryset = BGPScope.objects.select_related('router__asn', 'vrf', 'tenant')
     filterset = BGPScopeFilterSet
     table = BGPScopeTable
 
@@ -470,7 +493,9 @@ class BGPScopeBulkDeleteView(BulkDeleteView):
 #
 @register_model_view(BGPAddressFamily, name='list', path='', detail=False)
 class BGPAddressFamilyListView(ObjectListView):
-    queryset = BGPAddressFamily.objects.all()
+    queryset = BGPAddressFamily.objects.select_related(
+        'scope__router__asn', 'scope__vrf', 'tenant'
+    )
     filterset = BGPAddressFamilyFilterSet
     filterset_form = BGPAddressFamilyFilterForm
     table = BGPAddressFamilyTable
@@ -478,7 +503,9 @@ class BGPAddressFamilyListView(ObjectListView):
 
 @register_model_view(BGPAddressFamily)
 class BGPAddressFamilyView(ObjectView):
-    queryset = BGPAddressFamily.objects.all()
+    queryset = BGPAddressFamily.objects.select_related(
+        'scope__router__asn', 'scope__vrf', 'tenant'
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -496,18 +523,24 @@ class BGPAddressFamilyView(ObjectView):
 @register_model_view(BGPAddressFamily, name='add', detail=False)
 @register_model_view(BGPAddressFamily, name='edit')
 class BGPAddressFamilyEditView(ObjectEditView):
-    queryset = BGPAddressFamily.objects.all()
+    queryset = BGPAddressFamily.objects.select_related(
+        'scope__router__asn', 'scope__vrf', 'tenant'
+    )
     form = BGPAddressFamilyForm
 
 
 @register_model_view(BGPAddressFamily, name='delete')
 class BGPAddressFamilyDeleteView(ObjectDeleteView):
-    queryset = BGPAddressFamily.objects.all()
+    queryset = BGPAddressFamily.objects.select_related(
+        'scope__router__asn', 'scope__vrf', 'tenant'
+    )
 
 
 @register_model_view(BGPAddressFamily, name='bulk_edit', detail=False)
 class BGPAddressFamilyBulkEditView(BulkEditView):
-    queryset = BGPAddressFamily.objects.all()
+    queryset = BGPAddressFamily.objects.select_related(
+        'scope__router__asn', 'scope__vrf', 'tenant'
+    )
     filterset = BGPAddressFamilyFilterSet
     form = BGPAddressFamilyBulkEditForm
     table = BGPAddressFamilyTable
@@ -515,14 +548,18 @@ class BGPAddressFamilyBulkEditView(BulkEditView):
 
 @register_model_view(BGPAddressFamily, name='bulk_delete', detail=False)
 class BGPAddressFamilyBulkDeleteView(BulkDeleteView):
-    queryset = BGPAddressFamily.objects.all()
+    queryset = BGPAddressFamily.objects.select_related(
+        'scope__router__asn', 'scope__vrf', 'tenant'
+    )
     filterset = BGPAddressFamilyFilterSet
     table = BGPAddressFamilyTable
 
 
 @register_model_view(BGPAddressFamily, name='settings')
 class BGPAddressFamilySettingsView(BGPSettingViewMixin, ObjectChildrenView):
-    queryset = BGPAddressFamily.objects.all()
+    queryset = BGPAddressFamily.objects.select_related(
+        'scope__router__asn', 'scope__vrf', 'tenant'
+    )
     tab = ViewTab(
         label='Settings',
         badge=lambda obj: BGPAddressFamilySettingsView.child_model.objects.filter(
@@ -539,7 +576,17 @@ class BGPAddressFamilySettingsView(BGPSettingViewMixin, ObjectChildrenView):
 #
 @register_model_view(BGPPeer, name='list', path='', detail=False)
 class BGPPeerListView(ObjectListView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
     filterset = BGPPeerFilterSet
     filterset_form = BGPPeerFilterForm
     table = BGPPeerTable
@@ -547,7 +594,17 @@ class BGPPeerListView(ObjectListView):
 
 @register_model_view(BGPPeer)
 class BGPPeerView(ObjectView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -566,18 +623,48 @@ class BGPPeerView(ObjectView):
 @register_model_view(BGPPeer, name='add', detail=False)
 @register_model_view(BGPPeer, name='edit')
 class BGPPeerEditView(ObjectEditView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
     form = BGPPeerForm
 
 
 @register_model_view(BGPPeer, name='delete')
 class BGPPeerDeleteView(ObjectDeleteView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
 
 
 @register_model_view(BGPPeer, name='bulk_edit', detail=False)
 class BGPPeerBulkEditView(BulkEditView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
     filterset = BGPPeerFilterSet
     form = BGPPeerBulkEditForm
     table = BGPPeerTable
@@ -585,14 +672,34 @@ class BGPPeerBulkEditView(BulkEditView):
 
 @register_model_view(BGPPeer, name='bulk_delete', detail=False)
 class BGPPeerBulkDeleteView(BulkDeleteView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
     filterset = BGPPeerFilterSet
     table = BGPPeerTable
 
 
 @register_model_view(BGPPeer, name='settings')
 class BGPPeerSettingsView(BGPSettingViewMixin, ObjectChildrenView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
     tab = ViewTab(
         label='Settings',
         badge=lambda obj: BGPPeerSettingsView.child_model.objects.filter(
@@ -606,7 +713,17 @@ class BGPPeerSettingsView(BGPSettingViewMixin, ObjectChildrenView):
 
 @register_model_view(BGPPeer, name='address-families')
 class BGPPeerAddressFamiliesView(ObjectChildrenView):
-    queryset = BGPPeer.objects.all()
+    queryset = BGPPeer.objects.select_related(
+        'scope__router__asn',
+        'peer',
+        'source',
+        'peer_group',
+        'peer_session',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
     child_model = BGPPeerAddressFamily
     filterset = BGPPeerAddressFamilyFilterSet
     filterset_form = BGPPeerAddressFamilyFilterForm
@@ -628,7 +745,15 @@ class BGPPeerAddressFamiliesView(ObjectChildrenView):
 #
 @register_model_view(BGPPeerAddressFamily, name='list', path='', detail=False)
 class BGPPeerAddressFamilyListView(ObjectListView):
-    queryset = BGPPeerAddressFamily.objects.all()
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'address_family__scope__router__asn',
+        'peer_policy',
+        'prefixlist_out',
+        'prefixlist_in',
+        'routemap_out',
+        'routemap_in',
+        'tenant',
+    )
     filterset = BGPPeerAddressFamilyFilterSet
     filterset_form = BGPPeerAddressFamilyFilterForm
     table = BGPPeerAddressFamilyTable
@@ -636,7 +761,15 @@ class BGPPeerAddressFamilyListView(ObjectListView):
 
 @register_model_view(BGPPeerAddressFamily)
 class BGPPeerAddressFamilyView(ObjectView):
-    queryset = BGPPeerAddressFamily.objects.all()
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'address_family__scope__router__asn',
+        'peer_policy',
+        'prefixlist_out',
+        'prefixlist_in',
+        'routemap_out',
+        'routemap_in',
+        'tenant',
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -655,18 +788,42 @@ class BGPPeerAddressFamilyView(ObjectView):
 @register_model_view(BGPPeerAddressFamily, name='add', detail=False)
 @register_model_view(BGPPeerAddressFamily, name='edit')
 class BGPPeerAddressFamilyEditView(ObjectEditView):
-    queryset = BGPPeerAddressFamily.objects.all()
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'address_family__scope__router__asn',
+        'peer_policy',
+        'prefixlist_out',
+        'prefixlist_in',
+        'routemap_out',
+        'routemap_in',
+        'tenant',
+    )
     form = BGPPeerAddressFamilyForm
 
 
 @register_model_view(BGPPeerAddressFamily, name='delete')
 class BGPPeerAddressFamilyDeleteView(ObjectDeleteView):
-    queryset = BGPPeerAddressFamily.objects.all()
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'address_family__scope__router__asn',
+        'peer_policy',
+        'prefixlist_out',
+        'prefixlist_in',
+        'routemap_out',
+        'routemap_in',
+        'tenant',
+    )
 
 
 @register_model_view(BGPPeerAddressFamily, name='bulk_edit', detail=False)
 class BGPPeerAddressFamilyBulkEditView(BulkEditView):
-    queryset = BGPPeerAddressFamily.objects.all()
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'address_family__scope__router__asn',
+        'peer_policy',
+        'prefixlist_out',
+        'prefixlist_in',
+        'routemap_out',
+        'routemap_in',
+        'tenant',
+    )
     filterset = BGPPeerAddressFamilyFilterSet
     form = BGPPeerAddressFamilyBulkEditForm
     table = BGPPeerAddressFamilyTable
@@ -674,14 +831,30 @@ class BGPPeerAddressFamilyBulkEditView(BulkEditView):
 
 @register_model_view(BGPPeerAddressFamily, name='bulk_delete', detail=False)
 class BGPPeerAddressFamilyBulkDeleteView(BulkDeleteView):
-    queryset = BGPPeerAddressFamily.objects.all()
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'address_family__scope__router__asn',
+        'peer_policy',
+        'prefixlist_out',
+        'prefixlist_in',
+        'routemap_out',
+        'routemap_in',
+        'tenant',
+    )
     filterset = BGPPeerAddressFamilyFilterSet
     table = BGPPeerAddressFamilyTable
 
 
 @register_model_view(BGPPeerAddressFamily, name='settings')
 class BGPPeerAddressFamilySettingsView(BGPSettingViewMixin, ObjectChildrenView):
-    queryset = BGPPeerAddressFamily.objects.all()
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'address_family__scope__router__asn',
+        'peer_policy',
+        'prefixlist_out',
+        'prefixlist_in',
+        'routemap_out',
+        'routemap_in',
+        'tenant',
+    )
     tab = ViewTab(
         label='Settings',
         badge=lambda obj: BGPPeerAddressFamilySettingsView.child_model.objects.filter(
@@ -698,7 +871,7 @@ class BGPPeerAddressFamilySettingsView(BGPSettingViewMixin, ObjectChildrenView):
 #
 @register_model_view(BFDProfile, name='list', path='', detail=False)
 class BFDProfileListView(ObjectListView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
     filterset = BFDProfileFilterSet
     filterset_form = BFDProfileFilterForm
     table = BFDProfileTable
@@ -706,7 +879,7 @@ class BFDProfileListView(ObjectListView):
 
 @register_model_view(BFDProfile)
 class BFDProfileView(ObjectView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -724,18 +897,18 @@ class BFDProfileView(ObjectView):
 @register_model_view(BFDProfile, name='add', detail=False)
 @register_model_view(BFDProfile, name='edit')
 class BFDProfileEditView(ObjectEditView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
     form = BFDProfileForm
 
 
 @register_model_view(BFDProfile, name='delete')
 class BFDProfileDeleteView(ObjectDeleteView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
 
 
 @register_model_view(BFDProfile, name='bulk_edit', detail=False)
 class BFDProfileBulkEditView(BulkEditView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
     filterset = BFDProfileFilterSet
     form = BFDProfileBulkEditForm
     table = BFDProfileTable
@@ -743,14 +916,14 @@ class BFDProfileBulkEditView(BulkEditView):
 
 @register_model_view(BFDProfile, name='bulk_delete', detail=False)
 class BFDProfileBulkDeleteView(BulkDeleteView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
     filterset = BFDProfileFilterSet
     table = BFDProfileTable
 
 
 @register_model_view(BFDProfile, name='peers')
 class BFDProfilePeersView(ObjectChildrenView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
     child_model = BGPPeer
     table = BGPPeerTable
     filterset = BGPPeerFilterSet
@@ -767,7 +940,7 @@ class BFDProfilePeersView(ObjectChildrenView):
 
 @register_model_view(BFDProfile, name='session_templates')
 class BFDProfileSessionTemplatesView(ObjectChildrenView):
-    queryset = BFDProfile.objects.all()
+    queryset = BFDProfile.objects.select_related('tenant')
     child_model = BGPSessionTemplate
     table = BGPSessionTemplateTable
     filterset = BGPSessionTemplateFilterSet
