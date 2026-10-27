@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import CharField
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device
 from ipam.models import VRF
