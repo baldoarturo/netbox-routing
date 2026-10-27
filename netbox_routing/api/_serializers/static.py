@@ -7,7 +7,7 @@ from netbox.api.serializers import NetBoxModelSerializer
 from netbox_routing.api.field_serializers import IPAddressField
 from netbox_routing.models import StaticRoute
 
-__all__ = 'StaticRouteSerializer'
+__all__ = ('StaticRouteSerializer',)
 
 
 class StaticRouteSerializer(NetBoxModelSerializer):
@@ -16,7 +16,7 @@ class StaticRouteSerializer(NetBoxModelSerializer):
     )
     devices = DeviceSerializer(many=True, nested=True, required=False, allow_null=True)
     vrf = VRFSerializer(nested=True, required=False, allow_null=True)
-    next_hop = IPAddressField()
+    next_hop = IPAddressField(required=False, allow_null=True)
 
     class Meta:
         model = StaticRoute
@@ -28,6 +28,7 @@ class StaticRouteSerializer(NetBoxModelSerializer):
             'vrf',
             'prefix',
             'next_hop',
+            'interface_next_hop',
             'name',
             'metric',
             'tag',
@@ -48,13 +49,13 @@ class StaticRouteSerializer(NetBoxModelSerializer):
 
     def create(self, validated_data):
         devices = validated_data.pop('devices', None)
-        instance = super(StaticRouteSerializer, self).create(validated_data)
+        instance = super().create(validated_data)
 
         return self._update_devices(instance, devices)
 
     def update(self, instance, validated_data):
         devices = validated_data.pop('devices', None)
-        instance = super(StaticRouteSerializer, self).update(instance, validated_data)
+        instance = super().update(instance, validated_data)
 
         return self._update_devices(instance, devices)
 

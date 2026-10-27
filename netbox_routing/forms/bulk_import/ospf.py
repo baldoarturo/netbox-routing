@@ -44,7 +44,6 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
 
 
 class OSPFAreaImportForm(NetBoxModelImportForm):
-
     class Meta:
         model = OSPFArea
         fields = (

@@ -69,7 +69,7 @@ class BGPSettingSerializer(NetBoxModelSerializer):
 
 class BGPSessionTemplateSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_routing-api:bgpscope-detail'
+        view_name='plugins-api:netbox_routing-api:bgpsessiontemplate-detail'
     )
 
     remote_as = ASNSerializer(nested=True, required=False)
@@ -105,7 +105,7 @@ class BGPSessionTemplateSerializer(NetBoxModelSerializer):
 
 class BGPPolicyTemplateSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_routing-api:bgpscope-detail'
+        view_name='plugins-api:netbox_routing-api:bgppolicytemplate-detail'
     )
 
     tenant = TenantSerializer(nested=True, required=False)
@@ -136,7 +136,7 @@ class BGPPolicyTemplateSerializer(NetBoxModelSerializer):
 
 class BGPPeerTemplateSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_routing-api:bgpaddressfamily-detail'
+        view_name='plugins-api:netbox_routing-api:bgppeertemplate-detail'
     )
 
     remote_as = ASNSerializer(nested=True, required=False)
@@ -173,10 +173,8 @@ class BGPRouterSerializer(NetBoxModelSerializer):
     asn = ASNSerializer(nested=True)
     settings = BGPSettingSerializer(many=True, required=False)
     tenant = TenantSerializer(nested=True, required=False)
-    peer_templates = BGPSessionTemplateSerializer(
-        many=True, nested=True, required=False
-    )
-    policy_templates = BGPSessionTemplateSerializer(
+    peer_templates = BGPPeerTemplateSerializer(many=True, nested=True, required=False)
+    policy_templates = BGPPolicyTemplateSerializer(
         many=True, nested=True, required=False
     )
     session_templates = BGPSessionTemplateSerializer(
@@ -219,7 +217,7 @@ class BGPScopeSerializer(NetBoxModelSerializer):
     )
 
     router = BGPRouterSerializer(nested=True)
-    vrf = VRFSerializer(nested=True)
+    vrf = VRFSerializer(nested=True, required=False, allow_null=True)
     settings = BGPSettingSerializer(many=True, required=False)
     tenant = TenantSerializer(nested=True, required=False)
 
@@ -330,6 +328,7 @@ class BGPPeerAddressFamilySerializer(NetBoxModelSerializer):
         allow_null=True,
     )
     assigned_object = GFKSerializerField(read_only=True)
+
     # tenant = TenantSerializer(nested=True)
 
     class Meta:

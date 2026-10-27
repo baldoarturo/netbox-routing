@@ -26,9 +26,7 @@ class IPAddressFieldMixin:
             if api:
                 if type(value) is netaddr.IPAddress:
                     model_dict[key] = str(value)
-            elif not api and key in [
-                'router_id',
-            ]:
+            elif not api and key == 'router_id':
                 if type(value) is netaddr.IPAddress:
                     model_dict[key] = str(value)
         return model_dict
@@ -176,6 +174,6 @@ class BulkEditMixin:
 
 class PluginBaseURLMixin:
     def _get_base_url(self):
-        return 'plugins:{}:{}_{{}}'.format(
-            self.model._meta.app_label, self.model._meta.model_name
+        return (
+            f'plugins:{self.model._meta.app_label}:{self.model._meta.model_name}_{{}}'
         )

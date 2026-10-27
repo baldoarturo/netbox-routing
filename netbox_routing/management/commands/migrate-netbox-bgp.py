@@ -137,23 +137,25 @@ class Command(BaseCommand):
                     if not item.local_as:
                         raise Exception(_('All BGP Sessions require a local ASN'))
 
-                    assigned_object = item.device if item.device else item.site
-                    if assigned_object in mapping['router'].keys():
+                    assigned_object = item.device or item.site
+                    if assigned_object in mapping['router']:
                         continue
 
                     try:
                         if item.device:
                             router = BGPRouter.objects.get(
-                                device=assigned_object, asn=item.asn
+                                device=assigned_object, asn=item.local_as
                             )
                         elif item.site:
-                            router = BGPRouter.objects.get(site=item.site, asn=item.asn)
+                            router = BGPRouter.objects.get(
+                                site=item.site, asn=item.local_as
+                            )
                         else:
-                            router = BGPRouter.objects.get(asn=item.asn)
+                            router = BGPRouter.objects.get(asn=item.local_as)
                     except BGPRouter.DoesNotExist:
                         router = BGPRouter(
                             assigned_object=assigned_object,
-                            asn=item.asn,
+                            asn=item.local_as,
                         )
                         router.full_clean()
                         router.save()

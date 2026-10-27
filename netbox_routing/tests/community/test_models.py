@@ -29,7 +29,7 @@ class CommunityTestCase(TestCase):
         community.full_clean()
         community.save()
         self.assertIsInstance(community, Community)
-        self.assertEqual(community.__str__(), community_value)
+        self.assertEqual(str(community), community_value)
 
         community_value = '64512:64512'
         community = Community(
@@ -40,7 +40,7 @@ class CommunityTestCase(TestCase):
         community.full_clean()
         community.save()
         self.assertIsInstance(community, Community)
-        self.assertEqual(community.__str__(), community_value)
+        self.assertEqual(str(community), community_value)
 
         community_value = '64512:64512:64512'
         community = Community(
@@ -51,7 +51,7 @@ class CommunityTestCase(TestCase):
         community.full_clean()
         community.save()
         self.assertIsInstance(community, Community)
-        self.assertEqual(community.__str__(), community_value)
+        self.assertEqual(str(community), community_value)
 
         community_value = '64512:64512:64512:64512'
         community = Community(
@@ -64,8 +64,31 @@ class CommunityTestCase(TestCase):
             community.full_clean()
             community.save()
 
-    def test_unique_together(self):
+    def test_str_with_name(self):
+        role = Role.objects.get(name='Test Role')
+        community = Community(
+            name='blackhole',
+            community='65000:666',
+            status='active',
+            role=role,
+        )
+        community.full_clean()
+        community.save()
+        self.assertEqual(str(community), 'blackhole (65000:666)')
 
+    def test_str_without_name(self):
+        role = Role.objects.get(name='Test Role')
+        community = Community(
+            community='65000:100',
+            status='active',
+            role=role,
+        )
+        community.full_clean()
+        community.save()
+        self.assertEqual(community.name, '')
+        self.assertEqual(str(community), '65000:100')
+
+    def test_unique_together(self):
         role = Role.objects.get(name='Test Role')
         community_value = '64512:64512:64512'
         community = Community(

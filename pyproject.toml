@@ -8,19 +8,40 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "netbox-routing"
 authors = [
-    {name = "Daniel Sheppard", email = "dans@dansheps.com"}
+    { name = "Daniel Sheppard", email = "dans@dansheps.com" }
 ]
 maintainers = [
-    {name = "Daniel Sheppard", email = "dans@dansheps.com"},
+    { name = "Daniel Sheppard", email = "dans@dansheps.com" },
 ]
 description = "A NetBox Routing Plugin"
 readme = "README.md"
 requires-python = ">=3.12"
 keywords = ["netbox-plugin", ]
-version = "0.4.1"
-license = {file = "LICENSE"}
+version = "0.5.1"
+license = { file = "LICENSE" }
 classifiers = [
+    'Development Status :: 4 - Beta',
+    'Framework :: Django',
+    'Framework :: Django :: 6',
+    'Framework :: Django :: 6.0',
+    'Framework :: Django :: 6.1',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Information Technology',
+    'Intended Audience :: System Administrators',
+    'Intended Audience :: Telecommunications Industry',
+    'License :: OSI Approved :: Apache Software License',
+    'Natural Language :: English',
     "Programming Language :: Python :: 3",
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
+    'Topic :: System',
+    'Topic :: System :: Hardware',
+    'Topic :: System :: Hardware :: Mainframes',
+    'Topic :: System :: Networking',
+    'Topic :: System :: Networking :: Firewalls',
+    'Topic :: System :: Operating System',
+    'Topic :: System :: Systems Administration',
 ]
 dependencies = [
     'django-polymorphic',
@@ -32,9 +53,15 @@ Source = "https://github.com/dansheps/netbox-routing"
 Tracker = "https://github.com/dansheps/netbox-routing/issues"
 
 [tool.setuptools.packages.find]
-exclude=["netbox_routing.tests"]
+exclude = ["netbox_routing.tests"]
 
 [tool.black]
 skip-string-normalization = 1
+fast = 1
 check = 0
 diff = 0
+extend-exclude = '''
+/(
+    | netbox_routing/migrations
+)/
+'''

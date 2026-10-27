@@ -44,6 +44,7 @@ class ASPath(PrimaryModel):
     class Meta:
         ordering = [
             'name',
+            'pk',
         ]
         constraints = (
             models.UniqueConstraint(
@@ -112,6 +113,7 @@ class PrefixList(PrimaryModel):
     class Meta:
         ordering = [
             'name',
+            'pk',
         ]
         constraints = (
             models.UniqueConstraint(
@@ -198,26 +200,30 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
             boundary = 32 if prefix.version == 4 else 128
 
             if self.le is not None and self.le > boundary:
-                raise ValidationError({'le': 'LE value cannot be longer then 32'})
+                raise ValidationError(
+                    {'le': f'LE value cannot be greater than {boundary}'}
+                )
             if self.ge is not None and self.ge > boundary:
-                raise ValidationError({'ge': 'GE value cannot be longer then 32'})
+                raise ValidationError(
+                    {'ge': f'GE value cannot be greater than {boundary}'}
+                )
 
-            if self.ge and self.le and self.ge < self.le:
+            if self.ge is not None and self.le is not None and self.ge > self.le:
                 raise ValidationError(
                     {
-                        'ge': 'GE cannot be more then LE',
-                        'le': 'LE cannot be less then GE',
+                        'ge': 'GE cannot be greater than LE',
+                        'le': 'LE cannot be less than GE',
                     }
                 )
 
             if self.ge is not None and prefix.prefixlen >= self.ge:
                 raise ValidationError(
-                    'Prefix\'s length cannot be longer then greater or equals value'
+                    {'ge': 'GE must be greater than the prefix length'}
                 )
 
             if self.le is not None and prefix.prefixlen >= self.le:
                 raise ValidationError(
-                    'Prefix\'s length cannot be longer then greater or equals value'
+                    {'le': 'LE must be greater than the prefix length'}
                 )
 
 
@@ -264,6 +270,7 @@ class RouteMap(PrimaryModel):
     class Meta:
         ordering = [
             'name',
+            'pk',
         ]
         constraints = (
             models.UniqueConstraint(

@@ -5,9 +5,9 @@ from django.forms import ChoiceField
 
 from dcim.models import Interface, Device
 from ipam.models import VRF
-from netbox.forms import NetBoxModelForm
+from netbox.forms import PrimaryModelForm
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
-from utilities.forms.fields import DynamicModelChoiceField, CommentField
+from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 
 from netbox_routing.choices import OSPFNetworkTypeChoices
@@ -20,7 +20,7 @@ __all__ = (
 )
 
 
-class OSPFInstanceForm(NetBoxModelForm):
+class OSPFInstanceForm(PrimaryModelForm):
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
         required=True,
@@ -33,7 +33,6 @@ class OSPFInstanceForm(NetBoxModelForm):
         selector=True,
         label=_('VRF'),
     )
-    comments = CommentField()
 
     fieldsets = (
         FieldSet(
@@ -62,12 +61,12 @@ class OSPFInstanceForm(NetBoxModelForm):
             'vrf',
             'description',
             'comments',
+            'tags',
+            'owner',
         )
 
 
-class OSPFAreaForm(NetBoxModelForm):
-    comments = CommentField()
-
+class OSPFAreaForm(PrimaryModelForm):
     class Meta:
         model = OSPFArea
         fields = (
@@ -75,10 +74,12 @@ class OSPFAreaForm(NetBoxModelForm):
             'area_type',
             'description',
             'comments',
+            'tags',
+            'owner',
         )
 
 
-class OSPFInterfaceForm(NetBoxModelForm):
+class OSPFInterfaceForm(PrimaryModelForm):
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
         required=False,
@@ -114,7 +115,6 @@ class OSPFInterfaceForm(NetBoxModelForm):
         required=True,
         label=_('Network Type'),
     )
-    comments = CommentField()
 
     fieldsets = (
         FieldSet(
@@ -157,6 +157,8 @@ class OSPFInterfaceForm(NetBoxModelForm):
             'passphrase',
             'description',
             'comments',
+            'tags',
+            'owner',
         )
 
         widgets = {
