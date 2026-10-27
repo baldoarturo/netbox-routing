@@ -1,6 +1,6 @@
 import django_filters
 import netaddr
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 
 from dcim.models import Device
 from ipam.models import VRF
@@ -63,14 +63,18 @@ class StaticRouteFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         qs_filter = (
-            Q(devices__name__icontains=value)
+            Exists(
+                Device.objects.filter(
+                    static_routes=OuterRef('pk'), name__icontains=value
+                )
+            )
             | Q(vrf__name__icontains=value)
             | Q(vrf__rd__icontains=value)
             | Q(prefix__icontains=value)
             | Q(next_hop__icontains=value)
             | Q(name__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
     def filter_prefix(self, queryset, name, value):
         if not value.strip():
