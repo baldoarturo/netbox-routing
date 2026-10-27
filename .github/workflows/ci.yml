@@ -25,12 +25,11 @@ jobs:
         ports:
           - 6379:6379
       postgres:
-        image: postgres
+        image: postgres:16
         env:
           POSTGRES_USER: netbox
           POSTGRES_PASSWORD: netbox
         options: >-
-          --tmpfs /var/lib/postgresql
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -39,14 +38,6 @@ jobs:
           - 5432:5432
 
     steps:
-      - name: Make Postgres fast (CI only, data is disposable)
-        run: |
-          export PGPASSWORD=netbox
-          for s in "fsync=off" "synchronous_commit=off" "full_page_writes=off"; do
-            psql -h localhost -U netbox -d postgres -c "ALTER SYSTEM SET $s;"
-          done
-          psql -h localhost -U netbox -d postgres -c "SELECT pg_reload_conf();"
-
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -71,6 +62,29 @@ jobs:
           pip install -e netbox-routing
           cp -f netbox-routing/.github/configuration.testing.py netbox/netbox/netbox/configuration_testing.py
 
+      - name: Restore cached NetBox schema
+        id: schema-cache
+        uses: actions/cache@v4
+        with:
+          path: netbox-base-schema.dump
+          key: netbox-schema-v1-pg16-py3.12-${{ hashFiles('netbox/requirements.txt', 'netbox/netbox/**/migrations/*.py') }}
+
+      - name: Build NetBox base schema (cache miss)
+        if: steps.schema-cache.outputs.cache-hit != 'true'
+        env:
+          CI_BASE_SCHEMA: '1'
+          PGPASSWORD: netbox
+        run: |
+          python netbox/netbox/manage.py migrate
+          pg_dump -h localhost -U netbox -Fc netbox -f netbox-base-schema.dump
+
+      - name: Load base schema into the test database
+        env:
+          PGPASSWORD: netbox
+        run: |
+          createdb -h localhost -U netbox test_netbox
+          pg_restore -h localhost -U netbox -d test_netbox --no-owner netbox-base-schema.dump
+
       - name: Check Ruff
         run: |
           cp -f netbox-routing/ruff.toml ./ruff.toml
@@ -83,4 +97,4 @@ jobs:
           src: "netbox-routing/netbox_routing"
 
       - name: Run tests
-        run: python netbox/netbox/manage.py test netbox-routing/netbox_routing --parallel
+        run: python netbox/netbox/manage.py test netbox-routing/netbox_routing --parallel --keepdb
