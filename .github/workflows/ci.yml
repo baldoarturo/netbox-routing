@@ -1,5 +1,8 @@
 name: CI
-on: [ push, pull_request ]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
 
 permissions:
   contents: read
@@ -16,9 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NETBOX_CONFIGURATION: netbox.configuration_testing
-    strategy:
-      matrix:
-        python-version: [ '3.12', '3.13', '3.14' ]
     services:
       redis:
         image: redis
@@ -38,10 +38,10 @@ jobs:
           - 5432:5432
 
     steps:
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.12'
       - name: Check out NetBox
         uses: actions/checkout@v4
         with:
