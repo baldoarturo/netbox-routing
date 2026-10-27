@@ -1,3 +1,6 @@
+from django.utils.translation import gettext_lazy as _
+
+from extras.ui.panels import TagsPanel
 from netbox.views.generic import (
     ObjectListView,
     ObjectEditView,
@@ -8,12 +11,16 @@ from netbox.views.generic import (
     BulkEditView,
     BulkDeleteView,
 )
-from netbox_routing.filtersets.eigrp import *
-from netbox_routing.forms import *
-from netbox_routing.tables.eigrp import *
+from netbox.ui import panels, layout
+from netbox_routing.ui.panels.eigrp import EIGRPInterfaceSettingsPanel
+
 from utilities.views import register_model_view, ViewTab
 
+from netbox_routing.filtersets.eigrp import *
+from netbox_routing.forms import *
 from netbox_routing.models import *
+from netbox_routing.tables.eigrp import *
+from netbox_routing.ui import *
 
 __all__ = (
     'EIGRPRouterListView',
@@ -65,7 +72,17 @@ class EIGRPRouterListView(ObjectListView):
 @register_model_view(EIGRPRouter)
 class EIGRPRouterView(ObjectView):
     queryset = EIGRPRouter.objects.all()
-    template_name = 'netbox_routing/eigrprouter.html'
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            EIGRPRouterPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
 
 
 @register_model_view(EIGRPRouter, name='address_families')
@@ -165,7 +182,17 @@ class EIGRPAddressFamilyListView(ObjectListView):
 @register_model_view(EIGRPAddressFamily)
 class EIGRPAddressFamilyView(ObjectView):
     queryset = EIGRPAddressFamily.objects.all()
-    template_name = 'netbox_routing/eigrpaddressfamily.html'
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            EIGRPAddressFamilyPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
 
 
 @register_model_view(EIGRPAddressFamily, name='interfaces')
@@ -180,6 +207,9 @@ class EIGRPAddressFamilyInterfacesView(ObjectChildrenView):
         badge=lambda obj: EIGRPInterface.objects.filter(address_family=obj).count(),
     )
 
+    def get_children(self, request, parent):
+        return self.child_model.objects.filter(address_family=parent)
+
 
 @register_model_view(EIGRPAddressFamily, name='networks')
 class EIGRPAddressFamilyNetworksView(ObjectChildrenView):
@@ -189,12 +219,12 @@ class EIGRPAddressFamilyNetworksView(ObjectChildrenView):
     table = EIGRPNetworkTable
     filterset = EIGRPNetworkFilterSet
     tab = ViewTab(
-        label='Interfaces',
-        badge=lambda obj: EIGRPInterface.objects.filter(address_family=obj).count(),
+        label='Networks',
+        badge=lambda obj: EIGRPNetwork.objects.filter(address_family=obj).count(),
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(address_famiily=parent)
+        return self.child_model.objects.filter(address_family=parent)
 
 
 @register_model_view(EIGRPAddressFamily, name='add', detail=False)
@@ -244,7 +274,17 @@ class EIGRPNetworkListView(ObjectListView):
 @register_model_view(EIGRPNetwork)
 class EIGRPNetworkView(ObjectView):
     queryset = EIGRPNetwork.objects.all()
-    template_name = 'netbox_routing/eigrpnetwork.html'
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            EIGRPNetworkPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
 
 
 @register_model_view(EIGRPNetwork, name='add', detail=False)
@@ -294,7 +334,18 @@ class EIGRPInterfaceListView(ObjectListView):
 @register_model_view(EIGRPInterface)
 class EIGRPInterfaceView(ObjectView):
     queryset = EIGRPInterface.objects.all()
-    template_name = 'netbox_routing/eigrpinterface.html'
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            EIGRPInterfacePanel(),
+            EIGRPInterfaceSettingsPanel(title=_('Interface Settings')),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
 
 
 @register_model_view(EIGRPInterface, name='add', detail=False)

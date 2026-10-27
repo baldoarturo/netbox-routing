@@ -1,4 +1,4 @@
-from typing import Annotated, Union, List
+from typing import Annotated, Union
 
 import strawberry
 import strawberry_django
@@ -42,10 +42,9 @@ from netbox_routing.graphql.types_mixin import BGPSettingsMixin
     filters=BGPSettingFilter,
 )
 class BGPSettingType(PrimaryObjectType):
-
     assigned_object_type: (
         Annotated["ContentTypeType", strawberry.lazy('netbox.graphql.types')] | None
-    )  # noqa: F821
+    )
     assigned_object: Union[
         Annotated[
             'BGPPeerTemplateType', strawberry.lazy('netbox_routing.graphql.types')
@@ -67,34 +66,26 @@ class BGPSettingType(PrimaryObjectType):
         ],
     ]
     key: str
-    value: (
-        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
+    value: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
 
 
 @strawberry_django.type(
     models.BGPPeerTemplate, fields='__all__', filters=BGPPeerTemplateFilter
 )
 class BGPPeerTemplateType(PrimaryObjectType):
-
     name: str
-    remote_as: (
-        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
+    remote_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
     enabled: bool | None
-    tenant: (
-        Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
-    )  # noqa: F821
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(
     models.BGPPolicyTemplate, fields='__all__', filters=BGPPolicyTemplateFilter
 )
 class BGPPolicyTemplateType(PrimaryObjectType):
-
     name: str
     parents: (
-        List[
+        list[
             Annotated[
                 "BGPPolicyTemplateType", strawberry.lazy('netbox_routing.graphql.types')
             ]
@@ -118,16 +109,13 @@ class BGPPolicyTemplateType(PrimaryObjectType):
         Annotated["RouteMapType", strawberry.lazy('netbox_routing.graphql.types')]
         | None
     )
-    tenant: (
-        Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
-    )  # noqa: F821
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(
     models.BGPSessionTemplate, fields='__all__', filters=BGPSessionTemplateFilter
 )
 class BGPSessionTemplateType(BGPSettingsMixin, PrimaryObjectType):
-
     name: str
     parent: (
         Annotated[
@@ -136,12 +124,8 @@ class BGPSessionTemplateType(BGPSettingsMixin, PrimaryObjectType):
         | None
     )
     enabled: bool | None
-    remote_as: (
-        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
-    local_as: (
-        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
+    remote_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
+    local_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
     bfd: (
         Annotated["BFDProfileType", strawberry.lazy('netbox_routing.graphql.types')]
         | None
@@ -161,11 +145,10 @@ class BGPSessionTemplateType(BGPSettingsMixin, PrimaryObjectType):
     ],
 )
 class BGPRouterType(BGPSettingsMixin, PrimaryObjectType):
-
     name: str | None
     assigned_object_type: (
         Annotated["ContentTypeType", strawberry.lazy('netbox.graphql.types')] | None
-    )  # noqa: F821
+    )
     assigned_object: Union[
         Annotated['RegionType', strawberry.lazy('dcim.graphql.types')],
         Annotated['SiteType', strawberry.lazy('dcim.graphql.types')],
@@ -179,7 +162,7 @@ class BGPRouterType(BGPSettingsMixin, PrimaryObjectType):
     ]
     asn: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')]
     peer_templates: (
-        List[
+        list[
             Annotated[
                 'BGPPeerTemplateType', strawberry.lazy('netbox_routing.graphql.types')
             ]
@@ -187,7 +170,7 @@ class BGPRouterType(BGPSettingsMixin, PrimaryObjectType):
         | None
     )
     policy_templates: (
-        List[
+        list[
             Annotated[
                 'BGPPolicyTemplateType', strawberry.lazy('netbox_routing.graphql.types')
             ]
@@ -195,7 +178,7 @@ class BGPRouterType(BGPSettingsMixin, PrimaryObjectType):
         | None
     )
     session_templates: (
-        List[
+        list[
             Annotated[
                 'BGPSessionTemplateType',
                 strawberry.lazy('netbox_routing.graphql.types'),
@@ -203,9 +186,7 @@ class BGPRouterType(BGPSettingsMixin, PrimaryObjectType):
         ]
         | None
     )
-    tenant: (
-        Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
-    )  # noqa: F821
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(
@@ -218,14 +199,9 @@ class BGPRouterType(BGPSettingsMixin, PrimaryObjectType):
     ],
 )
 class BGPScopeType(BGPSettingsMixin, PrimaryObjectType):
-
     router: Annotated["BGPRouterType", strawberry.lazy('netbox_routing.graphql.types')]
-    vrf: (
-        Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
-    tenant: (
-        Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
-    )  # noqa: F821
+    vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(
@@ -237,12 +213,9 @@ class BGPScopeType(BGPSettingsMixin, PrimaryObjectType):
     ],
 )
 class BGPAddressFamilyType(BGPSettingsMixin, PrimaryObjectType):
-
     scope: Annotated["BGPScopeType", strawberry.lazy('netbox_routing.graphql.types')]
     address_family: str | None
-    tenant: (
-        Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
-    )  # noqa: F821
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(
@@ -252,7 +225,6 @@ class BGPAddressFamilyType(BGPSettingsMixin, PrimaryObjectType):
     select_related=['scope', 'peer', 'remote_as'],
 )
 class BGPPeerType(BGPSettingsMixin, PrimaryObjectType):
-
     name: str | None
     enabled: bool | None
     status: str | None
@@ -272,18 +244,10 @@ class BGPPeerType(BGPSettingsMixin, PrimaryObjectType):
         ]
         | None
     )
-    peer: Annotated[
-        "IPAddressType", strawberry.lazy('ipam.graphql.types')
-    ]  # noqa: F821
-    source: (
-        Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
-    remote_as: (
-        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
-    local_as: (
-        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
-    )  # noqa: F821
+    peer: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')]
+    source: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')] | None
+    remote_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
+    local_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
     bfd: (
         Annotated["BFDProfileType", strawberry.lazy('netbox_routing.graphql.types')]
         | None
@@ -291,7 +255,7 @@ class BGPPeerType(BGPSettingsMixin, PrimaryObjectType):
     ttl: int | None
     password: str | None
     address_families: (
-        List[
+        list[
             Annotated[
                 'BGPPeerAddressFamilyType',
                 strawberry.lazy('netbox_routing.graphql.types'),
@@ -299,9 +263,7 @@ class BGPPeerType(BGPSettingsMixin, PrimaryObjectType):
         ]
         | None
     )
-    tenant: (
-        Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
-    )  # noqa: F821
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(
@@ -315,10 +277,9 @@ class BGPPeerType(BGPSettingsMixin, PrimaryObjectType):
     ],
 )
 class BGPPeerAddressFamilyType(BGPSettingsMixin, PrimaryObjectType):
-
     assigned_object_type: (
         Annotated["ContentTypeType", strawberry.lazy('netbox.graphql.types')] | None
-    )  # noqa: F821
+    )
     assigned_object: (
         Union[
             Annotated["BGPPeerType", strawberry.lazy('netbox_routing.graphql.types')],
@@ -358,9 +319,7 @@ class BGPPeerAddressFamilyType(BGPSettingsMixin, PrimaryObjectType):
         ]
         | None
     )
-    tenant: (
-        Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
-    )  # noqa: F821
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(

@@ -21,6 +21,7 @@ __all__ = (
 )
 
 
+@register_filterset
 class ASPathFilterSet(NetBoxModelFilterSet):
     route_map_entry_id = django_filters.ModelMultipleChoiceFilter(
         field_name='route_map_entries',
@@ -91,6 +92,7 @@ class PrefixListFilterSet(NetBoxModelFilterSet):
         return queryset.filter(qs_filter).distinct()
 
 
+@register_filterset
 class PrefixListEntryFilterSet(NetBoxModelFilterSet):
     prefix_list_id = django_filters.ModelMultipleChoiceFilter(
         field_name='prefix_list',
@@ -160,6 +162,7 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
             return queryset.none()
 
 
+@register_filterset
 class CustomPrefixFilterSet(NetBoxModelFilterSet):
 
     class Meta:

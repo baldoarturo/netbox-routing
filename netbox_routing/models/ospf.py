@@ -8,6 +8,7 @@ from netbox.models import PrimaryModel
 
 from netbox_routing import choices
 from netbox_routing.choices.ospf import OSPFAreaTypeChoices
+from netbox_routing.constants import ERROR_UNIQUENESS_CONSTRAINT
 from netbox_routing.fields.ip import IPAddressField
 
 __all__ = (
@@ -41,8 +42,16 @@ class OSPFInstance(PrimaryModel):
     prerequisite_models = ('dcim.Device',)
 
     class Meta:
-        ordering = ['vrf', 'router_id', 'process_id']
+        ordering = ['vrf', 'router_id', 'process_id', 'pk']
         verbose_name = 'OSPF Instance'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('device', 'name'),
+                name='%(app_label)s_%(class)s_unique_device_name',
+                violation_error_message=ERROR_UNIQUENESS_CONSTRAINT,
+                nulls_distinct=False,
+            ),
+        )
 
     def __str__(self):
         return f'{self.name} ({self.router_id})'
@@ -64,7 +73,7 @@ class OSPFArea(PrimaryModel):
     clone_fields = ('area_id', 'area_type')
 
     class Meta:
-        ordering = ['area_id']
+        ordering = ['area_id', 'pk']
         verbose_name = 'OSPF Area'
 
     def __str__(self):
@@ -130,7 +139,6 @@ class OSPFInterface(PrimaryModel):
     passphrase = models.CharField(max_length=200, blank=True, null=True)
 
     clone_fields = (
-        'device',
         'instance',
         'area',
         'interface',

@@ -34,7 +34,7 @@ def forward_migrate(apps, schema_editor):
         match = rme.match
         for key, attr, model in models:
             getattr(rme, attr).set(get_relations(rme.match.get(key), model))
-            if key in match.keys():
+            if key in match:
                 del match[key]
         rme.save()
 
@@ -58,7 +58,6 @@ def reverse_migrate(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('netbox_routing', '0025_prefixlistentry_prefix_change'),
     ]

@@ -118,6 +118,16 @@ class BGPSettingMixin:
     def _clean_fieldset(self):
         pass
 
+    def _get_settings_field_type(self, key):
+        return BGPSettingChoices.FIELD_TYPES.get(key, 'string')
+
+    def _field_unset(self, key, value):
+        field_type = self._get_settings_field_type(key)
+        if field_type == 'integer' or field_type == 'boolean':
+            return value is None
+        else:
+            return value is None or value == ''
+
     def save(self, *args, **kwargs):
         settings = {}
         for key, name in BGPSettingChoices.CHOICES:
@@ -132,24 +142,19 @@ class BGPSettingMixin:
                 assigned_object_id=self.get_assigned_object_id(),
                 key=key,
             ).first()
-            # print(f'{key}')
-            if setting and value:
-                # print('\tPrev: {setting.value}')
-                # print('\tNew: {value}')
-                setting.value = settings.get(key)
+            if setting is not None and not self._field_unset(key, value):
+                setting.value = value
                 setting.clean()
                 setting.save()
-            elif value:
-                # print('\tNew: {value}')
+            elif setting is None and not self._field_unset(key, value):
                 setting = BGPSetting(
                     assigned_object=self.instance,
                     key=key,
-                    value=settings.get(key, None),
+                    value=value,
                 )
                 setting.clean()
                 setting.save()
-            elif setting:
-                # print('\tPrev: {setting.value}')
+            elif setting is not None and self._field_unset(key, value):
                 setting.delete()
 
         return obj
@@ -162,7 +167,6 @@ class BGPSettingMixin:
 
 
 class BGPSettingForm(PrimaryModelForm):
-
     router = DynamicModelChoiceField(
         queryset=BGPRouter.objects.all(),
         required=True,
@@ -211,6 +215,8 @@ class BGPSettingForm(PrimaryModelForm):
             'addressfamily',
             'key',
             'value',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -243,7 +249,7 @@ class BGPSettingForm(PrimaryModelForm):
             raise forms.ValidationError(
                 {
                     selected_objects[1]: _(
-                        "A BGP Setting can only be assigned to a single object."
+                        'A BGP Setting can only be assigned to a single object.'
                     )
                 }
             )
@@ -262,7 +268,7 @@ class BGPPeerTemplateForm(TenancyForm, PrimaryModelForm):
     )
 
     fieldsets = (
-        FieldSet('name', 'remote_as', 'enabled'),
+        FieldSet('name', 'remote_as', 'enabled', 'description'),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -273,6 +279,8 @@ class BGPPeerTemplateForm(TenancyForm, PrimaryModelForm):
             'remote_as',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -280,7 +288,7 @@ class BGPPeerTemplateForm(TenancyForm, PrimaryModelForm):
 
 class BGPPolicyTemplateForm(TenancyForm, PrimaryModelForm):
     parents = DynamicModelMultipleChoiceField(
-        queryset=BGPPeerTemplate.objects.all(),
+        queryset=BGPPolicyTemplate.objects.all(),
         required=False,
         selector=True,
         label=_('Parent Policy Templates'),
@@ -314,6 +322,8 @@ class BGPPolicyTemplateForm(TenancyForm, PrimaryModelForm):
         FieldSet(
             'name',
             'parents',
+            'description',
+            'tags',
         ),
         FieldSet(
             'prefixlist_out',
@@ -336,6 +346,8 @@ class BGPPolicyTemplateForm(TenancyForm, PrimaryModelForm):
             'routemap_in',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -367,6 +379,7 @@ class BGPSessionTemplateForm(TenancyForm, PrimaryModelForm):
             'parent',
             'remote_as',
             'local_as',
+            'description',
         ),
         FieldSet('pasword', 'bfd', 'ttl', 'enabled', name=_('Setings')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
@@ -385,6 +398,8 @@ class BGPSessionTemplateForm(TenancyForm, PrimaryModelForm):
             'password',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -437,7 +452,7 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         queryset=VirtualMachine.objects.all(),
         required=False,
         selector=True,
-        label=_('Device'),
+        label=_('Virtual Machine'),
     )
     asn = DynamicModelChoiceField(
         queryset=ASN.objects.all(),
@@ -464,17 +479,27 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         label=_('Peer Templates'),
     )
 
+    location_selected = forms.HiddenInput()
+    vm_selected = forms.HiddenInput()
+
     fieldsets = [
         FieldSet(
             'name',
+            'description',
         ),
         FieldSet(
             TabbedGroups(
                 FieldSet(
-                    'region', 'site_group', 'site', 'location', name=_('Locations')
+                    'location_selected',
+                    'region',
+                    'site_group',
+                    'site',
+                    'location',
+                    name=_('Locations'),
                 ),
                 FieldSet('device', name=_('Device')),
                 FieldSet(
+                    'vm_selected',
                     'cluster_group',
                     'cluster',
                     'virtual_machine',
@@ -511,6 +536,8 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'peer_templates',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -522,20 +549,27 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         initial = kwargs.get('initial', {}).copy()
         if instance:
             if type(instance.assigned_object) is Region:
+                initial['location_selected'] = True
                 initial['region'] = instance.assigned_object
             elif type(instance.assigned_object) is SiteGroup:
+                initial['location_selected'] = True
                 initial['site_group'] = instance.assigned_object
             elif type(instance.assigned_object) is Site:
+                initial['location_selected'] = True
                 initial['site'] = instance.assigned_object
             elif type(instance.assigned_object) is Location:
+                initial['location_selected'] = True
                 initial['location'] = instance.assigned_object
             elif type(instance.assigned_object) is Device:
                 initial['device'] = instance.assigned_object
             elif type(instance.assigned_object) is ClusterGroup:
+                initial['vm_selected'] = True
                 initial['cluster_group'] = instance.assigned_object
             elif type(instance.assigned_object) is Cluster:
+                initial['vm_selected'] = True
                 initial['cluster'] = instance.assigned_object
             elif type(instance.assigned_object) is VirtualMachine:
+                initial['vm_selected'] = True
                 initial['virtual_machine'] = instance.assigned_object
         kwargs['initial'] = initial
         super().__init__(*args, **kwargs)
@@ -562,7 +596,7 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             raise forms.ValidationError(
                 {
                     selected_objects[1]: _(
-                        "A BGP Router can only be assigned to a single object."
+                        'A BGP Router can only be assigned to a single object.'
                     )
                 }
             )
@@ -570,6 +604,21 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             self.instance.assigned_object = self.cleaned_data[selected_objects[0]]
         else:
             self.instance.assigned_object = None
+
+        if self.instance.assigned_object:
+            filter = {selected_objects[0]: self.instance.assigned_object}
+            if (
+                self.Meta.model.objects.filter(**filter)
+                .exclude(pk=self.instance.pk)
+                .exists()
+            ):
+                raise forms.ValidationError(
+                    {
+                        selected_objects[0]: _(
+                            'A BGP Router with this object already exists.'
+                        )
+                    }
+                )
 
     def save(self, *args, **kwargs):
         return super().save(*args, **kwargs)
@@ -590,7 +639,7 @@ class BGPScopeForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
     )
 
     fieldsets = (
-        FieldSet('router', 'vrf', name=_('Scope')),
+        FieldSet('router', 'vrf', 'description', name=_('Scope')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -601,6 +650,8 @@ class BGPScopeForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'vrf',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -623,7 +674,7 @@ class BGPAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
     )
 
     fieldsets = (
-        FieldSet('scope', 'address_family', name=_('Address Family')),
+        FieldSet('scope', 'address_family', 'description', name=_('Address Family')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -634,6 +685,8 @@ class BGPAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'address_family',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -671,6 +724,7 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
     fieldsets = (
         FieldSet(
             'name',
+            'description',
         ),
         FieldSet('scope', 'peer', 'status', name=_('Peer')),
         FieldSet('remote_as', 'local_as', name=_('ASNs')),
@@ -694,6 +748,8 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'password',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -738,13 +794,13 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         queryset=RouteMap.objects.all(),
         required=False,
         selector=True,
-        label=_('Prefix List (in)'),
+        label=_('Route Map (in)'),
     )
     route_map_out = DynamicModelChoiceField(
         queryset=RouteMap.objects.all(),
         required=False,
         selector=True,
-        label=_('Prefix List (out)'),
+        label=_('Route Map (out)'),
     )
 
     fieldsets = (
@@ -755,7 +811,7 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             ),
             name=_('Assigned Object'),
         ),
-        FieldSet('address_family', 'enabled'),
+        FieldSet('address_family', 'enabled', 'description'),
         FieldSet(
             'route_map_in',
             'route_map_out',
@@ -779,6 +835,8 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'prefix_list_out',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
@@ -807,7 +865,7 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             raise forms.ValidationError(
                 {
                     selected_objects[1]: _(
-                        "A BGP Peer Address Family can only be assigned to a single object."
+                        'A BGP Peer Address Family can only be assigned to a single object.'
                     )
                 }
             )
@@ -818,12 +876,28 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
                 _('A BGP Peer Address Family must specify an Peer or Peer Group.')
             )
 
+        filter = {
+            selected_objects[0]: self.instance.assigned_object,
+            'address_family': self.cleaned_data.get('address_family'),
+        }
+        if (
+            self.Meta.model.objects.filter(**filter)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                {
+                    selected_objects[0]: _(
+                        'A BGP Peer Address Family with this object already exists.'
+                    )
+                }
+            )
+
     def save(self, *args, **kwargs):
         return super().save(*args, **kwargs)
 
 
 class BFDProfileForm(TenancyForm, PrimaryModelForm):
-
     fieldsets = (
         FieldSet(
             'name',

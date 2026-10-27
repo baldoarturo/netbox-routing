@@ -1,3 +1,4 @@
+from extras.ui.panels import TagsPanel
 from netbox.views.generic import (
     ObjectListView,
     ObjectView,
@@ -6,13 +7,16 @@ from netbox.views.generic import (
     ObjectChildrenView,
     BulkEditView,
     BulkDeleteView,
+    BulkImportView,
 )
+from netbox.ui import panels, layout
 from utilities.views import register_model_view, ViewTab
 
 from netbox_routing.filtersets.community import *
 from netbox_routing.forms.community import *
 from netbox_routing.models.community import *
 from netbox_routing.tables.community import *
+from netbox_routing.ui import *
 
 __all__ = (
     'CommunityListListView',
@@ -22,18 +26,21 @@ __all__ = (
     'CommunityListEntriesView',
     'CommunityListBulkEditView',
     'CommunityListBulkDeleteView',
+    'CommunityListBulkImportView',
     'CommunityListView',
     'CommunityDetailView',
     'CommunityEditView',
     'CommunityDeleteView',
     'CommunityBulkEditView',
     'CommunityBulkDeleteView',
+    'CommunityBulkImportView',
     'CommunityListEntryListView',
     'CommunityListEntryDetailView',
     'CommunityListEntryEditView',
     'CommunityListEntryDeleteView',
     'CommunityListEntryBulkEditView',
     'CommunityListEntryBulkDeleteView',
+    'CommunityListEntryBulkImportView',
 )
 
 
@@ -51,7 +58,17 @@ class CommunityListListView(ObjectListView):
 @register_model_view(CommunityList)
 class CommunityListDetailView(ObjectView):
     queryset = CommunityList.objects.all()
-    template_name = 'netbox_routing/communitylist.html'
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            CommunityListPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
 
 
 @register_model_view(CommunityList, name='add', detail=False)
@@ -100,6 +117,12 @@ class CommunityListBulkDeleteView(BulkDeleteView):
     table = CommunityListTable
 
 
+@register_model_view(CommunityList, name='bulk_import', detail=False)
+class CommunityListBulkImportView(BulkImportView):
+    queryset = CommunityList.objects.all()
+    model_form = CommunityListImportForm
+
+
 #
 # Community
 #
@@ -116,7 +139,17 @@ class CommunityListView(ObjectListView):
 @register_model_view(Community)
 class CommunityDetailView(ObjectView):
     queryset = Community.objects.all()
-    template_name = 'netbox_routing/community.html'
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            CommunityPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
 
 
 @register_model_view(Community, name='add', detail=False)
@@ -146,6 +179,12 @@ class CommunityBulkDeleteView(BulkDeleteView):
     table = CommunityTable
 
 
+@register_model_view(Community, name='bulk_import', detail=False)
+class CommunityBulkImportView(BulkImportView):
+    queryset = Community.objects.all()
+    model_form = CommunityImportForm
+
+
 #
 # Community List Entry
 #
@@ -162,7 +201,17 @@ class CommunityListEntryListView(ObjectListView):
 @register_model_view(CommunityListEntry)
 class CommunityListEntryDetailView(ObjectView):
     queryset = CommunityListEntry.objects.all()
-    template_name = 'netbox_routing/communitylistentry.html'
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            CommunityListEntryPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
 
 
 @register_model_view(CommunityListEntry, name='add', detail=False)
@@ -190,3 +239,9 @@ class CommunityListEntryBulkDeleteView(BulkDeleteView):
     queryset = CommunityListEntry.objects.all()
     filterset = CommunityListEntryFilterForm
     table = CommunityListEntryTable
+
+
+@register_model_view(CommunityListEntry, name='bulk_import', detail=False)
+class CommunityListEntryBulkImportView(BulkImportView):
+    queryset = CommunityListEntry.objects.all()
+    model_form = CommunityListEntryImportForm

@@ -22,8 +22,7 @@ __all__ = (
 
 @strawberry_django.type(models.EIGRPRouter, fields='__all__', filters=EIGRPRouterFilter)
 class EIGRPRouterType(PrimaryObjectType):
-
-    device: Annotated["DeviceType", strawberry.lazy('dcim.graphql.types')]  # noqa: F821
+    device: Annotated["DeviceType", strawberry.lazy('dcim.graphql.types')]
     rid: str
     type: str
     name: str
@@ -34,7 +33,6 @@ class EIGRPRouterType(PrimaryObjectType):
     models.EIGRPAddressFamily, fields='__all__', filters=EIGRPAddressFamilyFilter
 )
 class EIGRPAddressFamilyType(PrimaryObjectType):
-
     router: Annotated[
         "EIGRPRouterType", strawberry.lazy('netbox_routing.graphql.types')
     ]
@@ -45,7 +43,6 @@ class EIGRPAddressFamilyType(PrimaryObjectType):
     models.EIGRPNetwork, fields='__all__', filters=EIGRPNetworkFilter
 )
 class EIGRPNetworkType(PrimaryObjectType):
-
     router: Annotated[
         "EIGRPRouterType", strawberry.lazy('netbox_routing.graphql.types')
     ]
@@ -55,16 +52,13 @@ class EIGRPNetworkType(PrimaryObjectType):
         ]
         | None
     )
-    network: Annotated[
-        "PrefixType", strawberry.lazy('ipam.graphql.types')
-    ]  # noqa: F821
+    network: Annotated["PrefixType", strawberry.lazy('ipam.graphql.types')]
 
 
 @strawberry_django.type(
     models.EIGRPInterface, fields='__all__', filters=EIGRPInterfaceFilter
 )
 class EIGRPInterfaceType(PrimaryObjectType):
-
     router: Annotated[
         "EIGRPRouterType", strawberry.lazy('netbox_routing.graphql.types')
     ]
@@ -74,9 +68,7 @@ class EIGRPInterfaceType(PrimaryObjectType):
         ]
         | None
     )
-    interface: Annotated[
-        "InterfaceType", strawberry.lazy('dcim.graphql.types')
-    ]  # noqa: F821
+    interface: Annotated["InterfaceType", strawberry.lazy('dcim.graphql.types')]
     passive: str | None
     bfd: bool | None
     authentication: str | None

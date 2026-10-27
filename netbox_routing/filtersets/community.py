@@ -2,7 +2,7 @@ import django_filters
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
-from netbox.filtersets import NetBoxModelFilterSet
+from netbox.filtersets import PrimaryModelFilterSet
 from netbox_routing.models import RouteMapEntry
 from tenancy.filtersets import TenancyFilterSet
 from ipam.models import Role
@@ -19,7 +19,7 @@ __all__ = (
 
 
 @register_filterset
-class CommunityFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
+class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
     role_id = django_filters.ModelMultipleChoiceFilter(
         field_name='role',
         queryset=Role.objects.all(),
@@ -40,6 +40,7 @@ class CommunityFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
     class Meta:
         model = Community
         fields = (
+            'name',
             'community',
             'status',
             'role_id',
@@ -53,12 +54,16 @@ class CommunityFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        qs_filter = Q(community__icontains=value)
+        qs_filter = (
+            Q(name__icontains=value)
+            | Q(community__icontains=value)
+            | Q(description__icontains=value)
+        )
         return queryset.filter(qs_filter).distinct()
 
 
 @register_filterset
-class CommunityListFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
+class CommunityListFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
     route_map_entry_id = django_filters.ModelMultipleChoiceFilter(
         field_name='route_map_entries',
         queryset=RouteMapEntry.objects.all(),
@@ -72,12 +77,12 @@ class CommunityListFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        qs_filter = Q(name__icontains=value)
+        qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
         return queryset.filter(qs_filter).distinct()
 
 
 @register_filterset
-class CommunityListEntryFilterSet(NetBoxModelFilterSet):
+class CommunityListEntryFilterSet(PrimaryModelFilterSet):
     community_list_id = django_filters.ModelMultipleChoiceFilter(
         field_name='community_list',
         queryset=CommunityList.objects.all(),
@@ -115,4 +120,5 @@ class CommunityListEntryFilterSet(NetBoxModelFilterSet):
             return queryset
         qs_filter = Q(community_list__name__icontains=value)
         qs_filter |= Q(community__community__icontains=value)
+        qs_filter |= Q(description__icontains=value)
         return queryset.filter(qs_filter).distinct()
