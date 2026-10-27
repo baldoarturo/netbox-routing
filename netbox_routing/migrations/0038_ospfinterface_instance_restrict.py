@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('netbox_routing', '0035_total_model_ordering'),
+        ('netbox_routing', '0037_bgp_m2m_blank'),
     ]
 
     operations = [
