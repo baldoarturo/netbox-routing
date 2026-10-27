@@ -160,6 +160,7 @@ class BGPPolicyTemplate(PrimaryModel):
     name = models.CharField(verbose_name=_('Name'), max_length=100)
     parents = models.ManyToManyField(
         verbose_name=_('Parent Policies'),
+        blank=True,
         to='netbox_routing.BGPPolicyTemplate',
         related_name='children',
     )
@@ -321,16 +322,19 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
         to='netbox_routing.BGPPolicyTemplate',
         related_name='routers',
         verbose_name=_('Policy Templates'),
+        blank=True,
     )
     session_templates = ManyToManyField(
         to='netbox_routing.BGPSessionTemplate',
         related_name='routers',
         verbose_name=_('Session Templates'),
+        blank=True,
     )
     peer_templates = ManyToManyField(
         to='netbox_routing.BGPPeerTemplate',
         related_name='routers',
         verbose_name=_('Peer Templates'),
+        blank=True,
     )
 
     clone_fields = (
