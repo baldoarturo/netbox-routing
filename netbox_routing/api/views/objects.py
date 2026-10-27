@@ -20,7 +20,7 @@ class PrefixListViewSet(NetBoxModelViewSet):
 
 
 class PrefixListEntryViewSet(NetBoxModelViewSet):
-    queryset = PrefixListEntry.objects.all()
+    queryset = PrefixListEntry.objects.select_related('prefix_list')
     serializer_class = PrefixListEntrySerializer
     filterset_class = filtersets.PrefixListEntryFilterSet
 
@@ -38,7 +38,7 @@ class RouteMapViewSet(NetBoxModelViewSet):
 
 
 class RouteMapEntryViewSet(NetBoxModelViewSet):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related('route_map')
     serializer_class = RouteMapEntrySerializer
     filterset_class = filtersets.RouteMapEntryFilterSet
 
@@ -50,6 +50,6 @@ class ASPathViewSet(NetBoxModelViewSet):
 
 
 class ASPathEntryViewSet(NetBoxModelViewSet):
-    queryset = ASPathEntry.objects.all()
+    queryset = ASPathEntry.objects.select_related('aspath')
     serializer_class = ASPathEntrySerializer
     filterset_class = filtersets.ASPathEntryFilterSet

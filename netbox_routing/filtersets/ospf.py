@@ -1,7 +1,7 @@
 import django_filters
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface
 from ipam.models import VRF
@@ -65,7 +65,7 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             | Q(device__name__icontains=value)
             | Q(router_id__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
     def filter_rid(self, queryset, name, value):
         try:
@@ -112,7 +112,7 @@ class OSPFAreaFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         qs_filter = Q(area_id__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
     def filter_aid(self, queryset, name, value):
         try:
@@ -170,13 +170,13 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
     interface_id = django_filters.ModelMultipleChoiceFilter(
         field_name='interface',
         queryset=Interface.objects.all(),
-        label='Area (ID)',
+        label='Interface (ID)',
     )
     interface = django_filters.ModelMultipleChoiceFilter(
         field_name='interface__name',
         queryset=Interface.objects.all(),
         to_field_name='name',
-        label='Area',
+        label='Interface',
     )
 
     network_type = django_filters.MultipleChoiceFilter(
@@ -208,4 +208,4 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             | Q(interface__label__icontains=value)
             | Q(interface__device__name__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
