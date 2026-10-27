@@ -155,6 +155,9 @@ class BGPSessionTemplate(PrimaryModel):
     def __str__(self):
         return f'{self.name}'
 
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:bgpsessiontemplate', args=[self.pk])
+
 
 class BGPPolicyTemplate(PrimaryModel):
     name = models.CharField(verbose_name=_('Name'), max_length=100)
@@ -230,6 +233,9 @@ class BGPPolicyTemplate(PrimaryModel):
     def __str__(self):
         return f'{self.name}'
 
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:bgppolicytemplate', args=[self.pk])
+
 
 class BGPPeerTemplate(PrimaryModel):
     name = models.CharField(verbose_name=_('Name'), max_length=100)
@@ -274,6 +280,9 @@ class BGPPeerTemplate(PrimaryModel):
 
     def __str__(self):
         return f'{self.name}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:bgppeertemplate', args=[self.pk])
 
 
 class BGPRouter(SearchAttributeMixin, PrimaryModel):
@@ -334,12 +343,8 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
     )
 
     clone_fields = (
-        'region',
-        'site_group',
-        'site',
-        'location',
-        'device',
         'asn',
+        'tenant',
         'policy_templates',
         'session_templates',
         'peer_templates',
@@ -774,6 +779,9 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
     def __str__(self):
         return f'{self.assigned_object} ({self.address_family})'
 
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:bgppeeraddressfamily', args=[self.pk])
+
 
 class BFDProfile(PrimaryModel):
     name = models.CharField(verbose_name=_('Name'), max_length=100)
@@ -804,7 +812,7 @@ class BFDProfile(PrimaryModel):
         null=True,
     )
 
-    clone_fields = ('tenant',)
+    clone_fields = ('min_tx_int', 'min_rx_int', 'multiplier', 'hold', 'tenant')
     prerequisite_models = (
         'netbox_routing.BGPRouter',
         'netbox_routing.BGPScope',
@@ -823,3 +831,6 @@ class BFDProfile(PrimaryModel):
 
     def __str__(self):
         return f'{self.name}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:bfdprofile', args=[self.pk])

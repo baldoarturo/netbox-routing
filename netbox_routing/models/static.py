@@ -30,6 +30,7 @@ class StaticRoute(PrimaryModel):
         null=True,
     )
     interface_next_hop = models.CharField(
+        max_length=100,
         verbose_name='Interface Next Hop',
         help_text='Forwarding interface, for routes without IP address as next hop',
         blank=True,
@@ -65,6 +66,7 @@ class StaticRoute(PrimaryModel):
         'devices',
         'prefix',
         'next_hop',
+        'interface_next_hop',
         'vrf',
         'metric',
         'permanent',
