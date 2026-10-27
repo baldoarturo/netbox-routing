@@ -75,6 +75,13 @@ class OSPFArea(PrimaryModel):
     class Meta:
         ordering = ['area_id', 'pk']
         verbose_name = 'OSPF Area'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('area_id',),
+                name='%(app_label)s_%(class)s_unique_area_id',
+                violation_error_message=ERROR_UNIQUENESS_CONSTRAINT,
+            ),
+        )
 
     def __str__(self):
         return f'{self.area_id}'
