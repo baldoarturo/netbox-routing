@@ -334,12 +334,8 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
     )
 
     clone_fields = (
-        'region',
-        'site_group',
-        'site',
-        'location',
-        'device',
         'asn',
+        'tenant',
         'policy_templates',
         'session_templates',
         'peer_templates',
@@ -804,7 +800,7 @@ class BFDProfile(PrimaryModel):
         null=True,
     )
 
-    clone_fields = ('tenant',)
+    clone_fields = ('min_tx_int', 'min_rx_int', 'multiplier', 'hold', 'tenant')
     prerequisite_models = (
         'netbox_routing.BGPRouter',
         'netbox_routing.BGPScope',

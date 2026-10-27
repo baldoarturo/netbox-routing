@@ -65,6 +65,7 @@ class StaticRoute(PrimaryModel):
         'devices',
         'prefix',
         'next_hop',
+        'interface_next_hop',
         'vrf',
         'metric',
         'permanent',
