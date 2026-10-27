@@ -9,7 +9,7 @@ from utilities.filters import MultiValueCharFilter
 from utilities.filtersets import register_filterset
 
 from netbox.filtersets import NetBoxModelFilterSet
-from netbox_routing.choices.ospf import OSPFAreaTypeChoices
+from netbox_routing.choices.ospf import OSPFAreaTypeChoices, OSPFNetworkTypeChoices
 from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
 
 __all__ = ('OSPFAreaFilterSet', 'OSPFInstanceFilterSet', 'OSPFInterfaceFilterSet')
@@ -168,12 +168,18 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
         label='Area',
     )
 
+    network_type = django_filters.MultipleChoiceFilter(
+        choices=OSPFNetworkTypeChoices,
+        label=_('Network Type'),
+    )
+
     class Meta:
         model = OSPFInterface
         fields = (
             'instance',
             'area',
             'interface',
+            'network_type',
             'passive',
             'bfd',
             'priority',
