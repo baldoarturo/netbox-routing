@@ -1,10 +1,9 @@
 ---
 name: Release Drafter
 
+# Disabled until we have a usable release: manual trigger only.
 on:
-  push:
-    branches:
-      - "main"
+  workflow_dispatch:
 
 jobs:
   update_release_draft:
