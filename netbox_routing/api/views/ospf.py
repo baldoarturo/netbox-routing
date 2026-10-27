@@ -15,7 +15,7 @@ __all__ = (
 
 
 class OSPFInstanceViewSet(NetBoxModelViewSet):
-    queryset = OSPFInstance.objects.all()
+    queryset = OSPFInstance.objects.select_related('device', 'vrf')
     serializer_class = OSPFInstanceSerializer
     filterset_class = filtersets.OSPFInstanceFilterSet
 
@@ -27,6 +27,8 @@ class OSPFAreaViewSet(NetBoxModelViewSet):
 
 
 class OSPFInterfaceViewSet(NetBoxModelViewSet):
-    queryset = OSPFInterface.objects.all()
+    queryset = OSPFInterface.objects.select_related(
+        'instance__device', 'instance__vrf', 'area', 'interface__device'
+    )
     serializer_class = OSPFInterfaceSerializer
     filterset_class = filtersets.OSPFInterfaceFilterSet

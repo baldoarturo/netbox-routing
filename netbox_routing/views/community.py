@@ -49,7 +49,7 @@ __all__ = (
 #
 @register_model_view(CommunityList, name='list', path='', detail=False)
 class CommunityListListView(ObjectListView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
     table = CommunityListTable
     filterset = CommunityListFilterSet
     filterset_form = CommunityListFilterForm
@@ -57,7 +57,7 @@ class CommunityListListView(ObjectListView):
 
 @register_model_view(CommunityList)
 class CommunityListDetailView(ObjectView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -74,18 +74,18 @@ class CommunityListDetailView(ObjectView):
 @register_model_view(CommunityList, name='add', detail=False)
 @register_model_view(CommunityList, name='edit')
 class CommunityListEditView(ObjectEditView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
     form = CommunityListForm
 
 
 @register_model_view(CommunityList, name='delete')
 class CommunityListDeleteView(ObjectDeleteView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
 
 
 @register_model_view(CommunityList, name='entries')
 class CommunityListEntriesView(ObjectChildrenView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
     child_model = CommunityListEntry
     table = CommunityListEntryTable
     filterset = CommunityListEntryFilterSet
@@ -104,7 +104,7 @@ class CommunityListEntriesView(ObjectChildrenView):
 
 @register_model_view(CommunityList, name='bulk_edit', detail=False)
 class CommunityListBulkEditView(BulkEditView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
     filterset = CommunityListFilterForm
     form = CommunityListBulkEditForm
     table = CommunityListTable
@@ -112,14 +112,14 @@ class CommunityListBulkEditView(BulkEditView):
 
 @register_model_view(CommunityList, name='bulk_delete', detail=False)
 class CommunityListBulkDeleteView(BulkDeleteView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
     filterset = CommunityListFilterForm
     table = CommunityListTable
 
 
 @register_model_view(CommunityList, name='bulk_import', detail=False)
 class CommunityListBulkImportView(BulkImportView):
-    queryset = CommunityList.objects.all()
+    queryset = CommunityList.objects.select_related('tenant')
     model_form = CommunityListImportForm
 
 
@@ -130,7 +130,7 @@ class CommunityListBulkImportView(BulkImportView):
 
 @register_model_view(Community, name='list', path='', detail=False)
 class CommunityListView(ObjectListView):
-    queryset = Community.objects.all()
+    queryset = Community.objects.select_related('role', 'tenant')
     table = CommunityTable
     filterset = CommunityFilterSet
     filterset_form = CommunityFilterForm
@@ -138,7 +138,7 @@ class CommunityListView(ObjectListView):
 
 @register_model_view(Community)
 class CommunityDetailView(ObjectView):
-    queryset = Community.objects.all()
+    queryset = Community.objects.select_related('role', 'tenant')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -155,18 +155,18 @@ class CommunityDetailView(ObjectView):
 @register_model_view(Community, name='add', detail=False)
 @register_model_view(Community, name='edit')
 class CommunityEditView(ObjectEditView):
-    queryset = Community.objects.all()
+    queryset = Community.objects.select_related('role', 'tenant')
     form = CommunityForm
 
 
 @register_model_view(Community, name='delete')
 class CommunityDeleteView(ObjectDeleteView):
-    queryset = Community.objects.all()
+    queryset = Community.objects.select_related('role', 'tenant')
 
 
 @register_model_view(Community, name='bulk_edit', detail=False)
 class CommunityBulkEditView(BulkEditView):
-    queryset = Community.objects.all()
+    queryset = Community.objects.select_related('role', 'tenant')
     filterset = CommunityFilterForm
     form = CommunityBulkEditForm
     table = CommunityTable
@@ -174,14 +174,14 @@ class CommunityBulkEditView(BulkEditView):
 
 @register_model_view(Community, name='bulk_delete', detail=False)
 class CommunityBulkDeleteView(BulkDeleteView):
-    queryset = Community.objects.all()
+    queryset = Community.objects.select_related('role', 'tenant')
     filterset = CommunityFilterForm
     table = CommunityTable
 
 
 @register_model_view(Community, name='bulk_import', detail=False)
 class CommunityBulkImportView(BulkImportView):
-    queryset = Community.objects.all()
+    queryset = Community.objects.select_related('role', 'tenant')
     model_form = CommunityImportForm
 
 
@@ -192,7 +192,7 @@ class CommunityBulkImportView(BulkImportView):
 
 @register_model_view(CommunityListEntry, name='list', path='', detail=False)
 class CommunityListEntryListView(ObjectListView):
-    queryset = CommunityListEntry.objects.all()
+    queryset = CommunityListEntry.objects.select_related('community_list', 'community')
     table = CommunityListEntryTable
     filterset = CommunityListEntryFilterSet
     filterset_form = CommunityListEntryFilterForm
@@ -200,7 +200,7 @@ class CommunityListEntryListView(ObjectListView):
 
 @register_model_view(CommunityListEntry)
 class CommunityListEntryDetailView(ObjectView):
-    queryset = CommunityListEntry.objects.all()
+    queryset = CommunityListEntry.objects.select_related('community_list', 'community')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -217,18 +217,18 @@ class CommunityListEntryDetailView(ObjectView):
 @register_model_view(CommunityListEntry, name='add', detail=False)
 @register_model_view(CommunityListEntry, name='edit')
 class CommunityListEntryEditView(ObjectEditView):
-    queryset = CommunityListEntry.objects.all()
+    queryset = CommunityListEntry.objects.select_related('community_list', 'community')
     form = CommunityListEntryForm
 
 
 @register_model_view(CommunityListEntry, name='delete')
 class CommunityListEntryDeleteView(ObjectDeleteView):
-    queryset = CommunityListEntry.objects.all()
+    queryset = CommunityListEntry.objects.select_related('community_list', 'community')
 
 
 @register_model_view(CommunityListEntry, name='bulk_edit', detail=False)
 class CommunityListEntryBulkEditView(BulkEditView):
-    queryset = CommunityListEntry.objects.all()
+    queryset = CommunityListEntry.objects.select_related('community_list', 'community')
     filterset = CommunityListEntryFilterForm
     form = CommunityListEntryBulkEditForm
     table = CommunityListEntryTable
@@ -236,12 +236,12 @@ class CommunityListEntryBulkEditView(BulkEditView):
 
 @register_model_view(CommunityListEntry, name='bulk_delete', detail=False)
 class CommunityListEntryBulkDeleteView(BulkDeleteView):
-    queryset = CommunityListEntry.objects.all()
+    queryset = CommunityListEntry.objects.select_related('community_list', 'community')
     filterset = CommunityListEntryFilterForm
     table = CommunityListEntryTable
 
 
 @register_model_view(CommunityListEntry, name='bulk_import', detail=False)
 class CommunityListEntryBulkImportView(BulkImportView):
-    queryset = CommunityListEntry.objects.all()
+    queryset = CommunityListEntry.objects.select_related('community_list', 'community')
     model_form = CommunityListEntryImportForm

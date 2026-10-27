@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('contenttypes', '0002_remove_content_type_name'),
-        ('netbox_routing', '0036_staticroute_interface_next_hop_max_length'),
+        ('netbox_routing', '0040_ospfarea_unique_area_id'),
     ]
 
     operations = [

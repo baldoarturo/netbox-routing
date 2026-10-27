@@ -109,7 +109,7 @@ class PrefixListBulkDeleteView(BulkDeleteView):
 
 @register_model_view(PrefixListEntry, name='list', path='', detail=False)
 class PrefixListEntryListView(ObjectListView):
-    queryset = PrefixListEntry.objects.all()
+    queryset = PrefixListEntry.objects.select_related('prefix_list')
     table = PrefixListEntryTable
     filterset = PrefixListEntryFilterSet
     filterset_form = PrefixListEntryFilterForm
@@ -117,7 +117,7 @@ class PrefixListEntryListView(ObjectListView):
 
 @register_model_view(PrefixListEntry)
 class PrefixListEntryView(ObjectView):
-    queryset = PrefixListEntry.objects.all()
+    queryset = PrefixListEntry.objects.select_related('prefix_list')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -134,18 +134,18 @@ class PrefixListEntryView(ObjectView):
 @register_model_view(PrefixListEntry, name='add', detail=False)
 @register_model_view(PrefixListEntry, name='edit')
 class PrefixListEntryEditView(ObjectEditView):
-    queryset = PrefixListEntry.objects.all()
+    queryset = PrefixListEntry.objects.select_related('prefix_list')
     form = PrefixListEntryForm
 
 
 @register_model_view(PrefixListEntry, name='delete')
 class PrefixListEntryDeleteView(ObjectDeleteView):
-    queryset = PrefixListEntry.objects.all()
+    queryset = PrefixListEntry.objects.select_related('prefix_list')
 
 
 @register_model_view(PrefixListEntry, name='bulk_edit', detail=False)
 class PrefixListEntryBulkEditView(BulkEditView):
-    queryset = PrefixListEntry.objects.all()
+    queryset = PrefixListEntry.objects.select_related('prefix_list')
     filterset = PrefixListEntryFilterSet
     table = PrefixListEntryTable
     form = PrefixListEntryBulkEditForm
@@ -153,7 +153,7 @@ class PrefixListEntryBulkEditView(BulkEditView):
 
 @register_model_view(PrefixListEntry, name='bulk_delete', detail=False)
 class PrefixListEntryBulkDeleteView(BulkDeleteView):
-    queryset = PrefixListEntry.objects.all()
+    queryset = PrefixListEntry.objects.select_related('prefix_list')
     filterset = PrefixListEntryFilterSet
     table = PrefixListEntryTable
 
@@ -286,7 +286,7 @@ class RouteMapBulkDeleteView(BulkDeleteView):
 #
 @register_model_view(RouteMapEntry, name='list', path='', detail=False)
 class RouteMapEntryListView(ObjectListView):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related('route_map')
     table = RouteMapEntryTable
     filterset = RouteMapEntryFilterSet
     filterset_form = RouteMapEntryFilterForm
@@ -294,7 +294,7 @@ class RouteMapEntryListView(ObjectListView):
 
 @register_model_view(RouteMapEntry)
 class RouteMapEntryView(GetRelatedModelsMixin, ObjectView):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related('route_map')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -350,18 +350,18 @@ class RouteMapEntryView(GetRelatedModelsMixin, ObjectView):
 @register_model_view(RouteMapEntry, name='add', detail=False)
 @register_model_view(RouteMapEntry, name='edit')
 class RouteMapEntryEditView(ObjectEditView):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related('route_map')
     form = RouteMapEntryForm
 
 
 @register_model_view(RouteMapEntry, name='delete')
 class RouteMapEntryDeleteView(ObjectDeleteView):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related('route_map')
 
 
 @register_model_view(RouteMapEntry, name='bulk_edit', detail=False)
 class RouteMapEntryBulkEditView(BulkEditView):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related('route_map')
     filterset = RouteMapEntryFilterSet
     table = RouteMapEntryTable
     form = RouteMapEntryBulkEditForm
@@ -369,7 +369,7 @@ class RouteMapEntryBulkEditView(BulkEditView):
 
 @register_model_view(RouteMapEntry, name='bulk_delete', detail=False)
 class RouteMapEntryBulkDeleteView(BulkDeleteView):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related('route_map')
     filterset = RouteMapEntryFilterSet
     table = RouteMapEntryTable
 
@@ -462,7 +462,7 @@ class ASPathEntriesView(ObjectChildrenView):
 #
 @register_model_view(ASPathEntry, name='list', path='', detail=False)
 class ASPathEntryListView(ObjectListView):
-    queryset = ASPathEntry.objects.all()
+    queryset = ASPathEntry.objects.select_related('aspath')
     table = ASPathEntryTable
     filterset = ASPathEntryFilterSet
     filterset_form = ASPathEntryFilterForm
@@ -470,7 +470,7 @@ class ASPathEntryListView(ObjectListView):
 
 @register_model_view(ASPathEntry)
 class ASPathEntryView(ObjectView):
-    queryset = ASPathEntry.objects.all()
+    queryset = ASPathEntry.objects.select_related('aspath')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -487,18 +487,18 @@ class ASPathEntryView(ObjectView):
 @register_model_view(ASPathEntry, name='add', detail=False)
 @register_model_view(ASPathEntry, name='edit')
 class ASPathEntryEditView(ObjectEditView):
-    queryset = ASPathEntry.objects.all()
+    queryset = ASPathEntry.objects.select_related('aspath')
     form = ASPathEntryForm
 
 
 @register_model_view(ASPathEntry, name='delete')
 class ASPathEntryDeleteView(ObjectDeleteView):
-    queryset = ASPathEntry.objects.all()
+    queryset = ASPathEntry.objects.select_related('aspath')
 
 
 @register_model_view(ASPathEntry, name='bulk_edit', detail=False)
 class ASPathEntryBulkEditView(BulkEditView):
-    queryset = ASPathEntry.objects.all()
+    queryset = ASPathEntry.objects.select_related('aspath')
     filterset = ASPathEntryFilterSet
     table = ASPathEntryTable
     form = ASPathEntryBulkEditForm
@@ -506,6 +506,6 @@ class ASPathEntryBulkEditView(BulkEditView):
 
 @register_model_view(ASPathEntry, name='bulk_delete', detail=False)
 class ASPathEntryBulkDeleteView(BulkDeleteView):
-    queryset = ASPathEntry.objects.all()
+    queryset = ASPathEntry.objects.select_related('aspath')
     filterset = ASPathEntryFilterSet
     table = ASPathEntryTable

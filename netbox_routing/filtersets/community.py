@@ -1,6 +1,6 @@
 import django_filters
 from django.db.models import Q
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from netbox.filtersets import PrimaryModelFilterSet
 from netbox_routing.models import RouteMapEntry

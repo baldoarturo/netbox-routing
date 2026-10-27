@@ -4,7 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import ManyToManyField
 from django.urls import reverse
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
 from netbox_routing.choices.bgp import *
@@ -163,6 +163,7 @@ class BGPPolicyTemplate(PrimaryModel):
     name = models.CharField(verbose_name=_('Name'), max_length=100)
     parents = models.ManyToManyField(
         verbose_name=_('Parent Policies'),
+        blank=True,
         to='netbox_routing.BGPPolicyTemplate',
         related_name='children',
     )
@@ -330,16 +331,19 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
         to='netbox_routing.BGPPolicyTemplate',
         related_name='routers',
         verbose_name=_('Policy Templates'),
+        blank=True,
     )
     session_templates = ManyToManyField(
         to='netbox_routing.BGPSessionTemplate',
         related_name='routers',
         verbose_name=_('Session Templates'),
+        blank=True,
     )
     peer_templates = ManyToManyField(
         to='netbox_routing.BGPPeerTemplate',
         related_name='routers',
         verbose_name=_('Peer Templates'),
+        blank=True,
     )
 
     clone_fields = (
@@ -795,7 +799,7 @@ class BFDProfile(PrimaryModel):
     )
     multiplier = models.PositiveSmallIntegerField(
         verbose_name=_('Multiplier'),
-        validators=[MinValueValidator(0), MaxValueValidator(255)],
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
     )
     hold = models.PositiveIntegerField(
         verbose_name=_('Hold Time'),
