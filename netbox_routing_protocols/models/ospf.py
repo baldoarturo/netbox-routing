@@ -40,6 +40,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_GRACEFUL_RESTART_PERIOD_MAX,
     OSPF_GRACEFUL_RESTART_PERIOD_MIN,
     OSPF_INTERFACE_TIMERS,
+    OSPF_LDP_SYNC_HOLDDOWN_MAX,
+    OSPF_LDP_SYNC_HOLDDOWN_MIN,
     OSPF_LSA_MIN_ARRIVAL_DEFAULT,
     OSPF_LSA_MIN_INTERVAL_DEFAULT,
     OSPF_MAX_LSA_THRESHOLD_DEFAULT,
@@ -668,6 +670,28 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         null=True,
     )
 
+    ldp_sync = models.BooleanField(
+        verbose_name=_('LDP-IGP Synchronization'),
+        help_text=_(
+            'Advertise the maximum link metric on the interfaces until LDP is '
+            'operational on them, so the traffic does not use a path without labels '
+            '(RFC 5443)'
+        ),
+        default=False,
+    )
+    ldp_sync_holddown = models.PositiveIntegerField(
+        verbose_name=_('LDP Sync Hold-down'),
+        help_text=_(
+            'Seconds to wait for LDP before the interface advertises its normal '
+            'metric anyway. Empty to wait indefinitely'
+        ),
+        validators=[
+            MinValueValidator(OSPF_LDP_SYNC_HOLDDOWN_MIN),
+            MaxValueValidator(OSPF_LDP_SYNC_HOLDDOWN_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
     ADVANCED_FIELDS = (
         'spf_initial_delay',
         'spf_short_delay',
@@ -703,6 +727,8 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         'segment_routing',
         'srgb_start',
         'srgb_size',
+        'ldp_sync',
+        'ldp_sync_holddown',
     )
 
     clone_fields = (
@@ -826,6 +852,16 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
                 }
             )
 
+    def _clean_ldp_sync(self):
+        if not self.ldp_sync and self.ldp_sync_holddown is not None:
+            raise ValidationError(
+                {
+                    'ldp_sync_holddown': _(
+                        'Enable LDP-IGP synchronization to set the hold-down.'
+                    )
+                }
+            )
+
     def _clean_segment_routing(self):
         errors = {}
         if self.segment_routing and not self.opaque_capability:
@@ -865,6 +901,7 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         super().clean()
         self._clean_traffic_engineering()
         self._clean_segment_routing()
+        self._clean_ldp_sync()
         self._clean_advanced_options()
         self._clean_authentication()
         self._clean_interface_authentication()
@@ -1264,6 +1301,15 @@ class OSPFInterface(
         blank=True,
         null=True,
     )
+    ldp_sync = models.BooleanField(
+        verbose_name=_('LDP-IGP Synchronization'),
+        help_text=_(
+            'Override the instance setting for this interface (RFC 5443). '
+            'Empty to inherit it'
+        ),
+        blank=True,
+        null=True,
+    )
     mtu_ignore = models.BooleanField(
         verbose_name=_('MTU Ignore'),
         help_text=_(
@@ -1287,6 +1333,7 @@ class OSPFInterface(
         'mtu_ignore',
         'adjacency_sid',
         'fast_reroute',
+        'ldp_sync',
         'te_metric',
         'te_max_reservable_bandwidth',
         'te_admin_group',

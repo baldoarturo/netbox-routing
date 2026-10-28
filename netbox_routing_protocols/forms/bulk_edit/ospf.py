@@ -30,6 +30,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_RETRANSMIT_INTERVAL_MAX,
     OSPF_RETRANSMIT_INTERVAL_MIN,
     OSPF_STUB_DEFAULT_COST_MAX,
+    OSPF_LDP_SYNC_HOLDDOWN_MAX,
+    OSPF_LDP_SYNC_HOLDDOWN_MIN,
     OSPF_SR_LABEL_MAX,
     OSPF_SR_LABEL_MIN,
     OSPF_STUB_DEFAULT_COST_MIN,
@@ -167,6 +169,13 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     te_router_address = forms.GenericIPAddressField(
         label=_('TE Router Address'), protocol='IPv4', required=False
     )
+    ldp_sync = _boolean(_('LDP-IGP Synchronization'))
+    ldp_sync_holddown = forms.IntegerField(
+        label=_('LDP Sync Hold-down'),
+        required=False,
+        min_value=OSPF_LDP_SYNC_HOLDDOWN_MIN,
+        max_value=OSPF_LDP_SYNC_HOLDDOWN_MAX,
+    )
     segment_routing = _boolean(_('Segment Routing'))
     srgb_start = forms.IntegerField(
         label=_('SRGB Start'),
@@ -253,6 +262,7 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         'te_router_address',
         'srgb_start',
         'srgb_size',
+        'ldp_sync_holddown',
     )
 
 
@@ -451,6 +461,11 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
 
+    ldp_sync = forms.ChoiceField(
+        label=_('LDP-IGP Synchronization'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
     fast_reroute = forms.ChoiceField(
         label=_('Fast Reroute'),
         choices=add_blank_choice(choices.OSPFFastRerouteChoices),
@@ -518,6 +533,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         ),
         FieldSet('adjacency_sid', name='Segment Routing'),
         FieldSet('fast_reroute', name='Fast Reroute'),
+        FieldSet('ldp_sync', name='LDP-IGP Synchronization'),
         FieldSet(
             'te_metric',
             'te_max_reservable_bandwidth',
@@ -527,6 +543,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet('description'),
     )
     nullable_fields = (
+        'ldp_sync',
         'fast_reroute',
         'ttl_security_hops',
         'adjacency_sid',

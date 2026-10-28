@@ -220,6 +220,7 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
             'ttl_security',
             'ttl_security_hops',
             'fast_reroute',
+            'ldp_sync',
             name=_('Timers'),
         ),
     )
@@ -299,6 +300,11 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
     dead_interval = forms.IntegerField(required=False, label=_('Dead Interval'))
     retransmit_interval = forms.IntegerField(
         required=False, label=_('Retransmit Interval')
+    )
+    ldp_sync = forms.NullBooleanField(
+        required=False,
+        label=_('LDP-IGP Synchronization'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     fast_reroute = forms.MultipleChoiceField(
         choices=OSPFFastRerouteChoices, required=False, label=_('Fast Reroute')
