@@ -828,6 +828,38 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         blank=True,
         null=True,
     )
+    prefix_suppression = models.BooleanField(
+        verbose_name=_('Prefix Suppression'),
+        help_text=_(
+            'Do not advertise the prefixes of this interface in the router LSA, '
+            'hiding transit-only networks (RFC 6860)'
+        ),
+        blank=True,
+        null=True,
+    )
+    database_filter_all_out = models.BooleanField(
+        verbose_name=_('Database Filter All Out'),
+        help_text=_('Do not flood any LSA out of this interface'),
+        blank=True,
+        null=True,
+    )
+    flood_reduction = models.BooleanField(
+        verbose_name=_('Flood Reduction'),
+        help_text=_(
+            'Flood LSAs as DoNotAge to reduce refresh traffic in stable '
+            'topologies (RFC 4136)'
+        ),
+        blank=True,
+        null=True,
+    )
+    demand_circuit = models.BooleanField(
+        verbose_name=_('Demand Circuit'),
+        help_text=_(
+            'Suppress periodic Hellos and refreshes on a demand circuit ' '(RFC 1793)'
+        ),
+        blank=True,
+        null=True,
+    )
     mtu_ignore = models.BooleanField(
         verbose_name=_('MTU Ignore'),
         help_text=_(
@@ -849,6 +881,10 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         'retransmit_interval',
         'transmit_delay',
         'mtu_ignore',
+        'prefix_suppression',
+        'database_filter_all_out',
+        'flood_reduction',
+        'demand_circuit',
         'authentication',
         'passphrase',
         'authentication_key_id',

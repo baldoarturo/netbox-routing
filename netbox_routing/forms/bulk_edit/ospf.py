@@ -308,6 +308,22 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     mtu_ignore = forms.ChoiceField(
         label=_('MTU Ignore'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
+    prefix_suppression = forms.ChoiceField(
+        label=_('Prefix Suppression'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
+    database_filter_all_out = forms.ChoiceField(
+        label=_('Database Filter All Out'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
+    flood_reduction = forms.ChoiceField(
+        label=_('Flood Reduction'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
+    demand_circuit = forms.ChoiceField(
+        label=_('Demand Circuit'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
     hello_interval = forms.IntegerField(
         label=_('Hello Interval'),
         required=False,
@@ -369,6 +385,10 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'cost',
             'bfd',
             'mtu_ignore',
+            'prefix_suppression',
+            'database_filter_all_out',
+            'flood_reduction',
+            'demand_circuit',
             name='Attributes',
         ),
         FieldSet(

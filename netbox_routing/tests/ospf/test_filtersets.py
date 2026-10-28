@@ -289,6 +289,8 @@ class OSPFInterfaceTestCase(TestCase):
                 area=areas[0],
                 passive=True,
                 cost=10,
+                prefix_suppression=True,
+                demand_circuit=False,
                 mtu_ignore=True,
                 hello_interval=30,
                 dead_interval=120,
@@ -330,6 +332,17 @@ class OSPFInterfaceTestCase(TestCase):
 
         params = {'cost': [10, 20]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_misc_flags(self):
+        for params, expected in (
+            ({'prefix_suppression': True}, 1),
+            ({'demand_circuit': False}, 1),
+            ({'flood_reduction': True}, 0),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self.filterset(params, self.queryset).qs.count(), expected
+                )
 
     def test_mtu_ignore(self):
         params = {'mtu_ignore': True}
