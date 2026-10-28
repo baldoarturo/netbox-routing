@@ -113,6 +113,7 @@ class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
         'distance_external', label=_('Distance (External)')
     )
     default_metric = attrs.NumericAttr('default_metric', label=_('Default Metric'))
+    ospf_instance_id = attrs.NumericAttr('ospf_instance_id', label=_('Instance ID'))
     ldp_sync = attrs.BooleanAttr('ldp_sync', label=_('LDP-IGP Synchronization'))
     ldp_sync_holddown = attrs.NumericAttr(
         'ldp_sync_holddown', label=_('LDP Sync Hold-down')

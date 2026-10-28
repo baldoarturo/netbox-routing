@@ -39,6 +39,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_GRACEFUL_RESTART_PERIOD_DEFAULT,
     OSPF_GRACEFUL_RESTART_PERIOD_MAX,
     OSPF_GRACEFUL_RESTART_PERIOD_MIN,
+    OSPF_INSTANCE_ID_MAX,
+    OSPF_INSTANCE_ID_MIN,
     OSPF_INTERFACE_TIMERS,
     OSPF_LDP_SYNC_HOLDDOWN_MAX,
     OSPF_LDP_SYNC_HOLDDOWN_MIN,
@@ -692,6 +694,19 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         blank=True,
         null=True,
     )
+    ospf_instance_id = models.PositiveSmallIntegerField(
+        verbose_name=_('Instance ID'),
+        help_text=_(
+            'Identifies the instance in the packets, so several can run over the '
+            'same link; routers only form adjacencies with the same ID (RFC 6549). '
+            'The default is 0'
+        ),
+        default=OSPF_INSTANCE_ID_MIN,
+        validators=[
+            MinValueValidator(OSPF_INSTANCE_ID_MIN),
+            MaxValueValidator(OSPF_INSTANCE_ID_MAX),
+        ],
+    )
     ADVANCED_FIELDS = (
         'spf_initial_delay',
         'spf_short_delay',
@@ -729,6 +744,7 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         'srgb_size',
         'ldp_sync',
         'ldp_sync_holddown',
+        'ospf_instance_id',
     )
 
     clone_fields = (

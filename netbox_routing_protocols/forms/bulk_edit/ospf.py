@@ -30,6 +30,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_RETRANSMIT_INTERVAL_MAX,
     OSPF_RETRANSMIT_INTERVAL_MIN,
     OSPF_STUB_DEFAULT_COST_MAX,
+    OSPF_INSTANCE_ID_MAX,
+    OSPF_INSTANCE_ID_MIN,
     OSPF_LDP_SYNC_HOLDDOWN_MAX,
     OSPF_LDP_SYNC_HOLDDOWN_MIN,
     OSPF_SR_LABEL_MAX,
@@ -168,6 +170,12 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     opaque_capability = _boolean(_('Opaque LSAs'))
     te_router_address = forms.GenericIPAddressField(
         label=_('TE Router Address'), protocol='IPv4', required=False
+    )
+    ospf_instance_id = forms.IntegerField(
+        label=_('Instance ID'),
+        required=False,
+        min_value=OSPF_INSTANCE_ID_MIN,
+        max_value=OSPF_INSTANCE_ID_MAX,
     )
     ldp_sync = _boolean(_('LDP-IGP Synchronization'))
     ldp_sync_holddown = forms.IntegerField(
