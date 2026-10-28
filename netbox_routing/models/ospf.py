@@ -138,6 +138,14 @@ class OSPFInstance(PrimaryModel):
 
 
 class OSPFArea(PrimaryModel):
+    instance = models.ForeignKey(
+        to='netbox_routing.OSPFInstance',
+        related_name='areas',
+        on_delete=models.CASCADE,
+        blank=False,
+        null=False,
+        verbose_name=_('Instance'),
+    )
     area_id = models.CharField(max_length=100, verbose_name='Area ID')
     area_type = models.CharField(
         verbose_name=_('Area Type'),
@@ -146,17 +154,19 @@ class OSPFArea(PrimaryModel):
         null=False,
         default='standard',
     )
-    prerequisite_models = ()
-    clone_fields = ('area_id', 'area_type')
+    prerequisite_models = ('netbox_routing.OSPFInstance',)
+    clone_fields = ('instance', 'area_id', 'area_type')
 
     class Meta:
-        ordering = ['area_id', 'pk']
+        ordering = ['instance__name', 'area_id', 'pk']
         verbose_name = 'OSPF Area'
         constraints = (
             models.UniqueConstraint(
-                fields=('area_id',),
-                name='%(app_label)s_%(class)s_unique_area_id',
-                violation_error_message=ERROR_UNIQUENESS_CONSTRAINT,
+                fields=('instance', 'area_id'),
+                name='%(app_label)s_%(class)s_unique_instance_area_id',
+                violation_error_message=_(
+                    'The area ID must be unique within the OSPF instance.'
+                ),
             ),
         )
 
@@ -194,7 +204,7 @@ class OSPFInterface(PrimaryModel):
     )
     area = models.ForeignKey(
         to='netbox_routing.OSPFArea',
-        on_delete=models.CASCADE,
+        on_delete=models.RESTRICT,
         related_name='interfaces',
         blank=False,
         null=False,
@@ -314,6 +324,14 @@ class OSPFInterface(PrimaryModel):
 
     def clean(self):
         super().clean()
+        if (
+            self.instance_id
+            and self.area_id
+            and self.area.instance_id != self.instance_id
+        ):
+            raise ValidationError(
+                {'area': _('The area must belong to the OSPF instance.')}
+            )
         if (
             self.hello_interval is not None
             and self.dead_interval is not None

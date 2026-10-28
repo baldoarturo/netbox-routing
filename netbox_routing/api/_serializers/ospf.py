@@ -57,6 +57,7 @@ class OSPFAreaSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing-api:ospfarea-detail'
     )
+    instance = OSPFInstanceSerializer(nested=True)
 
     class Meta:
         model = OSPFArea
@@ -64,6 +65,7 @@ class OSPFAreaSerializer(NetBoxModelSerializer):
             'url',
             'id',
             'display',
+            'instance',
             'area_id',
             'area_type',
             'description',
@@ -73,6 +75,7 @@ class OSPFAreaSerializer(NetBoxModelSerializer):
             'url',
             'id',
             'display',
+            'instance',
             'area_id',
             'area_type',
         )

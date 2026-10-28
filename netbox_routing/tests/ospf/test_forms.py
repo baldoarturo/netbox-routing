@@ -55,11 +55,15 @@ class OSPFAreaTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pass
+        device = create_test_device(name='Device 1')
+        cls.instance = OSPFInstance.objects.create(
+            name='Instance 1', router_id='10.10.10.1', process_id=0, device_id=device.pk
+        )
 
     def test_valid_area_id_with_ip(self):
         form = OSPFAreaForm(
             data={
+                'instance': self.instance.pk,
                 'area_id': '0.0.0.0',
                 'area_type': 'standard',
             }
@@ -70,6 +74,7 @@ class OSPFAreaTestCase(TestCase):
     def test_valid_area_id_with_integer(self):
         form = OSPFAreaForm(
             data={
+                'instance': self.instance.pk,
                 'area_id': '0',
                 'area_type': 'standard',
             }
@@ -80,6 +85,7 @@ class OSPFAreaTestCase(TestCase):
     def test_invalid_area(self):
         form = OSPFAreaForm(
             data={
+                'instance': self.instance.pk,
                 'area_id': 'a.a.a.a',
                 'area_type': 'standard',
             }
@@ -100,7 +106,7 @@ class OSPFInterfaceTestCase(TestCase):
         cls.instance = OSPFInstance.objects.create(
             name='Instance 1', router_id='10.10.10.1', process_id=0, device_id=device.pk
         )
-        cls.area = OSPFArea.objects.create(area_id='0.0.0.0')
+        cls.area = OSPFArea.objects.create(instance=cls.instance, area_id='0.0.0.0')
 
     def test_interface_with_correct_device(self):
         form = OSPFInterfaceForm(

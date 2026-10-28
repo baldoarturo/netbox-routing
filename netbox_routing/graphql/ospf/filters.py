@@ -24,6 +24,13 @@ class OSPFInstanceFilter(VRFMixin, DeviceMixin, PrimaryModelFilter):
 
 @strawberry_django.filter(models.OSPFArea, lookups=True)
 class OSPFAreaFilter(PrimaryModelFilter):
+    instance: (
+        Annotated[
+            'OSPFInstanceFilter', strawberry.lazy('netbox_routing.graphql.filters')
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    instance_id: ID | None = strawberry_django.filter_field()
     area_id: StrFilterLookup | None = strawberry_django.filter_field()
 
 

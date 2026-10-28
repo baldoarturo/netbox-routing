@@ -33,6 +33,7 @@ class OSPFInstancePanel(panels.ObjectAttributesPanel):
 
 
 class OSPFAreaPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
     area_id = attrs.NumericAttr('area_id', label=_('Area ID'))
     area_type = attrs.ChoiceAttr('area_type', label=_('Area Type'))
     description = attrs.TextAttr('description', label=_('Description'))

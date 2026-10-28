@@ -37,6 +37,9 @@ class OSPFInstanceType(PrimaryObjectType):
 
 @strawberry_django.type(models.OSPFArea, fields='__all__', filters=OSPFAreaFilter)
 class OSPFAreaType(PrimaryObjectType):
+    instance: Annotated[
+        "OSPFInstanceType", strawberry.lazy('netbox_routing.graphql.types')
+    ]
     area_id: str
     area_type: str
 

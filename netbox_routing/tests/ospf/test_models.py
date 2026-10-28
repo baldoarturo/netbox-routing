@@ -94,7 +94,7 @@ class OSPFInterfaceTestCase(TestCase):
             router_id='1.1.1.1',
             process_id=1,
         )
-        area = OSPFArea.objects.create(area_id='0.0.0.0')
+        area = OSPFArea.objects.create(instance=cls.instance, area_id='0.0.0.0')
         OSPFInterface.objects.create(
             instance=cls.instance, area=area, interface=interface
         )
