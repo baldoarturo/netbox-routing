@@ -401,11 +401,14 @@ REDISTRIBUTION_SELECT_RELATED = (
     'bgp_source__asn',
     'isis_source__device',
 )
+REDISTRIBUTION_QUERYSET = OSPFRedistribution.objects.select_related(
+    *REDISTRIBUTION_SELECT_RELATED
+).prefetch_related('bgp_source__assigned_object')
 
 
 @register_model_view(OSPFRedistribution, name='list', path='', detail=False)
 class OSPFRedistributionListView(ObjectListView):
-    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    queryset = REDISTRIBUTION_QUERYSET
     table = OSPFRedistributionTable
     filterset = OSPFRedistributionFilterSet
     filterset_form = OSPFRedistributionFilterForm
@@ -413,7 +416,7 @@ class OSPFRedistributionListView(ObjectListView):
 
 @register_model_view(OSPFRedistribution)
 class OSPFRedistributionView(ObjectView):
-    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    queryset = REDISTRIBUTION_QUERYSET
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -430,18 +433,18 @@ class OSPFRedistributionView(ObjectView):
 @register_model_view(OSPFRedistribution, name='add', detail=False)
 @register_model_view(OSPFRedistribution, name='edit')
 class OSPFRedistributionEditView(ObjectEditView):
-    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    queryset = REDISTRIBUTION_QUERYSET
     form = OSPFRedistributionForm
 
 
 @register_model_view(OSPFRedistribution, name='delete')
 class OSPFRedistributionDeleteView(ObjectDeleteView):
-    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    queryset = REDISTRIBUTION_QUERYSET
 
 
 @register_model_view(OSPFRedistribution, name='bulk_edit', detail=False)
 class OSPFRedistributionBulkEditView(BulkEditView):
-    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    queryset = REDISTRIBUTION_QUERYSET
     filterset = OSPFRedistributionFilterSet
     table = OSPFRedistributionTable
     form = OSPFRedistributionBulkEditForm
@@ -449,6 +452,6 @@ class OSPFRedistributionBulkEditView(BulkEditView):
 
 @register_model_view(OSPFRedistribution, name='bulk_delete', detail=False)
 class OSPFRedistributionBulkDeleteView(BulkDeleteView):
-    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    queryset = REDISTRIBUTION_QUERYSET
     filterset = OSPFRedistributionFilterSet
     table = OSPFRedistributionTable

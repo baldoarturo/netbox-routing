@@ -299,39 +299,58 @@ class OSPFNetworkForm(PrimaryModelForm):
 
 
 class OSPFRedistributionForm(PrimaryModelForm):
+    # Only used to narrow the instance and the sources to one device; the model
+    # validates that the source really is on the instance's device.
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
     instance = DynamicModelChoiceField(
         queryset=OSPFInstance.objects.all(),
         required=True,
         selector=True,
         label=_('Instance'),
+        query_params={'device_id': '$device'},
     )
     ospf_source = DynamicModelChoiceField(
         queryset=OSPFInstance.objects.all(),
         required=False,
         selector=True,
         label=_('OSPF Source'),
+        query_params={'device_id': '$device'},
     )
     eigrp_source = DynamicModelChoiceField(
         queryset=EIGRPRouter.objects.all(),
         required=False,
         selector=True,
         label=_('EIGRP Source'),
+        query_params={'device_id': '$device'},
     )
     bgp_source = DynamicModelChoiceField(
         queryset=BGPRouter.objects.all(),
         required=False,
         selector=True,
         label=_('BGP Source'),
+        help_text=_('A BGP router assigned to the device'),
     )
     isis_source = DynamicModelChoiceField(
         queryset=ISISInstance.objects.all(),
         required=False,
         selector=True,
         label=_('IS-IS Source'),
+        query_params={'device_id': '$device'},
     )
 
     fieldsets = (
-        FieldSet('instance', 'protocol', 'description', name=_('Redistribution')),
+        FieldSet(
+            'device',
+            'instance',
+            'protocol',
+            'description',
+            name=_('Redistribution'),
+        ),
         FieldSet(
             'ospf_source',
             'eigrp_source',
@@ -352,6 +371,7 @@ class OSPFRedistributionForm(PrimaryModelForm):
     class Meta:
         model = OSPFRedistribution
         fields = (
+            'device',
             'instance',
             'protocol',
             'ospf_source',
@@ -371,6 +391,8 @@ class OSPFRedistributionForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial['device'] = self.instance.instance.device_id
         # An empty metric type falls back to its default (see clean()).
         self.fields['metric_type'].required = False
 

@@ -43,9 +43,24 @@ def _create_fixtures(cls):
         device=cls.other_device, mode='classic', pid=100
     )
     cls.isis = ISISInstance.objects.create(device=cls.device, process_tag='core')
+    cls.other_isis = ISISInstance.objects.create(
+        device=cls.other_device, process_tag='core'
+    )
     rir = RIR.objects.create(name='RIR', slug='rir')
     cls.bgp = BGPRouter.objects.create(
-        name='BGP', asn=ASN.objects.create(asn=65000, rir=rir)
+        name='BGP',
+        asn=ASN.objects.create(asn=65000, rir=rir),
+        assigned_object=cls.device,
+    )
+    cls.other_bgp = BGPRouter.objects.create(
+        name='Other BGP',
+        asn=ASN.objects.create(asn=65001, rir=rir),
+        assigned_object=cls.other_device,
+    )
+    cls.site_bgp = BGPRouter.objects.create(
+        name='Site BGP',
+        asn=ASN.objects.create(asn=65002, rir=rir),
+        assigned_object=cls.device.site,
     )
 
 
@@ -113,11 +128,17 @@ class OSPFRedistributionModelTestCase(TestCase):
         for protocol, source in (
             ('ospf', {'ospf_source': self.other_instance}),
             ('eigrp', {'eigrp_source': self.other_eigrp}),
+            ('isis', {'isis_source': self.other_isis}),
+            ('bgp', {'bgp_source': self.other_bgp}),
+            ('bgp', {'bgp_source': self.site_bgp}),
         ):
             with self.subTest(protocol=protocol):
                 with self.assertRaises(ValidationError) as cm:
                     self._redistribution(protocol=protocol, **source).full_clean()
                 self.assertIn(f'{protocol}_source', cm.exception.error_dict)
+
+    def test_bgp_router_must_be_assigned_to_the_instance_device(self):
+        self._redistribution(protocol='bgp', bgp_source=self.bgp).full_clean()
 
     def test_limits(self):
         redistribution = self._redistribution(protocol='static')

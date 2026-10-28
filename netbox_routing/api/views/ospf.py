@@ -64,6 +64,6 @@ class OSPFRedistributionViewSet(NetBoxModelViewSet):
         'eigrp_source__device',
         'bgp_source__asn',
         'isis_source__device',
-    )
+    ).prefetch_related('bgp_source__assigned_object')
     serializer_class = OSPFRedistributionSerializer
     filterset_class = filtersets.OSPFRedistributionFilterSet

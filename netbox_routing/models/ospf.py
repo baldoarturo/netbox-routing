@@ -1,4 +1,5 @@
 import netaddr
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -578,8 +579,7 @@ class OSPFRedistribution(PrimaryModel):
                         )
                     }
                 )
-        device_id = getattr(self.source, 'device_id', None)
-        if device_id is not None and device_id != self.instance.device_id:
+        if not self._source_is_on_instance_device():
             raise ValidationError(
                 {
                     self.SOURCE_FIELDS[self.protocol]: _(
@@ -587,3 +587,15 @@ class OSPFRedistribution(PrimaryModel):
                     )
                 }
             )
+
+    def _source_is_on_instance_device(self):
+        source = self.source
+        if self.protocol == OSPFRedistributionProtocolChoices.BGP:
+            # A BGP router is assigned to a generic object (device, site, ...)
+            device = self.instance.device
+            return (
+                source.assigned_object_type_id
+                == ContentType.objects.get_for_model(device).pk
+                and source.assigned_object_id == device.pk
+            )
+        return source.device_id == self.instance.device_id
