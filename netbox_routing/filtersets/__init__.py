@@ -21,6 +21,7 @@ __all__ = (
     'OSPFVirtualLinkFilterSet',
     'OSPFSummaryAddressFilterSet',
     'OSPFNeighborFilterSet',
+    'OSPFAreaRangeFilterSet',
     'ISISInstanceFilterSet',
     'ISISInterfaceFilterSet',
     'ISISSettingFilterSet',

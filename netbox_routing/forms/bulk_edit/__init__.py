@@ -17,6 +17,7 @@ __all__ = (
     'OSPFVirtualLinkBulkEditForm',
     'OSPFSummaryAddressBulkEditForm',
     'OSPFNeighborBulkEditForm',
+    'OSPFAreaRangeBulkEditForm',
     # IS-IS
     'ISISInstanceBulkEditForm',
     'ISISInterfaceBulkEditForm',

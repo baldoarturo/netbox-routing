@@ -24,6 +24,7 @@ from netbox_routing.models import (
     OSPFVirtualLink,
     OSPFSummaryAddress,
     OSPFNeighbor,
+    OSPFAreaRange,
 )
 
 __all__ = (
@@ -35,6 +36,7 @@ __all__ = (
     'OSPFVirtualLinkFilterForm',
     'OSPFSummaryAddressFilterForm',
     'OSPFNeighborFilterForm',
+    'OSPFAreaRangeFilterForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -476,4 +478,38 @@ class OSPFNeighborFilterForm(NetBoxModelFilterSetForm):
     ip_address = forms.CharField(required=False, label=_('IP Address'))
     priority = forms.IntegerField(required=False, label=_('Priority'))
     poll_interval = forms.IntegerField(required=False, label=_('Poll Interval'))
+    tag = TagFilterField(model)
+
+
+class OSPFAreaRangeFilterForm(NetBoxModelFilterSetForm):
+    model = OSPFAreaRange
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', 'area_id', name=_('OSPF')),
+        FieldSet('prefix', 'advertise', name=_('Address Range')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    area_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Area'),
+    )
+    prefix = forms.CharField(required=False, label=_('Prefix'))
+    advertise = forms.NullBooleanField(
+        required=False,
+        label=_('Advertise'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
     tag = TagFilterField(model)

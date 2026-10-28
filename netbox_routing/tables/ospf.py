@@ -11,6 +11,7 @@ from netbox_routing.models import (
     OSPFVirtualLink,
     OSPFSummaryAddress,
     OSPFNeighbor,
+    OSPFAreaRange,
 )
 
 __all__ = (
@@ -22,6 +23,7 @@ __all__ = (
     'OSPFVirtualLinkTable',
     'OSPFSummaryAddressTable',
     'OSPFNeighborTable',
+    'OSPFAreaRangeTable',
 )
 
 
@@ -337,3 +339,29 @@ class OSPFNeighborTable(NetBoxTable):
             'priority',
             'poll_interval',
         )
+
+
+class OSPFAreaRangeTable(NetBoxTable):
+    area = tables.Column(verbose_name=_('Area'), linkify=True)
+    instance = tables.Column(
+        verbose_name=_('Instance'), linkify=True, accessor='area__instance'
+    )
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='area__instance__device'
+    )
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    advertise = tables.BooleanColumn(verbose_name=_('Advertise'))
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFAreaRange
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'area',
+            'prefix',
+            'advertise',
+            'description',
+        )
+        default_columns = ('pk', 'id', 'instance', 'area', 'prefix', 'advertise')
