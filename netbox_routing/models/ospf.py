@@ -113,6 +113,9 @@ class OSPFAuthenticationMixin(models.Model):
         'show_md5',
     )
 
+    class Meta:
+        abstract = True
+
     def get_passphrase_md5(self):
         """The MD5 digest (hex) of the key, or None when there is no key."""
         if not self.passphrase:
@@ -153,9 +156,6 @@ class OSPFAuthenticationMixin(models.Model):
             errors['show_md5'] = _('There is no key to show the MD5 digest of.')
         if errors:
             raise ValidationError(errors)
-
-    class Meta:
-        abstract = True
 
 
 def authentication_conflict(required, own):
