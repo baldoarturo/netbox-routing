@@ -11,6 +11,7 @@ from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 
 from netbox_routing.choices import OSPFNetworkTypeChoices
+from netbox_routing.choices.ospf import OSPFExternalMetricTypeChoices
 from netbox_routing.constants.ospf import OSPF_INTERFACE_TIMERS
 from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
 
@@ -50,6 +51,13 @@ class OSPFInstanceForm(PrimaryModelForm):
             'vrf',
             name=_('Instance'),
         ),
+        FieldSet(
+            'default_originate',
+            'default_originate_always',
+            'default_originate_metric',
+            'default_originate_metric_type',
+            name=_('Default Information'),
+        ),
     )
 
     class Meta:
@@ -60,11 +68,27 @@ class OSPFInstanceForm(PrimaryModelForm):
             'process_id',
             'device',
             'vrf',
+            'default_originate',
+            'default_originate_always',
+            'default_originate_metric',
+            'default_originate_metric_type',
             'description',
             'comments',
             'tags',
             'owner',
         )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # An empty metric type falls back to its default (see clean()).
+        self.fields['default_originate_metric_type'].required = False
+
+    def clean(self):
+        if not self.cleaned_data.get('default_originate_metric_type'):
+            self.cleaned_data['default_originate_metric_type'] = (
+                OSPFExternalMetricTypeChoices.TYPE_2
+            )
+        return super().clean()
 
 
 class OSPFAreaForm(PrimaryModelForm):

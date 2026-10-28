@@ -66,6 +66,10 @@ class OSPFInstanceTestCase(
             'router_id': '4.4.4.4',
             'process_id': 4,
             'vrf': vrf.pk,
+            'default_originate': True,
+            'default_originate_always': True,
+            'default_originate_metric': 100,
+            'default_originate_metric_type': '1',
         }
 
         cls.bulk_edit_data = {

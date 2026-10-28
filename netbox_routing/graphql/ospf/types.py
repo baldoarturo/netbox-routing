@@ -27,6 +27,10 @@ class OSPFInstanceType(PrimaryObjectType):
     vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
     router_id: str
     process_id: str
+    default_originate: bool
+    default_originate_always: bool
+    default_originate_metric: int | None
+    default_originate_metric_type: str
 
 
 @strawberry_django.type(models.OSPFArea, fields='__all__', filters=OSPFAreaFilter)

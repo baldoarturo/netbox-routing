@@ -25,6 +25,10 @@ class OSPFInstanceTable(NetBoxTable):
             'process_id',
             'device',
             'vrf',
+            'default_originate',
+            'default_originate_always',
+            'default_originate_metric',
+            'default_originate_metric_type',
         )
         default_columns = (
             'pk',

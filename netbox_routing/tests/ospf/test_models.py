@@ -25,6 +25,40 @@ class OSPFInstanceTestCase(TestCase):
             name='Instance 1', device=self.device, router_id=router_id, process_id=1
         )
 
+    def test_default_originate_defaults(self):
+        instance = self._instance('10.0.0.1')
+        instance.full_clean()
+        self.assertFalse(instance.default_originate)
+        self.assertFalse(instance.default_originate_always)
+        self.assertIsNone(instance.default_originate_metric)
+        self.assertEqual(instance.default_originate_metric_type, '2')
+
+    def test_default_originate_options(self):
+        instance = self._instance('10.0.0.1')
+        instance.default_originate = True
+        instance.default_originate_always = True
+        for metric in (0, 16777214):
+            instance.default_originate_metric = metric
+            instance.full_clean()
+        for metric in (-1, 16777215):
+            instance.default_originate_metric = metric
+            with self.assertRaises(ValidationError) as cm:
+                instance.full_clean()
+            self.assertIn('default_originate_metric', cm.exception.error_dict)
+
+    def test_default_originate_options_require_default_originate(self):
+        instance = self._instance('10.0.0.1')
+        instance.default_originate_always = True
+        with self.assertRaises(ValidationError) as cm:
+            instance.full_clean()
+        self.assertIn('default_originate', cm.exception.error_dict)
+
+        instance.default_originate_always = False
+        instance.default_originate_metric = 10
+        with self.assertRaises(ValidationError) as cm:
+            instance.full_clean()
+        self.assertIn('default_originate', cm.exception.error_dict)
+
     def test_router_id_ipv4_is_valid(self):
         self._instance('10.0.0.1').full_clean()
 

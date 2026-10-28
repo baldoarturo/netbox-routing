@@ -5,7 +5,11 @@ from dcim.models import Interface, Device
 from ipam.models import VRF
 from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing.choices import AuthenticationChoices
-from netbox_routing.choices.ospf import OSPFAreaTypeChoices, OSPFNetworkTypeChoices
+from netbox_routing.choices.ospf import (
+    OSPFAreaTypeChoices,
+    OSPFExternalMetricTypeChoices,
+    OSPFNetworkTypeChoices,
+)
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
 
@@ -41,6 +45,24 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('Process ID'),
     )
+    default_originate = forms.NullBooleanField(
+        required=False,
+        label=_('Default Originate'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    default_originate_always = forms.NullBooleanField(
+        required=False,
+        label=_('Default Originate Always'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    default_originate_metric = forms.IntegerField(
+        required=False, label=_('Default Originate Metric')
+    )
+    default_originate_metric_type = forms.MultipleChoiceField(
+        choices=OSPFExternalMetricTypeChoices,
+        required=False,
+        label=_('Default Originate Metric Type'),
+    )
 
     model = OSPFInstance
     fieldsets = (
@@ -50,6 +72,13 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
             'tag',
         ),
         FieldSet('device_id', 'vrf_id', 'router_id', 'process_id', name=_('Device')),
+        FieldSet(
+            'default_originate',
+            'default_originate_always',
+            'default_originate_metric',
+            'default_originate_metric_type',
+            name=_('Default Information'),
+        ),
     )
     tag = TagFilterField(model)
 

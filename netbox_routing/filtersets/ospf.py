@@ -9,7 +9,11 @@ from utilities.filters import MultiValueCharFilter
 from utilities.filtersets import register_filterset
 
 from netbox.filtersets import NetBoxModelFilterSet
-from netbox_routing.choices.ospf import OSPFAreaTypeChoices, OSPFNetworkTypeChoices
+from netbox_routing.choices.ospf import (
+    OSPFAreaTypeChoices,
+    OSPFExternalMetricTypeChoices,
+    OSPFNetworkTypeChoices,
+)
 from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
 
 __all__ = ('OSPFAreaFilterSet', 'OSPFInstanceFilterSet', 'OSPFInterfaceFilterSet')
@@ -40,6 +44,10 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
         label='VRF',
     )
 
+    default_originate_metric_type = django_filters.MultipleChoiceFilter(
+        choices=OSPFExternalMetricTypeChoices,
+        label=_('Default Originate Metric Type'),
+    )
     router_id = MultiValueCharFilter(
         method='filter_rid',
         label=_('Router ID'),
@@ -55,6 +63,10 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             'vrf',
             'router_id',
             'process_id',
+            'default_originate',
+            'default_originate_always',
+            'default_originate_metric',
+            'default_originate_metric_type',
         )
 
     def search(self, queryset, name, value):

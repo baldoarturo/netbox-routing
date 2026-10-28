@@ -49,6 +49,9 @@ class OSPFInstanceTestCase(TestCase):
                 router_id='1.1.1.1',
                 process_id=1,
                 vrf=vrfs[1],
+                default_originate=True,
+                default_originate_metric=50,
+                default_originate_metric_type='1',
             ),
             OSPFInstance(
                 name='Instance 3',
@@ -97,6 +100,22 @@ class OSPFInstanceTestCase(TestCase):
     def test_process_id(self):
         params = {'process_id': [1, 2]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_default_originate(self):
+        params = {'default_originate': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'default_originate': False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+        params = {'default_originate_metric': [50]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'default_originate_metric_type': ['1']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'default_originate_metric_type': ['2']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
 
     def test_router_id(self):
         params = {'router_id': ['1.1.1.1', '2.2.2.2']}

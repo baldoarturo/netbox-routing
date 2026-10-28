@@ -33,3 +33,13 @@ class OSPFNetworkTypeChoices(ChoiceSet):
         (POINT_TO_MULTIPOINT, 'Point to Multipoint'),
         (POINT_TO_MULTIPOINT_NON_BROADCAST, 'Point to Multipoint Non Broadcast'),
     ]
+
+
+class OSPFExternalMetricTypeChoices(ChoiceSet):
+    TYPE_1 = '1'
+    TYPE_2 = '2'
+
+    CHOICES = [
+        (TYPE_1, 'Type 1 (E1)'),
+        (TYPE_2, 'Type 2 (E2)'),
+    ]
