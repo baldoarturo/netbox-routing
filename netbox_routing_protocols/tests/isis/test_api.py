@@ -21,6 +21,7 @@ from netbox_routing_protocols.models import (
     ISISPrefixSID,
     ISISSRv6Locator,
 )
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'ISISInstanceAPITestCase',
@@ -138,7 +139,7 @@ class ISISInstanceAPITestCase(APIViewTestCases.APIViewTestCase):
         self.assertNotIn('sr_node_msd', response.json())
 
 
-class ISISInterfaceAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISInterfaceAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ISISInterface
     view_namespace = 'plugins-api:netbox_routing_protocols'
     # verbose_name 'IS-IS Interface' → default base name 'is-is_interface' (invalid
@@ -220,7 +221,7 @@ class ISISInterfaceAPITestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ISISSettingAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISSettingAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ISISSetting
     view_namespace = 'plugins-api:netbox_routing_protocols'
     graphql_base_name = 'isis_setting'
@@ -266,7 +267,7 @@ class ISISSettingAPITestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ISISLevelAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISLevelAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ISISLevel
     view_namespace = 'plugins-api:netbox_routing_protocols'
     graphql_base_name = 'isis_level'
@@ -299,7 +300,9 @@ class ISISLevelAPITestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ISISInterfaceLevelAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISInterfaceLevelAPITestCase(
+    LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
+):
     model = ISISInterfaceLevel
     view_namespace = 'plugins-api:netbox_routing_protocols'
     graphql_base_name = 'isis_interface_level'
@@ -331,7 +334,9 @@ class ISISInterfaceLevelAPITestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ISISSegmentRoutingAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISSegmentRoutingAPITestCase(
+    LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
+):
     model = ISISSegmentRouting
     view_namespace = 'plugins-api:netbox_routing_protocols'
     graphql_base_name = 'isis_segment_routing'
@@ -363,7 +368,7 @@ class ISISSegmentRoutingAPITestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ISISFlexAlgoAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISFlexAlgoAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ISISFlexAlgo
     view_namespace = 'plugins-api:netbox_routing_protocols'
     graphql_base_name = 'isis_flex_algo'
@@ -403,7 +408,7 @@ class ISISFlexAlgoAPITestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ISISPrefixSIDAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISPrefixSIDAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ISISPrefixSID
     view_namespace = 'plugins-api:netbox_routing_protocols'
     graphql_base_name = 'isis_prefix_sid'
@@ -437,7 +442,7 @@ class ISISPrefixSIDAPITestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ISISSRv6LocatorAPITestCase(APIViewTestCases.APIViewTestCase):
+class ISISSRv6LocatorAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ISISSRv6Locator
     view_namespace = 'plugins-api:netbox_routing_protocols'
     graphql_base_name = 'isis_srv6_locator'

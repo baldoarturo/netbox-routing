@@ -7,6 +7,7 @@ from ipam.models import VRF
 from utilities.testing import ViewTestCases, create_test_device
 
 from netbox_routing_protocols.models import ISISInstance, ISISInterface
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'ISISInstanceViewTestCase',
@@ -97,6 +98,7 @@ class ISISInstanceViewTestCase(
 
 
 class ISISInterfaceViewTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,

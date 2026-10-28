@@ -4,6 +4,7 @@ from ipam.models import Prefix
 from utilities.testing import APIViewTestCases, APITestCase
 
 from netbox_routing_protocols.models.objects import *
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'ASPathTestCase',
@@ -16,7 +17,7 @@ __all__ = (
 )
 
 
-class ASPathTestCase(APIViewTestCases.APIViewTestCase):
+class ASPathTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ASPath
     view_namespace = "plugins-api:netbox_routing_protocols"
     graphql_base_name = 'aspath'
@@ -54,7 +55,7 @@ class ASPathTestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class ASPathEntryTestCase(APIViewTestCases.APIViewTestCase):
+class ASPathEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = ASPathEntry
     view_namespace = "plugins-api:netbox_routing_protocols"
     graphql_base_name = 'aspath_entry'
@@ -111,7 +112,7 @@ class ASPathEntryTestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class PrefixListTestCase(APIViewTestCases.APIViewTestCase):
+class PrefixListTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = PrefixList
     view_namespace = "plugins-api:netbox_routing_protocols"
     graphql_base_name = 'prefixlist'
@@ -502,7 +503,7 @@ class PrefixListFamilyTestCase(APITestCase):
         self.assertHttpStatus(response, 400)
 
 
-class RouteMapTestCase(APIViewTestCases.APIViewTestCase):
+class RouteMapTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = RouteMap
     view_namespace = "plugins-api:netbox_routing_protocols"
     brief_fields = [
@@ -539,7 +540,7 @@ class RouteMapTestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class RouteMapEntryTestCase(APIViewTestCases.APIViewTestCase):
+class RouteMapEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = RouteMapEntry
     view_namespace = "plugins-api:netbox_routing_protocols"
     brief_fields = [

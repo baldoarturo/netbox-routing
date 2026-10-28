@@ -4,7 +4,7 @@ from utilities.testing import ViewTestCases, create_test_device
 
 from netbox_routing_protocols.choices import OSPFNetworkTypeChoices
 from netbox_routing_protocols.models import OSPFInstance, OSPFArea, OSPFInterface
-from netbox_routing_protocols.tests.base import IPAddressFieldMixin
+from netbox_routing_protocols.tests.base import IPAddressFieldMixin, LeanCoreTestsMixin
 
 __all__ = (
     'OSPFInstanceTestCase',
@@ -86,6 +86,7 @@ class OSPFInstanceTestCase(
 
 
 class OSPFAreaTestCase(
+    LeanCoreTestsMixin,
     IPAddressFieldMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
@@ -132,6 +133,7 @@ class OSPFAreaTestCase(
 
 
 class OSPFInterfaceTestCase(
+    LeanCoreTestsMixin,
     IPAddressFieldMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,

@@ -3,7 +3,7 @@ from ipam.models import VRF
 from utilities.testing import APIViewTestCases, create_test_device
 
 from netbox_routing_protocols.models import OSPFInstance, OSPFArea, OSPFInterface
-from netbox_routing_protocols.tests.base import IPAddressFieldMixin
+from netbox_routing_protocols.tests.base import IPAddressFieldMixin, LeanCoreTestsMixin
 
 __all__ = (
     'OSPFInstanceTestCase',
@@ -76,7 +76,9 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
         ]
 
 
-class OSPFAreaTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
+class OSPFAreaTestCase(
+    LeanCoreTestsMixin, IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
+):
     model = OSPFArea
     view_namespace = 'plugins-api:netbox_routing_protocols'
     brief_fields = [
@@ -117,7 +119,9 @@ class OSPFAreaTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
         ]
 
 
-class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
+class OSPFInterfaceTestCase(
+    LeanCoreTestsMixin, IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
+):
     model = OSPFInterface
     view_namespace = 'plugins-api:netbox_routing_protocols'
     brief_fields = [

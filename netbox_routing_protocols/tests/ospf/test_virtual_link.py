@@ -7,7 +7,7 @@ from utilities.testing import APIViewTestCases, ViewTestCases, create_test_devic
 from netbox_routing_protocols.filtersets import OSPFVirtualLinkFilterSet
 from netbox_routing_protocols.forms import OSPFVirtualLinkForm
 from netbox_routing_protocols.models import OSPFArea, OSPFInstance, OSPFVirtualLink
-from netbox_routing_protocols.tests.base import IPAddressFieldMixin
+from netbox_routing_protocols.tests.base import IPAddressFieldMixin, LeanCoreTestsMixin
 
 __all__ = (
     'OSPFVirtualLinkModelTestCase',
@@ -258,6 +258,7 @@ class OSPFVirtualLinkFilterSetTestCase(TestCase):
 
 
 class OSPFVirtualLinkViewTestCase(
+    LeanCoreTestsMixin,
     IPAddressFieldMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
@@ -309,7 +310,9 @@ class OSPFVirtualLinkViewTestCase(
         return 'plugins:netbox_routing_protocols:ospfvirtuallink_{}'
 
 
-class OSPFVirtualLinkAPITestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
+class OSPFVirtualLinkAPITestCase(
+    LeanCoreTestsMixin, IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
+):
     model = OSPFVirtualLink
     view_namespace = 'plugins-api:netbox_routing_protocols'
     brief_fields = [

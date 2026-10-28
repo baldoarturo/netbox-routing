@@ -55,6 +55,7 @@ dev/test.sh --rebuild                # build the template again
 ```
 
 - Measured on the whole suite (2048 tests): about 6 minutes before, 129 s with the script, 55 s with `--parallel=4`.
+- Test classes that inherit NetBox's API/GUI test cases (`APIViewTestCases`, `ViewTestCases`) carry `LeanCoreTestsMixin` (`tests/base.py`), which switches off the checks that test NetBox itself and are identical for every model: permissions, bulk API edge cases, GraphQL, OPTIONS, etag. They run only on one sample model per area, whose classes do not have the mixin: `StaticRoute`, `BGPRouter`, `Community`, `PrefixListEntry`, `OSPFInstance` and `ISISInstance` (API and GUI). Add the mixin to the test classes of every new model. Do not add tests that only exercise NetBox or Django: test what the plugin defines (clean rules, constraints, defaults, filters, forms, serializers).
 - Only the plugin's tests run, never NetBox's own: without a test label the script defaults to `netbox_routing_protocols`.
 - `--own` skips the tests inherited from NetBox's CRUD test classes (API and GUI, about 85 % of the suite) and runs the ones written by hand (models, forms, filters, migrations, validation rules). Run the whole suite once before merging.
 - `--parallel` needs `tblib` in the NetBox venv (`pip install tblib`) to report failures, and hides the real error behind a pickle error otherwise: rerun that test alone.

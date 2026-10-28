@@ -13,6 +13,7 @@ from netbox_routing_protocols.models import (
     OSPFInterface,
     OSPFPrefixSID,
 )
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'OSPFSegmentRoutingTestCase',
@@ -183,6 +184,7 @@ class OSPFPrefixSIDFilterSetTestCase(TestCase):
 
 
 class OSPFPrefixSIDViewTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,
@@ -211,7 +213,7 @@ class OSPFPrefixSIDViewTestCase(
         return 'plugins:netbox_routing_protocols:ospfprefixsid_{}'
 
 
-class OSPFPrefixSIDAPITestCase(APIViewTestCases.APIViewTestCase):
+class OSPFPrefixSIDAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = OSPFPrefixSID
     view_namespace = 'plugins-api:netbox_routing_protocols'
     brief_fields = ['display', 'id', 'instance', 'prefix', 'sid', 'url']

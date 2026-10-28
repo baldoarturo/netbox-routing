@@ -7,6 +7,7 @@ from utilities.testing import APIViewTestCases, ViewTestCases, create_test_devic
 
 from netbox_routing_protocols.filtersets import OSPFAreaRangeFilterSet
 from netbox_routing_protocols.models import OSPFArea, OSPFAreaRange, OSPFInstance
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'OSPFAreaRangeModelTestCase',
@@ -145,6 +146,7 @@ class OSPFAreaRangeFilterSetTestCase(TestCase):
 
 
 class OSPFAreaRangeViewTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,
@@ -178,7 +180,7 @@ class OSPFAreaRangeViewTestCase(
         return 'plugins:netbox_routing_protocols:ospfarearange_{}'
 
 
-class OSPFAreaRangeAPITestCase(APIViewTestCases.APIViewTestCase):
+class OSPFAreaRangeAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = OSPFAreaRange
     view_namespace = 'plugins-api:netbox_routing_protocols'
     brief_fields = ['area', 'display', 'id', 'prefix', 'url']

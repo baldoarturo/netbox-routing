@@ -14,7 +14,7 @@ from netbox_routing_protocols.models import (
     OSPFInstance,
     OSPFRedistribution,
 )
-from netbox_routing_protocols.tests.base import IPAddressFieldMixin
+from netbox_routing_protocols.tests.base import IPAddressFieldMixin, LeanCoreTestsMixin
 
 __all__ = (
     'OSPFRedistributionModelTestCase',
@@ -417,6 +417,7 @@ class OSPFRedistributionFilterSetTestCase(TestCase):
 
 
 class OSPFRedistributionViewTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,
@@ -462,7 +463,7 @@ class OSPFRedistributionViewTestCase(
 
 
 class OSPFRedistributionAPITestCase(
-    IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
+    LeanCoreTestsMixin, IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
 ):
     model = OSPFRedistribution
     view_namespace = 'plugins-api:netbox_routing_protocols'

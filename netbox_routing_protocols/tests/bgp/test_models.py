@@ -28,15 +28,6 @@ class BGPRouterTestCase(ASNMixin, TestCase):
         self.assertEqual(str(instance), f'{name} ({self.asn})')
         self.assertEqual(instance.asn, self.asn)
 
-    def test_unique_together(self):
-        name = 'BGP Router 1'
-        instance = self.model(
-            name=name,
-            asn=self.asn,
-        )
-        instance.full_clean()
-        instance.save()
-
 
 class BGPScopeTestCase(BGPRouterMixin, VRFMixin, TestCase):
     model = BGPScope

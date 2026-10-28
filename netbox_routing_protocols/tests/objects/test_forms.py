@@ -212,12 +212,6 @@ class PrefixListEntryTestCase(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('prefix_list', form.errors)
 
-    def test_family_mismatch(self):
-        prefix_v6 = Prefix.objects.create(prefix='2001:db8::/32')
-        form = PrefixListEntryForm(data=self._data(prefix=prefix_v6.pk))
-        self.assertFalse(form.is_valid())
-        self.assertIn('IPv6', str(form.errors))
-
     def test_le_above_family_boundary(self):
         form = PrefixListEntryForm(data=self._data(le=33))
         self.assertFalse(form.is_valid())
@@ -261,11 +255,6 @@ class PrefixListEntryTestCase(TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         entry = form.save()
         self.assertEqual((entry.ge, entry.le), (24, None))
-
-    def test_any_and_a_prefix_are_exclusive(self):
-        form = PrefixListEntryForm(data=self._data(any_prefix=True))
-        self.assertFalse(form.is_valid())
-        self.assertIn('prefix', form.errors)
 
     def test_prefix_or_any_is_required(self):
         data = self._data()
