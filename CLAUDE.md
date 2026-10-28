@@ -17,6 +17,8 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 5. **Migrations that depend on each other.** When several open PRs add migrations, chain them (each depends on the previous one) and merge them in order. Before merging a PR that has a migration, merge `main` into it and re-run the suite.
 6. **Work in a separate git worktree** if another session may be using the same checkout, so branch switches do not collide.
 7. **If you are not sure how to fix an issue, ask before coding.** Keep asking the user questions until no doubts remain, and ask for concrete examples (sample data, expected vs actual behaviour, a screenshot, a failing request) whenever they would remove ambiguity. Do not guess at the intended behaviour, and do not open a PR for a fix you are unsure about.
+8. **Routing protocol design must follow the existing RFCs.** Model fields, choices, defaults, validation and terminology for BGP, OSPF, EIGRP, IS-IS and the like must conform to the relevant RFCs (e.g. RFC 4271 for BGP, RFC 2328 for OSPFv2, RFC 5340 for OSPFv3, RFC 7868 for EIGRP, ISO 10589 / RFC 1195 for IS-IS). Cite the RFC in the issue or PR when a design choice depends on it.
+9. **If you have any doubt about the implementation, ask.** This applies to design and implementation, not only to bug fixes: when more than one reasonable approach exists, or the RFC is ambiguous or silent, ask the user before coding.
 
 ## Running the dev server
 
