@@ -194,6 +194,10 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
             'cost',
             'bfd',
             'mtu_ignore',
+            'prefix_suppression',
+            'database_filter_all_out',
+            'flood_reduction',
+            'demand_circuit',
             'authentication',
             name=_('Attributes'),
         ),
@@ -253,6 +257,26 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
     mtu_ignore = forms.NullBooleanField(
         required=False,
         label=_('MTU Ignore'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    prefix_suppression = forms.NullBooleanField(
+        required=False,
+        label=_('Prefix Suppression'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    database_filter_all_out = forms.NullBooleanField(
+        required=False,
+        label=_('Database Filter All Out'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    flood_reduction = forms.NullBooleanField(
+        required=False,
+        label=_('Flood Reduction'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    demand_circuit = forms.NullBooleanField(
+        required=False,
+        label=_('Demand Circuit'),
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     priority = forms.IntegerField(required=False)

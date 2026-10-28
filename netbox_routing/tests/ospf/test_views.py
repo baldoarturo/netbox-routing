@@ -221,6 +221,8 @@ class OSPFInterfaceTestCase(
             'passive': True,
             'cost': 10,
             'mtu_ignore': True,
+            'prefix_suppression': True,
+            'flood_reduction': False,
             'hello_interval': 30,
             'dead_interval': 120,
         }

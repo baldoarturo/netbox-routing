@@ -278,6 +278,20 @@ class OSPFInterfaceTestCase(TestCase):
                 ospf_interface.full_clean()
             self.assertIn('priority', cm.exception.error_dict)
 
+    def test_misc_flags_are_optional(self):
+        ospf_interface = OSPFInterface.objects.get()
+        for flag in (
+            'prefix_suppression',
+            'database_filter_all_out',
+            'flood_reduction',
+            'demand_circuit',
+        ):
+            with self.subTest(flag=flag):
+                self.assertIsNone(getattr(ospf_interface, flag))
+                for value in (True, False, None):
+                    setattr(ospf_interface, flag, value)
+                    ospf_interface.full_clean()
+
     def test_mtu_ignore_defaults_to_false(self):
         self.assertFalse(OSPFInterface.objects.get().mtu_ignore)
 

@@ -146,6 +146,14 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
     mtu = attrs.NumericAttr('interface.mtu', label=_('MTU'))
     mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
+    prefix_suppression = attrs.BooleanAttr(
+        'prefix_suppression', label=_('Prefix Suppression')
+    )
+    database_filter_all_out = attrs.BooleanAttr(
+        'database_filter_all_out', label=_('Database Filter All Out')
+    )
+    flood_reduction = attrs.BooleanAttr('flood_reduction', label=_('Flood Reduction'))
+    demand_circuit = attrs.BooleanAttr('demand_circuit', label=_('Demand Circuit'))
     network_type = attrs.ChoiceAttr('network_type', label=_('Network Type'))
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
     bfd = attrs.BooleanAttr('bfd', label=_('BFD'))

@@ -263,6 +263,13 @@ class OSPFInterfaceForm(PrimaryModelForm):
             name=_('Interface'),
         ),
         FieldSet(
+            'prefix_suppression',
+            'database_filter_all_out',
+            'flood_reduction',
+            'demand_circuit',
+            name=_('Options'),
+        ),
+        FieldSet(
             'hello_interval',
             'dead_interval',
             'retransmit_interval',
@@ -297,6 +304,10 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'retransmit_interval',
             'transmit_delay',
             'mtu_ignore',
+            'prefix_suppression',
+            'database_filter_all_out',
+            'flood_reduction',
+            'demand_circuit',
             'authentication',
             'passphrase',
             'authentication_key_id',
@@ -312,6 +323,10 @@ class OSPFInterfaceForm(PrimaryModelForm):
         widgets = {
             'bfd': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'passive': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'prefix_suppression': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'database_filter_all_out': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'flood_reduction': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'demand_circuit': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         }
 
     def __init__(self, *args, **kwargs):
