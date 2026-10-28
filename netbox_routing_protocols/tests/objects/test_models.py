@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from users.models import User
+from utilities.exceptions import AbortRequest
 
 from ipam.models import Prefix
 from netbox_routing_protocols.models.objects import *
@@ -182,6 +183,64 @@ class PrefixListEntryTestCase(TestCase):
         )
         with self.assertRaises(ValidationError):
             entry.full_clean()
+
+    def test_prefix_change_that_invalidates_an_entry_is_refused(self):
+        for prefix, new_value in (
+            (Prefix(prefix='10.1.0.0/24'), '10.1.0.0/29'),
+            (CustomPrefix(prefix='10.2.0.0/24'), '10.2.0.0/29'),
+            (Prefix(prefix='10.3.0.0/24'), '2001:db8::/32'),
+            (CustomPrefix(prefix='10.4.0.0/24'), '2001:db8:1::/48'),
+        ):
+            with self.subTest(f'{type(prefix).__name__} {new_value}'):
+                entry = self._entry(prefix)
+                entry.ge = 28
+                entry.le = 32
+                entry.save()
+                old_value = str(prefix.prefix)
+                prefix.prefix = new_value
+                with self.assertRaises(AbortRequest) as ctx:
+                    prefix.save()
+                self.assertIn(str(entry), str(ctx.exception.message))
+                prefix.refresh_from_db()
+                self.assertEqual(str(prefix.prefix), old_value)
+                entry.delete()
+
+    def test_compatible_prefix_change_is_allowed(self):
+        for prefix, new_value in (
+            (Prefix(prefix='10.5.0.0/24'), '10.5.0.0/25'),
+            (CustomPrefix(prefix='10.6.0.0/24'), '10.6.0.0/25'),
+        ):
+            with self.subTest(type(prefix).__name__):
+                entry = self._entry(prefix)
+                entry.ge = 26
+                entry.le = 32
+                entry.save()
+                prefix.prefix = new_value
+                prefix.save()
+                prefix.refresh_from_db()
+                self.assertEqual(str(prefix.prefix), new_value)
+                entry.delete()
+
+    def test_unused_prefix_can_change(self):
+        prefix = Prefix.objects.create(prefix='10.7.0.0/24')
+        prefix.prefix = '2001:db8::/32'
+        prefix.save()
+
+    def test_custom_prefix_edit_view_shows_error(self):
+        user = User.objects.create_superuser('admin154', 'admin@example.com', 'x')
+        self.client.force_login(user)
+        prefix = CustomPrefix(prefix='10.8.0.0/24')
+        entry = self._entry(prefix)
+        entry.ge = 28
+        entry.save()
+        url = reverse(
+            'plugins:netbox_routing_protocols:customprefix_edit',
+            kwargs={'pk': prefix.pk},
+        )
+        response = self.client.post(url, {'prefix': '10.8.0.0/29'}, follow=True)
+        self.assertContains(response, 'would make prefix list entries invalid')
+        prefix.refresh_from_db()
+        self.assertEqual(str(prefix.prefix), '10.8.0.0/24')
 
     def test_family_mismatch_is_rejected(self):
         v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)

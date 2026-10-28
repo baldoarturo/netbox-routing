@@ -1,3 +1,4 @@
+import netaddr
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import (
@@ -211,11 +212,14 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
         )
 
     def clean(self):
+        # Read the prefix first: super().clean() drops the cached generic foreign key and
+        # the next access would reload it from the database, hiding an unsaved change
+        assigned_prefix = self.assigned_prefix
         super().clean()
         # An entry without a prefix means nothing; this also covers the API and imports
         if self.assigned_prefix_type_id is None or self.assigned_prefix_id is None:
             raise ValidationError(_('A Prefix or Custom Prefix must be specified'))
-        if self.assigned_prefix is None:
+        if assigned_prefix is None:
             raise ValidationError(_('The assigned prefix does not exist.'))
         if not hasattr(self, 'prefix_list'):
             return
@@ -242,8 +246,10 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
                 }
             )
 
-        if self.assigned_prefix:
-            prefix = self.assigned_prefix.prefix
+        if assigned_prefix:
+            prefix = assigned_prefix.prefix
+            if isinstance(prefix, str):
+                prefix = netaddr.IPNetwork(prefix)
             if prefix.version != family:
                 raise ValidationError(
                     f'{prefix} is an IPv{prefix.version} prefix and cannot be added '

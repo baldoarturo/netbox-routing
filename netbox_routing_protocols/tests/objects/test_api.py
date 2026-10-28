@@ -324,6 +324,29 @@ class PrefixListFamilyTestCase(APITestCase):
         self.v4.refresh_from_db()
         self.assertEqual(self.v4.family, 4)
 
+    def test_prefix_change_that_invalidates_an_entry_is_refused(self):
+        self.add_permissions('ipam.change_prefix', 'ipam.view_prefix')
+        prefix = Prefix.objects.create(prefix='10.0.0.0/24')
+        PrefixListEntry.objects.create(
+            prefix_list=self.v4,
+            action='permit',
+            sequence=1,
+            assigned_prefix=prefix,
+            ge=28,
+        )
+        url = reverse('ipam-api:prefix-detail', kwargs={'pk': prefix.pk})
+        response = self.client.patch(
+            url, {'prefix': '10.0.0.0/29'}, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 400)
+        prefix.refresh_from_db()
+        self.assertEqual(str(prefix.prefix), '10.0.0.0/24')
+        # a compatible change goes through
+        response = self.client.patch(
+            url, {'prefix': '10.0.0.0/25'}, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 200)
+
     def test_entry_family_mismatch_is_rejected(self):
         self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
         prefix = Prefix.objects.create(prefix='2001:db8::/32')
