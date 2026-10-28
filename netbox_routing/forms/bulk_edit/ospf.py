@@ -132,6 +132,27 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     max_lsa_warning_only = _boolean(_('Max LSAs Warning Only'))
     external_lsdb_limit = _integer(_('External LSDB Limit'))
     exit_overflow_interval = _integer(_('Exit Overflow Interval'))
+    authentication = forms.ChoiceField(
+        label=_('Authentication'),
+        choices=add_blank_choice(choices.AuthenticationChoices),
+        required=False,
+    )
+    passphrase = forms.CharField(label=_('Passphrase'), required=False)
+    authentication_key_id = forms.IntegerField(
+        label=_('Key ID'),
+        required=False,
+        min_value=OSPF_AUTH_KEY_ID_MIN,
+        max_value=OSPF_AUTH_KEY_ID_MAX,
+    )
+    message_digest_algorithm = forms.ChoiceField(
+        label=_('Message Digest Algorithm'),
+        choices=add_blank_choice(choices.OSPFMessageDigestAlgorithmChoices),
+        required=False,
+    )
+    key_chain = forms.CharField(label=_('Key Chain'), max_length=100, required=False)
+    show_md5 = forms.ChoiceField(
+        label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
 
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
@@ -152,6 +173,15 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
             'description',
         ),
         FieldSet(*OSPFInstance.ADVANCED_FIELDS, name='Advanced'),
+        FieldSet(
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'passphrase',
+            'show_md5',
+            'key_chain',
+            name='Authentication',
+        ),
     )
     nullable_fields = (
         'vrf',
@@ -188,6 +218,27 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
         choices=BOOLEAN_WITH_BLANK_CHOICES,
         required=False,
     )
+    authentication = forms.ChoiceField(
+        label=_('Authentication'),
+        choices=add_blank_choice(choices.AuthenticationChoices),
+        required=False,
+    )
+    passphrase = forms.CharField(label=_('Passphrase'), required=False)
+    authentication_key_id = forms.IntegerField(
+        label=_('Key ID'),
+        required=False,
+        min_value=OSPF_AUTH_KEY_ID_MIN,
+        max_value=OSPF_AUTH_KEY_ID_MAX,
+    )
+    message_digest_algorithm = forms.ChoiceField(
+        label=_('Message Digest Algorithm'),
+        choices=add_blank_choice(choices.OSPFMessageDigestAlgorithmChoices),
+        required=False,
+    )
+    key_chain = forms.CharField(label=_('Key Chain'), max_length=100, required=False)
+    show_md5 = forms.ChoiceField(
+        label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -201,6 +252,15 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
             'nssa_no_redistribution',
             'nssa_default_originate',
             name='NSSA',
+        ),
+        FieldSet(
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'passphrase',
+            'show_md5',
+            'key_chain',
+            name='Authentication',
         ),
         FieldSet('description'),
     )

@@ -186,6 +186,18 @@ class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCas
             },
         ]
 
+    def test_the_authentication_in_use_comes_from_the_area(self):
+        self.add_permissions('netbox_routing.view_ospfinterface')
+        obj = self.model.objects.filter(authentication__isnull=True).first()
+        OSPFArea.objects.filter(pk=obj.area_id).update(
+            authentication='message-digest',
+            authentication_key_id=1,
+            passphrase='password',
+        )
+        response = self.client.get(self._get_detail_url(obj), **self.header)
+        self.assertEqual(response.data['effective_authentication'], 'message-digest')
+        self.assertEqual(response.data['authentication_source'], 'area')
+
     def test_mtu_comes_from_the_device_interface(self):
         self.add_permissions('netbox_routing.view_ospfinterface')
         obj = self.model.objects.first()

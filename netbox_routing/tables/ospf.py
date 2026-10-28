@@ -38,6 +38,10 @@ class OSPFInstanceTable(NetBoxTable):
             'default_originate_metric',
             'default_originate_metric_type',
             *OSPFInstance.ADVANCED_FIELDS,
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'key_chain',
         )
         default_columns = (
             'pk',
@@ -69,6 +73,10 @@ class OSPFAreaTable(NetBoxTable):
             'nssa_translate_always',
             'nssa_no_redistribution',
             'nssa_default_originate',
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'key_chain',
         )
         default_columns = ('pk', 'id', 'instance', 'area_id', 'area_type')
 

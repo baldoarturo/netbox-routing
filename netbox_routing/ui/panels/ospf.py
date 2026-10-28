@@ -5,6 +5,7 @@ from netbox.ui import attrs, panels
 __all__ = (
     'OSPFInstancePanel',
     'OSPFInstanceAdvancedPanel',
+    'OSPFAuthenticationPanel',
     'OSPFAreaPanel',
     'OSPFInterfacePanel',
     'OSPFInterfaceSettingsPanel',
@@ -96,6 +97,19 @@ class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
     )
 
 
+class OSPFAuthenticationPanel(panels.ObjectAttributesPanel):
+    authentication = attrs.ChoiceAttr('authentication', label=_('Authentication'))
+    authentication_key_id = attrs.NumericAttr(
+        'authentication_key_id', label=_('Key ID')
+    )
+    message_digest_algorithm = attrs.ChoiceAttr(
+        'message_digest_algorithm', label=_('Message Digest Algorithm')
+    )
+    key_chain = attrs.TextAttr('key_chain', label=_('Key Chain'))
+    passphrase = attrs.TextAttr('passphrase', label=_('Passphrase'))
+    md5_digest = attrs.TextAttr('md5_digest', label=_('MD5 Digest'))
+
+
 class OSPFAreaPanel(panels.ObjectAttributesPanel):
     instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
     area_id = attrs.NumericAttr('area_id', label=_('Area ID'))
@@ -144,6 +158,12 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     key_chain = attrs.TextAttr('key_chain', label=_('Key Chain'))
     passphrase = attrs.TextAttr('passphrase', label=_('Passphrase'))
     md5_digest = attrs.TextAttr('md5_digest', label=_('MD5 Digest'))
+    effective_authentication = attrs.TextAttr(
+        'effective_authentication', label=_('Authentication in Use')
+    )
+    authentication_source = attrs.TextAttr(
+        'authentication_source', label=_('Authentication Set At')
+    )
 
 
 class OSPFNetworkPanel(panels.ObjectAttributesPanel):

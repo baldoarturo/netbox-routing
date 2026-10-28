@@ -5,6 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -58,7 +59,139 @@ __all__ = (
 )
 
 
-class OSPFInstance(PrimaryModel):
+class OSPFAuthenticationMixin(models.Model):
+    """
+    Authentication settings, on the interface and as defaults on the area and
+    the instance. An interface uses its own when it sets an authentication
+    type, else the one of its area, else the one of its instance.
+    """
+
+    authentication = models.CharField(
+        max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
+    )
+    passphrase = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text=_('The key, stored as plain text. For message digest authentication'),
+    )
+    authentication_key_id = models.PositiveSmallIntegerField(
+        verbose_name=_('Key ID'),
+        help_text=_('Message digest key ID, 0 to 255 (RFC 2328 D.3)'),
+        validators=[
+            MinValueValidator(OSPF_AUTH_KEY_ID_MIN),
+            MaxValueValidator(OSPF_AUTH_KEY_ID_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+    message_digest_algorithm = models.CharField(
+        verbose_name=_('Message Digest Algorithm'),
+        help_text=_('MD5 (RFC 2328) or HMAC-SHA (RFC 5709); default: MD5'),
+        choices=OSPFMessageDigestAlgorithmChoices,
+        default=OSPFMessageDigestAlgorithmChoices.MD5,
+        max_length=20,
+    )
+    key_chain = models.CharField(
+        verbose_name=_('Key Chain'),
+        help_text=_('Name of the key chain, for key chain authentication'),
+        max_length=100,
+        blank=True,
+    )
+    show_md5 = models.BooleanField(
+        verbose_name=_('MD5 Digest'),
+        help_text=_('Also show the MD5 digest of the key'),
+        default=False,
+    )
+
+    AUTHENTICATION_FIELDS = (
+        'authentication',
+        'passphrase',
+        'authentication_key_id',
+        'message_digest_algorithm',
+        'key_chain',
+        'show_md5',
+    )
+
+    class Meta:
+        abstract = True
+
+    def get_passphrase_md5(self):
+        """The MD5 digest (hex) of the key, or None when there is no key."""
+        if not self.passphrase:
+            return None
+        return hashlib.md5(self.passphrase.encode()).hexdigest()
+
+    @property
+    def md5_digest(self):
+        """The MD5 digest of the key, only when it is set to be shown."""
+        return self.get_passphrase_md5() if self.show_md5 else None
+
+    def _clean_authentication(self):
+        errors = {}
+        auth = self.authentication
+        if auth == choices.AuthenticationChoices.MESSAGE_DIGEST:
+            if not self.passphrase:
+                errors['passphrase'] = _('A key is required for message digest.')
+            if self.authentication_key_id is None:
+                errors['authentication_key_id'] = _(
+                    'A key ID is required for message digest.'
+                )
+            if self.key_chain:
+                errors['key_chain'] = _('A key chain is not used with message digest.')
+        elif auth == choices.AuthenticationChoices.KEYCHAIN:
+            if not self.key_chain:
+                errors['key_chain'] = _('A key chain name is required.')
+            if self.passphrase:
+                errors['passphrase'] = _('A key is not used with a key chain.')
+            if self.authentication_key_id is not None:
+                errors['authentication_key_id'] = _(
+                    'A key ID is not used with a key chain.'
+                )
+        else:
+            for field in ('passphrase', 'authentication_key_id', 'key_chain'):
+                if getattr(self, field) not in (None, ''):
+                    errors[field] = _('Select an authentication type first.')
+        if self.show_md5 and not self.passphrase:
+            errors['show_md5'] = _('There is no key to show the MD5 digest of.')
+        if errors:
+            raise ValidationError(errors)
+
+
+def authentication_conflict(required, own):
+    """
+    The authentication type is a parameter of the area (RFC 2328 C.2): its
+    interfaces cannot go without authentication when the area uses it, nor use
+    it when the area does not.
+    """
+    cryptographic = (
+        choices.AuthenticationChoices.MESSAGE_DIGEST,
+        choices.AuthenticationChoices.KEYCHAIN,
+    )
+    if required in cryptographic:
+        return own == choices.AuthenticationChoices.NULL
+    if required == choices.AuthenticationChoices.NULL:
+        return own in cryptographic
+    return False
+
+
+def _authentication_conflict_error(interfaces, required):
+    names = ', '.join(str(interface) for interface in interfaces[:5])
+    more = len(interfaces) - 5
+    return ValidationError(
+        {
+            'authentication': _(
+                'These interfaces cannot use {required} authentication: {names}{more}'
+            ).format(
+                required=required,
+                names=names,
+                more=_(' and {count} more').format(count=more) if more > 0 else '',
+            )
+        }
+    )
+
+
+class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
     name = models.CharField(max_length=100)
     router_id = IPAddressField(verbose_name=_('Router ID'))
     process_id = models.IntegerField(verbose_name=_('Process ID'))
@@ -295,16 +428,20 @@ class OSPFInstance(PrimaryModel):
     )
 
     clone_fields = (
-        'name',
-        'router_id',
-        'process_id',
-        'device',
-        'vrf',
-        'default_originate',
-        'default_originate_always',
-        'default_originate_metric',
-        'default_originate_metric_type',
-    ) + ADVANCED_FIELDS
+        (
+            'name',
+            'router_id',
+            'process_id',
+            'device',
+            'vrf',
+            'default_originate',
+            'default_originate_always',
+            'default_originate_metric',
+            'default_originate_metric_type',
+        )
+        + ADVANCED_FIELDS
+        + OSPFAuthenticationMixin.AUTHENTICATION_FIELDS
+    )
     prerequisite_models = ('dcim.Device',)
 
     class Meta:
@@ -352,9 +489,27 @@ class OSPFInstance(PrimaryModel):
         if errors:
             raise ValidationError(errors)
 
+    def _clean_interface_authentication(self):
+        """The interfaces of the areas that use this default must agree."""
+        if not (self.pk and self.authentication):
+            return
+        interfaces = [
+            ospf_interface
+            for ospf_interface in OSPFInterface.objects.filter(instance=self)
+            .filter(Q(area__authentication__isnull=True) | Q(area__authentication=''))
+            .select_related('interface')
+            if authentication_conflict(
+                self.authentication, ospf_interface.authentication
+            )
+        ]
+        if interfaces:
+            raise _authentication_conflict_error(interfaces, self.authentication)
+
     def clean(self):
         super().clean()
         self._clean_advanced_options()
+        self._clean_authentication()
+        self._clean_interface_authentication()
         if not self.default_originate and (
             self.default_originate_always or self.default_originate_metric is not None
         ):
@@ -380,7 +535,7 @@ class OSPFInstance(PrimaryModel):
                 )
 
 
-class OSPFArea(PrimaryModel):
+class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
     instance = models.ForeignKey(
         to='netbox_routing.OSPFInstance',
         related_name='areas',
@@ -436,6 +591,7 @@ class OSPFArea(PrimaryModel):
         'nssa_translate_always',
         'nssa_no_redistribution',
         'nssa_default_originate',
+        *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
     )
 
     class Meta:
@@ -469,9 +625,32 @@ class OSPFArea(PrimaryModel):
                 return None
         return number if 0 <= number <= 0xFFFFFFFF else None
 
+    def get_authentication_type(self):
+        """The authentication type of the area: its own or its instance's."""
+        if self.authentication:
+            return self.authentication
+        if self.instance_id:
+            return self.instance.authentication or None
+        return None
+
+    def _clean_interface_authentication(self):
+        """Every interface of the area has to agree with its authentication."""
+        required = self.get_authentication_type()
+        if not (self.pk and required):
+            return
+        interfaces = [
+            ospf_interface
+            for ospf_interface in self.interfaces.select_related('interface')
+            if authentication_conflict(required, ospf_interface.authentication)
+        ]
+        if interfaces:
+            raise _authentication_conflict_error(interfaces, required)
+
     def clean(self):
         super().clean()
         self._clean_area_type_options()
+        self._clean_authentication()
+        self._clean_interface_authentication()
         if self.area_number is None:
             raise ValidationError(
                 {'area_id': ['This field must be an integer or a valid net address']}
@@ -511,7 +690,7 @@ class OSPFArea(PrimaryModel):
             raise ValidationError(errors)
 
 
-class OSPFInterface(PrimaryModel):
+class OSPFInterface(OSPFAuthenticationMixin, PrimaryModel):
     instance = models.ForeignKey(
         to='netbox_routing.OSPFInstance',
         related_name='interfaces',
@@ -617,44 +796,6 @@ class OSPFInterface(PrimaryModel):
         ),
         default=False,
     )
-    authentication = models.CharField(
-        max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
-    )
-    passphrase = models.CharField(
-        max_length=200,
-        blank=True,
-        null=True,
-        help_text=_('The key, stored as plain text. For message digest authentication'),
-    )
-    authentication_key_id = models.PositiveSmallIntegerField(
-        verbose_name=_('Key ID'),
-        help_text=_('Message digest key ID, 0 to 255 (RFC 2328 D.3)'),
-        validators=[
-            MinValueValidator(OSPF_AUTH_KEY_ID_MIN),
-            MaxValueValidator(OSPF_AUTH_KEY_ID_MAX),
-        ],
-        blank=True,
-        null=True,
-    )
-    message_digest_algorithm = models.CharField(
-        verbose_name=_('Message Digest Algorithm'),
-        help_text=_('MD5 (RFC 2328) or HMAC-SHA (RFC 5709); default: MD5'),
-        choices=OSPFMessageDigestAlgorithmChoices,
-        default=OSPFMessageDigestAlgorithmChoices.MD5,
-        max_length=20,
-    )
-    key_chain = models.CharField(
-        verbose_name=_('Key Chain'),
-        help_text=_('Name of the key chain, for key chain authentication'),
-        max_length=100,
-        blank=True,
-    )
-    show_md5 = models.BooleanField(
-        verbose_name=_('MD5 Digest'),
-        help_text=_('Also show the MD5 digest of the key'),
-        default=False,
-    )
-
     clone_fields = (
         'instance',
         'area',
@@ -691,50 +832,49 @@ class OSPFInterface(PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:ospfinterface', args=[self.pk])
 
-    def get_passphrase_md5(self):
-        """The MD5 digest (hex) of the key, or None when there is no key."""
-        if not self.passphrase:
-            return None
-        return hashlib.md5(self.passphrase.encode()).hexdigest()
+    def get_authentication_source(self):
+        """
+        Where the authentication in use comes from: ('interface', self),
+        ('area', area), ('instance', instance) or (None, None).
+        """
+        levels = [('interface', self)]
+        if self.area_id:
+            levels.append(('area', self.area))
+        if self.instance_id:
+            levels.append(('instance', self.instance))
+        for level, source in levels:
+            if source.authentication:
+                return level, source
+        return None, None
 
     @property
-    def md5_digest(self):
-        """The MD5 digest of the key, only when it is set to be shown."""
-        return self.get_passphrase_md5() if self.show_md5 else None
+    def authentication_source(self):
+        return self.get_authentication_source()[0]
 
-    def _clean_authentication(self):
-        errors = {}
-        auth = self.authentication
-        if auth == choices.AuthenticationChoices.MESSAGE_DIGEST:
-            if not self.passphrase:
-                errors['passphrase'] = _('A key is required for message digest.')
-            if self.authentication_key_id is None:
-                errors['authentication_key_id'] = _(
-                    'A key ID is required for message digest.'
-                )
-            if self.key_chain:
-                errors['key_chain'] = _('A key chain is not used with message digest.')
-        elif auth == choices.AuthenticationChoices.KEYCHAIN:
-            if not self.key_chain:
-                errors['key_chain'] = _('A key chain name is required.')
-            if self.passphrase:
-                errors['passphrase'] = _('A key is not used with a key chain.')
-            if self.authentication_key_id is not None:
-                errors['authentication_key_id'] = _(
-                    'A key ID is not used with a key chain.'
-                )
-        else:
-            for field in ('passphrase', 'authentication_key_id', 'key_chain'):
-                if getattr(self, field) not in (None, ''):
-                    errors[field] = _('Select an authentication type first.')
-        if self.show_md5 and not self.passphrase:
-            errors['show_md5'] = _('There is no key to show the MD5 digest of.')
-        if errors:
-            raise ValidationError(errors)
+    @property
+    def effective_authentication(self):
+        source = self.get_authentication_source()[1]
+        return source.authentication if source else None
+
+    def _clean_area_authentication(self):
+        """The interface must agree with the authentication type of its area."""
+        if not (self.area_id and self.authentication):
+            return
+        required = self.area.get_authentication_type()
+        if authentication_conflict(required, self.authentication):
+            raise ValidationError(
+                {
+                    'authentication': _(
+                        'The area uses {required} authentication, which cannot '
+                        'be combined with {own}.'
+                    ).format(required=required, own=self.authentication)
+                }
+            )
 
     def clean(self):
         super().clean()
         self._clean_authentication()
+        self._clean_area_authentication()
         if (
             self.instance_id
             and self.area_id

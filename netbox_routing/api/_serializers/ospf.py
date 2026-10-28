@@ -9,6 +9,7 @@ from netbox_routing.api._serializers.bgp import BGPRouterSerializer
 from netbox_routing.api._serializers.eigrp import EIGRPRouterSerializer
 from netbox_routing.api._serializers.isis import ISISInstanceSerializer
 from netbox_routing.models import (
+    OSPFAuthenticationMixin,
     OSPFInstance,
     OSPFArea,
     OSPFInterface,
@@ -31,6 +32,9 @@ class OSPFInstanceSerializer(NetBoxModelSerializer):
     )
     device = DeviceSerializer(nested=True)
     vrf = VRFSerializer(nested=True, required=False, allow_null=True)
+    passphrase_md5 = serializers.CharField(
+        source='md5_digest', read_only=True, allow_null=True
+    )
 
     class Meta:
         model = OSPFInstance
@@ -48,6 +52,8 @@ class OSPFInstanceSerializer(NetBoxModelSerializer):
             'default_originate_metric',
             'default_originate_metric_type',
             *OSPFInstance.ADVANCED_FIELDS,
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
+            'passphrase_md5',
             'description',
             'comments',
             'custom_fields',
@@ -69,6 +75,9 @@ class OSPFAreaSerializer(NetBoxModelSerializer):
         view_name='plugins-api:netbox_routing-api:ospfarea-detail'
     )
     instance = OSPFInstanceSerializer(nested=True)
+    passphrase_md5 = serializers.CharField(
+        source='md5_digest', read_only=True, allow_null=True
+    )
 
     class Meta:
         model = OSPFArea
@@ -83,6 +92,8 @@ class OSPFAreaSerializer(NetBoxModelSerializer):
             'nssa_translate_always',
             'nssa_no_redistribution',
             'nssa_default_originate',
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
+            'passphrase_md5',
             'description',
             'comments',
         )
@@ -107,6 +118,8 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
     passphrase_md5 = serializers.CharField(
         source='md5_digest', read_only=True, allow_null=True
     )
+    effective_authentication = serializers.CharField(read_only=True, allow_null=True)
+    authentication_source = serializers.CharField(read_only=True, allow_null=True)
 
     class Meta:
         model = OSPFInterface
@@ -135,6 +148,8 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'key_chain',
             'show_md5',
             'passphrase_md5',
+            'effective_authentication',
+            'authentication_source',
             'description',
             'comments',
         )

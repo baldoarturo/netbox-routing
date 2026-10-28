@@ -18,6 +18,7 @@ from netbox_routing.choices.ospf import (
     OSPFRedistributionProtocolChoices,
 )
 from netbox_routing.models import (
+    OSPFAuthenticationMixin,
     BGPRouter,
     EIGRPRouter,
     ISISInstance,
@@ -90,6 +91,7 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             'default_originate_metric',
             'default_originate_metric_type',
             *OSPFInstance.ADVANCED_FIELDS,
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
         )
 
     def search(self, queryset, name, value):
@@ -149,6 +151,7 @@ class OSPFAreaFilterSet(NetBoxModelFilterSet):
             'nssa_translate_always',
             'nssa_no_redistribution',
             'nssa_default_originate',
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
         )
 
     def search(self, queryset, name, value):
