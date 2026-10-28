@@ -11,6 +11,7 @@ from netbox.views.generic import (
     BulkEditView,
 )
 from netbox.ui import panels, layout
+from utilities.query import count_related
 from utilities.views import register_model_view, ViewTab, GetRelatedModelsMixin
 from netbox_routing_protocols.filtersets.objects import *
 from netbox_routing_protocols.forms.objects import *
@@ -25,7 +26,9 @@ from netbox_routing_protocols.ui import *
 #
 @register_model_view(PrefixList, name='list', path='', detail=False)
 class PrefixListListView(ObjectListView):
-    queryset = PrefixList.objects.all()
+    queryset = PrefixList.objects.annotate(
+        entry_count=count_related(PrefixListEntry, 'prefix_list')
+    )
     table = PrefixListTable
     filterset = PrefixListFilterSet
     filterset_form = PrefixListFilterForm
@@ -90,7 +93,9 @@ class PrefixListDeleteView(ObjectDeleteView):
 
 @register_model_view(PrefixList, name='bulk_edit', detail=False)
 class PrefixListBulkEditView(BulkEditView):
-    queryset = PrefixList.objects.all()
+    queryset = PrefixList.objects.annotate(
+        entry_count=count_related(PrefixListEntry, 'prefix_list')
+    )
     filterset = PrefixListFilterSet
     form = PrefixListBulkEditForm
     table = PrefixListTable
@@ -98,7 +103,9 @@ class PrefixListBulkEditView(BulkEditView):
 
 @register_model_view(PrefixList, name='bulk_delete', detail=False)
 class PrefixListBulkDeleteView(BulkDeleteView):
-    queryset = PrefixList.objects.all()
+    queryset = PrefixList.objects.annotate(
+        entry_count=count_related(PrefixListEntry, 'prefix_list')
+    )
     filterset = PrefixListFilterSet
     table = PrefixListTable
 

@@ -1,9 +1,13 @@
 from django.utils.translation import gettext_lazy as _
 
 from netbox.forms import PrimaryModelBulkEditForm
+from django import forms
+
+from utilities.forms import add_blank_choice
 from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 
+from netbox_routing_protocols.choices import ActionChoices
 from netbox_routing_protocols.models.objects import *
 
 __all__ = (
@@ -34,14 +38,24 @@ class PrefixListEntryBulkEditForm(PrimaryModelBulkEditForm):
         selector=True,
     )
 
+    action = forms.ChoiceField(
+        label=_('Action'),
+        choices=add_blank_choice(ActionChoices),
+        required=False,
+    )
+    ge = forms.IntegerField(label=_('GE'), required=False, min_value=0, max_value=128)
+    le = forms.IntegerField(label=_('LE'), required=False, min_value=0, max_value=128)
+
     model = PrefixListEntry
     fieldsets = (
         FieldSet(
             'prefix_list',
+            'action',
             'description',
         ),
+        FieldSet('ge', 'le', name=_('Filtering')),
     )
-    nullable_fields = ('description',)
+    nullable_fields = ('description', 'ge', 'le')
 
 
 class RouteMapBulkEditForm(PrimaryModelBulkEditForm):

@@ -138,6 +138,22 @@ class PrefixListTestCase(TestCase):
         self.assertEqual(prefix_list.family, 4)
         self.assertEqual(prefix_list.description, 'changed')
 
+    def test_filter_forms_have_fields(self):
+        form = PrefixListFilterForm()
+        self.assertTrue({'q', 'family', 'tag'} <= set(form.fields))
+        form = PrefixListEntryFilterForm()
+        self.assertTrue(
+            {'q', 'prefix_list_id', 'family', 'action', 'prefix_id', 'ge', 'le', 'tag'}
+            <= set(form.fields)
+        )
+
+    def test_bulk_edit_forms(self):
+        # the family cannot be changed once defined, so it is not bulk editable
+        self.assertNotIn('family', PrefixListBulkEditForm(PrefixList).fields)
+        form = PrefixListEntryBulkEditForm(PrefixListEntry)
+        self.assertTrue({'prefix_list', 'action', 'ge', 'le'} <= set(form.fields))
+        self.assertTrue({'ge', 'le', 'description'} <= set(form.nullable_fields))
+
 
 class PrefixListEntryTestCase(TestCase):
 

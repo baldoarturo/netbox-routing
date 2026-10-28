@@ -5,6 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from users.models import User
+from netbox_routing_protocols.tables.objects import *
 from utilities.exceptions import AbortRequest
 
 from ipam.models import Prefix
@@ -254,6 +255,51 @@ class PrefixListEntryTestCase(TestCase):
         self.assertContains(response, 'would make prefix list entries invalid')
         prefix.refresh_from_db()
         self.assertEqual(str(prefix.prefix), '10.8.0.0/24')
+
+    def test_bulk_edit_action_ge_le(self):
+        user = User.objects.create_superuser('admin157', 'admin@example.com', 'x')
+        self.client.force_login(user)
+        prefix = self._prefix('10.20.0.0/16')
+        entries = [self._entry(prefix, sequence=n) for n in (1, 2)]
+        url = reverse('plugins:netbox_routing_protocols:prefixlistentry_bulk_edit')
+        response = self.client.post(
+            url,
+            {
+                'pk': [e.pk for e in entries],
+                '_apply': True,
+                'action': 'deny',
+                'ge': 24,
+                'le': 28,
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        for entry in entries:
+            entry.refresh_from_db()
+            self.assertEqual((entry.action, entry.ge, entry.le), ('deny', 24, 28))
+        # invalid values are refused by the model validation
+        response = self.client.post(
+            url,
+            {'pk': [e.pk for e in entries], '_apply': True, 'ge': 8},
+            follow=True,
+        )
+        entries[0].refresh_from_db()
+        self.assertEqual(entries[0].ge, 24)
+
+    def test_tables_render_every_column(self):
+        self._entry(self._prefix('10.21.0.0/16'))
+        for table_class, queryset in (
+            (PrefixListTable, PrefixList.objects.all()),
+            (
+                PrefixListEntryTable,
+                PrefixListEntry.objects.select_related('prefix_list', 'prefix'),
+            ),
+        ):
+            with self.subTest(table_class.__name__):
+                table = table_class(queryset)
+                for column in table.columns.all():
+                    for row in table.rows:
+                        row.get_cell(column.name)
 
     def test_sequence_range(self):
         prefix = self._prefix('10.0.11.0/24')
