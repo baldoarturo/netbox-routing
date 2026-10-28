@@ -8,6 +8,9 @@
 
 A plugin for tracking all kinds of routing information
 
+> [!WARNING]
+> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet.
+
 ## Documentation
 
 The documentation for operators and users (every protocol and feature, with the RFC it comes from) is in [`docs/`](docs/index.md).
