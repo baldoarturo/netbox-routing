@@ -6,9 +6,10 @@ from django.forms import ChoiceField
 from dcim.models import Interface, Device
 from ipam.models import VRF, IPAddress
 from netbox.forms import PrimaryModelForm
-from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, get_field_value
 from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
+from utilities.forms.widgets import HTMXSelect
 
 from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.choices.ospf import (
@@ -475,6 +476,9 @@ class OSPFRedistributionForm(PrimaryModelForm):
 
     class Meta:
         model = OSPFRedistribution
+        widgets = {
+            'protocol': HTMXSelect(),
+        }
         fields = (
             'device',
             'instance',
@@ -501,9 +505,20 @@ class OSPFRedistributionForm(PrimaryModelForm):
         # An empty metric type falls back to its default (see clean()).
         self.fields['metric_type'].required = False
 
+        # Only the source of the selected protocol is shown (none for connected,
+        # static or while no protocol is selected)
+        protocol = get_field_value(self, 'protocol')
+        for source_protocol, field in OSPFRedistribution.SOURCE_FIELDS.items():
+            if source_protocol != protocol:
+                del self.fields[field]
+
     def clean(self):
         if not self.cleaned_data.get('metric_type'):
             self.cleaned_data['metric_type'] = OSPFExternalMetricTypeChoices.TYPE_2
+        # A source left over from a previous protocol is not on the form anymore
+        for field in OSPFRedistribution.SOURCE_FIELDS.values():
+            if field not in self.fields:
+                setattr(self.instance, field, None)
         return super().clean()
 
 
