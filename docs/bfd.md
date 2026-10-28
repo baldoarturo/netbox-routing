@@ -23,6 +23,5 @@ Where it is used:
 * OSPF, IS-IS and EIGRP interfaces only have a **BFD on/off** switch; they do not use profiles, because
   the timers of those protocols come from the interface configuration of the device.
 
-!!! note
-    The plugin does not check the intervals against what your platform supports. Choose values your
-    hardware can sustain: a profile with very small intervals on a busy router causes false failures.
+> **Note.** The plugin does not check the intervals against what your platform supports. Choose values your
+> hardware can sustain: a profile with very small intervals on a busy router causes false failures.

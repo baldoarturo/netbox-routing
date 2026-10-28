@@ -9,10 +9,9 @@ This plugin adds the routing layer on top of them, so the answer to *"which rout
 area 0.0.0.10?"*, *"which peers use this prefix list?"* or *"what is the SRGB of this IS-IS
 instance?"* is one search away, next to the rest of your inventory.
 
-!!! note "The plugin documents, it does not configure"
-    The plugin stores the **intended** routing configuration. It never connects to a device. Use
-    it as the source of truth that your templates, automation or documentation read from, through
-    the NetBox UI, REST API or GraphQL.
+> **The plugin documents, it does not configure.** The plugin stores the **intended** routing configuration. It never connects to a device. Use
+> it as the source of truth that your templates, automation or documentation read from, through
+> the NetBox UI, REST API or GraphQL.
 
 ## What is covered
 

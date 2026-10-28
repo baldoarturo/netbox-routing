@@ -39,11 +39,10 @@ The consequence: **create the parent first**. The Add form of an OSPF interface 
 instance and an OSPF area of that instance to exist already. If a form asks for something that does
 not exist, go back one level.
 
-!!! tip "Use what NetBox already has"
-    Devices, interfaces, IP addresses, prefixes, VRFs, ASNs, tenants and roles are standard NetBox
-    objects. The plugin never copies them; it links to them. A prefix list entry points at a NetBox
-    prefix, an OSPF network points at an IP address assigned to an interface, a BGP peer points at
-    an IP address, a BGP router points at an ASN.
+> **Use what NetBox already has.** Devices, interfaces, IP addresses, prefixes, VRFs, ASNs, tenants and roles are standard NetBox
+> objects. The plugin never copies them; it links to them. A prefix list entry points at a NetBox
+> prefix, an OSPF network points at an IP address assigned to an interface, a BGP peer points at
+> an IP address, a BGP router points at an ASN.
 
 ## What every object has
 

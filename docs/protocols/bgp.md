@@ -129,10 +129,9 @@ can have several *parents*; a peer address family points at one.
 **BGP → Peer Templates**: a **group of neighbors** that share a remote AS and per-address-family
 settings (the equivalent of a *peer group*). A peer points at one with *Peer template*.
 
-!!! note
-    The plugin records which template each peer uses and what each template contains. It does not
-    compute the final effective configuration of a peer; your configuration templates or automation
-    combine them.
+> **Note.** The plugin records which template each peer uses and what each template contains. It does not
+> compute the final effective configuration of a peer; your configuration templates or automation
+> combine them.
 
 ## Settings
 

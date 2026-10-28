@@ -8,9 +8,8 @@ descriptions of its links, and each one computes the shortest paths on its own. 
 extensions that real networks use on top of it. Defaults and ranges follow the RFC, and each feature
 below says which RFC it comes from.
 
-!!! info "Scope"
-    OSPFv3 (IPv6, [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340)) is not modelled yet. Networks,
-    summary addresses and ranges accept IPv4 only, and the router ID is an IPv4-style identifier.
+> **Scope.** OSPFv3 (IPv6, [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340)) is not modelled yet. Networks,
+> summary addresses and ranges accept IPv4 only, and the router ID is an IPv4-style identifier.
 
 ## How it is organized
 

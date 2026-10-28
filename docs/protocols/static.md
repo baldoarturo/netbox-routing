@@ -6,9 +6,8 @@ A static route is a route you configure by hand instead of learning it from a ro
 the simplest object in the plugin: one record describes the route, and you assign it to the devices
 that carry it.
 
-!!! info "Standards"
-    Static routes are not a protocol, so there is no RFC behind them. The plugin only checks what a
-    route needs to be meaningful: a destination and a way to reach it.
+> **Standards.** Static routes are not a protocol, so there is no RFC behind them. The plugin only checks what a
+> route needs to be meaningful: a destination and a way to reach it.
 
 ## Fields
 

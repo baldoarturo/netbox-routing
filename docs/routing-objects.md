@@ -5,13 +5,12 @@
 Routing objects are the building blocks that policies are made of. They are not tied to one protocol:
 today BGP policy templates and peer address families point at prefix lists and route maps.
 
-!!! info "About the standards"
-    Prefix lists, route maps and AS-path filters are **vendor features**: no RFC defines them, and
-    every vendor spells them a little differently. What the RFCs define is what they act on: IP
-    prefixes ([RFC 4632](https://www.rfc-editor.org/rfc/rfc4632) for IPv4 CIDR,
-    [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291) for IPv6), the BGP `AS_PATH` attribute
-    ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §5.1.2) and BGP communities
-    ([RFC 1997](https://www.rfc-editor.org/rfc/rfc1997)). Those are the pieces the plugin validates.
+> **About the standards.** Prefix lists, route maps and AS-path filters are **vendor features**: no RFC defines them, and
+> every vendor spells them a little differently. What the RFCs define is what they act on: IP
+> prefixes ([RFC 4632](https://www.rfc-editor.org/rfc/rfc4632) for IPv4 CIDR,
+> [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291) for IPv6), the BGP `AS_PATH` attribute
+> ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §5.1.2) and BGP communities
+> ([RFC 1997](https://www.rfc-editor.org/rfc/rfc1997)). Those are the pieces the plugin validates.
 
 ## Prefix lists
 
@@ -50,10 +49,9 @@ How to read GE and LE for a prefix `10.0.0.0/8`:
 The plugin refuses a GE or LE that is shorter than the prefix, longer than the family allows (32 for
 IPv4, 128 for IPv6) or when GE is greater than LE.
 
-!!! note "A prefix used by a list is protected"
-    A NetBox prefix referenced by a prefix list entry **cannot be deleted**, and a change to it that
-    would make an entry invalid (for example shortening the prefix below the entry's GE) is refused,
-    with a message that names the entries. Remove or edit the entries first.
+> **A prefix used by a list is protected.** A NetBox prefix referenced by a prefix list entry **cannot be deleted**, and a change to it that
+> would make an entry invalid (for example shortening the prefix below the entry's GE) is refused,
+> with a message that names the entries. Remove or edit the entries first.
 
 ### Overlap warnings
 
