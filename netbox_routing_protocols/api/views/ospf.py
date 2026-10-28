@@ -10,6 +10,7 @@ from netbox_routing_protocols.api.serializers import (
     OSPFSummaryAddressSerializer,
     OSPFNeighborSerializer,
     OSPFAreaRangeSerializer,
+    OSPFPrefixSIDSerializer,
 )
 from netbox_routing_protocols.models import (
     OSPFInstance,
@@ -21,6 +22,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 
 __all__ = (
@@ -33,6 +35,7 @@ __all__ = (
     'OSPFSummaryAddressViewSet',
     'OSPFNeighborViewSet',
     'OSPFAreaRangeViewSet',
+    'OSPFPrefixSIDViewSet',
 )
 
 
@@ -114,3 +117,9 @@ class OSPFAreaRangeViewSet(NetBoxModelViewSet):
     )
     serializer_class = OSPFAreaRangeSerializer
     filterset_class = filtersets.OSPFAreaRangeFilterSet
+
+
+class OSPFPrefixSIDViewSet(NetBoxModelViewSet):
+    queryset = OSPFPrefixSID.objects.select_related('instance__device', 'instance__vrf')
+    serializer_class = OSPFPrefixSIDSerializer
+    filterset_class = filtersets.OSPFPrefixSIDFilterSet

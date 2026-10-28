@@ -48,6 +48,9 @@ __all__ = (
     'OSPFAreaRangeForm',
     'OSPFAreaRangeBulkEditForm',
     'OSPFAreaRangeFilterForm',
+    'OSPFPrefixSIDForm',
+    'OSPFPrefixSIDBulkEditForm',
+    'OSPFPrefixSIDFilterForm',
     # IS-IS
     'ISISInstanceForm',
     'ISISInstanceBulkEditForm',

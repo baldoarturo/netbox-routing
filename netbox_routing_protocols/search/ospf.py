@@ -6,6 +6,7 @@ from netbox_routing_protocols.models.ospf import (
     OSPFInterface,
     OSPFNeighbor,
     OSPFNetwork,
+    OSPFPrefixSID,
     OSPFRedistribution,
     OSPFSummaryAddress,
     OSPFVirtualLink,
@@ -21,6 +22,7 @@ __all__ = (
     'OSPFSummaryAddressIndex',
     'OSPFNeighborIndex',
     'OSPFAreaRangeIndex',
+    'OSPFPrefixSIDIndex',
 )
 
 
@@ -122,3 +124,15 @@ class OSPFAreaRangeIndex(SearchIndex):
         ('comments', 5000),
     )
     display_attrs = ('area', 'advertise')
+
+
+@register_search
+class OSPFPrefixSIDIndex(SearchIndex):
+    model = OSPFPrefixSID
+    fields = (
+        ('prefix', 100),
+        ('sid', 200),
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'sid_type', 'algorithm')

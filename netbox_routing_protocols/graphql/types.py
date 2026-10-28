@@ -42,6 +42,7 @@ __all__ = (
     'OSPFSummaryAddressType',
     'OSPFNeighborType',
     'OSPFAreaRangeType',
+    'OSPFPrefixSIDType',
     'PrefixListType',
     'PrefixListEntryType',
     'RouteMapType',

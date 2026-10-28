@@ -28,6 +28,7 @@ from .ospf import (
     OSPFSummaryAddressIndex,
     OSPFNeighborIndex,
     OSPFAreaRangeIndex,
+    OSPFPrefixSIDIndex,
 )
 from .static import StaticRouteIndex
 
@@ -69,6 +70,7 @@ __all__ = (
     'OSPFSummaryAddressIndex',
     'OSPFNeighborIndex',
     'OSPFAreaRangeIndex',
+    'OSPFPrefixSIDIndex',
     'PrefixListIndex',
     'PrefixListEntryIndex',
     'RouteMapIndex',

@@ -100,3 +100,9 @@ OSPF_MD5_KEY_MAX_LENGTH = 16
 # are 4-octet fields.
 OSPF_TE_METRIC_MAX = 4294967295
 OSPF_TE_ADMIN_GROUP_MAX = 4294967295
+
+# Segment routing (RFC 8665): MPLS labels have 20 bits and 0-15 are reserved
+# (RFC 3032); an index is a 4-octet value.
+OSPF_SR_LABEL_MIN = 16
+OSPF_SR_LABEL_MAX = 1048575
+OSPF_SR_INDEX_MAX = 4294967295

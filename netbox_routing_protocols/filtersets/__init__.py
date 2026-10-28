@@ -22,6 +22,7 @@ __all__ = (
     'OSPFSummaryAddressFilterSet',
     'OSPFNeighborFilterSet',
     'OSPFAreaRangeFilterSet',
+    'OSPFPrefixSIDFilterSet',
     'ISISInstanceFilterSet',
     'ISISInterfaceFilterSet',
     'ISISSettingFilterSet',

@@ -19,6 +19,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 
 __all__ = (
@@ -31,6 +32,7 @@ __all__ = (
     'OSPFSummaryAddressSerializer',
     'OSPFNeighborSerializer',
     'OSPFAreaRangeSerializer',
+    'OSPFPrefixSIDSerializer',
 )
 
 
@@ -148,6 +150,7 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'transmit_delay',
             'mtu',
             'mtu_ignore',
+            'adjacency_sid',
             'te_metric',
             'te_max_reservable_bandwidth',
             'te_admin_group',
@@ -369,3 +372,31 @@ class OSPFAreaRangeSerializer(NetBoxModelSerializer):
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'area', 'prefix')
+
+
+class OSPFPrefixSIDSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:ospfprefixsid-detail'
+    )
+    instance = OSPFInstanceSerializer(nested=True)
+
+    class Meta:
+        model = OSPFPrefixSID
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'prefix',
+            'sid_type',
+            'sid',
+            'algorithm',
+            'node_sid',
+            'no_php',
+            'explicit_null',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'instance', 'prefix', 'sid')

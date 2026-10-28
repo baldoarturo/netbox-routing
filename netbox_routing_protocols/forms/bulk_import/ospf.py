@@ -142,6 +142,7 @@ class OSPFInterfaceImportForm(NetBoxModelImportForm):
             "retransmit_interval",
             "transmit_delay",
             "mtu_ignore",
+            "adjacency_sid",
             "te_metric",
             "te_max_reservable_bandwidth",
             "te_admin_group",

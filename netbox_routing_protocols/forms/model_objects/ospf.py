@@ -37,6 +37,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 
 __all__ = (
@@ -49,6 +50,7 @@ __all__ = (
     'OSPFSummaryAddressForm',
     'OSPFNeighborForm',
     'OSPFAreaRangeForm',
+    'OSPFPrefixSIDForm',
 )
 
 
@@ -269,6 +271,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'passive',
             'bfd',
             'mtu_ignore',
+            'adjacency_sid',
             name=_('Interface'),
         ),
         FieldSet(
@@ -319,6 +322,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'retransmit_interval',
             'transmit_delay',
             'mtu_ignore',
+            'adjacency_sid',
             'te_metric',
             'te_max_reservable_bandwidth',
             'te_admin_group',
@@ -715,6 +719,45 @@ class OSPFAreaRangeForm(PrimaryModelForm):
             'prefix',
             'range_type',
             'advertise',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+
+class OSPFPrefixSIDForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'instance',
+            'prefix',
+            'sid_type',
+            'sid',
+            'algorithm',
+            'description',
+            name=_('Prefix SID'),
+        ),
+        FieldSet('node_sid', 'no_php', 'explicit_null', name=_('Flags')),
+    )
+
+    class Meta:
+        model = OSPFPrefixSID
+        fields = (
+            'instance',
+            'prefix',
+            'sid_type',
+            'sid',
+            'algorithm',
+            'node_sid',
+            'no_php',
+            'explicit_null',
             'description',
             'comments',
             'tags',

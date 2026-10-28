@@ -49,6 +49,8 @@
   "ospfneighbor:list_objects_with_permission": 16,
   "ospfnetwork:api_list_objects": 14,
   "ospfnetwork:list_objects_with_permission": 16,
+  "ospfprefixsid:api_list_objects": 12,
+  "ospfprefixsid:list_objects_with_permission": 16,
   "ospfredistribution:api_list_objects": 13,
   "ospfredistribution:list_objects_with_permission": 17,
   "ospfsummaryaddress:api_list_objects": 12,

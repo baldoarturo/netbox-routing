@@ -12,6 +12,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 
 __all__ = (
@@ -24,6 +25,7 @@ __all__ = (
     'OSPFSummaryAddressTable',
     'OSPFNeighborTable',
     'OSPFAreaRangeTable',
+    'OSPFPrefixSIDTable',
 )
 
 
@@ -121,6 +123,7 @@ class OSPFInterfaceTable(NetBoxTable):
             'transmit_delay',
             'mtu',
             'mtu_ignore',
+            'adjacency_sid',
             'te_metric',
             'te_max_reservable_bandwidth',
             'te_admin_group',
@@ -383,3 +386,49 @@ class OSPFAreaRangeTable(NetBoxTable):
             'range_type',
             'advertise',
         )
+
+
+class OSPFPrefixSIDTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    sid_type = tables.Column(verbose_name=_('SID Type'))
+    algorithm = tables.Column(verbose_name=_('Algorithm'))
+    node_sid = tables.BooleanColumn(verbose_name=_('Node SID'))
+    no_php = tables.BooleanColumn(verbose_name=_('No PHP'))
+    explicit_null = tables.BooleanColumn(verbose_name=_('Explicit Null'))
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFPrefixSID
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'prefix',
+            'sid_type',
+            'sid',
+            'algorithm',
+            'node_sid',
+            'no_php',
+            'explicit_null',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'prefix',
+            'sid_type',
+            'sid',
+            'algorithm',
+            'node_sid',
+        )
+
+    def render_sid_type(self, record):
+        return record.get_sid_type_display()
+
+    def render_algorithm(self, record):
+        return record.get_algorithm_display()

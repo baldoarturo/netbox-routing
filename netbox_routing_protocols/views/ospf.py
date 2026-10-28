@@ -24,6 +24,7 @@ from netbox_routing_protocols.filtersets.ospf import (
     OSPFSummaryAddressFilterSet,
     OSPFNeighborFilterSet,
     OSPFAreaRangeFilterSet,
+    OSPFPrefixSIDFilterSet,
 )
 from netbox_routing_protocols.forms import *
 from netbox_routing_protocols.models import (
@@ -36,6 +37,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 from netbox_routing_protocols.tables.ospf import (
     OSPFAreaTable,
@@ -47,6 +49,7 @@ from netbox_routing_protocols.tables.ospf import (
     OSPFSummaryAddressTable,
     OSPFNeighborTable,
     OSPFAreaRangeTable,
+    OSPFPrefixSIDTable,
 )
 from netbox_routing_protocols.ui import *
 
@@ -107,6 +110,12 @@ __all__ = (
     'OSPFAreaRangeBulkEditView',
     'OSPFAreaRangeDeleteView',
     'OSPFAreaRangeBulkDeleteView',
+    'OSPFPrefixSIDListView',
+    'OSPFPrefixSIDView',
+    'OSPFPrefixSIDEditView',
+    'OSPFPrefixSIDBulkEditView',
+    'OSPFPrefixSIDDeleteView',
+    'OSPFPrefixSIDBulkDeleteView',
 )
 
 
@@ -156,6 +165,12 @@ class OSPFInstanceView(ObjectView):
                 filters={'instance_id': lambda ctx: ctx['object'].pk},
                 exclude_columns=['id', 'instance', 'device'],
                 title=_('Summary Addresses'),
+            ),
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.OSPFPrefixSID',
+                filters={'instance_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'instance', 'device'],
+                title=_('Prefix SIDs'),
             ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
@@ -758,3 +773,62 @@ class OSPFAreaRangeBulkDeleteView(BulkDeleteView):
     queryset = AREA_RANGE_QUERYSET
     filterset = OSPFAreaRangeFilterSet
     table = OSPFAreaRangeTable
+
+
+#
+# Prefix SID
+#
+PREFIX_SID_QUERYSET = OSPFPrefixSID.objects.select_related(
+    'instance__device', 'instance__vrf'
+)
+
+
+@register_model_view(OSPFPrefixSID, name='list', path='', detail=False)
+class OSPFPrefixSIDListView(ObjectListView):
+    queryset = PREFIX_SID_QUERYSET
+    table = OSPFPrefixSIDTable
+    filterset = OSPFPrefixSIDFilterSet
+    filterset_form = OSPFPrefixSIDFilterForm
+
+
+@register_model_view(OSPFPrefixSID)
+class OSPFPrefixSIDView(ObjectView):
+    queryset = PREFIX_SID_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFPrefixSIDPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFPrefixSID, name='add', detail=False)
+@register_model_view(OSPFPrefixSID, name='edit')
+class OSPFPrefixSIDEditView(ObjectEditView):
+    queryset = PREFIX_SID_QUERYSET
+    form = OSPFPrefixSIDForm
+
+
+@register_model_view(OSPFPrefixSID, name='delete')
+class OSPFPrefixSIDDeleteView(ObjectDeleteView):
+    queryset = PREFIX_SID_QUERYSET
+
+
+@register_model_view(OSPFPrefixSID, name='bulk_edit', detail=False)
+class OSPFPrefixSIDBulkEditView(BulkEditView):
+    queryset = PREFIX_SID_QUERYSET
+    filterset = OSPFPrefixSIDFilterSet
+    table = OSPFPrefixSIDTable
+    form = OSPFPrefixSIDBulkEditForm
+
+
+@register_model_view(OSPFPrefixSID, name='bulk_delete', detail=False)
+class OSPFPrefixSIDBulkDeleteView(BulkDeleteView):
+    queryset = PREFIX_SID_QUERYSET
+    filterset = OSPFPrefixSIDFilterSet
+    table = OSPFPrefixSIDTable

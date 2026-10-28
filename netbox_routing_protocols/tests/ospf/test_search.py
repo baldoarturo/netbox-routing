@@ -18,6 +18,7 @@ OSPF_MODELS = (
     models.OSPFSummaryAddress,
     models.OSPFNeighbor,
     models.OSPFAreaRange,
+    models.OSPFPrefixSID,
 )
 
 __all__ = ('OSPFSearchTestCase',)

@@ -15,6 +15,7 @@ __all__ = (
     'OSPFSummaryAddressPanel',
     'OSPFNeighborPanel',
     'OSPFAreaRangePanel',
+    'OSPFPrefixSIDPanel',
 )
 
 
@@ -112,6 +113,9 @@ class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
         'distance_external', label=_('Distance (External)')
     )
     default_metric = attrs.NumericAttr('default_metric', label=_('Default Metric'))
+    segment_routing = attrs.BooleanAttr('segment_routing', label=_('Segment Routing'))
+    srgb_start = attrs.NumericAttr('srgb_start', label=_('SRGB Start'))
+    srgb_size = attrs.NumericAttr('srgb_size', label=_('SRGB Size'))
     opaque_capability = attrs.BooleanAttr('opaque_capability', label=_('Opaque LSAs'))
     te_router_address = attrs.TextAttr(
         'te_router_address', label=_('TE Router Address')
@@ -169,6 +173,7 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
     mtu = attrs.NumericAttr('interface.mtu', label=_('MTU'))
     mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
+    adjacency_sid = attrs.NumericAttr('adjacency_sid', label=_('Adjacency SID'))
     te_metric = attrs.NumericAttr('te_metric', label=_('TE Metric'))
     te_max_reservable_bandwidth = attrs.NumericAttr(
         'te_max_reservable_bandwidth', label=_('TE Maximum Reservable Bandwidth')
@@ -283,4 +288,16 @@ class OSPFAreaRangePanel(panels.ObjectAttributesPanel):
     prefix = attrs.TextAttr('prefix', label=_('Prefix'))
     range_type = attrs.ChoiceAttr('range_type', label=_('Range Type'))
     advertise = attrs.BooleanAttr('advertise', label=_('Advertise'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFPrefixSIDPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    sid_type = attrs.ChoiceAttr('sid_type', label=_('SID Type'))
+    sid = attrs.NumericAttr('sid', label=_('SID'))
+    algorithm = attrs.ChoiceAttr('algorithm', label=_('Algorithm'))
+    node_sid = attrs.BooleanAttr('node_sid', label=_('Node SID'))
+    no_php = attrs.BooleanAttr('no_php', label=_('No PHP'))
+    explicit_null = attrs.BooleanAttr('explicit_null', label=_('Explicit Null'))
     description = attrs.TextAttr('description', label=_('Description'))

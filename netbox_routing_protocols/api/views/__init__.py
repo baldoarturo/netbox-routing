@@ -10,6 +10,7 @@ from .ospf import (
     OSPFSummaryAddressViewSet,
     OSPFNeighborViewSet,
     OSPFAreaRangeViewSet,
+    OSPFPrefixSIDViewSet,
 )
 from .isis import (
     ISISInstanceViewSet,
@@ -56,6 +57,7 @@ __all__ = (
     'OSPFSummaryAddressViewSet',
     'OSPFNeighborViewSet',
     'OSPFAreaRangeViewSet',
+    'OSPFPrefixSIDViewSet',
     'ISISInstanceViewSet',
     'ISISInterfaceViewSet',
     'ISISSettingViewSet',

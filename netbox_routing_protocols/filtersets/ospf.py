@@ -20,6 +20,8 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFRangeTypeChoices,
     OSPFRedistributionProtocolChoices,
     OSPFRouteTypeChoices,
+    OSPFSegmentIdentifierChoices,
+    OSPFSRAlgorithmChoices,
 )
 from netbox_routing_protocols.models import (
     OSPFAuthenticationMixin,
@@ -35,6 +37,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 
 __all__ = (
@@ -47,6 +50,7 @@ __all__ = (
     'OSPFSummaryAddressFilterSet',
     'OSPFNeighborFilterSet',
     'OSPFAreaRangeFilterSet',
+    'OSPFPrefixSIDFilterSet',
 )
 
 
@@ -262,6 +266,7 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             'retransmit_interval',
             'transmit_delay',
             'mtu_ignore',
+            'adjacency_sid',
             'te_metric',
             'te_max_reservable_bandwidth',
             'te_admin_group',
@@ -594,6 +599,62 @@ class OSPFAreaRangeFilterSet(NetBoxModelFilterSet):
             | Q(area__instance__name__icontains=value)
             | Q(prefix__icontains=value)
         )
+        return queryset.filter(qs_filter)
+
+    def filter_prefix(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        try:
+            return queryset.filter(prefix=str(netaddr.IPNetwork(value).cidr))
+        except (netaddr.AddrFormatError, ValueError):
+            return queryset.none()
+
+
+@register_filterset
+class OSPFPrefixSIDFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    instance = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__name',
+        queryset=OSPFInstance.objects.all(),
+        to_field_name='name',
+        label=_('Instance'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    prefix = django_filters.CharFilter(method='filter_prefix', label=_('Prefix'))
+    sid_type = django_filters.MultipleChoiceFilter(
+        choices=OSPFSegmentIdentifierChoices,
+        label=_('SID Type'),
+    )
+    algorithm = django_filters.MultipleChoiceFilter(
+        choices=OSPFSRAlgorithmChoices,
+        label=_('Algorithm'),
+    )
+
+    class Meta:
+        model = OSPFPrefixSID
+        fields = (
+            'instance',
+            'prefix',
+            'sid_type',
+            'sid',
+            'algorithm',
+            'node_sid',
+            'no_php',
+            'explicit_null',
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = Q(instance__name__icontains=value) | Q(prefix__icontains=value)
         return queryset.filter(qs_filter)
 
     def filter_prefix(self, queryset, name, value):
