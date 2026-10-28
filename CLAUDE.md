@@ -16,6 +16,7 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 4. **Tests run locally, not in CI.** CI (`ci.yml`) only runs ruff and black. Run the whole suite against the dev PostgreSQL before pushing (see below). The full suite runs in CI only on release (`release-tests.yml`), using a migrated-schema cache built from `main` (`netbox-schema-cache.yml`).
 5. **Migrations that depend on each other.** When several open PRs add migrations, chain them (each depends on the previous one) and merge them in order. Before merging a PR that has a migration, merge `main` into it and re-run the suite.
 6. **Work in a separate git worktree** if another session may be using the same checkout, so branch switches do not collide.
+7. **If you are not sure how to fix an issue, ask before coding.** Keep asking the user questions until no doubts remain, and ask for concrete examples (sample data, expected vs actual behaviour, a screenshot, a failing request) whenever they would remove ambiguity. Do not guess at the intended behaviour, and do not open a PR for a fix you are unsure about.
 
 ## Running tests locally
 
