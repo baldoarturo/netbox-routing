@@ -47,6 +47,14 @@ urlpatterns = [
         'ospf/virtual-link/<int:pk>/',
         include(get_model_urls(app_name, 'ospfvirtuallink')),
     ),
+    path(
+        'ospf/summary-address/',
+        include(get_model_urls(app_name, 'ospfsummaryaddress', detail=False)),
+    ),
+    path(
+        'ospf/summary-address/<int:pk>/',
+        include(get_model_urls(app_name, 'ospfsummaryaddress')),
+    ),
     # IS-IS
     path(
         'isis/setting/',

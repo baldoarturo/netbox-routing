@@ -21,6 +21,7 @@ from netbox_routing.filtersets.ospf import (
     OSPFNetworkFilterSet,
     OSPFRedistributionFilterSet,
     OSPFVirtualLinkFilterSet,
+    OSPFSummaryAddressFilterSet,
 )
 from netbox_routing.forms import *
 from netbox_routing.models import (
@@ -30,6 +31,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 from netbox_routing.tables.ospf import (
     OSPFAreaTable,
@@ -38,6 +40,7 @@ from netbox_routing.tables.ospf import (
     OSPFNetworkTable,
     OSPFRedistributionTable,
     OSPFVirtualLinkTable,
+    OSPFSummaryAddressTable,
 )
 from netbox_routing.ui import *
 
@@ -80,6 +83,12 @@ __all__ = (
     'OSPFVirtualLinkBulkEditView',
     'OSPFVirtualLinkDeleteView',
     'OSPFVirtualLinkBulkDeleteView',
+    'OSPFSummaryAddressListView',
+    'OSPFSummaryAddressView',
+    'OSPFSummaryAddressEditView',
+    'OSPFSummaryAddressBulkEditView',
+    'OSPFSummaryAddressDeleteView',
+    'OSPFSummaryAddressBulkDeleteView',
 )
 
 
@@ -123,6 +132,12 @@ class OSPFInstanceView(ObjectView):
                 filters={'instance_id': lambda ctx: ctx['object'].pk},
                 exclude_columns=['id', 'instance', 'device'],
                 title=_('Virtual Links'),
+            ),
+            panels.ObjectsTablePanel(
+                model='netbox_routing.OSPFSummaryAddress',
+                filters={'instance_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'instance', 'device'],
+                title=_('Summary Addresses'),
             ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
@@ -533,3 +548,62 @@ class OSPFVirtualLinkBulkDeleteView(BulkDeleteView):
     queryset = VIRTUAL_LINK_QUERYSET
     filterset = OSPFVirtualLinkFilterSet
     table = OSPFVirtualLinkTable
+
+
+#
+# Summary address
+#
+SUMMARY_ADDRESS_QUERYSET = OSPFSummaryAddress.objects.select_related(
+    'instance__device', 'instance__vrf'
+)
+
+
+@register_model_view(OSPFSummaryAddress, name='list', path='', detail=False)
+class OSPFSummaryAddressListView(ObjectListView):
+    queryset = SUMMARY_ADDRESS_QUERYSET
+    table = OSPFSummaryAddressTable
+    filterset = OSPFSummaryAddressFilterSet
+    filterset_form = OSPFSummaryAddressFilterForm
+
+
+@register_model_view(OSPFSummaryAddress)
+class OSPFSummaryAddressView(ObjectView):
+    queryset = SUMMARY_ADDRESS_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFSummaryAddressPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFSummaryAddress, name='add', detail=False)
+@register_model_view(OSPFSummaryAddress, name='edit')
+class OSPFSummaryAddressEditView(ObjectEditView):
+    queryset = SUMMARY_ADDRESS_QUERYSET
+    form = OSPFSummaryAddressForm
+
+
+@register_model_view(OSPFSummaryAddress, name='delete')
+class OSPFSummaryAddressDeleteView(ObjectDeleteView):
+    queryset = SUMMARY_ADDRESS_QUERYSET
+
+
+@register_model_view(OSPFSummaryAddress, name='bulk_edit', detail=False)
+class OSPFSummaryAddressBulkEditView(BulkEditView):
+    queryset = SUMMARY_ADDRESS_QUERYSET
+    filterset = OSPFSummaryAddressFilterSet
+    table = OSPFSummaryAddressTable
+    form = OSPFSummaryAddressBulkEditForm
+
+
+@register_model_view(OSPFSummaryAddress, name='bulk_delete', detail=False)
+class OSPFSummaryAddressBulkDeleteView(BulkDeleteView):
+    queryset = SUMMARY_ADDRESS_QUERYSET
+    filterset = OSPFSummaryAddressFilterSet
+    table = OSPFSummaryAddressTable

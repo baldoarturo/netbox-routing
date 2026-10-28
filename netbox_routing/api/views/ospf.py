@@ -7,6 +7,7 @@ from netbox_routing.api.serializers import (
     OSPFNetworkSerializer,
     OSPFRedistributionSerializer,
     OSPFVirtualLinkSerializer,
+    OSPFSummaryAddressSerializer,
 )
 from netbox_routing.models import (
     OSPFInstance,
@@ -15,6 +16,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 
 __all__ = (
@@ -24,6 +26,7 @@ __all__ = (
     'OSPFNetworkViewSet',
     'OSPFRedistributionViewSet',
     'OSPFVirtualLinkViewSet',
+    'OSPFSummaryAddressViewSet',
 )
 
 
@@ -78,3 +81,11 @@ class OSPFVirtualLinkViewSet(NetBoxModelViewSet):
     )
     serializer_class = OSPFVirtualLinkSerializer
     filterset_class = filtersets.OSPFVirtualLinkFilterSet
+
+
+class OSPFSummaryAddressViewSet(NetBoxModelViewSet):
+    queryset = OSPFSummaryAddress.objects.select_related(
+        'instance__device', 'instance__vrf'
+    )
+    serializer_class = OSPFSummaryAddressSerializer
+    filterset_class = filtersets.OSPFSummaryAddressFilterSet

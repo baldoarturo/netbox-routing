@@ -1,4 +1,5 @@
 import django_filters
+import netaddr
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -29,6 +30,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 
 __all__ = (
@@ -38,6 +40,7 @@ __all__ = (
     'OSPFNetworkFilterSet',
     'OSPFRedistributionFilterSet',
     'OSPFVirtualLinkFilterSet',
+    'OSPFSummaryAddressFilterSet',
 )
 
 
@@ -456,4 +459,43 @@ class OSPFVirtualLinkFilterSet(NetBoxModelFilterSet):
         try:
             return queryset.filter(**{f'{name}__in': value})
         except ValidationError:
+            return queryset.none()
+
+
+@register_filterset
+class OSPFSummaryAddressFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    instance = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__name',
+        queryset=OSPFInstance.objects.all(),
+        to_field_name='name',
+        label=_('Instance'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    prefix = django_filters.CharFilter(method='filter_prefix', label=_('Prefix'))
+
+    class Meta:
+        model = OSPFSummaryAddress
+        fields = ('instance', 'prefix', 'not_advertise', 'route_tag')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = Q(instance__name__icontains=value) | Q(prefix__icontains=value)
+        return queryset.filter(qs_filter)
+
+    def filter_prefix(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        try:
+            return queryset.filter(prefix=str(netaddr.IPNetwork(value).cidr))
+        except (netaddr.AddrFormatError, ValueError):
             return queryset.none()

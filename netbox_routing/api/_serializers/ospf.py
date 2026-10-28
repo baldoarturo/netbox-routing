@@ -16,6 +16,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 
 __all__ = (
@@ -25,6 +26,7 @@ __all__ = (
     'OSPFNetworkSerializer',
     'OSPFRedistributionSerializer',
     'OSPFVirtualLinkSerializer',
+    'OSPFSummaryAddressSerializer',
 )
 
 
@@ -288,3 +290,27 @@ class OSPFVirtualLinkSerializer(NetBoxModelSerializer):
             'transit_area',
             'remote_router_id',
         )
+
+
+class OSPFSummaryAddressSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing-api:ospfsummaryaddress-detail'
+    )
+    instance = OSPFInstanceSerializer(nested=True)
+
+    class Meta:
+        model = OSPFSummaryAddress
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'prefix',
+            'not_advertise',
+            'route_tag',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'instance', 'prefix')
