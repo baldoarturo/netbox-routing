@@ -103,6 +103,9 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     bfd = forms.ChoiceField(
         label=_('BFD'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
+    mtu_ignore = forms.ChoiceField(
+        label=_('MTU Ignore'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
     hello_interval = forms.IntegerField(
         label=_('Hello Interval'),
         required=False,
@@ -148,6 +151,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'priority',
             'cost',
             'bfd',
+            'mtu_ignore',
             'authentication',
             'passphrase',
             name='Attributes',

@@ -167,3 +167,10 @@ class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCas
                 'bfd': True,
             },
         ]
+
+    def test_mtu_comes_from_the_device_interface(self):
+        self.add_permissions('netbox_routing.view_ospfinterface')
+        obj = self.model.objects.first()
+        Interface.objects.filter(pk=obj.interface_id).update(mtu=9000)
+        response = self.client.get(self._get_detail_url(obj), **self.header)
+        self.assertEqual(response.data['mtu'], 9000)

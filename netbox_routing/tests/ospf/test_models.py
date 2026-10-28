@@ -81,6 +81,9 @@ class OSPFInterfaceTestCase(TestCase):
                 ospf_interface.full_clean()
             self.assertIn('cost', cm.exception.error_dict)
 
+    def test_mtu_ignore_defaults_to_false(self):
+        self.assertFalse(OSPFInterface.objects.get().mtu_ignore)
+
     def test_timers_default_to_rfc_2328_values(self):
         ospf_interface = OSPFInterface.objects.get()
         self.assertEqual(ospf_interface.hello_interval, 10)

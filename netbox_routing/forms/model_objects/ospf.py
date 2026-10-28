@@ -135,6 +135,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'cost',
             'passive',
             'bfd',
+            'mtu_ignore',
             name=_('Interface'),
         ),
         FieldSet(
@@ -167,6 +168,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'mtu_ignore',
             'authentication',
             'passphrase',
             'description',

@@ -41,6 +41,8 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
         'retransmit_interval', label=_('Retransmit Interval')
     )
     transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
+    mtu = attrs.NumericAttr('interface.mtu', label=_('MTU'))
+    mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
     network_type = attrs.ChoiceAttr('network_type', label=_('Network Type'))
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
     bfd = attrs.BooleanAttr('bfd', label=_('BFD'))
