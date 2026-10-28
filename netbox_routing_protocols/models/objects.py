@@ -212,6 +212,11 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
 
     def clean(self):
         super().clean()
+        # An entry without a prefix means nothing; this also covers the API and imports
+        if self.assigned_prefix_type_id is None or self.assigned_prefix_id is None:
+            raise ValidationError(_('A Prefix or Custom Prefix must be specified'))
+        if self.assigned_prefix is None:
+            raise ValidationError(_('The assigned prefix does not exist.'))
         if not hasattr(self, 'prefix_list'):
             return
         family = self.prefix_list.family
