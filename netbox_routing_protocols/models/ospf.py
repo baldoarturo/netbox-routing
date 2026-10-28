@@ -2,6 +2,7 @@ import hashlib
 
 import netaddr
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -20,6 +21,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFAuthenticationChoices,
     OSPFGracefulRestartChoices,
     OSPFMessageDigestAlgorithmChoices,
+    OSPFRouteTypeChoices,
     OSPFRedistributionProtocolChoices,
 )
 from netbox_routing_protocols.constants import ERROR_UNIQUENESS_CONSTRAINT
@@ -552,6 +554,20 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         null=True,
     )
 
+    default_metric = models.PositiveIntegerField(
+        verbose_name=_('Default Metric'),
+        help_text=_(
+            'Metric of the redistributed routes that have none of their own. '
+            'Empty uses the platform default'
+        ),
+        validators=[
+            MinValueValidator(OSPF_EXTERNAL_METRIC_MIN),
+            MaxValueValidator(OSPF_EXTERNAL_METRIC_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+
     ADVANCED_FIELDS = (
         'spf_initial_delay',
         'spf_short_delay',
@@ -581,6 +597,7 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         'distance_intra_area',
         'distance_inter_area',
         'distance_external',
+        'default_metric',
     )
 
     clone_fields = (
@@ -1238,6 +1255,16 @@ class OSPFRedistribution(PrimaryModel):
         max_length=100,
         blank=True,
     )
+    ospf_match = ArrayField(
+        base_field=models.CharField(max_length=20, choices=OSPFRouteTypeChoices),
+        verbose_name=_('OSPF Route Types'),
+        help_text=_(
+            'Types of OSPF routes to redistribute, when the source is OSPF. '
+            'Empty uses the platform default'
+        ),
+        blank=True,
+        default=list,
+    )
 
     clone_fields = (
         'instance',
@@ -1247,6 +1274,7 @@ class OSPFRedistribution(PrimaryModel):
         'subnets',
         'route_tag',
         'route_policy',
+        'ospf_match',
     )
     prerequisite_models = ('netbox_routing_protocols.OSPFInstance',)
 
@@ -1286,9 +1314,20 @@ class OSPFRedistribution(PrimaryModel):
         field = self.SOURCE_FIELDS.get(self.protocol)
         return getattr(self, field) if field else None
 
+    @property
+    def ospf_match_display(self):
+        labels = dict(OSPFRouteTypeChoices.CHOICES)
+        return (
+            ', '.join(str(labels.get(value, value)) for value in self.ospf_match) or '—'
+        )
+
     def clean(self):
         super().clean()
         errors = {}
+        if self.ospf_match and self.protocol != OSPFRedistributionProtocolChoices.OSPF:
+            errors['ospf_match'] = _(
+                'The route types only apply when the source is OSPF.'
+            )
         for protocol, field in self.SOURCE_FIELDS.items():
             is_set = getattr(self, f'{field}_id') is not None
             if protocol == self.protocol and not is_set:

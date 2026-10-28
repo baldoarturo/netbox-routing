@@ -233,6 +233,7 @@ class OSPFRedistributionSerializer(NetBoxModelSerializer):
             'eigrp_source',
             'bgp_source',
             'isis_source',
+            'ospf_match',
             'metric',
             'metric_type',
             'subnets',

@@ -18,6 +18,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFMessageDigestAlgorithmChoices,
     OSPFNetworkTypeChoices,
     OSPFRedistributionProtocolChoices,
+    OSPFRouteTypeChoices,
 )
 from netbox_routing_protocols.models import (
     OSPFAuthenticationMixin,
@@ -380,6 +381,11 @@ class OSPFRedistributionFilterSet(NetBoxModelFilterSet):
         choices=OSPFExternalMetricTypeChoices,
         label=_('Metric Type'),
     )
+    ospf_match = django_filters.MultipleChoiceFilter(
+        choices=OSPFRouteTypeChoices,
+        method='filter_ospf_match',
+        label=_('OSPF Route Types'),
+    )
 
     class Meta:
         model = OSPFRedistribution
@@ -399,6 +405,9 @@ class OSPFRedistributionFilterSet(NetBoxModelFilterSet):
             route_policy__icontains=value
         )
         return queryset.filter(qs_filter)
+
+    def filter_ospf_match(self, queryset, name, value):
+        return queryset.filter(ospf_match__overlap=value)
 
 
 @register_filterset

@@ -82,6 +82,42 @@ class OSPFRedistributionModelTestCase(TestCase):
         self.assertTrue(redistribution.subnets)
         self.assertIsNone(redistribution.source)
 
+    def test_ospf_route_types(self):
+        redistribution = self._redistribution(
+            protocol='ospf',
+            ospf_source=self.instances[1],
+            ospf_match=['internal', 'external-1', 'nssa-external-2'],
+        )
+        redistribution.full_clean()
+        self.assertEqual(
+            redistribution.ospf_match_display,
+            'Internal, External Type 1, NSSA External Type 2',
+        )
+        self.assertEqual(self._redistribution(protocol='static').ospf_match, [])
+        self.assertEqual(
+            self._redistribution(protocol='static').ospf_match_display, '—'
+        )
+
+    def test_ospf_route_types_are_checked(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._redistribution(
+                protocol='ospf', ospf_source=self.instances[1], ospf_match=['bogus']
+            ).full_clean()
+        self.assertIn('ospf_match', cm.exception.error_dict)
+
+    def test_ospf_route_types_only_when_the_source_is_ospf(self):
+        for protocol, source in (
+            ('static', {}),
+            ('connected', {}),
+            ('eigrp', {'eigrp_source': self.eigrp}),
+        ):
+            with self.subTest(protocol=protocol):
+                with self.assertRaises(ValidationError) as cm:
+                    self._redistribution(
+                        protocol=protocol, ospf_match=['internal'], **source
+                    ).full_clean()
+                self.assertIn('ospf_match', cm.exception.error_dict)
+
     def test_connected_has_no_source(self):
         redistribution = self._redistribution(protocol='connected')
         redistribution.full_clean()
@@ -212,6 +248,45 @@ class OSPFRedistributionFormTestCase(TestCase):
     def _source_fields(self, form):
         return [name for name in self.SOURCE_FIELDS if name in form.fields]
 
+    def test_the_route_types_are_shown_only_for_ospf(self):
+        self.assertIn(
+            'ospf_match', OSPFRedistributionForm(initial={'protocol': 'ospf'}).fields
+        )
+        for protocol in (None, 'static', 'connected', 'eigrp'):
+            with self.subTest(protocol=protocol):
+                form = OSPFRedistributionForm(
+                    initial={'protocol': protocol} if protocol else {}
+                )
+                self.assertNotIn('ospf_match', form.fields)
+
+    def test_the_route_types_are_saved_and_cleared_with_the_protocol(self):
+        form = OSPFRedistributionForm(
+            data={
+                'instance': self.instances[0].pk,
+                'protocol': 'ospf',
+                'ospf_source': self.instances[1].pk,
+                'ospf_match': ['internal', 'external-2'],
+                'metric_type': '2',
+                'subnets': 'on',
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        redistribution = form.save()
+        self.assertEqual(redistribution.ospf_match, ['internal', 'external-2'])
+        form = OSPFRedistributionForm(
+            data={
+                'instance': self.instances[0].pk,
+                'protocol': 'static',
+                'metric_type': '2',
+                'subnets': 'on',
+            },
+            instance=redistribution,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        redistribution.refresh_from_db()
+        self.assertEqual(redistribution.ospf_match, [])
+
     def test_only_the_source_of_the_selected_protocol_is_shown(self):
         for protocol, field in (
             ('ospf', 'ospf_source'),
@@ -306,6 +381,12 @@ class OSPFRedistributionFilterSetTestCase(TestCase):
                     isis_source=cls.isis,
                     subnets=False,
                 ),
+                OSPFRedistribution(
+                    instance=cls.instances[1],
+                    protocol='ospf',
+                    ospf_source=cls.instances[0],
+                    ospf_match=['internal', 'external-1'],
+                ),
             )
         )
 
@@ -314,8 +395,8 @@ class OSPFRedistributionFilterSetTestCase(TestCase):
 
     def test_instance_and_device(self):
         self.assertEqual(self.count({'instance_id': [self.instances[0].pk]}), 2)
-        self.assertEqual(self.count({'instance': ['Instance 2']}), 1)
-        self.assertEqual(self.count({'device_id': [self.device.pk]}), 3)
+        self.assertEqual(self.count({'instance': ['Instance 2']}), 2)
+        self.assertEqual(self.count({'device_id': [self.device.pk]}), 4)
 
     def test_protocol_and_sources(self):
         self.assertEqual(self.count({'protocol': ['static', 'bgp']}), 2)
@@ -328,6 +409,8 @@ class OSPFRedistributionFilterSetTestCase(TestCase):
         self.assertEqual(self.count({'metric_type': ['1']}), 1)
         self.assertEqual(self.count({'subnets': False}), 1)
         self.assertEqual(self.count({'route_tag': [7]}), 1)
+        self.assertEqual(self.count({'ospf_match': ['internal']}), 1)
+        self.assertEqual(self.count({'ospf_match': ['external-2']}), 0)
 
     def test_q(self):
         self.assertEqual(self.count({'q': 'TO-OSPF'}), 1)

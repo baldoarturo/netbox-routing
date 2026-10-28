@@ -155,6 +155,12 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     distance_external = forms.IntegerField(
         label=_('Distance (External)'), required=False, min_value=1, max_value=255
     )
+    default_metric = forms.IntegerField(
+        label=_('Default Metric'),
+        required=False,
+        min_value=OSPF_EXTERNAL_METRIC_MIN,
+        max_value=OSPF_EXTERNAL_METRIC_MAX,
+    )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
         choices=add_blank_choice(choices.OSPFAuthenticationChoices),
@@ -218,6 +224,7 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         'distance_inter_area',
         'distance_external',
         'description',
+        'default_metric',
     )
 
 
@@ -467,6 +474,11 @@ class OSPFRedistributionBulkEditForm(NetBoxModelBulkEditForm):
     route_tag = forms.IntegerField(
         label=_('Route Tag'), required=False, min_value=0, max_value=OSPF_TAG_MAX
     )
+    ospf_match = forms.MultipleChoiceField(
+        label=_('OSPF Route Types'),
+        choices=choices.OSPFRouteTypeChoices,
+        required=False,
+    )
     route_policy = forms.CharField(
         label=_('Route Policy'), max_length=100, required=False
     )
@@ -477,7 +489,14 @@ class OSPFRedistributionBulkEditForm(NetBoxModelBulkEditForm):
 
     model = OSPFRedistribution
     fieldsets = (
-        FieldSet('metric', 'metric_type', 'subnets', 'route_tag', 'route_policy'),
+        FieldSet(
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            'route_policy',
+            'ospf_match',
+        ),
         FieldSet('description'),
     )
     nullable_fields = ('metric', 'route_tag', 'route_policy', 'description')

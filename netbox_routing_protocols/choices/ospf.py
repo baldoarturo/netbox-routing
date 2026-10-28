@@ -115,3 +115,21 @@ class OSPFAuthenticationChoices(ChoiceSet):
         (KEYCHAIN, 'Key Chain'),
         (NULL, 'Null Authentication'),
     ]
+
+
+class OSPFRouteTypeChoices(ChoiceSet):
+    """Types of OSPF routes: intra/inter-area, AS-external and NSSA external."""
+
+    INTERNAL = 'internal'
+    EXTERNAL_1 = 'external-1'
+    EXTERNAL_2 = 'external-2'
+    NSSA_EXTERNAL_1 = 'nssa-external-1'
+    NSSA_EXTERNAL_2 = 'nssa-external-2'
+
+    CHOICES = [
+        (INTERNAL, 'Internal'),
+        (EXTERNAL_1, 'External Type 1'),
+        (EXTERNAL_2, 'External Type 2'),
+        (NSSA_EXTERNAL_1, 'NSSA External Type 1'),
+        (NSSA_EXTERNAL_2, 'NSSA External Type 2'),
+    ]

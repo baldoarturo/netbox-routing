@@ -130,6 +130,7 @@ class OSPFRedistributionType(PrimaryObjectType):
     subnets: bool
     route_tag: int | None
     route_policy: str
+    ospf_match: list[str]
 
 
 @strawberry_django.type(
