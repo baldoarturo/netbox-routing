@@ -40,6 +40,7 @@ __all__ = (
     'OSPFNetworkFilter',
     'OSPFRedistributionFilter',
     'OSPFVirtualLinkFilter',
+    'OSPFSummaryAddressFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
     'RouteMapFilter',

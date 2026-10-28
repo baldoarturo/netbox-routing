@@ -12,6 +12,7 @@ __all__ = (
     'OSPFNetworkPanel',
     'OSPFRedistributionPanel',
     'OSPFVirtualLinkPanel',
+    'OSPFSummaryAddressPanel',
 )
 
 
@@ -233,4 +234,12 @@ class OSPFVirtualLinkPanel(panels.ObjectAttributesPanel):
     authentication_source = attrs.TextAttr(
         'authentication_source', label=_('Authentication Set At')
     )
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFSummaryAddressPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    not_advertise = attrs.BooleanAttr('not_advertise', label=_('Do Not Advertise'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
     description = attrs.TextAttr('description', label=_('Description'))

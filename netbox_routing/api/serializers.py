@@ -17,6 +17,7 @@ __all__ = (
     'OSPFNetworkSerializer',
     'OSPFRedistributionSerializer',
     'OSPFVirtualLinkSerializer',
+    'OSPFSummaryAddressSerializer',
     'ISISInstanceSerializer',
     'ISISInterfaceSerializer',
     'ISISSettingSerializer',

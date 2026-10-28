@@ -45,6 +45,7 @@ from .ospf.types import (
     OSPFNetworkType,
     OSPFRedistributionType,
     OSPFVirtualLinkType,
+    OSPFSummaryAddressType,
 )
 from .static.types import StaticRouteType
 
@@ -74,6 +75,9 @@ class OSPFQuery:
 
     ospf_virtual_link: OSPFVirtualLinkType = strawberry_django.field()
     ospf_virtual_link_list: list[OSPFVirtualLinkType] = strawberry_django.field()
+
+    ospf_summary_address: OSPFSummaryAddressType = strawberry_django.field()
+    ospf_summary_address_list: list[OSPFSummaryAddressType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")

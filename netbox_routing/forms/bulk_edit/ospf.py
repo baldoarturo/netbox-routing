@@ -41,6 +41,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 
 __all__ = (
@@ -50,6 +51,7 @@ __all__ = (
     'OSPFNetworkBulkEditForm',
     'OSPFRedistributionBulkEditForm',
     'OSPFVirtualLinkBulkEditForm',
+    'OSPFSummaryAddressBulkEditForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -549,3 +551,25 @@ class OSPFVirtualLinkBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet('description'),
     )
     nullable_fields = ('authentication_key_id', 'description')
+
+
+class OSPFSummaryAddressBulkEditForm(NetBoxModelBulkEditForm):
+    not_advertise = forms.ChoiceField(
+        label=_('Do Not Advertise'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
+    route_tag = forms.IntegerField(
+        label=_('Route Tag'), required=False, min_value=0, max_value=OSPF_TAG_MAX
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = OSPFSummaryAddress
+    fieldsets = (
+        FieldSet('not_advertise', 'route_tag'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('route_tag', 'description')

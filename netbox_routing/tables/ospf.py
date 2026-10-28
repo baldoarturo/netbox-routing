@@ -9,6 +9,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 
 __all__ = (
@@ -18,6 +19,7 @@ __all__ = (
     'OSPFNetworkTable',
     'OSPFRedistributionTable',
     'OSPFVirtualLinkTable',
+    'OSPFSummaryAddressTable',
 )
 
 
@@ -264,4 +266,34 @@ class OSPFVirtualLinkTable(NetBoxTable):
             'hello_interval',
             'dead_interval',
             'authentication',
+        )
+
+
+class OSPFSummaryAddressTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    not_advertise = tables.BooleanColumn(verbose_name=_('Do Not Advertise'))
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFSummaryAddress
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'prefix',
+            'not_advertise',
+            'route_tag',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'prefix',
+            'not_advertise',
+            'route_tag',
         )

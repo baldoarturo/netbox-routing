@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
 from netbox_routing import choices
@@ -57,6 +58,7 @@ __all__ = (
     'OSPFNetwork',
     'OSPFRedistribution',
     'OSPFVirtualLink',
+    'OSPFSummaryAddress',
 )
 
 
@@ -1409,3 +1411,79 @@ class OSPFVirtualLink(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
                         ).format(required=required, own=self.authentication)
                     }
                 )
+
+
+class OSPFSummaryAddress(PrimaryModel):
+    """
+    Summarization of the external routes an ASBR redistributes into OSPF: one
+    LSA for the prefix replaces those of the routes it covers.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing.OSPFInstance',
+        related_name='summary_addresses',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    prefix = IPNetworkField(
+        verbose_name=_('Prefix'),
+        help_text=_('IPv4 prefix that summarizes the external routes'),
+    )
+    not_advertise = models.BooleanField(
+        verbose_name=_('Do Not Advertise'),
+        help_text=_(
+            'Suppress the routes covered by the prefix instead of summarizing them'
+        ),
+        default=False,
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route Tag'),
+        help_text=_('Tag set on the summary route'),
+        validators=[MaxValueValidator(OSPF_TAG_MAX)],
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = ('instance', 'not_advertise', 'route_tag')
+    prerequisite_models = ('netbox_routing.OSPFInstance',)
+
+    class Meta:
+        verbose_name = 'OSPF Summary Address'
+        verbose_name_plural = 'OSPF Summary Addresses'
+        ordering = ('instance__name', 'prefix', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'prefix'),
+                name='%(app_label)s_%(class)s_unique_instance_prefix',
+                violation_error_message=_(
+                    'This prefix is already summarized in the OSPF instance.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return str(self.prefix)
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:ospfsummaryaddress', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if self.prefix in (None, ''):
+            return
+        try:
+            prefix = netaddr.IPNetwork(str(self.prefix))
+        except (netaddr.AddrFormatError, ValueError):
+            return  # reported by the field's own validation
+        if prefix.version != 4:
+            raise ValidationError(
+                {'prefix': _('OSPFv2 summary addresses must be IPv4 prefixes.')}
+            )
+        if prefix.ip != prefix.cidr.ip:
+            raise ValidationError(
+                {
+                    'prefix': _('The prefix has host bits set: use {cidr}.').format(
+                        cidr=prefix.cidr
+                    )
+                }
+            )

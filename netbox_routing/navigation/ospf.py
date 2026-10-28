@@ -105,6 +105,20 @@ ospf_virtual_links = PluginMenuItem(
     ),
 )
 
+ospf_summary_addresses = PluginMenuItem(
+    link='plugins:netbox_routing:ospfsummaryaddress_list',
+    link_text='Summary Addresses',
+    permissions=['netbox_routing.view_ospfsummaryaddress'],
+    buttons=(
+        PluginMenuButton(
+            link='plugins:netbox_routing:ospfsummaryaddress_add',
+            title='Add',
+            icon_class=COL_ADD,
+            permissions=['netbox_routing.add_ospfsummaryaddress'],
+        ),
+    ),
+)
+
 MENUITEMS = (
     ospf_instance,
     ospf_area,
@@ -112,4 +126,5 @@ MENUITEMS = (
     ospf_networks,
     ospf_redistributions,
     ospf_virtual_links,
+    ospf_summary_addresses,
 )

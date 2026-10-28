@@ -22,6 +22,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 
 __all__ = (
@@ -31,6 +32,7 @@ __all__ = (
     'OSPFNetworkFilterForm',
     'OSPFRedistributionFilterForm',
     'OSPFVirtualLinkFilterForm',
+    'OSPFSummaryAddressFilterForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -412,4 +414,33 @@ class OSPFVirtualLinkFilterForm(NetBoxModelFilterSetForm):
     authentication = forms.ChoiceField(
         choices=add_blank_choice(AuthenticationChoices), required=False
     )
+    tag = TagFilterField(model)
+
+
+class OSPFSummaryAddressFilterForm(NetBoxModelFilterSetForm):
+    model = OSPFSummaryAddress
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('OSPF')),
+        FieldSet('prefix', 'not_advertise', 'route_tag', name=_('Summary Address')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    prefix = forms.CharField(required=False, label=_('Prefix'))
+    not_advertise = forms.NullBooleanField(
+        required=False,
+        label=_('Do Not Advertise'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    route_tag = forms.IntegerField(required=False, label=_('Route Tag'))
     tag = TagFilterField(model)

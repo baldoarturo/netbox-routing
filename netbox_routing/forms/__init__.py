@@ -39,6 +39,9 @@ __all__ = (
     'OSPFVirtualLinkForm',
     'OSPFVirtualLinkBulkEditForm',
     'OSPFVirtualLinkFilterForm',
+    'OSPFSummaryAddressForm',
+    'OSPFSummaryAddressBulkEditForm',
+    'OSPFSummaryAddressFilterForm',
     # IS-IS
     'ISISInstanceForm',
     'ISISInstanceBulkEditForm',

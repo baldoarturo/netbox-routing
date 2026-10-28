@@ -31,6 +31,7 @@ from netbox_routing.models import (
     OSPFNetwork,
     OSPFRedistribution,
     OSPFVirtualLink,
+    OSPFSummaryAddress,
 )
 
 __all__ = (
@@ -40,6 +41,7 @@ __all__ = (
     'OSPFNetworkForm',
     'OSPFRedistributionForm',
     'OSPFVirtualLinkForm',
+    'OSPFSummaryAddressForm',
 )
 
 
@@ -575,3 +577,36 @@ class OSPFVirtualLinkForm(PrimaryModelForm):
                 OSPFMessageDigestAlgorithmChoices.MD5
             )
         return super().clean()
+
+
+class OSPFSummaryAddressForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'instance',
+            'prefix',
+            'not_advertise',
+            'route_tag',
+            'description',
+            name=_('Summary Address'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFSummaryAddress
+        fields = (
+            'instance',
+            'prefix',
+            'not_advertise',
+            'route_tag',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
