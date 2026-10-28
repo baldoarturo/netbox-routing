@@ -205,6 +205,7 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
             'cost',
             'bfd',
             'mtu_ignore',
+            'unnumbered',
             'prefix_suppression',
             'database_filter_all_out',
             'flood_reduction',
@@ -268,6 +269,11 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
         choices=OSPFNetworkTypeChoices,
         required=False,
         label=_('Network Type'),
+    )
+    unnumbered = forms.NullBooleanField(
+        required=False,
+        label=_('Unnumbered'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     mtu_ignore = forms.NullBooleanField(
         required=False,

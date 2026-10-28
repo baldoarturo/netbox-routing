@@ -1,0 +1,28 @@
+# BFD
+
+**Routing → BFD → BFD Profile**
+
+Bidirectional Forwarding Detection ([RFC 5880](https://www.rfc-editor.org/rfc/rfc5880)) detects a
+failed link or neighbor in milliseconds, much faster than the routing protocols' own hello timers.
+A **BFD profile** is a named set of timers you define once and reuse, so every peer that should
+detect failures in the same time points at the same profile.
+
+| Field | Meaning (RFC 5880 name) |
+| --- | --- |
+| Name | How the profile is referred to. |
+| Min TX interval | The minimum interval the router wants to send BFD packets at (*Desired Min TX Interval*). |
+| Min RX interval | The minimum interval it can receive them at (*Required Min RX Interval*). |
+| Multiplier | How many consecutive packets may be lost before the session is declared down (*Detect Mult*). The detection time is the negotiated interval times this value. |
+| Hold | Optional hold time, for platforms that have one. It is not part of the RFC. |
+| Tenant | Optional owner. |
+
+Where it is used:
+
+* A [BGP session template](protocols/bgp.md#session-templates) or a [BGP peer](protocols/bgp.md#peers)
+  can point at a BFD profile.
+* OSPF, IS-IS and EIGRP interfaces only have a **BFD on/off** switch; they do not use profiles, because
+  the timers of those protocols come from the interface configuration of the device.
+
+!!! note
+    The plugin does not check the intervals against what your platform supports. Choose values your
+    hardware can sustain: a profile with very small intervals on a busy router causes false failures.
