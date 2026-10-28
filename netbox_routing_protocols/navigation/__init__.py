@@ -8,7 +8,6 @@ from .eigrp import eigrp
 from .static import MENUITEMS as STATIC_MENU
 from .bgp import BGP_MENU
 from .community import COMMUNITY_MENU
-from .tools import TOOLS_MENU
 
 __all__ = ('menu',)
 
@@ -22,7 +21,6 @@ menu = PluginMenu(
         ('OSPF', OSPF_MENU),
         ('IS-IS', ISIS_MENU),
         ('EIGRP', eigrp),
-        ('Tools', TOOLS_MENU),
     ),
     icon_class='mdi mdi-router',
 )
