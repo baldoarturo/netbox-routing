@@ -118,4 +118,6 @@ TBD
 Contributions are always welcome!  Please open an issue first before contributing as the scope is going to be kept
 intentionally narrow
 
-
+Install the pre-commit hooks once in your clone (`pip install pre-commit`, then `pre-commit install`): they run Ruff
+and Black on every commit with the same configuration as the CI, which runs `pre-commit run --all-files` on every pull
+request. See `dev/README.md` to run NetBox and the tests.
