@@ -131,3 +131,4 @@ dmypy.json
 .idea
 # NetBox checkout, venv and demo data downloaded by dev/run.sh
 /.netbox/
+/site/

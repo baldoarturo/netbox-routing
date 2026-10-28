@@ -8,6 +8,10 @@
 
 A plugin for tracking all kinds of routing information
 
+## Documentation
+
+The documentation for operators and users (every protocol and feature, with the RFC it comes from) is in [`docs/`](docs/index.md).
+
 ## Features
 
 ### Current features
