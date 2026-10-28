@@ -48,9 +48,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/baldoarturo/netbox-routing/blob/main/README.md"
-Source = "https://github.com/baldoarturo/netbox-routing"
-Tracker = "https://github.com/baldoarturo/netbox-routing/issues"
+Documentation = "https://github.com/baldoarturo/netbox-routing-protocols/blob/main/README.md"
+Source = "https://github.com/baldoarturo/netbox-routing-protocols"
+Tracker = "https://github.com/baldoarturo/netbox-routing-protocols/issues"
 
 [tool.setuptools.packages.find]
 exclude = ["netbox_routing_protocols.tests"]
