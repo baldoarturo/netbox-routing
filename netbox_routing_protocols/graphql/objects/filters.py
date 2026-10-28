@@ -3,7 +3,6 @@ from typing import Annotated
 import strawberry
 import strawberry_django
 from strawberry import ID
-from strawberry_django import StrFilterLookup
 
 from netbox.graphql.filters import PrimaryModelFilter
 from netbox_routing_protocols import models
@@ -15,7 +14,6 @@ __all__ = (
     'RouteMapEntryFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
-    'CustomPrefixFilter',
 )
 
 
@@ -68,8 +66,3 @@ class RouteMapEntryFilter(PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     route_map_id: ID | None = strawberry_django.filter_field()
-
-
-@strawberry_django.filter(models.CustomPrefix, lookups=True)
-class CustomPrefixFilter(PrimaryModelFilter):
-    prefix: StrFilterLookup | None = strawberry_django.filter_field()

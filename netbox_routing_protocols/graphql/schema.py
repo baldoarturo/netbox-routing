@@ -24,7 +24,6 @@ from .objects.types import (
     ASPathEntryType,
     PrefixListType,
     PrefixListEntryType,
-    CustomPrefixType,
     RouteMapType,
     RouteMapEntryType,
 )
@@ -181,12 +180,6 @@ class PrefixListEntryQuery:
 
 
 @strawberry.type(name="Query")
-class CustomPrefixQuery:
-    customprefix: CustomPrefixType = strawberry_django.field()
-    customprefix_list: list[CustomPrefixType] = strawberry_django.field()
-
-
-@strawberry.type(name="Query")
 class RouteMapQuery:
     route_map: RouteMapType = strawberry_django.field()
     route_map_list: list[RouteMapType] = strawberry_django.field()
@@ -266,7 +259,6 @@ schema = [
     ASPathEntryQuery,
     PrefixListQuery,
     PrefixListEntryQuery,
-    CustomPrefixQuery,
     RouteMapQuery,
     RouteMapEntryQuery,
     BGPPeerTemplateQuery,

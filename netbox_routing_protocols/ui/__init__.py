@@ -29,7 +29,6 @@ __all__ = (
     'StaticRouteRoutePanel',
     'BFDProfilePanel',
     'BFDProfileSessionPanel',
-    'CustomPrefixPanel',
     'ASPathPanel',
     'ASPathEntryPanel',
     'PrefixListPanel',

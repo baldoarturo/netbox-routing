@@ -19,7 +19,6 @@ __all__ = (
     'RouteMapEntryForm',
     'ASPathForm',
     'ASPathEntryForm',
-    'CustomPrefixForm',
 )
 
 
@@ -74,18 +73,11 @@ class PrefixListForm(PrimaryModelForm):
 
 
 class PrefixListEntryForm(PrimaryModelForm):
-    ipam_prefix = DynamicModelChoiceField(
+    prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
-        required=False,
         selector=True,
         label=_('Prefix'),
-    )
-    custom_prefix = DynamicModelChoiceField(
-        queryset=CustomPrefix.objects.all(),
-        required=False,
-        selector=True,
-        quick_add=True,
-        label=_('Custom Prefix'),
+        help_text=_('Declare the prefix in IPAM first.'),
     )
 
     fieldsets = (
@@ -94,22 +86,15 @@ class PrefixListEntryForm(PrimaryModelForm):
             'sequence',
             'action',
         ),
+        FieldSet('prefix', name=_('Prefix')),
         FieldSet(
-            TabbedGroups(
-                FieldSet('ipam_prefix', name=_('Prefix')),
-                FieldSet('custom_prefix', name=_('Custom Prefix')),
-            ),
-            name=_('Prefix'),
-        ),
-        FieldSet(
-            'le',
             'ge',
+            'le',
             name=_('Filtering'),
         ),
         FieldSet(
             'description',
         ),
-        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
     class Meta:
@@ -118,72 +103,9 @@ class PrefixListEntryForm(PrimaryModelForm):
             'prefix_list',
             'sequence',
             'action',
-            'ipam_prefix',
-            'custom_prefix',
-            'le',
+            'prefix',
             'ge',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        )
-
-    def __init__(self, *args, **kwargs):
-
-        # Initialize helper selectors
-        instance = kwargs.get('instance')
-        initial = kwargs.get('initial', {}).copy()
-        if instance:
-            if type(instance.assigned_prefix) is Prefix:
-                initial['ipam_prefix'] = instance.assigned_prefix
-            elif type(instance.assigned_prefix) is CustomPrefix:
-                initial['custom_prefix'] = instance.assigned_prefix
-        kwargs['initial'] = initial
-        super().__init__(*args, **kwargs)
-
-    def clean(self):
-        super().clean()
-        # A field that failed its own validation is missing from cleaned_data and
-        # already has its error
-        selected_objects = [
-            field
-            for field in ('ipam_prefix', 'custom_prefix')
-            if self.cleaned_data.get(field)
-        ]
-        if len(selected_objects) > 1:
-            raise forms.ValidationError(
-                {
-                    selected_objects[1]: _(
-                        "You can only assign a prefix or a custom prefix."
-                    )
-                }
-            )
-        # With none selected the assignment is cleared and the model reports that a
-        # prefix is required
-        self.instance.assigned_prefix = (
-            self.cleaned_data[selected_objects[0]] if selected_objects else None
-        )
-
-    def _post_clean(self):
-        # Without a valid prefix there is nothing to validate on the model, and its
-        # "prefix required" error would only repeat the one the field already has
-        if any(f in self.errors for f in ('ipam_prefix', 'custom_prefix')):
-            return
-        super()._post_clean()
-
-
-class CustomPrefixForm(PrimaryModelForm):
-    fieldsets = (
-        FieldSet(
-            'prefix',
-            'description',
-        ),
-    )
-
-    class Meta:
-        model = CustomPrefix
-        fields = (
-            'prefix',
+            'le',
             'description',
             'comments',
             'tags',

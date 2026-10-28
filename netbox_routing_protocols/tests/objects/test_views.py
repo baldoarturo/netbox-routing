@@ -183,7 +183,7 @@ class PrefixListEntryTestCase(
     action = 'permit'
     routing_required_fields = (
         'prefix_list',
-        ('assigned_prefix', 'assigned_prefixes'),
+        ('prefix', 'prefixes'),
         'sequence',
         'action',
     )
@@ -194,20 +194,11 @@ class PrefixListEntryTestCase(
     @classmethod
     def setUpTestData(cls):
         cls.prefix = Prefix.objects.create(prefix='10.0.0.0/8')
-        cls.custom_prefix = CustomPrefix.objects.create(prefix='10.0.0.0/8')
-
-        cls.assigned_prefixes = []
-        for i in range(1, 11):
-            if i % 2 == 0:
-                cls.assigned_prefixes.append(cls.prefix)
-            else:
-                cls.assigned_prefixes.append(cls.custom_prefix)
+        cls.prefixes = [cls.prefix] * 10
 
         super().setUpTestData()
 
-        cls.form_data['custom_prefix'] = None
-        cls.form_data['ipam_prefix'] = cls.form_data['assigned_prefix'].pk
-        del cls.form_data['assigned_prefix']
+        cls.form_data['prefix'] = cls.form_data['prefix'].pk
 
 
 class RouteMapTestCase(

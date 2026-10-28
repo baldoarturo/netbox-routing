@@ -1,7 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 
 from extras.ui.panels import TagsPanel
-from netbox import object_actions
 from netbox.views.generic import (
     ObjectListView,
     ObjectView,
@@ -60,7 +59,9 @@ class PrefixListEntriesView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(prefix_list=parent)
+        return self.child_model.objects.filter(prefix_list=parent).select_related(
+            'prefix_list', 'prefix'
+        )
 
     def get_extra_context(self, request, instance):
         return {
@@ -109,7 +110,7 @@ class PrefixListBulkDeleteView(BulkDeleteView):
 
 @register_model_view(PrefixListEntry, name='list', path='', detail=False)
 class PrefixListEntryListView(ObjectListView):
-    queryset = PrefixListEntry.objects.select_related('prefix_list')
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     table = PrefixListEntryTable
     filterset = PrefixListEntryFilterSet
     filterset_form = PrefixListEntryFilterForm
@@ -117,7 +118,7 @@ class PrefixListEntryListView(ObjectListView):
 
 @register_model_view(PrefixListEntry)
 class PrefixListEntryView(ObjectView):
-    queryset = PrefixListEntry.objects.select_related('prefix_list')
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -134,18 +135,18 @@ class PrefixListEntryView(ObjectView):
 @register_model_view(PrefixListEntry, name='add', detail=False)
 @register_model_view(PrefixListEntry, name='edit')
 class PrefixListEntryEditView(ObjectEditView):
-    queryset = PrefixListEntry.objects.select_related('prefix_list')
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     form = PrefixListEntryForm
 
 
 @register_model_view(PrefixListEntry, name='delete')
 class PrefixListEntryDeleteView(ObjectDeleteView):
-    queryset = PrefixListEntry.objects.select_related('prefix_list')
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
 
 
 @register_model_view(PrefixListEntry, name='bulk_edit', detail=False)
 class PrefixListEntryBulkEditView(BulkEditView):
-    queryset = PrefixListEntry.objects.select_related('prefix_list')
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     filterset = PrefixListEntryFilterSet
     table = PrefixListEntryTable
     form = PrefixListEntryBulkEditForm
@@ -153,51 +154,9 @@ class PrefixListEntryBulkEditView(BulkEditView):
 
 @register_model_view(PrefixListEntry, name='bulk_delete', detail=False)
 class PrefixListEntryBulkDeleteView(BulkDeleteView):
-    queryset = PrefixListEntry.objects.select_related('prefix_list')
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     filterset = PrefixListEntryFilterSet
     table = PrefixListEntryTable
-
-
-#
-# Custom Prefix
-#
-
-
-@register_model_view(CustomPrefix, name='list', path='', detail=False)
-class CustomPrefixListView(ObjectListView):
-    queryset = CustomPrefix.objects.all()
-    table = CustomPrefixTable
-    filterset = CustomPrefixFilterSet
-    filterset_form = CustomPrefixFilterForm
-    actions = (object_actions.AddObject,)
-
-
-@register_model_view(CustomPrefix)
-class CustomPrefixView(ObjectView):
-    queryset = CustomPrefix.objects.all()
-    template_name = 'generic/object.html'
-    layout = layout.SimpleLayout(
-        left_panels=[
-            CustomPrefixPanel(),
-            TagsPanel(),
-        ],
-        right_panels=[
-            panels.CommentsPanel(),
-            panels.RelatedObjectsPanel(),
-        ],
-    )
-
-
-@register_model_view(CustomPrefix, name='add', detail=False)
-@register_model_view(CustomPrefix, name='edit')
-class CustomPrefixEditView(ObjectEditView):
-    queryset = CustomPrefix.objects.all()
-    form = CustomPrefixForm
-
-
-@register_model_view(CustomPrefix, name='delete')
-class CustomPrefixDeleteView(ObjectDeleteView):
-    queryset = CustomPrefix.objects.all()
 
 
 #

@@ -11,7 +11,6 @@ __all__ = (
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
     'PrefixListFamilyTestCase',
-    'CustomPrefixTestCase',
     'RouteMapTestCase',
     'RouteMapEntryTestCase',
 )
@@ -158,12 +157,11 @@ class PrefixListEntryTestCase(APIViewTestCases.APIViewTestCase):
     graphql_base_name = 'prefixlist_entry'
     brief_fields = [
         'action',
-        'assigned_prefix_id',
-        'assigned_prefix_type',
         'display',
         'ge',
         'id',
         'le',
+        'prefix',
         'prefix_list',
         'sequence',
         'url',
@@ -173,19 +171,8 @@ class PrefixListEntryTestCase(APIViewTestCases.APIViewTestCase):
 
     @classmethod
     def setUpTestData(cls):
-        prefixes = (
-            Prefix(prefix='10.0.0.0/24'),
-            Prefix(prefix='10.0.1.0/24'),
-            Prefix(prefix='10.0.2.0/24'),
-            Prefix(prefix='10.0.3.0/24'),
-        )
-        Prefix.objects.bulk_create(prefixes)
-
-        custom_prefixes = (
-            CustomPrefix(prefix='10.0.0.0/24'),
-            CustomPrefix(prefix='10.0.4.0/24'),
-        )
-        CustomPrefix.objects.bulk_create(custom_prefixes)
+        Prefix.objects.bulk_create(Prefix(prefix=f'10.0.{i}.0/24') for i in range(5))
+        prefixes = tuple(Prefix.objects.order_by('prefix'))
 
         cls.prefix_list = (
             PrefixList(
@@ -202,19 +189,19 @@ class PrefixListEntryTestCase(APIViewTestCases.APIViewTestCase):
                 prefix_list=cls.prefix_list[0],
                 action='permit',
                 sequence=1,
-                assigned_prefix=prefixes[0],
+                prefix=prefixes[0],
             ),
             cls.model(
                 prefix_list=cls.prefix_list[0],
                 action='permit',
                 sequence=2,
-                assigned_prefix=prefixes[1],
+                prefix=prefixes[1],
             ),
             cls.model(
                 prefix_list=cls.prefix_list[1],
                 action='permit',
                 sequence=1,
-                assigned_prefix=custom_prefixes[0],
+                prefix=prefixes[0],
             ),
         )
         cls.model.objects.bulk_create(cls.prefix_list_entry)
@@ -224,53 +211,15 @@ class PrefixListEntryTestCase(APIViewTestCases.APIViewTestCase):
                 'prefix_list': cls.prefix_list[0].pk,
                 'action': 'permit',
                 'sequence': 3,
-                'assigned_prefix_type': 'ipam.prefix',
-                'assigned_prefix_id': prefixes[0].pk,
+                'prefix': prefixes[0].pk,
             },
             {
                 'prefix_list': cls.prefix_list[0].pk,
                 'action': 'permit',
                 'sequence': 4,
-                'assigned_prefix_type': 'netbox_routing_protocols.customprefix',
-                'assigned_prefix_id': custom_prefixes[1].pk,
+                'prefix': prefixes[-1].pk,
             },
         ]
-
-
-class CustomPrefixTestCase(APIViewTestCases.APIViewTestCase):
-    model = CustomPrefix
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    graphql_base_name = 'customprefix'
-    brief_fields = ['display', 'family', 'id', 'prefix', 'url']
-
-    bulk_update_data = {'description': 'Description'}
-
-    @classmethod
-    def setUpTestData(cls):
-        CustomPrefix.objects.bulk_create(
-            (
-                CustomPrefix(prefix='10.0.0.0/24'),
-                CustomPrefix(prefix='10.0.1.0/24'),
-                CustomPrefix(prefix='2001:db8::/32'),
-            )
-        )
-        cls.create_data = [
-            {'prefix': '10.0.2.0/24'},
-            {'prefix': '2001:db8:1::/48'},
-        ]
-
-    def test_family_is_exposed(self):
-        self.add_permissions('netbox_routing_protocols.view_customprefix')
-        for prefix, family in (('10.0.0.0/24', 4), ('2001:db8::/32', 6)):
-            obj = CustomPrefix.objects.get(prefix=prefix)
-            url = reverse(
-                'plugins-api:netbox_routing_protocols-api:customprefix-detail',
-                kwargs={'pk': obj.pk},
-            )
-            response = self.client.get(url, **self.header)
-            self.assertEqual(response.data['family']['value'], family)
-            for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
-                self.assertIn(field, response.data)
 
 
 class PrefixListFamilyTestCase(APITestCase):
@@ -331,7 +280,7 @@ class PrefixListFamilyTestCase(APITestCase):
             prefix_list=self.v4,
             action='permit',
             sequence=1,
-            assigned_prefix=prefix,
+            prefix=prefix,
             ge=28,
         )
         url = reverse('ipam-api:prefix-detail', kwargs={'pk': prefix.pk})
@@ -356,8 +305,7 @@ class PrefixListFamilyTestCase(APITestCase):
                 'prefix_list': self.v4.pk,
                 'action': 'permit',
                 'sequence': 1,
-                'assigned_prefix_type': 'ipam.prefix',
-                'assigned_prefix_id': prefix.pk,
+                'prefix': prefix.pk,
             },
             format='json',
             **self.header,
@@ -370,8 +318,7 @@ class PrefixListFamilyTestCase(APITestCase):
         data = {
             'prefix_list': self.v4.pk,
             'action': 'permit',
-            'assigned_prefix_type': 'ipam.prefix',
-            'assigned_prefix_id': prefix.pk,
+            'prefix': prefix.pk,
         }
         for sequence, status in ((4294967294, 201), (0, 400), (4294967295, 400)):
             response = self.client.post(
@@ -392,8 +339,7 @@ class PrefixListFamilyTestCase(APITestCase):
             'prefix_list': self.v6.pk,
             'action': 'permit',
             'sequence': 1,
-            'assigned_prefix_type': 'ipam.prefix',
-            'assigned_prefix_id': prefix.pk,
+            'prefix': prefix.pk,
             'ge': 48,
             'le': 128,
         }

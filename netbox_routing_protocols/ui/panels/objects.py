@@ -3,7 +3,6 @@ from django.utils.translation import gettext_lazy as _
 from netbox.ui import attrs, panels
 
 __all__ = (
-    'CustomPrefixPanel',
     'ASPathPanel',
     'ASPathEntryPanel',
     'PrefixListPanel',
@@ -13,11 +12,6 @@ __all__ = (
     'RouteMapEntryMatchPanel',
     'RouteMapEntrySetPanel',
 )
-
-
-class CustomPrefixPanel(panels.ObjectAttributesPanel):
-    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
-    description = attrs.TextAttr('description', label=_('Description'))
 
 
 class ASPathPanel(panels.ObjectAttributesPanel):
@@ -40,14 +34,14 @@ class PrefixListPanel(panels.ObjectAttributesPanel):
 
 
 class PrefixListEntryPanel(panels.ObjectAttributesPanel):
-    name = attrs.TextAttr('name', label=_('Name'))
+    prefix_list = attrs.RelatedObjectAttr(
+        'prefix_list', linkify=True, label=_('Prefix List')
+    )
     sequence = attrs.NumericAttr('sequence', label=_('Sequence'))
     action = attrs.ChoiceAttr('action', label=_('Action'))
-    assigned_prefix = attrs.RelatedObjectAttr(
-        'assigned_prefix', linkify=True, label=_('Prefix')
-    )
-    le = attrs.NumericAttr('le', label=_('Less Then'))
-    ge = attrs.NumericAttr('ge', label=_('Greater Then'))
+    prefix = attrs.RelatedObjectAttr('prefix', linkify=True, label=_('Prefix'))
+    ge = attrs.NumericAttr('ge', label=_('Greater Than or Equal'))
+    le = attrs.NumericAttr('le', label=_('Less Than or Equal'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
