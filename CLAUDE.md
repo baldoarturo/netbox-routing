@@ -18,6 +18,14 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 6. **Work in a separate git worktree** if another session may be using the same checkout, so branch switches do not collide.
 7. **If you are not sure how to fix an issue, ask before coding.** Keep asking the user questions until no doubts remain, and ask for concrete examples (sample data, expected vs actual behaviour, a screenshot, a failing request) whenever they would remove ambiguity. Do not guess at the intended behaviour, and do not open a PR for a fix you are unsure about.
 
+## Running the dev server
+
+`dev/run.sh` runs NetBox with this plugin against its own database (`netbox_routing_dev`, a copy of the shared `netbox` one), so the plugin's migrations never run against the shared database. It starts the podman containers if needed, creates the database if missing, migrates, makes sure `admin`/`admin` exists and starts the server on port 8000.
+
+- `dev/run.sh --reset` drops and rebuilds the dev database (only that one), so it can be run as often as wanted.
+- `dev/run.sh --no-server` prepares everything without starting the server.
+- The plugin is installed in editable mode from the main checkout, so the server runs whatever is checked out there.
+
 ## Running tests locally
 
 The plugin is installed editable in the NetBox venv. NetBox settings must load `netbox_routing`; use a config module that extends `netbox.configuration_testing` with `PLUGINS += ['netbox_routing']` (and `DEVELOPER = True` to run `makemigrations`).
