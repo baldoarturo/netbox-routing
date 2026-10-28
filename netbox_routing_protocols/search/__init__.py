@@ -13,7 +13,17 @@ from .isis import (
     ISISSRv6LocatorIndex,
 )
 from .objects import *
-from .ospf import OSPFInstanceIndex, OSPFAreaIndex
+from .ospf import (
+    OSPFInstanceIndex,
+    OSPFAreaIndex,
+    OSPFInterfaceIndex,
+    OSPFNetworkIndex,
+    OSPFRedistributionIndex,
+    OSPFVirtualLinkIndex,
+    OSPFSummaryAddressIndex,
+    OSPFNeighborIndex,
+    OSPFAreaRangeIndex,
+)
 from .static import StaticRouteIndex
 
 __all__ = (
@@ -43,6 +53,13 @@ __all__ = (
     'ISISSRv6LocatorIndex',
     'OSPFInstanceIndex',
     'OSPFAreaIndex',
+    'OSPFInterfaceIndex',
+    'OSPFNetworkIndex',
+    'OSPFRedistributionIndex',
+    'OSPFVirtualLinkIndex',
+    'OSPFSummaryAddressIndex',
+    'OSPFNeighborIndex',
+    'OSPFAreaRangeIndex',
     'PrefixListIndex',
     'PrefixListEntryIndex',
     'RouteMapIndex',
