@@ -1,9 +1,16 @@
 from netbox.search import SearchIndex, register_search
-from netbox_routing_protocols.models.eigrp import EIGRPRouter, EIGRPAddressFamily
+from netbox_routing_protocols.models.eigrp import (
+    EIGRPAddressFamily,
+    EIGRPInterface,
+    EIGRPNetwork,
+    EIGRPRouter,
+)
 
 __all__ = (
     'EIGRPRouterIndex',
     'EIGRPAddressFamilyIndex',
+    'EIGRPNetworkIndex',
+    'EIGRPInterfaceIndex',
 )
 
 
@@ -26,3 +33,24 @@ class EIGRPAddressFamilyIndex(SearchIndex):
         ('rid', 100),
         ('comments', 5000),
     )
+
+
+@register_search
+class EIGRPNetworkIndex(SearchIndex):
+    model = EIGRPNetwork
+    fields = (
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('router', 'address_family')
+
+
+@register_search
+class EIGRPInterfaceIndex(SearchIndex):
+    # The passphrase is a secret: it is not indexed
+    model = EIGRPInterface
+    fields = (
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('router', 'address_family')
