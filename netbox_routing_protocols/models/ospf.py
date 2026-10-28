@@ -993,6 +993,32 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         source = self.get_authentication_source()[1]
         return source.authentication if source else None
 
+    def _clean_interface_scope(self):
+        """The interface has to be on the device, and in the VRF, of the instance."""
+        if not (self.instance_id and self.interface_id):
+            return
+        interface = self.interface
+        if interface.device_id != self.instance.device_id:
+            raise ValidationError(
+                {
+                    'interface': _(
+                        'The interface must belong to the device of the OSPF instance.'
+                    )
+                }
+            )
+        if interface.vrf_id != self.instance.vrf_id:
+            raise ValidationError(
+                {
+                    'interface': _(
+                        'The interface is in {interface_vrf} but the OSPF instance '
+                        'is in {instance_vrf}.'
+                    ).format(
+                        interface_vrf=interface.vrf or _('the global routing table'),
+                        instance_vrf=self.instance.vrf or _('the global routing table'),
+                    )
+                }
+            )
+
     def _clean_area_authentication(self):
         """The interface must agree with the authentication type of its area."""
         if not (self.area_id and self.authentication):
@@ -1020,6 +1046,7 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
             raise ValidationError(
                 {'area': _('The area must belong to the OSPF instance.')}
             )
+        self._clean_interface_scope()
         self._clean_timers()
 
 
