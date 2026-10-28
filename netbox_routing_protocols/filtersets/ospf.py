@@ -162,6 +162,7 @@ class OSPFAreaFilterSet(NetBoxModelFilterSet):
             'nssa_translate_always',
             'nssa_no_redistribution',
             'nssa_default_originate',
+            'traffic_engineering',
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
         )
 
@@ -261,6 +262,9 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             'retransmit_interval',
             'transmit_delay',
             'mtu_ignore',
+            'te_metric',
+            'te_max_reservable_bandwidth',
+            'te_admin_group',
             'prefix_suppression',
             'database_filter_all_out',
             'flood_reduction',

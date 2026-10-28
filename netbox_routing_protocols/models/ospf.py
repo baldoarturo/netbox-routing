@@ -55,6 +55,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_STUB_DEFAULT_COST_MAX,
     OSPF_STUB_DEFAULT_COST_MIN,
     OSPF_TAG_MAX,
+    OSPF_TE_ADMIN_GROUP_MAX,
+    OSPF_TE_METRIC_MAX,
 )
 from netbox_routing_protocols.fields.ip import IPAddressField
 
@@ -568,6 +570,25 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         null=True,
     )
 
+    opaque_capability = models.BooleanField(
+        verbose_name=_('Opaque LSAs'),
+        help_text=_(
+            'Support opaque LSAs: the O bit of the Options field (RFC 5250). '
+            'Traffic engineering and segment routing need it'
+        ),
+        default=False,
+    )
+    te_router_address = models.GenericIPAddressField(
+        verbose_name=_('TE Router Address'),
+        help_text=_(
+            'Stable address of the router in the traffic engineering LSAs, usually '
+            'a loopback (RFC 3630 2.4.1). Empty uses the router ID'
+        ),
+        protocol='IPv4',
+        blank=True,
+        null=True,
+    )
+
     ADVANCED_FIELDS = (
         'spf_initial_delay',
         'spf_short_delay',
@@ -598,6 +619,8 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         'distance_inter_area',
         'distance_external',
         'default_metric',
+        'opaque_capability',
+        'te_router_address',
     )
 
     clone_fields = (
@@ -687,8 +710,43 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         if interfaces:
             raise _authentication_conflict_error(interfaces, self.authentication)
 
+    def _clean_traffic_engineering(self):
+        if self.te_router_address:
+            address = netaddr.IPAddress(self.te_router_address)
+            if address.is_loopback() or address.is_multicast() or int(address) == 0:
+                raise ValidationError(
+                    {
+                        'te_router_address': _(
+                            'The router address must be a unicast address, usually '
+                            'the one of a loopback interface.'
+                        )
+                    }
+                )
+            if not self.opaque_capability:
+                raise ValidationError(
+                    {
+                        'te_router_address': _(
+                            'Traffic engineering needs the opaque LSAs.'
+                        )
+                    }
+                )
+        if (
+            self.pk
+            and not self.opaque_capability
+            and self.areas.filter(traffic_engineering=True).exists()
+        ):
+            raise ValidationError(
+                {
+                    'opaque_capability': _(
+                        'Areas of the instance use traffic engineering, which needs '
+                        'the opaque LSAs.'
+                    )
+                }
+            )
+
     def clean(self):
         super().clean()
+        self._clean_traffic_engineering()
         self._clean_advanced_options()
         self._clean_authentication()
         self._clean_interface_authentication()
@@ -764,6 +822,14 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         help_text=_('Originate a default type 7 LSA into the NSSA (NSSA areas only)'),
         default=False,
     )
+    traffic_engineering = models.BooleanField(
+        verbose_name=_('Traffic Engineering'),
+        help_text=_(
+            'Originate traffic engineering LSAs, opaque type 10 with area flooding '
+            'scope (RFC 3630). Needs the opaque LSAs on the instance'
+        ),
+        default=False,
+    )
     prerequisite_models = ('netbox_routing_protocols.OSPFInstance',)
     clone_fields = (
         'instance',
@@ -773,6 +839,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         'nssa_translate_always',
         'nssa_no_redistribution',
         'nssa_default_originate',
+        'traffic_engineering',
         *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
     )
 
@@ -835,8 +902,39 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         if interfaces:
             raise _authentication_conflict_error(interfaces, required)
 
+    def _clean_traffic_engineering(self):
+        if (
+            self.traffic_engineering
+            and self.instance_id
+            and not self.instance.opaque_capability
+        ):
+            raise ValidationError(
+                {
+                    'traffic_engineering': _(
+                        'Traffic engineering needs the opaque LSAs on the OSPF instance.'
+                    )
+                }
+            )
+        if (
+            self.pk
+            and not self.traffic_engineering
+            and self.interfaces.filter(
+                Q(te_metric__isnull=False)
+                | Q(te_max_reservable_bandwidth__isnull=False)
+                | Q(te_admin_group__isnull=False)
+            ).exists()
+        ):
+            raise ValidationError(
+                {
+                    'traffic_engineering': _(
+                        'Interfaces of the area have traffic engineering attributes.'
+                    )
+                }
+            )
+
     def clean(self):
         super().clean()
+        self._clean_traffic_engineering()
         self._clean_area_type_options()
         self._clean_authentication()
         self._clean_interface_authentication()
@@ -967,6 +1065,36 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         blank=True,
         null=True,
     )
+    te_metric = models.PositiveBigIntegerField(
+        verbose_name=_('TE Metric'),
+        help_text=_(
+            'Traffic engineering metric of the link, which can differ from the OSPF '
+            'cost (RFC 3630 2.5.5)'
+        ),
+        validators=[MaxValueValidator(OSPF_TE_METRIC_MAX)],
+        blank=True,
+        null=True,
+    )
+    te_max_reservable_bandwidth = models.PositiveBigIntegerField(
+        verbose_name=_('TE Maximum Reservable Bandwidth'),
+        help_text=_(
+            'kbit/s that can be reserved on the link (RFC 3630 2.5.7). Empty '
+            'reserves up to the bandwidth of the interface'
+        ),
+        validators=[MinValueValidator(1)],
+        blank=True,
+        null=True,
+    )
+    te_admin_group = models.PositiveBigIntegerField(
+        verbose_name=_('TE Administrative Group'),
+        help_text=_(
+            '32-bit mask of the administrative groups (affinity, colors) of the '
+            'link (RFC 3630 2.5.9)'
+        ),
+        validators=[MaxValueValidator(OSPF_TE_ADMIN_GROUP_MAX)],
+        blank=True,
+        null=True,
+    )
     mtu_ignore = models.BooleanField(
         verbose_name=_('MTU Ignore'),
         help_text=_(
@@ -988,6 +1116,9 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         'retransmit_interval',
         'transmit_delay',
         'mtu_ignore',
+        'te_metric',
+        'te_max_reservable_bandwidth',
+        'te_admin_group',
         'prefix_suppression',
         'database_filter_all_out',
         'flood_reduction',
@@ -1038,6 +1169,18 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
     def effective_authentication(self):
         source = self.get_authentication_source()[1]
         return source.authentication if source else None
+
+    def _clean_traffic_engineering(self):
+        """The traffic engineering attributes need the TE LSAs of the area."""
+        if not self.area_id or self.area.traffic_engineering:
+            return
+        errors = {
+            field: _('The area does not use traffic engineering.')
+            for field in ('te_metric', 'te_max_reservable_bandwidth', 'te_admin_group')
+            if getattr(self, field) is not None
+        }
+        if errors:
+            raise ValidationError(errors)
 
     def _clean_interface_scope(self):
         """The interface has to be on the device, and in the VRF, of the instance."""
@@ -1093,6 +1236,7 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
                 {'area': _('The area must belong to the OSPF instance.')}
             )
         self._clean_interface_scope()
+        self._clean_traffic_engineering()
         self._clean_timers()
 
 
