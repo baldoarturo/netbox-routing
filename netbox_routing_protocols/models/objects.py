@@ -233,10 +233,12 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
                 f'{prefix} is an IPv{prefix.version} prefix and cannot be added '
                 f'to the IPv{family} prefix list {self.prefix_list}.'
             )
-        if self.ge is not None and prefix.prefixlen >= self.ge:
-            raise ValidationError({'ge': 'GE must be greater than the prefix length'})
-        if self.le is not None and prefix.prefixlen >= self.le:
-            raise ValidationError({'le': 'LE must be greater than the prefix length'})
+        # ge is "greater than or equal" and le "less than or equal" to the length of
+        # the matched prefix: both accept a value equal to the prefix length
+        if self.ge is not None and self.ge < prefix.prefixlen:
+            raise ValidationError({'ge': 'GE cannot be less than the prefix length'})
+        if self.le is not None and self.le < prefix.prefixlen:
+            raise ValidationError({'le': 'LE cannot be less than the prefix length'})
 
 
 class RouteMap(PrimaryModel):

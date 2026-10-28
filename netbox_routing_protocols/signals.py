@@ -15,7 +15,7 @@ MAX_REPORTED = 5
 def validate_prefix_list_entries(sender, instance, raw=False, **kwargs):
     """
     Refuse to save a Prefix when the new value would leave a prefix list entry that uses it
-    invalid (a different address family, or ge/le no longer greater than the prefix length).
+    invalid (a different address family, or ge/le now less than the prefix length).
     AbortRequest is reported as an error by the UI forms and the API.
     """
     if raw or instance.pk is None:

@@ -375,6 +375,36 @@ class PrefixListEntryTestCase(TestCase):
                 else:
                     self.assertTrue(valid)
 
+    def test_ge_le_are_inclusive_of_the_prefix_length(self):
+        # le is "less than or equal" and ge "greater than or equal": the prefix
+        # length itself is a valid value for both
+        prefix = self._prefix('10.30.0.0/24')
+        for ge, le, valid in (
+            (None, 24, True),
+            (24, None, True),
+            (24, 24, True),
+            (24, 32, True),
+            (25, 32, True),
+            (None, 23, False),
+            (23, None, False),
+            (23, 32, False),
+            (24, 23, False),
+        ):
+            with self.subTest(f'ge={ge} le={le}'):
+                entry = PrefixListEntry(
+                    prefix_list=self.prefix_list,
+                    action='permit',
+                    sequence=1,
+                    prefix=prefix,
+                    ge=ge,
+                    le=le,
+                )
+                if valid:
+                    entry.full_clean()
+                else:
+                    with self.assertRaises(ValidationError):
+                        entry.full_clean()
+
     def test_ge_cannot_be_greater_than_le(self):
         entry = PrefixListEntry(
             prefix_list=self.prefix_list,
