@@ -62,16 +62,16 @@ class PrefixListForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+        widgets = {'family': forms.RadioSelect}
 
-    def clean_family(self):
-        family = self.cleaned_data.get('family')
-        if not family:
-            raise forms.ValidationError(_('Family must be specified'))
-        try:
-            self.cleaned_data['family'] = int(family)
-        except ValueError:
-            raise forms.ValidationError(_('Family must be an integer'))
-        return self.cleaned_data['family']
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The address family cannot be changed once the list exists
+        if self.instance.pk:
+            self.fields['family'].disabled = True
+            self.fields['family'].help_text = _(
+                'The address family cannot be changed once defined.'
+            )
 
 
 class PrefixListEntryForm(PrimaryModelForm):

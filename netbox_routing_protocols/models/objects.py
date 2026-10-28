@@ -130,6 +130,20 @@ class PrefixList(PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:prefixlist', args=[self.pk])
 
+    def clean(self):
+        super().clean()
+        # The family is fixed when the list is created: its entries are of that family
+        if self.pk:
+            current = (
+                PrefixList.objects.filter(pk=self.pk)
+                .values_list('family', flat=True)
+                .first()
+            )
+            if current is not None and current != self.family:
+                raise ValidationError(
+                    {'family': _('The address family cannot be changed once defined.')}
+                )
+
 
 class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
     prefix_list = models.ForeignKey(
@@ -198,32 +212,42 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
 
     def clean(self):
         super().clean()
+        if not hasattr(self, 'prefix_list'):
+            return
+        family = self.prefix_list.family
+        boundary = 32 if family == 4 else 128
+
+        if self.le is not None and self.le > boundary:
+            raise ValidationError(
+                {
+                    'le': f'LE value cannot be greater than {boundary} for an IPv{family} list'
+                }
+            )
+        if self.ge is not None and self.ge > boundary:
+            raise ValidationError(
+                {
+                    'ge': f'GE value cannot be greater than {boundary} for an IPv{family} list'
+                }
+            )
+        if self.ge is not None and self.le is not None and self.ge > self.le:
+            raise ValidationError(
+                {
+                    'ge': 'GE cannot be greater than LE',
+                    'le': 'LE cannot be less than GE',
+                }
+            )
+
         if self.assigned_prefix:
             prefix = self.assigned_prefix.prefix
-            boundary = 32 if prefix.version == 4 else 128
-
-            if self.le is not None and self.le > boundary:
+            if prefix.version != family:
                 raise ValidationError(
-                    {'le': f'LE value cannot be greater than {boundary}'}
+                    f'{prefix} is an IPv{prefix.version} prefix and cannot be added '
+                    f'to the IPv{family} prefix list {self.prefix_list}.'
                 )
-            if self.ge is not None and self.ge > boundary:
-                raise ValidationError(
-                    {'ge': f'GE value cannot be greater than {boundary}'}
-                )
-
-            if self.ge is not None and self.le is not None and self.ge > self.le:
-                raise ValidationError(
-                    {
-                        'ge': 'GE cannot be greater than LE',
-                        'le': 'LE cannot be less than GE',
-                    }
-                )
-
             if self.ge is not None and prefix.prefixlen >= self.ge:
                 raise ValidationError(
                     {'ge': 'GE must be greater than the prefix length'}
                 )
-
             if self.le is not None and prefix.prefixlen >= self.le:
                 raise ValidationError(
                     {'le': 'LE must be greater than the prefix length'}
