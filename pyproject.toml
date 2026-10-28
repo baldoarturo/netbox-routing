@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "netbox-routing"
+name = "netbox-routing-protocols"
 authors = [
     { name = "Daniel Sheppard", email = "dans@dansheps.com" }
 ]
@@ -48,12 +48,12 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/dansheps/netbox-routing/blob/main/README.md"
-Source = "https://github.com/dansheps/netbox-routing"
-Tracker = "https://github.com/dansheps/netbox-routing/issues"
+Documentation = "https://github.com/baldoarturo/netbox-routing/blob/main/README.md"
+Source = "https://github.com/baldoarturo/netbox-routing"
+Tracker = "https://github.com/baldoarturo/netbox-routing/issues"
 
 [tool.setuptools.packages.find]
-exclude = ["netbox_routing.tests"]
+exclude = ["netbox_routing_protocols.tests"]
 
 [tool.black]
 skip-string-normalization = 1
@@ -62,6 +62,6 @@ check = 0
 diff = 0
 extend-exclude = '''
 /(
-    | netbox_routing/migrations
+    | netbox_routing_protocols/migrations
 )/
 '''

@@ -1,0 +1,100 @@
+from django.utils.translation import gettext_lazy as _
+
+from netbox.forms import PrimaryModelBulkEditForm
+from utilities.forms.fields import DynamicModelChoiceField
+from utilities.forms.rendering import FieldSet
+
+from netbox_routing_protocols.models.objects import *
+
+__all__ = (
+    'PrefixListBulkEditForm',
+    'PrefixListEntryBulkEditForm',
+    'RouteMapBulkEditForm',
+    'RouteMapEntryBulkEditForm',
+    'ASPathBulkEditForm',
+    'ASPathEntryBulkEditForm',
+)
+
+
+class PrefixListBulkEditForm(PrimaryModelBulkEditForm):
+    model = PrefixList
+    fieldsets = (
+        FieldSet(
+            'description',
+        ),
+    )
+    nullable_fields = ('description',)
+
+
+class PrefixListEntryBulkEditForm(PrimaryModelBulkEditForm):
+    prefix_list = DynamicModelChoiceField(
+        queryset=PrefixList.objects.all(),
+        label=_('Prefix List'),
+        required=False,
+        selector=True,
+    )
+
+    model = PrefixListEntry
+    fieldsets = (
+        FieldSet(
+            'prefix_list',
+            'description',
+        ),
+    )
+    nullable_fields = ('description',)
+
+
+class RouteMapBulkEditForm(PrimaryModelBulkEditForm):
+    model = RouteMap
+    fieldsets = (
+        FieldSet(
+            'description',
+        ),
+    )
+    nullable_fields = ('description',)
+
+
+class RouteMapEntryBulkEditForm(PrimaryModelBulkEditForm):
+    route_map = DynamicModelChoiceField(
+        queryset=RouteMap.objects.all(),
+        label=_('Route Map'),
+        required=False,
+        selector=True,
+    )
+
+    model = RouteMapEntry
+    fieldsets = (
+        FieldSet(
+            'route_map',
+            'description',
+        ),
+    )
+    nullable_fields = ('description',)
+
+
+class ASPathBulkEditForm(PrimaryModelBulkEditForm):
+    model = ASPath
+    fieldsets = (
+        FieldSet(
+            'description',
+        ),
+    )
+    nullable_fields = ('description',)
+
+
+class ASPathEntryBulkEditForm(PrimaryModelBulkEditForm):
+    aspath = DynamicModelChoiceField(
+        queryset=ASPath.objects.all(),
+        label=_('AS Path'),
+        required=False,
+        selector=True,
+    )
+
+    model = ASPathEntry
+    fieldsets = (
+        FieldSet(
+            'aspath',
+            'description',
+        ),
+    )
+    nullable_fields = ('description',)

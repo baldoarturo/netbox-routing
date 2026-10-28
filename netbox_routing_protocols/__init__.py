@@ -1,0 +1,63 @@
+from django.utils.translation import gettext_lazy as _
+
+from netbox.plugins import PluginConfig
+from importlib.metadata import metadata
+
+plugin = metadata('netbox_routing_protocols')
+
+
+class NetboxRouting(PluginConfig):
+    name = plugin.get('Name').replace('-', '_')
+    verbose_name = plugin.get('Name').replace('-', ' ').title()
+    description = plugin.get('Summary')
+    version = plugin.get('Version')
+    author = plugin.get('Author')
+    author_email = plugin.get('Author-email')
+    base_url = 'routing'
+    min_version = '4.7.0'
+    required_settings = []
+    caching_config = {}
+    default_settings = {}
+    graphql_schema = 'graphql.schema.schema'
+
+    def ready(self):
+
+        from netbox_routing_protocols.fields.generic import NetBoxGenericRelation
+        from dcim.models import Region, SiteGroup, Site, Location, Device
+        from ipam.models import Prefix
+        from virtualization.models import ClusterGroup, Cluster, VirtualMachine
+        from netbox_routing_protocols.models import BGPRouter, PrefixListEntry
+
+        super().ready()
+
+        # Add Generic Relations to appropriate models
+        models = (
+            ('region', Region),
+            ('site_group', SiteGroup),
+            ('site', Site),
+            ('location', Location),
+            ('device', Device),
+            ('cluster_group', ClusterGroup),
+            ('cluster', Cluster),
+            ('virtual_machine', VirtualMachine),
+        )
+        for name, model in models:
+            NetBoxGenericRelation(
+                to=BGPRouter,
+                content_type_field='assigned_object_type',
+                object_id_field='assigned_object_id',
+                related_name=name,
+                related_query_name=name,
+            ).contribute_to_class(model, 'bgp_router')
+
+        NetBoxGenericRelation(
+            verbose_name=_('Prefix List Entries'),
+            to=PrefixListEntry,
+            related_name='prefixes',
+            related_query_name='prefixes',
+            content_type_field='assigned_prefix_type',
+            object_id_field='assigned_prefix_id',
+        ).contribute_to_class(Prefix, 'prefix_list_entries')
+
+
+config = NetboxRouting

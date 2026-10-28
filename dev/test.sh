@@ -15,7 +15,7 @@ set -euo pipefail
 #
 # Examples:
 #   dev/test.sh
-#   dev/test.sh netbox_routing.tests.ospf
+#   dev/test.sh netbox_routing_protocols.tests.ospf
 #   dev/test.sh --parallel=4          (a failing test then hides its error: rerun it alone)
 #
 # Environment: NETBOX_ROOT (default: two levels above the main checkout of this
@@ -37,7 +37,7 @@ HAS_LABEL=""
 for arg in "${ARGS[@]+"${ARGS[@]}"}"; do
     case "$arg" in -*|[0-9]*) ;; *) HAS_LABEL=1 ;; esac
 done
-[ -n "$HAS_LABEL" ] || ARGS+=(netbox_routing)
+[ -n "$HAS_LABEL" ] || ARGS+=(netbox_routing_protocols)
 if [ -n "$OWN" ]; then
     # test ids contain the module and the class: select the hand-written ones
     for pattern in test_models test_forms test_filtersets test_form_meta test_urls \
@@ -100,7 +100,7 @@ build_template() {
     drop_test_databases
     drop_db "$TEMPLATE_DB"
     # creates and migrates the test database, then keeps it
-    run_tests "$source" netbox_routing.tests.test_urls --noinput --keepdb
+    run_tests "$source" netbox_routing_protocols.tests.test_urls --noinput --keepdb
     drop_db "$TEMPLATE_DB"
     psql_q -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$TEST_DB' AND pid <> pg_backend_pid()" >/dev/null
     psql_q -c "CREATE DATABASE \"$TEMPLATE_DB\" TEMPLATE \"$TEST_DB\"" >/dev/null
@@ -115,8 +115,8 @@ if [ -n "$REBUILD" ] || ! exists "$TEMPLATE_DB"; then
 else
     # The template must not hold migrations this checkout does not have
     missing=""
-    for name in $(podman exec -i "$POSTGRES" psql -U netbox -d "$TEMPLATE_DB" -Atq -c "SELECT name FROM django_migrations WHERE app = 'netbox_routing'" 2>/dev/null); do
-        [ -e "$REPO_DIR/netbox_routing/migrations/$name.py" ] || missing="$missing $name"
+    for name in $(podman exec -i "$POSTGRES" psql -U netbox -d "$TEMPLATE_DB" -Atq -c "SELECT name FROM django_migrations WHERE app = 'netbox_routing_protocols'" 2>/dev/null); do
+        [ -e "$REPO_DIR/netbox_routing_protocols/migrations/$name.py" ] || missing="$missing $name"
     done
     if [ -n "$missing" ]; then
         echo "warning: the template has migrations this checkout lacks:$missing" >&2

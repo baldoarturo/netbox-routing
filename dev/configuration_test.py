@@ -7,5 +7,5 @@ see dev/test.sh.
 from netbox.configuration_testing import *  # noqa: F401,F403
 from netbox.configuration_testing import PLUGINS
 
-PLUGINS = [*PLUGINS, 'netbox_routing']
+PLUGINS = [*PLUGINS, 'netbox_routing_protocols']
 DEVELOPER = True

@@ -2,7 +2,7 @@
 
 ## About this repo
 
-`netbox-routing` is a NetBox plugin for tracking routing information: static routes, EIGRP, OSPF and BGP (with templates/group inheritance, IPv4/IPv6 address families, VRF and VPNv4 support). IS-IS is on the roadmap.
+`netbox-routing-protocols` is a NetBox plugin for tracking routing information: static routes, EIGRP, OSPF and BGP (with templates/group inheritance, IPv4/IPv6 address families, VRF and VPNv4 support). IS-IS is on the roadmap.
 
 It was created by Daniel Sheppard (`dansheps`). This repo is a fork (`baldoarturo/netbox-routing`) of his upstream project. We forked it to develop it with modern tooling (AI-assisted, like Claude) and speed up development.
 
@@ -22,7 +22,7 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 
 ## Running the dev server
 
-`dev/run.sh` runs NetBox with this plugin against its own database (`netbox_routing_dev`, a copy of the shared `netbox` one), so the plugin's migrations never run against the shared database. It starts the podman containers if needed, creates the database if missing, migrates, makes sure `admin`/`admin` exists and starts the server on port 8000.
+`dev/run.sh` runs NetBox with this plugin against its own database (`netbox_routing_protocols_dev`, a copy of the shared `netbox` one), so the plugin's migrations never run against the shared database. It starts the podman containers if needed, creates the database if missing, migrates, makes sure `admin`/`admin` exists and starts the server on port 8000.
 
 - `dev/run.sh --reset` drops and rebuilds the dev database (only that one), so it can be run as often as wanted.
 - `dev/run.sh --no-server` prepares everything without starting the server.
@@ -34,17 +34,17 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 
 ```
 dev/test.sh                          # the whole suite
-dev/test.sh netbox_routing.tests.ospf
+dev/test.sh netbox_routing_protocols.tests.ospf
 dev/test.sh --parallel=4             # about twice as fast
 dev/test.sh --own                    # only the hand-written tests, a quick loop
 dev/test.sh --rebuild                # build the template again
 ```
 
 - Measured on the whole suite (2048 tests): about 6 minutes before, 129 s with the script, 55 s with `--parallel=4`.
-- Only the plugin's tests run, never NetBox's own: without a test label the script defaults to `netbox_routing`.
+- Only the plugin's tests run, never NetBox's own: without a test label the script defaults to `netbox_routing_protocols`.
 - `--own` skips the tests inherited from NetBox's CRUD test classes (API and GUI, about 85 % of the suite) and runs the ones written by hand (models, forms, filters, migrations, validation rules). Run the whole suite once before merging.
 - `--parallel` needs `tblib` in the NetBox venv (`pip install tblib`) to report failures, and hides the real error behind a pickle error otherwise: rerun that test alone.
 - After merging a branch with migrations into `main`, run `dev/test.sh --rebuild` once.
-- Without the script: the plugin is installed editable in the NetBox venv; use a config module that extends `netbox.configuration_testing` with `PLUGINS += ['netbox_routing']` (and `DEVELOPER = True`), and run `manage.py test netbox_routing --noinput` from `<netbox>/netbox`. Do not use `--keepdb` there across branches with different migrations.
-- Lint exactly like CI: `ruff check --config ruff.toml netbox_routing` and `black --check --skip-string-normalization netbox_routing`.
+- Without the script: the plugin is installed editable in the NetBox venv; use a config module that extends `netbox.configuration_testing` with `PLUGINS += ['netbox_routing_protocols']` (and `DEVELOPER = True`), and run `manage.py test netbox_routing_protocols --noinput` from `<netbox>/netbox`. Do not use `--keepdb` there across branches with different migrations.
+- Lint exactly like CI: `ruff check --config ruff.toml netbox_routing_protocols` and `black --check --skip-string-normalization netbox_routing_protocols`.
 
