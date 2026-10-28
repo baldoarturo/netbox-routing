@@ -1,8 +1,10 @@
 from django import forms
+from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from ipam.models import Prefix
+from netbox.context import current_request
 from netbox.forms import PrimaryModelForm
 from utilities.forms.fields import (
     DynamicModelChoiceField,
@@ -13,10 +15,14 @@ from utilities.forms.rendering import TabbedGroups, FieldSet
 from netbox_routing_protocols.helpers.prefix_list import (
     SEQUENCE_STEP,
     any_le,
+    find_overlaps,
     next_sequence,
 )
 from netbox_routing_protocols.models.community import Community, CommunityList
 from netbox_routing_protocols.models.objects import *
+
+# How many overlapping entries are named in the warnings after saving an entry
+MAX_WARNINGS = 5
 
 __all__ = (
     'PrefixListForm',
@@ -182,6 +188,27 @@ class PrefixListEntryForm(PrimaryModelForm):
         if 'prefix' in self.errors:
             return
         super()._post_clean()
+
+    def save(self, commit=True):
+        entry = super().save(commit)
+        if commit:
+            self._warn_about_overlaps(entry)
+        return entry
+
+    @staticmethod
+    def _warn_about_overlaps(entry):
+        # The entry is saved anyway: overlaps are legitimate, the user is just told
+        request = current_request.get()
+        if request is None:
+            return
+        overlaps = find_overlaps(entry)
+        for overlap in overlaps[:MAX_WARNINGS]:
+            messages.warning(request, overlap.message + '.')
+        if len(overlaps) > MAX_WARNINGS:
+            messages.warning(
+                request,
+                f'{len(overlaps) - MAX_WARNINGS} more overlapping entries in the prefix list.',
+            )
 
 
 class RouteMapForm(PrimaryModelForm):

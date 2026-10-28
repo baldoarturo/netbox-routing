@@ -1,4 +1,8 @@
+import netaddr
+from django.db.models import Q
+from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
+from django.views.generic import View
 
 from extras.ui.panels import TagsPanel
 from netbox.views.generic import (
@@ -12,7 +16,17 @@ from netbox.views.generic import (
 )
 from netbox.ui import panels, layout
 from utilities.query import count_related
-from utilities.views import register_model_view, ViewTab, GetRelatedModelsMixin
+from utilities.views import (
+    ContentTypePermissionRequiredMixin,
+    GetRelatedModelsMixin,
+    ViewTab,
+    register_model_view,
+)
+from netbox_routing_protocols.helpers.prefix_list import (
+    describe_entry,
+    evaluate_prefix,
+    find_overlaps,
+)
 from netbox_routing_protocols.filtersets.objects import *
 from netbox_routing_protocols.forms.objects import *
 from netbox_routing_protocols.models import Community, CommunityList
@@ -35,7 +49,7 @@ class PrefixListListView(ObjectListView):
 
 
 @register_model_view(PrefixList)
-class PrefixListView(ObjectView):
+class PrefixListView(GetRelatedModelsMixin, ObjectView):
     queryset = PrefixList.objects.all()
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
@@ -48,6 +62,25 @@ class PrefixListView(ObjectView):
             panels.RelatedObjectsPanel(),
         ],
     )
+
+    def get_extra_context(self, request, instance):
+        # Where the list is used: its entries, the route map entries that match it and
+        # the BGP policy templates and peer address families that filter with it
+        return {
+            'related_models': self.get_related_models(
+                request,
+                instance,
+                # a many to many relation is not detected by NetBox
+                extra=(
+                    (
+                        RouteMapEntry.objects.restrict(request.user, 'view').filter(
+                            match_prefix_list=instance
+                        ),
+                        'match_prefix_list_id',
+                    ),
+                ),
+            )
+        }
 
 
 @register_model_view(PrefixList, name='entries')
@@ -133,10 +166,14 @@ class PrefixListEntryView(ObjectView):
             TagsPanel(),
         ],
         right_panels=[
+            OverlapsPanel(title=_('Overlapping entries')),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
     )
+
+    def get_extra_context(self, request, instance):
+        return {'overlaps': find_overlaps(instance)}
 
 
 @register_model_view(PrefixListEntry, name='add', detail=False)
@@ -164,6 +201,69 @@ class PrefixListEntryBulkDeleteView(BulkDeleteView):
     queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     filterset = PrefixListEntryFilterSet
     table = PrefixListEntryTable
+
+
+#
+# Prefix match: which entries of the prefix lists match a prefix
+#
+class PrefixMatchView(ContentTypePermissionRequiredMixin, View):
+    template_name = 'netbox_routing_protocols/prefix_match.html'
+    partial_name = 'netbox_routing_protocols/prefix_match_results.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.view_prefixlistentry'
+
+    def get(self, request):
+        query = request.GET.get('q', '').strip()
+        show_all = request.GET.get('all') in ('1', 'on', 'true')
+        context = {'q': query, 'show_all': show_all}
+        if query:
+            context.update(self.evaluate(request, query, show_all))
+        # HTMX asks for the results only, a normal request for the whole page
+        template = self.partial_name if request.htmx else self.template_name
+        return render(request, template, context)
+
+    @staticmethod
+    def evaluate(request, query, show_all):
+        try:
+            prefix = netaddr.IPNetwork(query).cidr
+        except (netaddr.AddrFormatError, ValueError, TypeError):
+            return {
+                'error': _('"%(query)s" is not a valid prefix or address.')
+                % {'query': query}
+            }
+
+        lists = PrefixList.objects.restrict(request.user, 'view').filter(
+            family=prefix.version
+        )
+        entries = (
+            PrefixListEntry.objects.restrict(request.user, 'view')
+            .filter(prefix_list__in=lists)
+            .filter(
+                Q(any_prefix=True)
+                | Q(prefix__prefix__net_contains_or_equals=str(prefix))
+            )
+            .select_related('prefix_list', 'prefix')
+        )
+        results = [
+            {
+                'prefix_list': prefix_list,
+                'rows': [
+                    {
+                        'entry': entry,
+                        'effective': effective,
+                        'text': describe_entry(entry),
+                    }
+                    for entry, effective in rows
+                ],
+            }
+            for prefix_list, rows in evaluate_prefix(prefix, entries)
+        ]
+        context = {'prefix': prefix, 'results': results}
+        if show_all:
+            matched = [result['prefix_list'].pk for result in results]
+            context['unmatched'] = lists.exclude(pk__in=matched)
+        return context
 
 
 #

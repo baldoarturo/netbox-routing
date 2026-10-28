@@ -5,7 +5,11 @@ from ipam.choices import IPAddressFamilyChoices
 from ipam.api.serializers import PrefixSerializer
 from netbox.api.fields import ChoiceField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
-from netbox_routing_protocols.helpers.prefix_list import any_le, next_sequence
+from netbox_routing_protocols.helpers.prefix_list import (
+    any_le,
+    next_sequence,
+    overlap_warnings,
+)
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.api._serializers.community import *
 
@@ -111,6 +115,10 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
         max_value=128,
         help_text='Exact prefix length: shorthand that sets ge and le to this value',
     )
+    warnings = serializers.SerializerMethodField(
+        help_text='Entries of the list that overlap or are nested with this one (information, '
+        'the entry is saved anyway). Present in the response of a write and of a single entry.'
+    )
 
     class Meta:
         model = PrefixListEntry
@@ -126,6 +134,7 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
             'le',
             'ge',
             'eq',
+            'warnings',
             'description',
             'owner',
             'comments',
@@ -188,6 +197,25 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
             .values_list('family', flat=True)
             .first()
         )
+
+    def get_warnings(self, obj):
+        computed = getattr(obj, '_overlap_warnings', None)
+        if computed is not None:
+            return computed
+        # Not computed by a write: only for a single entry, never per row of a list
+        if self.parent is None:
+            return overlap_warnings(obj)
+        return None
+
+    def create(self, validated_data):
+        entry = super().create(validated_data)
+        entry._overlap_warnings = overlap_warnings(entry)
+        return entry
+
+    def update(self, instance, validated_data):
+        entry = super().update(instance, validated_data)
+        entry._overlap_warnings = overlap_warnings(entry)
+        return entry
 
     def validate(self, data):
         # A new entry without sequence gets the next one of its list. The serializer of a

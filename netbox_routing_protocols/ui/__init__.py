@@ -33,6 +33,7 @@ __all__ = (
     'ASPathEntryPanel',
     'PrefixListPanel',
     'PrefixListEntryPanel',
+    'OverlapsPanel',
     'RouteMapPanel',
     'RouteMapEntryPanel',
     'RouteMapEntryMatchPanel',

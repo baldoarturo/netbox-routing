@@ -426,6 +426,7 @@ class URLTestCase(TestCase):
                 'prefixlistentry_delete',
                 'prefixlistentry_changelog',
                 'prefixlistentry_journal',
+                'prefix_match',
                 'routemap_list',
                 'routemap_add',
                 # 'routemap_bulk_import',

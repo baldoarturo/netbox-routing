@@ -7,6 +7,7 @@ __all__ = (
     'ASPathEntryPanel',
     'PrefixListPanel',
     'PrefixListEntryPanel',
+    'OverlapsPanel',
     'RouteMapPanel',
     'RouteMapEntryPanel',
     'RouteMapEntryMatchPanel',
@@ -76,3 +77,13 @@ class RouteMapEntryMatchPanel(panels.ObjectAttributesPanel):
 
 class RouteMapEntrySetPanel(panels.ObjectAttributesPanel):
     pass
+
+
+class OverlapsPanel(panels.TemplatePanel):
+    """The entries of the same list that overlap or are nested with the one shown"""
+
+    def __init__(self, **kwargs):
+        super().__init__('netbox_routing_protocols/panels/overlaps.html', **kwargs)
+
+    def should_render(self, context):
+        return bool(context.get('overlaps'))
