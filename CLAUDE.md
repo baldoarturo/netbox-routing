@@ -28,14 +28,21 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 
 ## Running tests locally
 
-The plugin is installed editable in the NetBox venv. NetBox settings must load `netbox_routing`; use a config module that extends `netbox.configuration_testing` with `PLUGINS += ['netbox_routing']` (and `DEVELOPER = True` to run `makemigrations`).
+`dev/test.sh` runs the plugin tests (all of them without arguments, or the labels you pass) against a copy of a migrated template database, so a run no longer spends about 4 minutes applying every NetBox migration. The template is built once from `origin/main`; each run clones it and uses `--keepdb`, so Django only applies the migrations of the branch. Run it from the main checkout or from a worktree.
 
 ```
-cd <netbox>/netbox
-NETBOX_CONFIGURATION=<that config> ../venv/bin/python manage.py test netbox_routing --parallel 4 --noinput
+dev/test.sh                          # the whole suite
+dev/test.sh netbox_routing.tests.ospf
+dev/test.sh --parallel=4             # about twice as fast
+dev/test.sh --own                    # only the hand-written tests, a quick loop
+dev/test.sh --rebuild                # build the template again
 ```
 
-- `--parallel` hides real errors behind a pickle error when a test fails: rerun serially to see them.
-- Do not use `--keepdb` across branches with different migrations: the kept test database keeps the old schema. Use `--noinput` (recreates it).
+- Measured on the whole suite (2048 tests): about 6 minutes before, 129 s with the script, 55 s with `--parallel=4`.
+- Only the plugin's tests run, never NetBox's own: without a test label the script defaults to `netbox_routing`.
+- `--own` skips the tests inherited from NetBox's CRUD test classes (API and GUI, about 85 % of the suite) and runs the ones written by hand (models, forms, filters, migrations, validation rules). Run the whole suite once before merging.
+- `--parallel` needs `tblib` in the NetBox venv (`pip install tblib`) to report failures, and hides the real error behind a pickle error otherwise: rerun that test alone.
+- After merging a branch with migrations into `main`, run `dev/test.sh --rebuild` once.
+- Without the script: the plugin is installed editable in the NetBox venv; use a config module that extends `netbox.configuration_testing` with `PLUGINS += ['netbox_routing']` (and `DEVELOPER = True`), and run `manage.py test netbox_routing --noinput` from `<netbox>/netbox`. Do not use `--keepdb` there across branches with different migrations.
 - Lint exactly like CI: `ruff check --config ruff.toml netbox_routing` and `black --check --skip-string-normalization netbox_routing`.
 
