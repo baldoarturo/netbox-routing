@@ -38,7 +38,8 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 5. Creates the dev database from the demo data (downloaded the first time), migrates, makes sure `admin`/`admin` exists and starts the server on port 8000.
 
 - `dev/run.sh --reset` drops and rebuilds the dev database (only that one).
-- `dev/run.sh --no-server` prepares everything without starting the server.
+- `dev/run.sh --no-server` prepares everything without starting the server; `--no-demo` creates the database empty instead of from the NetBox demo data.
+- The only plugin-specific file of `dev/` is `dev/plugin.conf`; see `dev/README.md`.
 - The server runs whatever is checked out in the main checkout.
 
 ## Running tests locally
