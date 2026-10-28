@@ -2,7 +2,6 @@ from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing_protocols.models.objects import *
 
 __all__ = (
-    'CustomPrefixFilterForm',
     'PrefixListFilterForm',
     'PrefixListEntryFilterForm',
     'RouteMapFilterForm',
@@ -18,10 +17,6 @@ class PrefixListFilterForm(NetBoxModelFilterSetForm):
 
 class PrefixListEntryFilterForm(NetBoxModelFilterSetForm):
     model = PrefixListEntry
-
-
-class CustomPrefixFilterForm(NetBoxModelFilterSetForm):
-    model = CustomPrefix
 
 
 class RouteMapFilterForm(NetBoxModelFilterSetForm):

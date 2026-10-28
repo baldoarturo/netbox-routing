@@ -49,16 +49,16 @@ class PrefixListEntryIndex(SearchIndex):
     )
     display_attrs = (
         'prefix_list',
-        'assigned_prefix',
+        'prefix',
     )
 
     @classmethod
     def to_cache(cls, instance, custom_fields=None):
         values = super().to_cache(instance, custom_fields)
-        if hasattr(instance, 'assigned_prefix'):
-            type_ = cls.get_field_type(instance.assigned_prefix, 'prefix')
-            value = cls.get_field_value(instance.assigned_prefix, 'prefix')
-            values.append(ObjectFieldValue('assigned_prefix', type_, 100, value))
+        if instance.prefix_id:
+            type_ = cls.get_field_type(instance.prefix, 'prefix')
+            value = cls.get_field_value(instance.prefix, 'prefix')
+            values.append(ObjectFieldValue('prefix', type_, 100, value))
 
         return values
 
@@ -85,14 +85,3 @@ class RouteMapEntryIndex(SearchIndex):
         ('comments', 5000),
     )
     display_attrs = ('route_map',)
-
-
-@register_search
-class CustomPrefixIndex(SearchIndex):
-    model = CustomPrefix
-    fields = (
-        ('prefix', 100),
-        ('description', 4000),
-        ('comments', 5000),
-    )
-    display_attrs = ('prefix',)

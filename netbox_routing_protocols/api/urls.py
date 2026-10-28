@@ -1,6 +1,5 @@
 from netbox.api.routers import NetBoxRouter
 from .views import *
-from .views.objects import CustomPrefixViewSet
 
 router = NetBoxRouter()
 router.register('routes/static', StaticRouteViewSet)
@@ -37,7 +36,6 @@ router.register('eigrp/router', EIGRPRouterViewSet)
 router.register('eigrp/address-family', EIGRPAddressFamilyViewSet)
 router.register('eigrp/network', EIGRPNetworkViewSet)
 router.register('eigrp/interface', EIGRPInterfaceViewSet)
-router.register('objects/custom-prefix', CustomPrefixViewSet)
 router.register('objects/prefix-list', PrefixListViewSet)
 router.register('objects/prefix-list-entry', PrefixListEntryViewSet)
 router.register('objects/route-map', RouteMapViewSet)

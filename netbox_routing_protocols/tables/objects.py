@@ -7,7 +7,6 @@ from netbox_routing_protocols.models.objects import *
 __all__ = (
     'ASPathTable',
     'ASPathEntryTable',
-    'CustomPrefixTable',
     'PrefixListTable',
     'PrefixListEntryTable',
     'RouteMapTable',
@@ -27,6 +26,7 @@ class PrefixListTable(NetBoxTable):
 
 class PrefixListEntryTable(NetBoxTable):
     prefix_list = tables.Column(verbose_name=_('Prefix List'), linkify=True)
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
     action = columns.ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
@@ -37,7 +37,7 @@ class PrefixListEntryTable(NetBoxTable):
             'prefix_list',
             'sequence',
             'action',
-            'assigned_prefix',
+            'prefix',
             'le',
             'ge',
         )
@@ -47,24 +47,9 @@ class PrefixListEntryTable(NetBoxTable):
             'prefix_list',
             'sequence',
             'action',
-            'assigned_prefix',
+            'prefix',
             'le',
             'ge',
-        )
-
-
-class CustomPrefixTable(NetBoxTable):
-    class Meta(NetBoxTable.Meta):
-        model = CustomPrefix
-        fields = (
-            'pk',
-            'id',
-            'prefix',
-        )
-        default_columns = (
-            'pk',
-            'id',
-            'prefix',
         )
 
 

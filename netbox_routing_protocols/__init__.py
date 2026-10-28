@@ -1,5 +1,3 @@
-from django.utils.translation import gettext_lazy as _
-
 from netbox.plugins import PluginConfig
 from importlib.metadata import metadata
 
@@ -22,14 +20,10 @@ class NetboxRouting(PluginConfig):
 
     def ready(self):
 
-        from netbox_routing_protocols.fields.generic import (
-            NetBoxGenericRelation,
-            ProtectedGenericRelation,
-        )
+        from netbox_routing_protocols.fields.generic import NetBoxGenericRelation
         from dcim.models import Region, SiteGroup, Site, Location, Device
-        from ipam.models import Prefix
         from virtualization.models import ClusterGroup, Cluster, VirtualMachine
-        from netbox_routing_protocols.models import BGPRouter, PrefixListEntry
+        from netbox_routing_protocols.models import BGPRouter
 
         super().ready()
 
@@ -54,15 +48,6 @@ class NetboxRouting(PluginConfig):
                 related_name=name,
                 related_query_name=name,
             ).contribute_to_class(model, 'bgp_router')
-
-        ProtectedGenericRelation(
-            verbose_name=_('Prefix List Entries'),
-            to=PrefixListEntry,
-            related_name='prefixes',
-            related_query_name='prefixes',
-            content_type_field='assigned_prefix_type',
-            object_id_field='assigned_prefix_id',
-        ).contribute_to_class(Prefix, 'prefix_list_entries')
 
 
 config = NetboxRouting

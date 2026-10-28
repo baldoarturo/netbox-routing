@@ -20,15 +20,9 @@ class PrefixListViewSet(NetBoxModelViewSet):
 
 
 class PrefixListEntryViewSet(NetBoxModelViewSet):
-    queryset = PrefixListEntry.objects.select_related('prefix_list')
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     serializer_class = PrefixListEntrySerializer
     filterset_class = filtersets.PrefixListEntryFilterSet
-
-
-class CustomPrefixViewSet(NetBoxModelViewSet):
-    queryset = CustomPrefix.objects.all()
-    serializer_class = CustomPrefixSerializer
-    filterset_class = filtersets.CustomPrefixFilterSet
 
 
 class RouteMapViewSet(NetBoxModelViewSet):

@@ -1,4 +1,4 @@
-from typing import Annotated, Union
+from typing import Annotated
 
 import strawberry
 import strawberry_django
@@ -16,7 +16,6 @@ __all__ = (
     'PrefixListEntryType',
     'RouteMapType',
     'RouteMapEntryType',
-    'CustomPrefixType',
 )
 
 
@@ -50,10 +49,10 @@ class PrefixListType(PrimaryObjectType):
 @strawberry_django.type(
     models.PrefixListEntry,
     fields='__all__',
-    exclude=['assigned_prefix_type', 'assigned_prefix_id'],
     filters=PrefixListEntryFilter,
     select_related=[
         'prefix_list',
+        'prefix',
     ],
 )
 class PrefixListEntryType(PrimaryObjectType):
@@ -62,19 +61,7 @@ class PrefixListEntryType(PrimaryObjectType):
     ]
     action: str
     sequence: BigInt
-    assigned_prefix_type: (
-        Annotated["ContentTypeType", strawberry.lazy('netbox.graphql.types')] | None
-    )
-    assigned_prefix: (
-        Union[
-            Annotated["PrefixType", strawberry.lazy('ipam.graphql.types')],
-            Annotated[
-                "CustomPrefixType",
-                strawberry.lazy('netbox_routing_protocols.graphql.types'),
-            ],
-        ]
-        | None
-    )
+    prefix: Annotated["PrefixType", strawberry.lazy('ipam.graphql.types')]
     le: int | None
     ge: int | None
 
@@ -123,12 +110,3 @@ class RouteMapEntryType(PrimaryObjectType):
         ]
         | None
     )
-
-
-@strawberry_django.type(
-    models.CustomPrefix,
-    fields='__all__',
-    filters=CustomPrefixFilter,
-)
-class CustomPrefixType(PrimaryObjectType):
-    prefix: str

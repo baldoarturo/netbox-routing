@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
+from ipam.models import Prefix
 from netbox.context_managers import event_tracking
 from netbox_routing_protocols.models.bgp import *
 from netbox_routing_protocols.models.community import *
@@ -282,11 +283,13 @@ class Command(BaseCommand):
                     if item.prefix:
                         prefix = item.prefix
                     elif item.prefix_custom:
-                        try:
-                            prefix = CustomPrefix.objects.get(prefix=item.prefix_custom)
-                        except CustomPrefix.DoesNotExist:
-                            prefix = CustomPrefix(prefix=item.prefix_custom)
-                            prefix.clean()
+                        # Prefixes are declared in IPAM only
+                        prefix = Prefix.objects.filter(
+                            prefix=item.prefix_custom
+                        ).first()
+                        if prefix is None:
+                            prefix = Prefix(prefix=item.prefix_custom)
+                            prefix.full_clean()
                             prefix.save()
 
                     try:

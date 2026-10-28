@@ -1,4 +1,3 @@
-from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import ProtectedError
@@ -127,6 +126,25 @@ class PrefixListEntryTestCase(TestCase):
         )
         cls.prefix_list.full_clean()
         cls.prefix_list.save()
+        cls.v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
+
+    def _prefix(self, value):
+        prefix = Prefix(prefix=value)
+        prefix.full_clean()
+        prefix.save()
+        return prefix
+
+    def _entry(self, prefix, prefix_list=None, sequence=1, **kwargs):
+        entry = PrefixListEntry(
+            prefix_list=prefix_list or self.prefix_list,
+            action='permit',
+            sequence=sequence,
+            prefix=prefix,
+            **kwargs,
+        )
+        entry.full_clean()
+        entry.save()
+        return entry
 
     def test_prefix_list_entry(self):
         for seq, pattern in (
@@ -135,24 +153,7 @@ class PrefixListEntryTestCase(TestCase):
             (3, '10.0.3.0/24'),
             (4, '10.0.4.0/24'),
         ):
-            if seq in [
-                1,
-                3,
-            ]:
-                prefix = CustomPrefix(prefix=pattern)
-            else:
-                prefix = Prefix(prefix=pattern)
-            prefix.full_clean()
-            prefix.save()
-
-            ple = PrefixListEntry(
-                prefix_list=self.prefix_list,
-                action='permit',
-                sequence=seq,
-                assigned_prefix=prefix,
-            )
-            ple.full_clean()
-            ple.save()
+            ple = self._entry(self._prefix(pattern), sequence=seq)
             self.assertIsInstance(ple, PrefixListEntry)
             self.assertEqual(str(ple), f'{self.prefix_list} permit {seq}')
 
@@ -160,90 +161,91 @@ class PrefixListEntryTestCase(TestCase):
         entry = PrefixListEntry(
             prefix_list=self.prefix_list, action='permit', sequence=1
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             entry.full_clean()
+        self.assertIn('prefix', ctx.exception.message_dict)
 
-    def test_type_without_id_is_rejected(self):
-        entry = PrefixListEntry(
-            prefix_list=self.prefix_list,
-            action='permit',
-            sequence=1,
-            assigned_prefix_type=ContentType.objects.get_for_model(Prefix),
-        )
-        with self.assertRaises(ValidationError):
-            entry.full_clean()
+    def test_used_prefix_cannot_be_deleted(self):
+        prefix = self._prefix('10.0.1.0/24')
+        entry = self._entry(prefix)
+        with self.assertRaises(ProtectedError):
+            prefix.delete()
+        with self.assertRaises(ProtectedError):
+            Prefix.objects.filter(pk=prefix.pk).delete()
+        self.assertTrue(Prefix.objects.filter(pk=prefix.pk).exists())
+        self.assertTrue(PrefixListEntry.objects.filter(pk=entry.pk).exists())
 
-    def test_nonexistent_prefix_is_rejected(self):
-        entry = PrefixListEntry(
-            prefix_list=self.prefix_list,
-            action='permit',
-            sequence=1,
-            assigned_prefix_type=ContentType.objects.get_for_model(Prefix),
-            assigned_prefix_id=999999,
-        )
-        with self.assertRaises(ValidationError):
-            entry.full_clean()
+        # Once the entry is gone the prefix can be deleted
+        entry.delete()
+        prefix.delete()
+        self.assertFalse(Prefix.objects.filter(pk=prefix.pk).exists())
+
+    def test_used_prefix_delete_view_shows_error(self):
+        user = User.objects.create_superuser('admin149', 'admin@example.com', 'x')
+        self.client.force_login(user)
+        prefix = self._prefix('10.0.5.0/24')
+        self._entry(prefix)
+        url = reverse('ipam:prefix_delete', kwargs={'pk': prefix.pk})
+        response = self.client.post(url, {'confirm': True}, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Prefix.objects.filter(pk=prefix.pk).exists())
+        self.assertContains(response, 'Unable to delete', status_code=200)
+
+    def test_unused_prefix_can_be_deleted(self):
+        prefix = self._prefix('10.0.3.0/24')
+        prefix.delete()
+        self.assertFalse(Prefix.objects.filter(prefix='10.0.3.0/24').exists())
+
+    def test_deleting_prefix_list_still_deletes_entries(self):
+        entry = self._entry(self._prefix('10.0.4.0/24'))
+        self.prefix_list.delete()
+        self.assertFalse(PrefixListEntry.objects.filter(pk=entry.pk).exists())
+        self.assertTrue(Prefix.objects.filter(prefix='10.0.4.0/24').exists())
 
     def test_prefix_change_that_invalidates_an_entry_is_refused(self):
-        for prefix, new_value in (
-            (Prefix(prefix='10.1.0.0/24'), '10.1.0.0/29'),
-            (CustomPrefix(prefix='10.2.0.0/24'), '10.2.0.0/29'),
-            (Prefix(prefix='10.3.0.0/24'), '2001:db8::/32'),
-            (CustomPrefix(prefix='10.4.0.0/24'), '2001:db8:1::/48'),
+        for value, new_value in (
+            ('10.1.0.0/24', '10.1.0.0/29'),
+            ('10.3.0.0/24', '2001:db8::/32'),
         ):
-            with self.subTest(f'{type(prefix).__name__} {new_value}'):
-                entry = self._entry(prefix)
-                entry.ge = 28
-                entry.le = 32
-                entry.save()
-                old_value = str(prefix.prefix)
+            with self.subTest(new_value):
+                prefix = self._prefix(value)
+                entry = self._entry(prefix, ge=28, le=32)
                 prefix.prefix = new_value
                 with self.assertRaises(AbortRequest) as ctx:
                     prefix.save()
                 self.assertIn(str(entry), str(ctx.exception.message))
                 prefix.refresh_from_db()
-                self.assertEqual(str(prefix.prefix), old_value)
+                self.assertEqual(str(prefix.prefix), value)
                 entry.delete()
 
     def test_compatible_prefix_change_is_allowed(self):
-        for prefix, new_value in (
-            (Prefix(prefix='10.5.0.0/24'), '10.5.0.0/25'),
-            (CustomPrefix(prefix='10.6.0.0/24'), '10.6.0.0/25'),
-        ):
-            with self.subTest(type(prefix).__name__):
-                entry = self._entry(prefix)
-                entry.ge = 26
-                entry.le = 32
-                entry.save()
-                prefix.prefix = new_value
-                prefix.save()
-                prefix.refresh_from_db()
-                self.assertEqual(str(prefix.prefix), new_value)
-                entry.delete()
+        prefix = self._prefix('10.5.0.0/24')
+        self._entry(prefix, ge=26, le=32)
+        prefix.prefix = '10.5.0.0/25'
+        prefix.save()
+        prefix.refresh_from_db()
+        self.assertEqual(str(prefix.prefix), '10.5.0.0/25')
 
     def test_unused_prefix_can_change(self):
-        prefix = Prefix.objects.create(prefix='10.7.0.0/24')
+        prefix = self._prefix('10.7.0.0/24')
         prefix.prefix = '2001:db8::/32'
         prefix.save()
 
-    def test_custom_prefix_edit_view_shows_error(self):
+    def test_prefix_edit_view_shows_error(self):
         user = User.objects.create_superuser('admin154', 'admin@example.com', 'x')
         self.client.force_login(user)
-        prefix = CustomPrefix(prefix='10.8.0.0/24')
-        entry = self._entry(prefix)
-        entry.ge = 28
-        entry.save()
-        url = reverse(
-            'plugins:netbox_routing_protocols:customprefix_edit',
-            kwargs={'pk': prefix.pk},
+        prefix = self._prefix('10.8.0.0/24')
+        self._entry(prefix, ge=28)
+        url = reverse('ipam:prefix_edit', kwargs={'pk': prefix.pk})
+        response = self.client.post(
+            url, {'prefix': '10.8.0.0/29', 'status': 'active'}, follow=True
         )
-        response = self.client.post(url, {'prefix': '10.8.0.0/29'}, follow=True)
         self.assertContains(response, 'would make prefix list entries invalid')
         prefix.refresh_from_db()
         self.assertEqual(str(prefix.prefix), '10.8.0.0/24')
 
     def test_sequence_range(self):
-        prefix = CustomPrefix.objects.create(prefix='10.0.11.0/24')
+        prefix = self._prefix('10.0.11.0/24')
         for sequence, valid in (
             (0, False),
             (1, True),
@@ -256,7 +258,7 @@ class PrefixListEntryTestCase(TestCase):
                     prefix_list=self.prefix_list,
                     action='permit',
                     sequence=sequence,
-                    assigned_prefix=prefix,
+                    prefix=prefix,
                 )
                 if valid:
                     entry.full_clean()
@@ -270,58 +272,42 @@ class PrefixListEntryTestCase(TestCase):
                     self.assertIn('sequence', ctx.exception.message_dict)
 
     def test_family_mismatch_is_rejected(self):
-        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
-        for prefix_list, prefix in (
-            (self.prefix_list, Prefix(prefix='2001:db8::/32')),
-            (self.prefix_list, CustomPrefix(prefix='2001:db8:1::/48')),
-            (v6_list, Prefix(prefix='10.0.7.0/24')),
-            (v6_list, CustomPrefix(prefix='10.0.8.0/24')),
+        for prefix_list, value in (
+            (self.prefix_list, '2001:db8::/32'),
+            (self.v6_list, '10.0.7.0/24'),
         ):
-            with self.subTest(f'{prefix_list.family} {prefix}'):
-                prefix.full_clean()
-                prefix.save()
+            with self.subTest(f'{prefix_list.family} {value}'):
                 entry = PrefixListEntry(
                     prefix_list=prefix_list,
                     action='permit',
                     sequence=1,
-                    assigned_prefix=prefix,
+                    prefix=self._prefix(value),
                 )
                 with self.assertRaises(ValidationError):
                     entry.full_clean()
 
     def test_family_match_is_accepted(self):
-        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
-        prefix = CustomPrefix(prefix='2001:db8::/32')
-        prefix.full_clean()
-        prefix.save()
-        entry = PrefixListEntry(
-            prefix_list=v6_list,
-            action='permit',
-            sequence=1,
-            assigned_prefix=prefix,
-            ge=48,
-            le=128,
+        self._entry(
+            self._prefix('2001:db8::/32'), prefix_list=self.v6_list, ge=48, le=128
         )
-        entry.full_clean()
 
     def test_ge_le_follow_the_list_family(self):
-        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
-        v4_prefix = CustomPrefix.objects.create(prefix='11.0.0.0/8')
-        v6_prefix = CustomPrefix.objects.create(prefix='2001::/16')
+        v4_prefix = self._prefix('11.0.0.0/8')
+        v6_prefix = self._prefix('2001::/16')
         for prefix_list, prefix, field, value, valid in (
             (self.prefix_list, v4_prefix, 'le', 32, True),
             (self.prefix_list, v4_prefix, 'le', 33, False),
             (self.prefix_list, v4_prefix, 'ge', 33, False),
-            (v6_list, v6_prefix, 'le', 128, True),
-            (v6_list, v6_prefix, 'le', 129, False),
-            (v6_list, v6_prefix, 'ge', 129, False),
+            (self.v6_list, v6_prefix, 'le', 128, True),
+            (self.v6_list, v6_prefix, 'le', 129, False),
+            (self.v6_list, v6_prefix, 'ge', 129, False),
         ):
             with self.subTest(f'{prefix_list.family} {field} {value}'):
                 entry = PrefixListEntry(
                     prefix_list=prefix_list,
                     action='permit',
                     sequence=1,
-                    assigned_prefix=prefix,
+                    prefix=prefix,
                 )
                 setattr(entry, field, value)
                 try:
@@ -337,7 +323,7 @@ class PrefixListEntryTestCase(TestCase):
             prefix_list=self.prefix_list,
             action='permit',
             sequence=1,
-            assigned_prefix=CustomPrefix.objects.create(prefix='12.0.0.0/8'),
+            prefix=self._prefix('12.0.0.0/8'),
             ge=28,
             le=24,
         )
@@ -353,70 +339,6 @@ class PrefixListEntryTestCase(TestCase):
         self.assertEqual(self.prefix_list.family, 4)
         # saving it again with the same family is fine
         self.prefix_list.full_clean()
-
-    def _entry(self, prefix):
-        prefix.full_clean()
-        prefix.save()
-        entry = PrefixListEntry(
-            prefix_list=self.prefix_list,
-            action='permit',
-            sequence=1,
-            assigned_prefix=prefix,
-        )
-        entry.full_clean()
-        entry.save()
-        return entry
-
-    def test_used_prefix_cannot_be_deleted(self):
-        for prefix in (
-            Prefix(prefix='10.0.1.0/24'),
-            CustomPrefix(prefix='10.0.2.0/24'),
-        ):
-            with self.subTest(type(prefix).__name__):
-                entry = self._entry(prefix)
-                with self.assertRaises(ProtectedError):
-                    prefix.delete()
-                with self.assertRaises(ProtectedError):
-                    type(prefix).objects.filter(pk=prefix.pk).delete()
-                self.assertTrue(type(prefix).objects.filter(pk=prefix.pk).exists())
-                self.assertTrue(PrefixListEntry.objects.filter(pk=entry.pk).exists())
-
-                # Once the entry is gone the prefix can be deleted
-                entry.delete()
-                prefix.delete()
-                self.assertFalse(type(prefix).objects.filter(pk=prefix.pk).exists())
-
-    def test_used_prefix_delete_view_shows_error(self):
-        user = User.objects.create_superuser('admin149', 'admin@example.com', 'x')
-        self.client.force_login(user)
-        for prefix, view in (
-            (Prefix(prefix='10.0.5.0/24'), 'ipam:prefix_delete'),
-            (
-                CustomPrefix(prefix='10.0.6.0/24'),
-                'plugins:netbox_routing_protocols:customprefix_delete',
-            ),
-        ):
-            with self.subTest(type(prefix).__name__):
-                self._entry(prefix)
-                url = reverse(view, kwargs={'pk': prefix.pk})
-                response = self.client.post(url, {'confirm': True}, follow=True)
-                self.assertEqual(response.status_code, 200)
-                self.assertTrue(type(prefix).objects.filter(pk=prefix.pk).exists())
-                self.assertContains(response, 'Unable to delete', status_code=200)
-                PrefixListEntry.objects.all().delete()
-
-    def test_unused_prefix_can_be_deleted(self):
-        prefix = Prefix(prefix='10.0.3.0/24')
-        prefix.full_clean()
-        prefix.save()
-        prefix.delete()
-        self.assertFalse(Prefix.objects.filter(prefix='10.0.3.0/24').exists())
-
-    def test_deleting_prefix_list_still_deletes_entries(self):
-        entry = self._entry(CustomPrefix(prefix='10.0.4.0/24'))
-        self.prefix_list.delete()
-        self.assertFalse(PrefixListEntry.objects.filter(pk=entry.pk).exists())
-        self.assertTrue(CustomPrefix.objects.filter(prefix='10.0.4.0/24').exists())
 
 
 class RouteMapTestCase(TestCase):

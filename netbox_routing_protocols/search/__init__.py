@@ -51,7 +51,6 @@ __all__ = (
     'EIGRPNetworkIndex',
     'EIGRPInterfaceIndex',
     'BFDProfileIndex',
-    'CustomPrefixIndex',
     'ISISInstanceIndex',
     'ISISInterfaceIndex',
     'ISISSettingIndex',

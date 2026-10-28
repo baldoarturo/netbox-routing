@@ -1,5 +1,4 @@
 import django_filters
-import netaddr
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -11,7 +10,6 @@ from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.models.community import *
 
 __all__ = (
-    'CustomPrefixFilterSet',
     'PrefixListFilterSet',
     'PrefixListEntryFilterSet',
     'RouteMapFilterSet',
@@ -106,26 +104,15 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
         label=_('Prefix List (Name)'),
     )
     prefix_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='prefixes',
+        field_name='prefix',
         queryset=Prefix.objects.all(),
         label=_('Prefix (ID)'),
     )
     prefix = django_filters.ModelMultipleChoiceFilter(
-        field_name='prefixes__prefix',
+        field_name='prefix__prefix',
         queryset=Prefix.objects.all(),
         to_field_name='prefix',
         label=_('Prefix (Name)'),
-    )
-    custom_prefix_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='custom_prefixes',
-        queryset=CustomPrefix.objects.all(),
-        label=_('Custom Prefix (ID)'),
-    )
-    custom_prefix = django_filters.ModelMultipleChoiceFilter(
-        field_name='custom_prefixes__prefix',
-        queryset=CustomPrefix.objects.all(),
-        to_field_name='prefix',
-        label=_('Custom Prefix (Name)'),
     )
     family = django_filters.NumberFilter(
         field_name='prefix_list__family',
@@ -139,8 +126,6 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
             'prefix_list',
             'prefix_id',
             'prefix',
-            'custom_prefix_id',
-            'custom_prefix',
             'sequence',
             'action',
             'le',
@@ -151,39 +136,9 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         qs_filter = Q(prefix_list__name__icontains=value)
-        qs_filter |= Q(prefixes__prefix__icontains=value)
-        qs_filter |= Q(custom_prefixes__prefix__icontains=value)
+        qs_filter |= Q(prefix__prefix__icontains=value)
 
-        return queryset.filter(qs_filter).distinct()
-
-    def filter_prefix(self, queryset, name, value):
-        if not value.strip():
-            return queryset
-        try:
-            query = str(netaddr.IPNetwork(value).cidr)
-            return queryset.filter(prefix=query)
-        except (netaddr.AddrFormatError, ValueError):
-            return queryset.none()
-
-
-@register_filterset
-class CustomPrefixFilterSet(NetBoxModelFilterSet):
-    family = django_filters.NumberFilter(
-        field_name='prefix',
-        lookup_expr='family',
-        label=_('Address family'),
-    )
-
-    class Meta:
-        model = CustomPrefix
-        fields = ()
-
-    def search(self, queryset, name, value):
-        if not value.strip():
-            return queryset
-        qs_filter = Q(prefix__icontains=value)
-
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
 
 @register_filterset
