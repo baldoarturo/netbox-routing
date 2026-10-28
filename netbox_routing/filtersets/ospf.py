@@ -13,6 +13,7 @@ from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFGracefulRestartChoices,
+    OSPFMessageDigestAlgorithmChoices,
     OSPFNetworkTypeChoices,
     OSPFRedistributionProtocolChoices,
 )
@@ -225,6 +226,10 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
         choices=OSPFNetworkTypeChoices,
         label=_('Network Type'),
     )
+    message_digest_algorithm = django_filters.MultipleChoiceFilter(
+        choices=OSPFMessageDigestAlgorithmChoices,
+        label=_('Message Digest Algorithm'),
+    )
 
     class Meta:
         model = OSPFInterface
@@ -244,6 +249,10 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             'mtu_ignore',
             'authentication',
             'passphrase',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'key_chain',
+            'show_md5',
         )
 
     def search(self, queryset, name, value):

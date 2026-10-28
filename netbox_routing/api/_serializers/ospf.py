@@ -104,6 +104,9 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
     area = OSPFAreaSerializer(nested=True)
     interface = InterfaceSerializer(nested=True)
     mtu = serializers.IntegerField(source='interface.mtu', read_only=True)
+    passphrase_md5 = serializers.CharField(
+        source='md5_digest', read_only=True, allow_null=True
+    )
 
     class Meta:
         model = OSPFInterface
@@ -127,6 +130,11 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'mtu_ignore',
             'authentication',
             'passphrase',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'key_chain',
+            'show_md5',
+            'passphrase_md5',
             'description',
             'comments',
         )

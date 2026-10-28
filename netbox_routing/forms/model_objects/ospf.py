@@ -14,6 +14,7 @@ from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
+    OSPFMessageDigestAlgorithmChoices,
 )
 from netbox_routing.constants.ospf import (
     OSPF_INTERFACE_TIMERS,
@@ -233,7 +234,11 @@ class OSPFInterfaceForm(PrimaryModelForm):
         ),
         FieldSet(
             'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
             'passphrase',
+            'show_md5',
+            'key_chain',
             name=_('Authentication'),
         ),
     )
@@ -257,6 +262,10 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'mtu_ignore',
             'authentication',
             'passphrase',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'key_chain',
+            'show_md5',
             'description',
             'comments',
             'tags',
@@ -273,7 +282,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
         if self.instance.pk:
             self.initial['device'] = self.instance.interface.device.pk
         # An empty timer or priority falls back to its default (see clean()).
-        for name in (*OSPF_INTERFACE_TIMERS, 'priority'):
+        for name in (*OSPF_INTERFACE_TIMERS, 'priority', 'message_digest_algorithm'):
             self.fields[name].required = False
 
     def clean(self):
@@ -282,6 +291,10 @@ class OSPFInterfaceForm(PrimaryModelForm):
                 self.cleaned_data[name] = default
         if self.cleaned_data.get('priority') is None:
             self.cleaned_data['priority'] = OSPF_PRIORITY_DEFAULT
+        if not self.cleaned_data.get('message_digest_algorithm'):
+            self.cleaned_data['message_digest_algorithm'] = (
+                OSPFMessageDigestAlgorithmChoices.MD5
+            )
         super().clean()
         if self.cleaned_data.get('instance') and self.cleaned_data.get('interface'):
             if (

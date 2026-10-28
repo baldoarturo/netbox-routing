@@ -12,6 +12,8 @@ from netbox_routing.choices.ospf import OSPFAreaTypeChoices
 from netbox_routing.constants.ospf import (
     OSPF_COST_MAX,
     OSPF_COST_MIN,
+    OSPF_AUTH_KEY_ID_MAX,
+    OSPF_AUTH_KEY_ID_MIN,
     OSPF_DEAD_INTERVAL_MAX,
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
@@ -274,6 +276,21 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         required=False,
     )
     passphrase = forms.CharField(label=_('Passphrase'), required=False)
+    authentication_key_id = forms.IntegerField(
+        label=_('Key ID'),
+        required=False,
+        min_value=OSPF_AUTH_KEY_ID_MIN,
+        max_value=OSPF_AUTH_KEY_ID_MAX,
+    )
+    message_digest_algorithm = forms.ChoiceField(
+        label=_('Message Digest Algorithm'),
+        choices=add_blank_choice(choices.OSPFMessageDigestAlgorithmChoices),
+        required=False,
+    )
+    key_chain = forms.CharField(label=_('Key Chain'), max_length=100, required=False)
+    show_md5 = forms.ChoiceField(
+        label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
 
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
@@ -290,9 +307,16 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'cost',
             'bfd',
             'mtu_ignore',
-            'authentication',
-            'passphrase',
             name='Attributes',
+        ),
+        FieldSet(
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'passphrase',
+            'show_md5',
+            'key_chain',
+            name='Authentication',
         ),
         FieldSet(
             'hello_interval',
