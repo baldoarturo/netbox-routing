@@ -20,7 +20,7 @@ class ASPathPanel(panels.ObjectAttributesPanel):
 
 
 class ASPathEntryPanel(panels.ObjectAttributesPanel):
-    name = attrs.TextAttr('name', label=_('Name'))
+    aspath = attrs.RelatedObjectAttr('aspath', linkify=True, label=_('AS-Path'))
     sequence = attrs.NumericAttr('sequence', label=_('Sequence'))
     action = attrs.ChoiceAttr('action', label=_('Action'))
     pattern = attrs.TextAttr('pattern', label=_('Pattern'))
@@ -51,7 +51,7 @@ class RouteMapPanel(panels.ObjectAttributesPanel):
 
 
 class RouteMapEntryPanel(panels.ObjectAttributesPanel):
-    name = attrs.TextAttr('name', label=_('Name'))
+    route_map = attrs.RelatedObjectAttr('route_map', linkify=True, label=_('Route Map'))
     sequence = attrs.NumericAttr('sequence', label=_('Sequence'))
     action = attrs.ChoiceAttr('action', label=_('Action'))
     flow_control = attrs.NumericAttr('flow_control', label=_('Flow Control'))

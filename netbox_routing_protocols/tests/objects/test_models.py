@@ -82,6 +82,17 @@ class ASPathEntryTestCase(TestCase):
             self.assertIsInstance(aspe, ASPathEntry)
             self.assertEqual(str(aspe), f'{self.aspath} permit {seq}')
 
+    def test_duplicate_sequence_message(self):
+        ASPathEntry.objects.create(
+            aspath=self.aspath, action='permit', sequence=10, pattern='^1$'
+        )
+        entry = ASPathEntry(
+            aspath=self.aspath, action='deny', sequence=10, pattern='^2$'
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            entry.full_clean()
+        self.assertIn('AS-Path sequence must be unique', str(ctx.exception))
+
 
 class PrefixListTestCase(TestCase):
 

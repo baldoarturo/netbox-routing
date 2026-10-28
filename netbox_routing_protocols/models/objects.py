@@ -85,7 +85,7 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
                     'sequence',
                 ),
                 name='%(app_label)s_%(class)s_unique_aspath_sequence',
-                violation_error_message="Prefix List sequence must be unique.",
+                violation_error_message="AS-Path sequence must be unique.",
             ),
         )
 
