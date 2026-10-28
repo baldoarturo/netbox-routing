@@ -1,4 +1,4 @@
-# from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db.models import ProtectedError
@@ -155,6 +155,34 @@ class PrefixListEntryTestCase(TestCase):
             self.assertIsInstance(ple, PrefixListEntry)
             self.assertEqual(str(ple), f'{self.prefix_list} permit {seq}')
 
+    def test_prefix_is_required(self):
+        entry = PrefixListEntry(
+            prefix_list=self.prefix_list, action='permit', sequence=1
+        )
+        with self.assertRaises(ValidationError):
+            entry.full_clean()
+
+    def test_type_without_id_is_rejected(self):
+        entry = PrefixListEntry(
+            prefix_list=self.prefix_list,
+            action='permit',
+            sequence=1,
+            assigned_prefix_type=ContentType.objects.get_for_model(Prefix),
+        )
+        with self.assertRaises(ValidationError):
+            entry.full_clean()
+
+    def test_nonexistent_prefix_is_rejected(self):
+        entry = PrefixListEntry(
+            prefix_list=self.prefix_list,
+            action='permit',
+            sequence=1,
+            assigned_prefix_type=ContentType.objects.get_for_model(Prefix),
+            assigned_prefix_id=999999,
+        )
+        with self.assertRaises(ValidationError):
+            entry.full_clean()
+
     def test_family_mismatch_is_rejected(self):
         v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
         for prefix_list, prefix in (
@@ -192,18 +220,22 @@ class PrefixListEntryTestCase(TestCase):
 
     def test_ge_le_follow_the_list_family(self):
         v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
-        for prefix_list, field, value, valid in (
-            (self.prefix_list, 'le', 32, True),
-            (self.prefix_list, 'le', 33, False),
-            (self.prefix_list, 'ge', 33, False),
-            (v6_list, 'le', 128, True),
-            (v6_list, 'le', 129, False),
-            (v6_list, 'ge', 129, False),
+        v4_prefix = CustomPrefix.objects.create(prefix='11.0.0.0/8')
+        v6_prefix = CustomPrefix.objects.create(prefix='2001::/16')
+        for prefix_list, prefix, field, value, valid in (
+            (self.prefix_list, v4_prefix, 'le', 32, True),
+            (self.prefix_list, v4_prefix, 'le', 33, False),
+            (self.prefix_list, v4_prefix, 'ge', 33, False),
+            (v6_list, v6_prefix, 'le', 128, True),
+            (v6_list, v6_prefix, 'le', 129, False),
+            (v6_list, v6_prefix, 'ge', 129, False),
         ):
             with self.subTest(f'{prefix_list.family} {field} {value}'):
-                # without an assigned prefix the bounds still come from the list
                 entry = PrefixListEntry(
-                    prefix_list=prefix_list, action='permit', sequence=1
+                    prefix_list=prefix_list,
+                    action='permit',
+                    sequence=1,
+                    assigned_prefix=prefix,
                 )
                 setattr(entry, field, value)
                 try:
@@ -216,7 +248,12 @@ class PrefixListEntryTestCase(TestCase):
 
     def test_ge_cannot_be_greater_than_le(self):
         entry = PrefixListEntry(
-            prefix_list=self.prefix_list, action='permit', sequence=1, ge=28, le=24
+            prefix_list=self.prefix_list,
+            action='permit',
+            sequence=1,
+            assigned_prefix=CustomPrefix.objects.create(prefix='12.0.0.0/8'),
+            ge=28,
+            le=24,
         )
         with self.assertRaises(ValidationError):
             entry.clean()

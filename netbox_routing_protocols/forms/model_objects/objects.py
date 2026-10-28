@@ -1,5 +1,4 @@
 from django import forms
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from ipam.models import Prefix
@@ -145,14 +144,11 @@ class PrefixListEntryForm(PrimaryModelForm):
     def clean(self):
         super().clean()
         # A field that failed its own validation is missing from cleaned_data and
-        # already has its error: do not add a misleading one on top of it
-        prefix_fields = ('ipam_prefix', 'custom_prefix')
-        if any(field in self.errors for field in prefix_fields):
-            return
-
-        # Handle object assignment
+        # already has its error
         selected_objects = [
-            field for field in prefix_fields if self.cleaned_data.get(field)
+            field
+            for field in ('ipam_prefix', 'custom_prefix')
+            if self.cleaned_data.get(field)
         ]
         if len(selected_objects) > 1:
             raise forms.ValidationError(
@@ -162,10 +158,18 @@ class PrefixListEntryForm(PrimaryModelForm):
                     )
                 }
             )
-        elif selected_objects:
-            self.instance.assigned_prefix = self.cleaned_data[selected_objects[0]]
-        else:
-            raise ValidationError(_('A Prefix or Custom Prefix must be specified'))
+        # With none selected the assignment is cleared and the model reports that a
+        # prefix is required
+        self.instance.assigned_prefix = (
+            self.cleaned_data[selected_objects[0]] if selected_objects else None
+        )
+
+    def _post_clean(self):
+        # Without a valid prefix there is nothing to validate on the model, and its
+        # "prefix required" error would only repeat the one the field already has
+        if any(f in self.errors for f in ('ipam_prefix', 'custom_prefix')):
+            return
+        super()._post_clean()
 
 
 class CustomPrefixForm(PrimaryModelForm):
