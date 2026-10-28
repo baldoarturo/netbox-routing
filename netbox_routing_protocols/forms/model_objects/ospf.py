@@ -160,6 +160,7 @@ class OSPFAreaForm(PrimaryModelForm):
             'nssa_default_originate',
             name=_('NSSA'),
         ),
+        FieldSet('traffic_engineering', name=_('Traffic Engineering')),
         FieldSet(
             'authentication',
             'authentication_key_id',
@@ -200,6 +201,7 @@ class OSPFAreaForm(PrimaryModelForm):
             'nssa_translate_always',
             'nssa_no_redistribution',
             'nssa_default_originate',
+            'traffic_engineering',
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             'description',
             'comments',
@@ -270,6 +272,12 @@ class OSPFInterfaceForm(PrimaryModelForm):
             name=_('Interface'),
         ),
         FieldSet(
+            'te_metric',
+            'te_max_reservable_bandwidth',
+            'te_admin_group',
+            name=_('Traffic Engineering'),
+        ),
+        FieldSet(
             'prefix_suppression',
             'database_filter_all_out',
             'flood_reduction',
@@ -311,6 +319,9 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'retransmit_interval',
             'transmit_delay',
             'mtu_ignore',
+            'te_metric',
+            'te_max_reservable_bandwidth',
+            'te_admin_group',
             'prefix_suppression',
             'database_filter_all_out',
             'flood_reduction',

@@ -95,3 +95,8 @@ OSPF_AUTH_KEY_ID_MAX = 255
 # (RFC 2328 D.3).
 OSPF_SIMPLE_PASSWORD_MAX_LENGTH = 8
 OSPF_MD5_KEY_MAX_LENGTH = 16
+
+# Traffic engineering (RFC 3630 2.5): the TE metric and the administrative group
+# are 4-octet fields.
+OSPF_TE_METRIC_MAX = 4294967295
+OSPF_TE_ADMIN_GROUP_MAX = 4294967295

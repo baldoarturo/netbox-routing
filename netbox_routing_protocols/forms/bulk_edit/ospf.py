@@ -31,6 +31,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_RETRANSMIT_INTERVAL_MIN,
     OSPF_STUB_DEFAULT_COST_MAX,
     OSPF_STUB_DEFAULT_COST_MIN,
+    OSPF_TE_ADMIN_GROUP_MAX,
+    OSPF_TE_METRIC_MAX,
     OSPF_TRANSMIT_DELAY_MAX,
     OSPF_TRANSMIT_DELAY_MIN,
 )
@@ -155,6 +157,10 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     distance_external = forms.IntegerField(
         label=_('Distance (External)'), required=False, min_value=1, max_value=255
     )
+    opaque_capability = _boolean(_('Opaque LSAs'))
+    te_router_address = forms.GenericIPAddressField(
+        label=_('TE Router Address'), protocol='IPv4', required=False
+    )
     default_metric = forms.IntegerField(
         label=_('Default Metric'),
         required=False,
@@ -225,6 +231,7 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         'distance_external',
         'description',
         'default_metric',
+        'te_router_address',
     )
 
 
@@ -274,6 +281,11 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
     show_md5 = forms.ChoiceField(
         label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
+    traffic_engineering = forms.ChoiceField(
+        label=_('Traffic Engineering'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -297,6 +309,7 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
             'key_chain',
             name='Authentication',
         ),
+        FieldSet('traffic_engineering'),
         FieldSet('description'),
     )
     nullable_fields = ('default_cost',)
@@ -403,6 +416,21 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
 
+    te_metric = forms.IntegerField(
+        label=_('TE Metric'),
+        required=False,
+        min_value=0,
+        max_value=OSPF_TE_METRIC_MAX,
+    )
+    te_max_reservable_bandwidth = forms.IntegerField(
+        label=_('TE Maximum Reservable Bandwidth'), required=False, min_value=1
+    )
+    te_admin_group = forms.IntegerField(
+        label=_('TE Administrative Group'),
+        required=False,
+        min_value=0,
+        max_value=OSPF_TE_ADMIN_GROUP_MAX,
+    )
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -440,9 +468,15 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'transmit_delay',
             name='Timers',
         ),
+        FieldSet(
+            'te_metric',
+            'te_max_reservable_bandwidth',
+            'te_admin_group',
+            name='Traffic Engineering',
+        ),
         FieldSet('description'),
     )
-    nullable_fields = ()
+    nullable_fields = ('te_metric', 'te_max_reservable_bandwidth', 'te_admin_group')
 
 
 class OSPFNetworkBulkEditForm(NetBoxModelBulkEditForm):

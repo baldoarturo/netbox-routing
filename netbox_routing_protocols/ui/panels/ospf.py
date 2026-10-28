@@ -112,6 +112,10 @@ class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
         'distance_external', label=_('Distance (External)')
     )
     default_metric = attrs.NumericAttr('default_metric', label=_('Default Metric'))
+    opaque_capability = attrs.BooleanAttr('opaque_capability', label=_('Opaque LSAs'))
+    te_router_address = attrs.TextAttr(
+        'te_router_address', label=_('TE Router Address')
+    )
 
 
 class OSPFAuthenticationPanel(panels.ObjectAttributesPanel):
@@ -138,6 +142,9 @@ class OSPFAreaPanel(panels.ObjectAttributesPanel):
     nssa_no_redistribution = attrs.BooleanAttr(
         'nssa_no_redistribution', label=_('No Redistribution')
     )
+    traffic_engineering = attrs.BooleanAttr(
+        'traffic_engineering', label=_('Traffic Engineering')
+    )
     nssa_default_originate = attrs.BooleanAttr(
         'nssa_default_originate', label=_('Default Information Originate')
     )
@@ -162,6 +169,13 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
     mtu = attrs.NumericAttr('interface.mtu', label=_('MTU'))
     mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
+    te_metric = attrs.NumericAttr('te_metric', label=_('TE Metric'))
+    te_max_reservable_bandwidth = attrs.NumericAttr(
+        'te_max_reservable_bandwidth', label=_('TE Maximum Reservable Bandwidth')
+    )
+    te_admin_group = attrs.NumericAttr(
+        'te_admin_group', label=_('TE Administrative Group')
+    )
     prefix_suppression = attrs.BooleanAttr(
         'prefix_suppression', label=_('Prefix Suppression')
     )
