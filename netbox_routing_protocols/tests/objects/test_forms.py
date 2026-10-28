@@ -205,6 +205,74 @@ class PrefixListEntryTestCase(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('le', form.errors)
 
+    def test_invalid_prefix_id_is_a_form_error(self):
+        # A prefix field that fails validation is missing from cleaned_data:
+        # clean() must report the error instead of raising KeyError (HTTP 500)
+        for field in ('ipam_prefix', 'custom_prefix'):
+            with self.subTest(field):
+                form = PrefixListEntryForm(
+                    data={
+                        'prefix_list': self.prefix_list,
+                        'sequence': 1,
+                        'action': ActionChoices.PERMIT,
+                        field: 999999,
+                    }
+                )
+                self.assertFalse(form.is_valid())
+                self.assertIn(field, form.errors)
+                # only the real problem is reported
+                self.assertNotIn(
+                    'A Prefix or Custom Prefix must be specified', str(form.errors)
+                )
+
+    def test_non_numeric_prefix_id_is_a_form_error(self):
+        form = PrefixListEntryForm(
+            data={
+                'prefix_list': self.prefix_list,
+                'sequence': 1,
+                'action': ActionChoices.PERMIT,
+                'ipam_prefix': 'abc',
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('ipam_prefix', form.errors)
+
+    def test_invalid_prefix_list_is_a_form_error(self):
+        form = PrefixListEntryForm(
+            data={
+                'prefix_list': 999999,
+                'sequence': 1,
+                'action': ActionChoices.PERMIT,
+                'ipam_prefix': self.prefix.pk,
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('prefix_list', form.errors)
+
+    def test_no_prefix_is_a_form_error(self):
+        form = PrefixListEntryForm(
+            data={
+                'prefix_list': self.prefix_list,
+                'sequence': 1,
+                'action': ActionChoices.PERMIT,
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('A Prefix or Custom Prefix must be specified', str(form.errors))
+
+    def test_both_prefixes_is_a_form_error(self):
+        form = PrefixListEntryForm(
+            data={
+                'prefix_list': self.prefix_list,
+                'sequence': 1,
+                'action': ActionChoices.PERMIT,
+                'ipam_prefix': self.prefix.pk,
+                'custom_prefix': self.custom_prefix.pk,
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('custom_prefix', form.errors)
+
     def test_form_invalid(self):
         form = PrefixListEntryForm(
             data={

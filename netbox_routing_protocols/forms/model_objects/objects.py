@@ -144,11 +144,15 @@ class PrefixListEntryForm(PrimaryModelForm):
 
     def clean(self):
         super().clean()
+        # A field that failed its own validation is missing from cleaned_data and
+        # already has its error: do not add a misleading one on top of it
+        prefix_fields = ('ipam_prefix', 'custom_prefix')
+        if any(field in self.errors for field in prefix_fields):
+            return
+
         # Handle object assignment
         selected_objects = [
-            field
-            for field in ('ipam_prefix', 'custom_prefix')
-            if self.cleaned_data[field]
+            field for field in prefix_fields if self.cleaned_data.get(field)
         ]
         if len(selected_objects) > 1:
             raise forms.ValidationError(
