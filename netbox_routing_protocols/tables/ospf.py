@@ -127,6 +127,7 @@ class OSPFInterfaceTable(NetBoxTable):
             'mtu',
             'mtu_ignore',
             'adjacency_sid',
+            'ldp_sync',
             'fast_reroute',
             'te_metric',
             'te_max_reservable_bandwidth',

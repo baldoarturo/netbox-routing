@@ -113,6 +113,10 @@ class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
         'distance_external', label=_('Distance (External)')
     )
     default_metric = attrs.NumericAttr('default_metric', label=_('Default Metric'))
+    ldp_sync = attrs.BooleanAttr('ldp_sync', label=_('LDP-IGP Synchronization'))
+    ldp_sync_holddown = attrs.NumericAttr(
+        'ldp_sync_holddown', label=_('LDP Sync Hold-down')
+    )
     segment_routing = attrs.BooleanAttr('segment_routing', label=_('Segment Routing'))
     srgb_start = attrs.NumericAttr('srgb_start', label=_('SRGB Start'))
     srgb_size = attrs.NumericAttr('srgb_size', label=_('SRGB Size'))
@@ -180,6 +184,7 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
     adjacency_sid = attrs.NumericAttr('adjacency_sid', label=_('Adjacency SID'))
     fast_reroute = attrs.ChoiceAttr('fast_reroute', label=_('Fast Reroute'))
+    ldp_sync = attrs.BooleanAttr('ldp_sync', label=_('LDP-IGP Synchronization'))
     te_metric = attrs.NumericAttr('te_metric', label=_('TE Metric'))
     te_max_reservable_bandwidth = attrs.NumericAttr(
         'te_max_reservable_bandwidth', label=_('TE Maximum Reservable Bandwidth')

@@ -3,6 +3,10 @@
 OSPF_COST_MIN = 1
 OSPF_COST_MAX = 65535
 
+# RFC 5443: seconds to keep the maximum link metric while LDP is not operational
+OSPF_LDP_SYNC_HOLDDOWN_MIN = 1
+OSPF_LDP_SYNC_HOLDDOWN_MAX = 65535
+
 # RFC 5082: a TTL of 255 at the sender, minus the hops the packet may cross
 OSPF_TTL_SECURITY_HOPS_MIN = 1
 OSPF_TTL_SECURITY_HOPS_MAX = 254
