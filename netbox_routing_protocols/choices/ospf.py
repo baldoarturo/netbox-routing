@@ -25,6 +25,7 @@ class OSPFNetworkTypeChoices(ChoiceSet):
     POINT_TO_POINT = 'point_to_point'
     POINT_TO_MULTIPOINT = 'point_to_multipoint'
     POINT_TO_MULTIPOINT_NON_BROADCAST = 'point_to_multipoint_non_broadcast'
+    LOOPBACK = 'loopback'
 
     CHOICES = [
         (BROADCAST, 'Broadcast'),
@@ -32,6 +33,7 @@ class OSPFNetworkTypeChoices(ChoiceSet):
         (POINT_TO_POINT, 'Point to Point'),
         (POINT_TO_MULTIPOINT, 'Point to Multipoint'),
         (POINT_TO_MULTIPOINT_NON_BROADCAST, 'Point to Multipoint Non Broadcast'),
+        (LOOPBACK, 'Loopback'),
     ]
 
 

@@ -51,6 +51,7 @@ def _create_fixtures(cls):
     cls.broadcast = ospf_interface('broadcast', 'broadcast', '10.4.0.1/24')
     cls.point_to_point = ospf_interface('p2p', 'point_to_point', '10.5.0.1/24')
     cls.unnumbered = ospf_interface('unnumbered', 'non_broadcast')
+    cls.loopback = ospf_interface('lo', 'loopback', '10.6.0.1/32')
 
 
 class OSPFNeighborModelTestCase(TestCase):
@@ -102,6 +103,7 @@ class OSPFNeighborModelTestCase(TestCase):
         for ospf_interface, address in (
             (self.broadcast, '10.4.0.2'),
             (self.point_to_point, '10.5.0.2'),
+            (self.loopback, '10.6.0.2'),
         ):
             with self.subTest(interface=ospf_interface.interface.name):
                 self._assert_invalid('ospf_interface', ospf_interface, address)

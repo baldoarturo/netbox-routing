@@ -280,6 +280,11 @@ class OSPFInterfaceTestCase(TestCase):
             instance=cls.instance, area=area, interface=interface
         )
 
+    def test_loopback_network_type(self):
+        ospf_interface = OSPFInterface.objects.get()
+        ospf_interface.network_type = OSPFNetworkTypeChoices.LOOPBACK
+        ospf_interface.full_clean()
+
     def test_network_type_defaults_to_broadcast(self):
         self.assertEqual(
             OSPFInterface.objects.get().network_type, OSPFNetworkTypeChoices.BROADCAST
