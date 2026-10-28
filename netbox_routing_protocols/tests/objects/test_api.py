@@ -1,5 +1,7 @@
+from django.urls import reverse
+
 from ipam.models import Prefix
-from utilities.testing import APIViewTestCases
+from utilities.testing import APIViewTestCases, APITestCase
 
 from netbox_routing_protocols.models.objects import *
 
@@ -8,6 +10,8 @@ __all__ = (
     'ASPathEntryTestCase',
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
+    'PrefixListFamilyTestCase',
+    'CustomPrefixTestCase',
     'RouteMapTestCase',
     'RouteMapEntryTestCase',
 )
@@ -114,6 +118,7 @@ class PrefixListTestCase(APIViewTestCases.APIViewTestCase):
     graphql_base_name = 'prefixlist'
     brief_fields = [
         'display',
+        'family',
         'id',
         'name',
         'url',
@@ -142,6 +147,7 @@ class PrefixListTestCase(APIViewTestCases.APIViewTestCase):
             },
             {
                 'name': 'Prefix List 5',
+                'family': 6,
             },
         ]
 
@@ -229,6 +235,140 @@ class PrefixListEntryTestCase(APIViewTestCases.APIViewTestCase):
                 'assigned_prefix_id': custom_prefixes[1].pk,
             },
         ]
+
+
+class CustomPrefixTestCase(APIViewTestCases.APIViewTestCase):
+    model = CustomPrefix
+    view_namespace = "plugins-api:netbox_routing_protocols"
+    graphql_base_name = 'customprefix'
+    brief_fields = ['display', 'family', 'id', 'prefix', 'url']
+
+    bulk_update_data = {'description': 'Description'}
+
+    @classmethod
+    def setUpTestData(cls):
+        CustomPrefix.objects.bulk_create(
+            (
+                CustomPrefix(prefix='10.0.0.0/24'),
+                CustomPrefix(prefix='10.0.1.0/24'),
+                CustomPrefix(prefix='2001:db8::/32'),
+            )
+        )
+        cls.create_data = [
+            {'prefix': '10.0.2.0/24'},
+            {'prefix': '2001:db8:1::/48'},
+        ]
+
+    def test_family_is_exposed(self):
+        self.add_permissions('netbox_routing_protocols.view_customprefix')
+        for prefix, family in (('10.0.0.0/24', 4), ('2001:db8::/32', 6)):
+            obj = CustomPrefix.objects.get(prefix=prefix)
+            url = reverse(
+                'plugins-api:netbox_routing_protocols-api:customprefix-detail',
+                kwargs={'pk': obj.pk},
+            )
+            response = self.client.get(url, **self.header)
+            self.assertEqual(response.data['family']['value'], family)
+            for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
+                self.assertIn(field, response.data)
+
+
+class PrefixListFamilyTestCase(APITestCase):
+    """The address family of a prefix list over the API"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.v4 = PrefixList.objects.create(name='v4', family=4)
+        cls.v6 = PrefixList.objects.create(name='v6', family=6)
+
+    def _url(self, name, obj=None):
+        kwargs = {'pk': obj.pk} if obj else {}
+        suffix = 'detail' if obj else 'list'
+        return reverse(
+            f'plugins-api:netbox_routing_protocols-api:{name}-{suffix}', kwargs=kwargs
+        )
+
+    def test_create_and_read_family(self):
+        self.add_permissions(
+            'netbox_routing_protocols.add_prefixlist',
+            'netbox_routing_protocols.view_prefixlist',
+        )
+        response = self.client.post(
+            self._url('prefixlist'),
+            {'name': 'new v6', 'family': 6, 'tags': []},
+            format='json',
+            **self.header,
+        )
+        self.assertHttpStatus(response, 201)
+        self.assertEqual(response.data['family']['value'], 6)
+        for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
+            self.assertIn(field, response.data)
+
+    def test_family_defaults_to_ipv4(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlist')
+        response = self.client.post(
+            self._url('prefixlist'), {'name': 'default'}, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 201)
+        self.assertEqual(response.data['family']['value'], 4)
+
+    def test_family_cannot_be_changed(self):
+        self.add_permissions('netbox_routing_protocols.change_prefixlist')
+        response = self.client.patch(
+            self._url('prefixlist', self.v4),
+            {'family': 6},
+            format='json',
+            **self.header,
+        )
+        self.assertHttpStatus(response, 400)
+        self.v4.refresh_from_db()
+        self.assertEqual(self.v4.family, 4)
+
+    def test_entry_family_mismatch_is_rejected(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        prefix = Prefix.objects.create(prefix='2001:db8::/32')
+        response = self.client.post(
+            self._url('prefixlistentry'),
+            {
+                'prefix_list': self.v4.pk,
+                'action': 'permit',
+                'sequence': 1,
+                'assigned_prefix_type': 'ipam.prefix',
+                'assigned_prefix_id': prefix.pk,
+            },
+            format='json',
+            **self.header,
+        )
+        self.assertHttpStatus(response, 400)
+
+    def test_ipv6_entry_with_ge_le(self):
+        self.add_permissions(
+            'netbox_routing_protocols.add_prefixlistentry',
+            'netbox_routing_protocols.view_prefixlistentry',
+        )
+        prefix = Prefix.objects.create(prefix='2001:db8::/32')
+        data = {
+            'prefix_list': self.v6.pk,
+            'action': 'permit',
+            'sequence': 1,
+            'assigned_prefix_type': 'ipam.prefix',
+            'assigned_prefix_id': prefix.pk,
+            'ge': 48,
+            'le': 128,
+        }
+        response = self.client.post(
+            self._url('prefixlistentry'), data, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 201)
+        self.assertEqual(response.data['prefix_list']['family']['value'], 6)
+        for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
+            self.assertIn(field, response.data)
+        # le above the IPv6 boundary
+        data.update(sequence=2, le=129)
+        response = self.client.post(
+            self._url('prefixlistentry'), data, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 400)
 
 
 class RouteMapTestCase(APIViewTestCases.APIViewTestCase):

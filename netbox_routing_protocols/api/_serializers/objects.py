@@ -1,9 +1,10 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
-from netbox.api.fields import ContentTypeField
+from ipam.choices import IPAddressFamilyChoices
+from netbox.api.fields import ChoiceField, ContentTypeField
 from netbox.api.gfk_fields import GFKSerializerField
-from netbox.api.serializers import NetBoxModelSerializer
+from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
 from netbox_routing_protocols.constants.objects import PREFIX_ASSIGNMENT_MODELS
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.api._serializers.community import *
@@ -67,10 +68,11 @@ class ASPathEntrySerializer(NetBoxModelSerializer):
         )
 
 
-class PrefixListSerializer(NetBoxModelSerializer):
+class PrefixListSerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:prefixlist-detail'
     )
+    family = ChoiceField(choices=IPAddressFamilyChoices, required=False)
 
     class Meta:
         model = PrefixList
@@ -79,19 +81,25 @@ class PrefixListSerializer(NetBoxModelSerializer):
             'id',
             'display',
             'name',
+            'family',
             'description',
+            'owner',
             'comments',
+            'tags',
             'custom_fields',
+            'created',
+            'last_updated',
         )
         brief_fields = (
             'url',
             'id',
             'display',
             'name',
+            'family',
         )
 
 
-class PrefixListEntrySerializer(NetBoxModelSerializer):
+class PrefixListEntrySerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:prefixlistentry-detail'
     )
@@ -122,7 +130,12 @@ class PrefixListEntrySerializer(NetBoxModelSerializer):
             'le',
             'ge',
             'description',
+            'owner',
             'comments',
+            'tags',
+            'custom_fields',
+            'created',
+            'last_updated',
         )
         brief_fields = (
             'url',
@@ -138,9 +151,12 @@ class PrefixListEntrySerializer(NetBoxModelSerializer):
         )
 
 
-class CustomPrefixSerializer(NetBoxModelSerializer):
+class CustomPrefixSerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:customprefix-detail'
+    )
+    family = ChoiceField(
+        choices=IPAddressFamilyChoices, source='prefix.version', read_only=True
     )
 
     class Meta:
@@ -150,14 +166,21 @@ class CustomPrefixSerializer(NetBoxModelSerializer):
             'id',
             'display',
             'prefix',
+            'family',
             'description',
+            'owner',
             'comments',
+            'tags',
+            'custom_fields',
+            'created',
+            'last_updated',
         )
         brief_fields = (
             'url',
             'id',
             'display',
             'prefix',
+            'family',
         )
 
 
