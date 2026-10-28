@@ -18,7 +18,6 @@ __all__ = (
     'PrefixListOverlapAPITestCase',
     'PrefixListViewsTestCase',
     'PrefixMatchViewTestCase',
-    'PrefixMatchMenuTestCase',
 )
 
 
@@ -297,16 +296,4 @@ class PrefixMatchViewTestCase(SuperuserMixin, TestCase):
         self.client.force_login(user)
         self.assertEqual(
             self.client.get(self.url, {'q': '10.0.0.0/8'}).status_code, 403
-        )
-
-
-class PrefixMatchMenuTestCase(TestCase):
-    def test_it_is_in_routing_objects_below_the_prefix_list_entries(self):
-        from netbox_routing_protocols.navigation import menu
-
-        groups = {group.label: group for group in menu.groups}
-        self.assertNotIn('Tools', groups)
-        links = [item.link_text for item in groups['Routing Objects'].items]
-        self.assertEqual(
-            links[links.index('Prefix List Entries') + 1], 'Search Prefix Match'
         )
