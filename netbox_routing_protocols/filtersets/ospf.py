@@ -265,6 +265,8 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'ttl_security',
+            'ttl_security_hops',
             'mtu_ignore',
             'adjacency_sid',
             'te_metric',
@@ -464,6 +466,8 @@ class OSPFVirtualLinkFilterSet(NetBoxModelFilterSet):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'ttl_security',
+            'ttl_security_hops',
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
         )
 

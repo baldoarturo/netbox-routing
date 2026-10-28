@@ -214,6 +214,8 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'ttl_security',
+            'ttl_security_hops',
             name=_('Timers'),
         ),
     )
@@ -295,6 +297,12 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
         required=False, label=_('Retransmit Interval')
     )
     transmit_delay = forms.IntegerField(required=False, label=_('Transmit Delay'))
+    ttl_security = forms.NullBooleanField(
+        required=False,
+        label=_('TTL Security'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    ttl_security_hops = forms.IntegerField(required=False, label=_('TTL Security Hops'))
     authentication = forms.ChoiceField(
         choices=add_blank_choice(OSPFAuthenticationChoices), required=False
     )

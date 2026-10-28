@@ -37,6 +37,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_TE_METRIC_MAX,
     OSPF_TRANSMIT_DELAY_MAX,
     OSPF_TRANSMIT_DELAY_MIN,
+    OSPF_TTL_SECURITY_HOPS_MAX,
+    OSPF_TTL_SECURITY_HOPS_MIN,
 )
 from netbox_routing_protocols.models import (
     OSPFArea,
@@ -413,6 +415,17 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         min_value=OSPF_TRANSMIT_DELAY_MIN,
         max_value=OSPF_TRANSMIT_DELAY_MAX,
     )
+    ttl_security = forms.NullBooleanField(
+        label=_('TTL Security'),
+        required=False,
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    ttl_security_hops = forms.IntegerField(
+        label=_('TTL Security Hops'),
+        required=False,
+        min_value=OSPF_TTL_SECURITY_HOPS_MIN,
+        max_value=OSPF_TTL_SECURITY_HOPS_MAX,
+    )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
         choices=add_blank_choice(choices.OSPFAuthenticationChoices),
@@ -491,6 +504,8 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'ttl_security',
+            'ttl_security_hops',
             name='Timers',
         ),
         FieldSet('adjacency_sid', name='Segment Routing'),
@@ -503,6 +518,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet('description'),
     )
     nullable_fields = (
+        'ttl_security_hops',
         'adjacency_sid',
         'te_metric',
         'te_max_reservable_bandwidth',
@@ -592,6 +608,17 @@ class OSPFVirtualLinkBulkEditForm(NetBoxModelBulkEditForm):
         min_value=OSPF_TRANSMIT_DELAY_MIN,
         max_value=OSPF_TRANSMIT_DELAY_MAX,
     )
+    ttl_security = forms.NullBooleanField(
+        label=_('TTL Security'),
+        required=False,
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    ttl_security_hops = forms.IntegerField(
+        label=_('TTL Security Hops'),
+        required=False,
+        min_value=OSPF_TTL_SECURITY_HOPS_MIN,
+        max_value=OSPF_TTL_SECURITY_HOPS_MAX,
+    )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
         choices=add_blank_choice(choices.OSPFAuthenticationChoices),
@@ -625,6 +652,8 @@ class OSPFVirtualLinkBulkEditForm(NetBoxModelBulkEditForm):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'ttl_security',
+            'ttl_security_hops',
             name='Timers',
         ),
         FieldSet(
@@ -638,7 +667,7 @@ class OSPFVirtualLinkBulkEditForm(NetBoxModelBulkEditForm):
         ),
         FieldSet('description'),
     )
-    nullable_fields = ('authentication_key_id', 'description')
+    nullable_fields = ('authentication_key_id', 'ttl_security_hops', 'description')
 
 
 class OSPFSummaryAddressBulkEditForm(NetBoxModelBulkEditForm):

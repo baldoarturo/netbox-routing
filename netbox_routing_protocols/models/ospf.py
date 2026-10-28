@@ -62,6 +62,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_TAG_MAX,
     OSPF_TE_ADMIN_GROUP_MAX,
     OSPF_TE_METRIC_MAX,
+    OSPF_TTL_SECURITY_HOPS_MAX,
+    OSPF_TTL_SECURITY_HOPS_MIN,
 )
 from netbox_routing_protocols.fields.ip import IPAddressField
 
@@ -261,6 +263,44 @@ class OSPFTimersMixin(models.Model):
                         'The dead interval must be greater than the hello interval.'
                     )
                 }
+            )
+
+
+class OSPFTTLSecurityMixin(models.Model):
+    """Generalized TTL Security Mechanism for OSPF (RFC 5082)."""
+
+    ttl_security = models.BooleanField(
+        verbose_name=_('TTL Security'),
+        help_text=_(
+            'Send the packets with a TTL of 255 and discard the received ones that arrive with a lower TTL (RFC 5082)'
+        ),
+        default=False,
+    )
+    ttl_security_hops = models.PositiveSmallIntegerField(
+        verbose_name=_('TTL Security Hops'),
+        help_text=_(
+            'Maximum number of hops to the neighbor: packets with a TTL below '
+            '256 minus this value are discarded (1 for directly connected neighbors)'
+        ),
+        blank=True,
+        null=True,
+        validators=[
+            MinValueValidator(OSPF_TTL_SECURITY_HOPS_MIN),
+            MaxValueValidator(OSPF_TTL_SECURITY_HOPS_MAX),
+        ],
+    )
+
+    class Meta:
+        abstract = True
+
+    def _clean_ttl_security(self):
+        if self.ttl_security and self.ttl_security_hops is None:
+            raise ValidationError(
+                {'ttl_security_hops': _('The number of hops is required.')}
+            )
+        if not self.ttl_security and self.ttl_security_hops is not None:
+            raise ValidationError(
+                {'ttl_security_hops': _('Enable TTL security to set the hops.')}
             )
 
 
@@ -1054,7 +1094,9 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
             raise ValidationError(errors)
 
 
-class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
+class OSPFInterface(
+    OSPFAuthenticationMixin, OSPFTimersMixin, OSPFTTLSecurityMixin, PrimaryModel
+):
     instance = models.ForeignKey(
         to='netbox_routing_protocols.OSPFInstance',
         related_name='interfaces',
@@ -1340,6 +1382,7 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         self._clean_traffic_engineering()
         self._clean_segment_routing()
         self._clean_timers()
+        self._clean_ttl_security()
 
 
 class OSPFNetwork(PrimaryModel):
@@ -1617,7 +1660,9 @@ class OSPFRedistribution(PrimaryModel):
         return source.device_id == self.instance.device_id
 
 
-class OSPFVirtualLink(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
+class OSPFVirtualLink(
+    OSPFAuthenticationMixin, OSPFTimersMixin, OSPFTTLSecurityMixin, PrimaryModel
+):
     """
     A virtual link joins this router to another area border router through a
     non-backbone transit area, to restore or increase the connectivity of the
@@ -1718,6 +1763,7 @@ class OSPFVirtualLink(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
     def clean(self):
         super().clean()
         self._clean_timers()
+        self._clean_ttl_security()
         self._clean_authentication()
         errors = {}
         if self.instance_id and self.transit_area_id:
