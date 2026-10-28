@@ -1,6 +1,11 @@
 from .bgp import *
 from .community import *
-from .eigrp import EIGRPRouterIndex, EIGRPAddressFamilyIndex
+from .eigrp import (
+    EIGRPRouterIndex,
+    EIGRPAddressFamilyIndex,
+    EIGRPNetworkIndex,
+    EIGRPInterfaceIndex,
+)
 from .isis import (
     ISISInstanceIndex,
     ISISInterfaceIndex,
@@ -42,6 +47,10 @@ __all__ = (
     'CommunityListEntryIndex',
     'EIGRPRouterIndex',
     'EIGRPAddressFamilyIndex',
+    'EIGRPNetworkIndex',
+    'EIGRPInterfaceIndex',
+    'BFDProfileIndex',
+    'CustomPrefixIndex',
     'ISISInstanceIndex',
     'ISISInterfaceIndex',
     'ISISSettingIndex',

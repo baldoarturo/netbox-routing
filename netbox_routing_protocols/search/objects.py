@@ -85,3 +85,14 @@ class RouteMapEntryIndex(SearchIndex):
         ('comments', 5000),
     )
     display_attrs = ('route_map',)
+
+
+@register_search
+class CustomPrefixIndex(SearchIndex):
+    model = CustomPrefix
+    fields = (
+        ('prefix', 100),
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('prefix',)

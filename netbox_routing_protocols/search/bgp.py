@@ -127,3 +127,14 @@ class BGPPeerAddressFamilyIndex(SearchIndex):
         'assigned_object',
         'address_family',
     )
+
+
+@register_search
+class BFDProfileIndex(SearchIndex):
+    model = BFDProfile
+    fields = (
+        ('name', 100),
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('name',)
