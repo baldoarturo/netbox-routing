@@ -94,6 +94,8 @@ class PrefixListEntryForm(PrimaryModelForm):
         ),
         FieldSet(
             'description',
+            'tags',
+            'owner',
         ),
     )
 

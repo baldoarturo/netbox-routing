@@ -197,6 +197,16 @@ class PrefixListEntryTestCase(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('le', form.errors)
 
+    def test_fieldsets_only_use_existing_fields(self):
+        form = PrefixListEntryForm()
+        shown = []
+        for fieldset in form.fieldsets:
+            for item in fieldset.items:
+                shown.extend(getattr(item, 'items', None) or [item])
+        names = {item for item in shown if isinstance(item, str)}
+        self.assertLessEqual(names, set(form.fields))
+        self.assertTrue({'prefix', 'ge', 'le', 'tags', 'owner'} <= names)
+
     def test_form_invalid(self):
         form = PrefixListEntryForm(data={'prefix_list': self.prefix_list})
         self.assertFalse(form.is_valid())
