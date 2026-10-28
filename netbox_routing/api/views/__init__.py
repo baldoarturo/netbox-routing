@@ -6,6 +6,7 @@ from .ospf import (
     OSPFInterfaceViewSet,
     OSPFNetworkViewSet,
     OSPFRedistributionViewSet,
+    OSPFVirtualLinkViewSet,
 )
 from .isis import (
     ISISInstanceViewSet,
@@ -48,6 +49,7 @@ __all__ = (
     'OSPFInterfaceViewSet',
     'OSPFNetworkViewSet',
     'OSPFRedistributionViewSet',
+    'OSPFVirtualLinkViewSet',
     'ISISInstanceViewSet',
     'ISISInterfaceViewSet',
     'ISISSettingViewSet',

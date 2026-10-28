@@ -6,6 +6,7 @@ from netbox_routing.api.serializers import (
     OSPFInterfaceSerializer,
     OSPFNetworkSerializer,
     OSPFRedistributionSerializer,
+    OSPFVirtualLinkSerializer,
 )
 from netbox_routing.models import (
     OSPFInstance,
@@ -13,6 +14,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 
 __all__ = (
@@ -21,6 +23,7 @@ __all__ = (
     'OSPFInterfaceViewSet',
     'OSPFNetworkViewSet',
     'OSPFRedistributionViewSet',
+    'OSPFVirtualLinkViewSet',
 )
 
 
@@ -67,3 +70,11 @@ class OSPFRedistributionViewSet(NetBoxModelViewSet):
     ).prefetch_related('bgp_source__assigned_object')
     serializer_class = OSPFRedistributionSerializer
     filterset_class = filtersets.OSPFRedistributionFilterSet
+
+
+class OSPFVirtualLinkViewSet(NetBoxModelViewSet):
+    queryset = OSPFVirtualLink.objects.select_related(
+        'instance__device', 'instance__vrf', 'transit_area__instance'
+    )
+    serializer_class = OSPFVirtualLinkSerializer
+    filterset_class = filtersets.OSPFVirtualLinkFilterSet

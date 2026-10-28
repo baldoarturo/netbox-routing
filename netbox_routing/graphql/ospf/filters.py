@@ -15,6 +15,7 @@ __all__ = (
     'OSPFInterfaceFilter',
     'OSPFNetworkFilter',
     'OSPFRedistributionFilter',
+    'OSPFVirtualLinkFilter',
 )
 
 
@@ -75,3 +76,16 @@ class OSPFRedistributionFilter(PrimaryModelFilter):
     instance_id: ID | None = strawberry_django.filter_field()
     protocol: StrFilterLookup | None = strawberry_django.filter_field()
     route_policy: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.OSPFVirtualLink, lookups=True)
+class OSPFVirtualLinkFilter(PrimaryModelFilter):
+    instance: (
+        Annotated[
+            'OSPFInstanceFilter', strawberry.lazy('netbox_routing.graphql.filters')
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    instance_id: ID | None = strawberry_django.filter_field()
+    transit_area_id: ID | None = strawberry_django.filter_field()
+    remote_router_id: BaseFilterLookup[str] | None = strawberry_django.filter_field()

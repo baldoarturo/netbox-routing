@@ -21,6 +21,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 
 __all__ = (
@@ -29,6 +30,7 @@ __all__ = (
     'OSPFInterfaceFilterForm',
     'OSPFNetworkFilterForm',
     'OSPFRedistributionFilterForm',
+    'OSPFVirtualLinkFilterForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -354,4 +356,36 @@ class OSPFRedistributionFilterForm(NetBoxModelFilterSetForm):
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     route_tag = forms.IntegerField(required=False, label=_('Route Tag'))
+    tag = TagFilterField(model)
+
+
+class OSPFVirtualLinkFilterForm(NetBoxModelFilterSetForm):
+    model = OSPFVirtualLink
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', 'transit_area_id', name=_('OSPF')),
+        FieldSet('remote_router_id', 'authentication', name=_('Virtual Link')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    transit_area_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Transit Area'),
+    )
+    remote_router_id = forms.CharField(required=False, label=_('Remote Router ID'))
+    authentication = forms.ChoiceField(
+        choices=add_blank_choice(AuthenticationChoices), required=False
+    )
     tag = TagFilterField(model)

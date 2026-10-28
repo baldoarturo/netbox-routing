@@ -46,6 +46,7 @@ __all__ = (
     'OSPFInterfaceSettingsPanel',
     'OSPFNetworkPanel',
     'OSPFRedistributionPanel',
+    'OSPFVirtualLinkPanel',
     'ISISInstancePanel',
     'ISISInstanceSettingsPanel',
     'ISISInterfacePanel',

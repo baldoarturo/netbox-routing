@@ -56,6 +56,7 @@ __all__ = (
     'OSPFInterface',
     'OSPFNetwork',
     'OSPFRedistribution',
+    'OSPFVirtualLink',
 )
 
 
@@ -158,6 +159,70 @@ class OSPFAuthenticationMixin(models.Model):
             raise ValidationError(errors)
 
 
+class OSPFTimersMixin(models.Model):
+    """Hello, dead, retransmit and transmit delay timers (RFC 2328 C.3)."""
+
+    hello_interval = models.PositiveIntegerField(
+        verbose_name=_('Hello Interval'),
+        help_text=_('Seconds between Hello packets (RFC 2328 value for a LAN: 10)'),
+        default=OSPF_INTERFACE_TIMERS['hello_interval'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['hello_interval'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['hello_interval'][1]),
+        ],
+    )
+    dead_interval = models.PositiveBigIntegerField(
+        verbose_name=_('Dead Interval'),
+        help_text=_(
+            'Seconds without Hello packets before a neighbor is declared down (RFC 2328 value for a LAN: 4 x hello, 40)'
+        ),
+        default=OSPF_INTERFACE_TIMERS['dead_interval'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['dead_interval'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['dead_interval'][1]),
+        ],
+    )
+    retransmit_interval = models.PositiveIntegerField(
+        verbose_name=_('Retransmit Interval'),
+        help_text=_(
+            'Seconds between LSA retransmissions (RFC 2328 value for a LAN: 5)'
+        ),
+        default=OSPF_INTERFACE_TIMERS['retransmit_interval'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['retransmit_interval'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['retransmit_interval'][1]),
+        ],
+    )
+    transmit_delay = models.PositiveIntegerField(
+        verbose_name=_('Transmit Delay'),
+        help_text=_(
+            'Estimated seconds to transmit an LSA (RFC 2328 value for a LAN: 1)'
+        ),
+        default=OSPF_INTERFACE_TIMERS['transmit_delay'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][1]),
+        ],
+    )
+
+    class Meta:
+        abstract = True
+
+    def _clean_timers(self):
+        if (
+            self.hello_interval is not None
+            and self.dead_interval is not None
+            and self.dead_interval <= self.hello_interval
+        ):
+            raise ValidationError(
+                {
+                    'dead_interval': _(
+                        'The dead interval must be greater than the hello interval.'
+                    )
+                }
+            )
+
+
 def authentication_conflict(required, own):
     """
     The authentication type is a parameter of the area (RFC 2328 C.2): its
@@ -181,7 +246,7 @@ def _authentication_conflict_error(interfaces, required):
     return ValidationError(
         {
             'authentication': _(
-                'These interfaces cannot use {required} authentication: {names}{more}'
+                'These interfaces or virtual links cannot use {required} authentication: {names}{more}'
             ).format(
                 required=required,
                 names=names,
@@ -502,6 +567,16 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
                 self.authentication, ospf_interface.authentication
             )
         ]
+        if not self.areas.filter(area_type=OSPFAreaTypeChoices.BACKBONE).exclude(
+            Q(authentication__isnull=True) | Q(authentication='')
+        ):
+            interfaces += [
+                virtual_link
+                for virtual_link in self.virtual_links.all()
+                if authentication_conflict(
+                    self.authentication, virtual_link.authentication
+                )
+            ]
         if interfaces:
             raise _authentication_conflict_error(interfaces, self.authentication)
 
@@ -643,6 +718,13 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
             for ospf_interface in self.interfaces.select_related('interface')
             if authentication_conflict(required, ospf_interface.authentication)
         ]
+        if self.area_type == OSPFAreaTypeChoices.BACKBONE:
+            # Virtual links belong to the backbone
+            interfaces += [
+                virtual_link
+                for virtual_link in self.instance.virtual_links.all()
+                if authentication_conflict(required, virtual_link.authentication)
+            ]
         if interfaces:
             raise _authentication_conflict_error(interfaces, required)
 
@@ -690,7 +772,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
             raise ValidationError(errors)
 
 
-class OSPFInterface(OSPFAuthenticationMixin, PrimaryModel):
+class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
     instance = models.ForeignKey(
         to='netbox_routing.OSPFInstance',
         related_name='interfaces',
@@ -745,48 +827,6 @@ class OSPFInterface(OSPFAuthenticationMixin, PrimaryModel):
         ],
         blank=True,
         null=True,
-    )
-    hello_interval = models.PositiveIntegerField(
-        verbose_name=_('Hello Interval'),
-        help_text=_('Seconds between Hello packets (RFC 2328 value for a LAN: 10)'),
-        default=OSPF_INTERFACE_TIMERS['hello_interval'][2],
-        validators=[
-            MinValueValidator(OSPF_INTERFACE_TIMERS['hello_interval'][0]),
-            MaxValueValidator(OSPF_INTERFACE_TIMERS['hello_interval'][1]),
-        ],
-    )
-    dead_interval = models.PositiveBigIntegerField(
-        verbose_name=_('Dead Interval'),
-        help_text=_(
-            'Seconds without Hello packets before a neighbor is declared down (RFC 2328 value for a LAN: 4 x hello, 40)'
-        ),
-        default=OSPF_INTERFACE_TIMERS['dead_interval'][2],
-        validators=[
-            MinValueValidator(OSPF_INTERFACE_TIMERS['dead_interval'][0]),
-            MaxValueValidator(OSPF_INTERFACE_TIMERS['dead_interval'][1]),
-        ],
-    )
-    retransmit_interval = models.PositiveIntegerField(
-        verbose_name=_('Retransmit Interval'),
-        help_text=_(
-            'Seconds between LSA retransmissions (RFC 2328 value for a LAN: 5)'
-        ),
-        default=OSPF_INTERFACE_TIMERS['retransmit_interval'][2],
-        validators=[
-            MinValueValidator(OSPF_INTERFACE_TIMERS['retransmit_interval'][0]),
-            MaxValueValidator(OSPF_INTERFACE_TIMERS['retransmit_interval'][1]),
-        ],
-    )
-    transmit_delay = models.PositiveIntegerField(
-        verbose_name=_('Transmit Delay'),
-        help_text=_(
-            'Estimated seconds to transmit an LSA (RFC 2328 value for a LAN: 1)'
-        ),
-        default=OSPF_INTERFACE_TIMERS['transmit_delay'][2],
-        validators=[
-            MinValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][0]),
-            MaxValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][1]),
-        ],
     )
     mtu_ignore = models.BooleanField(
         verbose_name=_('MTU Ignore'),
@@ -883,18 +923,7 @@ class OSPFInterface(OSPFAuthenticationMixin, PrimaryModel):
             raise ValidationError(
                 {'area': _('The area must belong to the OSPF instance.')}
             )
-        if (
-            self.hello_interval is not None
-            and self.dead_interval is not None
-            and self.dead_interval <= self.hello_interval
-        ):
-            raise ValidationError(
-                {
-                    'dead_interval': _(
-                        'The dead interval must be greater than the hello interval.'
-                    )
-                }
-            )
+        self._clean_timers()
 
 
 class OSPFNetwork(PrimaryModel):
@@ -1146,3 +1175,145 @@ class OSPFRedistribution(PrimaryModel):
                 and source.assigned_object_id == device.pk
             )
         return source.device_id == self.instance.device_id
+
+
+class OSPFVirtualLink(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
+    """
+    A virtual link joins this router to another area border router through a
+    non-backbone transit area, to restore or increase the connectivity of the
+    backbone (RFC 2328 C.4). It has to be configured at both ends.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing.OSPFInstance',
+        related_name='virtual_links',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    transit_area = models.ForeignKey(
+        to='netbox_routing.OSPFArea',
+        related_name='virtual_links',
+        on_delete=models.RESTRICT,
+        verbose_name=_('Transit Area'),
+    )
+    remote_router_id = IPAddressField(
+        verbose_name=_('Remote Router ID'),
+        help_text=_('Router ID of the other end of the virtual link'),
+    )
+
+    clone_fields = (
+        'instance',
+        'transit_area',
+        *OSPF_INTERFACE_TIMERS,
+        *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
+    )
+    prerequisite_models = ('netbox_routing.OSPFInstance', 'netbox_routing.OSPFArea')
+
+    class Meta:
+        verbose_name = 'OSPF Virtual Link'
+        ordering = (
+            'instance__name',
+            'transit_area__area_id',
+            'remote_router_id',
+            'pk',
+        )
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'transit_area', 'remote_router_id'),
+                name='%(app_label)s_%(class)s_unique_instance_transit_remote',
+                violation_error_message=_(
+                    'This virtual link already exists in the OSPF instance.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.remote_router_id} via area {self.transit_area}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:ospfvirtuallink', args=[self.pk])
+
+    def get_backbone(self):
+        """The backbone area of the instance, if it has one."""
+        if not self.instance_id:
+            return None
+        return self.instance.areas.filter(
+            area_type=OSPFAreaTypeChoices.BACKBONE
+        ).first()
+
+    def get_authentication_type(self):
+        """A virtual link is part of the backbone: its type, else the instance's."""
+        backbone = self.get_backbone()
+        if backbone is not None:
+            return backbone.get_authentication_type()
+        return (self.instance.authentication or None) if self.instance_id else None
+
+    def get_authentication_source(self):
+        """Where the authentication in use comes from, as for an interface."""
+        levels = [('virtual link', self)]
+        backbone = self.get_backbone()
+        if backbone is not None:
+            levels.append(('area', backbone))
+        if self.instance_id:
+            levels.append(('instance', self.instance))
+        for level, source in levels:
+            if source.authentication:
+                return level, source
+        return None, None
+
+    @property
+    def authentication_source(self):
+        return self.get_authentication_source()[0]
+
+    @property
+    def effective_authentication(self):
+        source = self.get_authentication_source()[1]
+        return source.authentication if source else None
+
+    def clean(self):
+        super().clean()
+        self._clean_timers()
+        self._clean_authentication()
+        errors = {}
+        if self.instance_id and self.transit_area_id:
+            transit = self.transit_area
+            if transit.instance_id != self.instance_id:
+                errors['transit_area'] = _(
+                    'The transit area must belong to the OSPF instance.'
+                )
+            elif transit.area_type != OSPFAreaTypeChoices.STANDARD:
+                # Not the backbone (RFC 2328 C.4), nor a stub (RFC 2328 C.4)
+                # or NSSA (RFC 3101 1.3) area: none of them can be crossed
+                errors['transit_area'] = _(
+                    'The transit area must be a standard area: virtual links '
+                    'cannot cross the backbone, stub or NSSA areas.'
+                )
+        if self.remote_router_id not in (None, ''):
+            try:
+                remote = netaddr.IPAddress(self.remote_router_id)
+            except (netaddr.AddrFormatError, ValueError):
+                remote = None  # reported by the field's own validation
+            if remote is not None:
+                if remote.version != 4 or int(remote) == 0:
+                    errors['remote_router_id'] = _(
+                        'The router ID must be an IPv4 address (x.x.x.x) other than 0.0.0.0.'
+                    )
+                elif self.instance_id and remote == netaddr.IPAddress(
+                    self.instance.router_id
+                ):
+                    errors['remote_router_id'] = _(
+                        'The remote router ID cannot be the one of this instance.'
+                    )
+        if errors:
+            raise ValidationError(errors)
+        if self.authentication and self.instance_id:
+            required = self.get_authentication_type()
+            if authentication_conflict(required, self.authentication):
+                raise ValidationError(
+                    {
+                        'authentication': _(
+                            'The backbone uses {required} authentication, which '
+                            'cannot be combined with {own}.'
+                        ).format(required=required, own=self.authentication)
+                    }
+                )

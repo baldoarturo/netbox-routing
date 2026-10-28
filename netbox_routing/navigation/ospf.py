@@ -91,10 +91,25 @@ ospf_redistributions = PluginMenuItem(
     ),
 )
 
+ospf_virtual_links = PluginMenuItem(
+    link='plugins:netbox_routing:ospfvirtuallink_list',
+    link_text='Virtual Links',
+    permissions=['netbox_routing.view_ospfvirtuallink'],
+    buttons=(
+        PluginMenuButton(
+            link='plugins:netbox_routing:ospfvirtuallink_add',
+            title='Add',
+            icon_class=COL_ADD,
+            permissions=['netbox_routing.add_ospfvirtuallink'],
+        ),
+    ),
+)
+
 MENUITEMS = (
     ospf_instance,
     ospf_area,
     ospf_interfaces,
     ospf_networks,
     ospf_redistributions,
+    ospf_virtual_links,
 )

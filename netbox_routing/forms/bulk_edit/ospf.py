@@ -40,6 +40,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 
 __all__ = (
@@ -48,6 +49,7 @@ __all__ = (
     'OSPFAreaBulkEditForm',
     'OSPFNetworkBulkEditForm',
     'OSPFRedistributionBulkEditForm',
+    'OSPFVirtualLinkBulkEditForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -433,3 +435,77 @@ class OSPFRedistributionBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet('description'),
     )
     nullable_fields = ('metric', 'route_tag', 'route_policy', 'description')
+
+
+class OSPFVirtualLinkBulkEditForm(NetBoxModelBulkEditForm):
+    hello_interval = forms.IntegerField(
+        label=_('Hello Interval'),
+        required=False,
+        min_value=OSPF_HELLO_INTERVAL_MIN,
+        max_value=OSPF_HELLO_INTERVAL_MAX,
+    )
+    dead_interval = forms.IntegerField(
+        label=_('Dead Interval'),
+        required=False,
+        min_value=OSPF_DEAD_INTERVAL_MIN,
+        max_value=OSPF_DEAD_INTERVAL_MAX,
+    )
+    retransmit_interval = forms.IntegerField(
+        label=_('Retransmit Interval'),
+        required=False,
+        min_value=OSPF_RETRANSMIT_INTERVAL_MIN,
+        max_value=OSPF_RETRANSMIT_INTERVAL_MAX,
+    )
+    transmit_delay = forms.IntegerField(
+        label=_('Transmit Delay'),
+        required=False,
+        min_value=OSPF_TRANSMIT_DELAY_MIN,
+        max_value=OSPF_TRANSMIT_DELAY_MAX,
+    )
+    authentication = forms.ChoiceField(
+        label=_('Authentication'),
+        choices=add_blank_choice(choices.AuthenticationChoices),
+        required=False,
+    )
+    passphrase = forms.CharField(label=_('Passphrase'), required=False)
+    authentication_key_id = forms.IntegerField(
+        label=_('Key ID'),
+        required=False,
+        min_value=OSPF_AUTH_KEY_ID_MIN,
+        max_value=OSPF_AUTH_KEY_ID_MAX,
+    )
+    message_digest_algorithm = forms.ChoiceField(
+        label=_('Message Digest Algorithm'),
+        choices=add_blank_choice(choices.OSPFMessageDigestAlgorithmChoices),
+        required=False,
+    )
+    key_chain = forms.CharField(label=_('Key Chain'), max_length=100, required=False)
+    show_md5 = forms.ChoiceField(
+        label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = OSPFVirtualLink
+    fieldsets = (
+        FieldSet(
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            name='Timers',
+        ),
+        FieldSet(
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'passphrase',
+            'show_md5',
+            'key_chain',
+            name='Authentication',
+        ),
+        FieldSet('description'),
+    )
+    nullable_fields = ('authentication_key_id', 'description')

@@ -8,6 +8,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 
 __all__ = (
@@ -16,6 +17,7 @@ __all__ = (
     'OSPFInterfaceTable',
     'OSPFNetworkTable',
     'OSPFRedistributionTable',
+    'OSPFVirtualLinkTable',
 )
 
 
@@ -220,3 +222,42 @@ class OSPFRedistributionTable(NetBoxTable):
 
     def render_source(self, record):
         return str(record.source) if record.source else '—'
+
+
+class OSPFVirtualLinkTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    transit_area = tables.Column(verbose_name=_('Transit Area'), linkify=True)
+    remote_router_id = tables.Column(verbose_name=_('Remote Router ID'), linkify=True)
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFVirtualLink
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'transit_area',
+            'remote_router_id',
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'key_chain',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'transit_area',
+            'remote_router_id',
+            'hello_interval',
+            'dead_interval',
+            'authentication',
+        )
