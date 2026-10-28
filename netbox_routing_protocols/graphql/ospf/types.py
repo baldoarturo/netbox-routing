@@ -38,7 +38,6 @@ class OSPFInstanceType(PrimaryObjectType):
     device: Annotated["DeviceType", strawberry.lazy('dcim.graphql.types')]
     vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
     router_id: str
-    process_id: str
     default_originate: bool
     default_originate_always: bool
     default_originate_metric: int | None

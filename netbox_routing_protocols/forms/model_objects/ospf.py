@@ -76,7 +76,6 @@ class OSPFInstanceForm(PrimaryModelForm):
             name=_('Device'),
         ),
         FieldSet(
-            'process_id',
             'router_id',
             'vrf',
             name=_('Instance'),
@@ -105,7 +104,6 @@ class OSPFInstanceForm(PrimaryModelForm):
         fields = (
             'name',
             'router_id',
-            'process_id',
             'device',
             'vrf',
             'default_originate',

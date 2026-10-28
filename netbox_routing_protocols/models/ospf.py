@@ -297,7 +297,6 @@ def _authentication_conflict_error(interfaces, required):
 class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
     name = models.CharField(max_length=100)
     router_id = IPAddressField(verbose_name=_('Router ID'))
-    process_id = models.IntegerField(verbose_name=_('Process ID'))
     device = models.ForeignKey(
         to='dcim.Device',
         related_name='ospf_instances',
@@ -605,7 +604,6 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         (
             'name',
             'router_id',
-            'process_id',
             'device',
             'vrf',
             'default_originate',
@@ -619,7 +617,7 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
     prerequisite_models = ('dcim.Device',)
 
     class Meta:
-        ordering = ['vrf', 'router_id', 'process_id', 'pk']
+        ordering = ['vrf', 'router_id', 'pk']
         verbose_name = 'OSPF Instance'
         constraints = (
             models.UniqueConstraint(

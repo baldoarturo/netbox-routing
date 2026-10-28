@@ -25,7 +25,6 @@ class OSPFInstanceTestCase(TestCase):
         form = OSPFInstanceForm(
             data={
                 'name': 'Instance 1',
-                'process_id': '0',
                 'router_id': '10.10.10.1',
                 'device': Device.objects.first().pk,
             }
@@ -39,7 +38,6 @@ class OSPFInstanceTestCase(TestCase):
         form = OSPFInstanceForm(
             data={
                 'name': 'Instance 3',
-                'process_id': '2',
                 'router_id': '30.30.30.1',
                 'device': self.device.pk,
                 'graceful_restart': 'planned',
@@ -64,7 +62,6 @@ class OSPFInstanceTestCase(TestCase):
         form = OSPFInstanceForm(
             data={
                 'name': 'Instance 2',
-                'process_id': '1',
                 'router_id': '20.20.20.1',
                 'device': Device.objects.first().pk,
                 'vrf': VRF.objects.first().pk,
@@ -82,7 +79,7 @@ class OSPFAreaTestCase(TestCase):
     def setUpTestData(cls):
         device = create_test_device(name='Device 1')
         cls.instance = OSPFInstance.objects.create(
-            name='Instance 1', router_id='10.10.10.1', process_id=0, device_id=device.pk
+            name='Instance 1', router_id='10.10.10.1', device_id=device.pk
         )
 
     def test_valid_area_id_with_ip(self):
@@ -150,7 +147,7 @@ class OSPFInterfaceTestCase(TestCase):
             name='Interface 1', device=device, type='virtual'
         )
         cls.instance = OSPFInstance.objects.create(
-            name='Instance 1', router_id='10.10.10.1', process_id=0, device_id=device.pk
+            name='Instance 1', router_id='10.10.10.1', device_id=device.pk
         )
         cls.area = OSPFArea.objects.create(instance=cls.instance, area_id='0.0.0.0')
 

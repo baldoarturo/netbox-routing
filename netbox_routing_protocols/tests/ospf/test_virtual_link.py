@@ -27,10 +27,10 @@ MD = {
 def _create_fixtures(cls):
     cls.device = create_test_device(name='Device 1')
     cls.instance = OSPFInstance.objects.create(
-        name='Instance 1', device=cls.device, router_id='1.1.1.1', process_id=1
+        name='Instance 1', device=cls.device, router_id='1.1.1.1'
     )
     cls.other_instance = OSPFInstance.objects.create(
-        name='Instance 2', device=cls.device, router_id='2.2.2.2', process_id=2
+        name='Instance 2', device=cls.device, router_id='2.2.2.2'
     )
     cls.backbone = OSPFArea.objects.create(
         instance=cls.instance, area_id='0', area_type='backbone'

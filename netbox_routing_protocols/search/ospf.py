@@ -30,11 +30,10 @@ class OSPFInstanceIndex(SearchIndex):
     fields = (
         ('name', 100),
         ('router_id', 200),
-        ('process_id', 300),
         ('description', 500),
         ('comments', 5000),
     )
-    display_attrs = ('process_id', 'device', 'vrf')
+    display_attrs = ('device', 'vrf')
 
 
 @register_search

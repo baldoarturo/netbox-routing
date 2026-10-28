@@ -38,7 +38,6 @@ class OSPFInstanceTable(NetBoxTable):
             'id',
             'name',
             'router_id',
-            'process_id',
             'device',
             'vrf',
             'default_originate',
@@ -56,7 +55,6 @@ class OSPFInstanceTable(NetBoxTable):
             'id',
             'name',
             'router_id',
-            'process_id',
             'device',
         )
 

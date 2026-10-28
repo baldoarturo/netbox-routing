@@ -39,7 +39,6 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
         fields = (
             "name",
             "router_id",
-            "process_id",
             "device",
             "vrf",
             "default_originate",

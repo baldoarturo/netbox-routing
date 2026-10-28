@@ -15,7 +15,7 @@ class OSPFInterfaceScopeTestCase(TestCase):
     def setUpTestData(cls):
         cls.device = create_test_device(name='Device 1')
         cls.instance = OSPFInstance.objects.create(
-            name='Instance 1', device=cls.device, router_id='1.1.1.1', process_id=1
+            name='Instance 1', device=cls.device, router_id='1.1.1.1'
         )
         cls.area = OSPFArea.objects.create(instance=cls.instance, area_id='1')
 
@@ -46,7 +46,6 @@ class OSPFInterfaceScopeTestCase(TestCase):
             name='Instance 2',
             device=self.device,
             router_id='2.2.2.2',
-            process_id=2,
             vrf=vrf,
         )
         vrf_area = OSPFArea.objects.create(instance=vrf_instance, area_id='1')

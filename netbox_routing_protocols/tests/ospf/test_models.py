@@ -21,9 +21,7 @@ class OSPFInstanceTestCase(TestCase):
         cls.device = create_test_device(name='Device 1')
 
     def _instance(self, router_id):
-        return OSPFInstance(
-            name='Instance 1', device=self.device, router_id=router_id, process_id=1
-        )
+        return OSPFInstance(name='Instance 1', device=self.device, router_id=router_id)
 
     def test_advanced_options_default_to_the_rfc_values(self):
         instance = self._instance('10.0.0.1')
@@ -194,7 +192,7 @@ class OSPFAreaTestCase(TestCase):
     def setUpTestData(cls):
         device = create_test_device(name='Device 1')
         cls.instance = OSPFInstance.objects.create(
-            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+            name='Instance 1', device=device, router_id='1.1.1.1'
         )
 
     def _area(self, area_type, **kwargs):
@@ -282,7 +280,6 @@ class OSPFInterfaceTestCase(TestCase):
             name='Instance 1',
             device=cls.device,
             router_id='1.1.1.1',
-            process_id=1,
         )
         area = OSPFArea.objects.create(instance=cls.instance, area_id='0.0.0.0')
         OSPFInterface.objects.create(

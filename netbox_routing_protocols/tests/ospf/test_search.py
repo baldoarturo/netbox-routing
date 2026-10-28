@@ -43,7 +43,7 @@ class OSPFSearchTestCase(TestCase):
     def test_an_instance_is_found_by_its_router_id(self):
         device = create_test_device(name='Device 1')
         instance = models.OSPFInstance.objects.create(
-            name='Core', device=device, router_id='7.7.7.7', process_id=1
+            name='Core', device=device, router_id='7.7.7.7'
         )
         search_backend.cache([instance])
         self.assertTrue(
@@ -53,7 +53,7 @@ class OSPFSearchTestCase(TestCase):
     def test_a_summary_address_is_found_by_its_prefix(self):
         device = create_test_device(name='Device 1')
         instance = models.OSPFInstance.objects.create(
-            name='Core', device=device, router_id='7.7.7.7', process_id=1
+            name='Core', device=device, router_id='7.7.7.7'
         )
         summary = models.OSPFSummaryAddress.objects.create(
             instance=instance, prefix='10.20.0.0/16'

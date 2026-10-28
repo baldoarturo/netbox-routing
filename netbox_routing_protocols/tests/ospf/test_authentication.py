@@ -26,7 +26,7 @@ class OSPFInterfaceAuthenticationTestCase(TestCase):
             name='Interface 1', device=cls.device, type='virtual'
         )
         cls.instance = OSPFInstance.objects.create(
-            name='Instance 1', device=cls.device, router_id='1.1.1.1', process_id=1
+            name='Instance 1', device=cls.device, router_id='1.1.1.1'
         )
         cls.area = OSPFArea.objects.create(instance=cls.instance, area_id='1')
 
