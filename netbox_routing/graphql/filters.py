@@ -41,6 +41,7 @@ __all__ = (
     'OSPFRedistributionFilter',
     'OSPFVirtualLinkFilter',
     'OSPFSummaryAddressFilter',
+    'OSPFNeighborFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
     'RouteMapFilter',

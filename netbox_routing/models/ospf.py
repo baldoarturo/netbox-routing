@@ -14,6 +14,7 @@ from netbox.models import PrimaryModel
 
 from netbox_routing import choices
 from netbox_routing.choices.ospf import (
+    OSPFNetworkTypeChoices,
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFGracefulRestartChoices,
@@ -59,6 +60,7 @@ __all__ = (
     'OSPFRedistribution',
     'OSPFVirtualLink',
     'OSPFSummaryAddress',
+    'OSPFNeighbor',
 )
 
 
@@ -1487,3 +1489,147 @@ class OSPFSummaryAddress(PrimaryModel):
                     )
                 }
             )
+
+
+class OSPFNeighbor(PrimaryModel):
+    """
+    A neighbor configured by hand on a non-broadcast (NBMA) or point-to-multipoint
+    interface, where it cannot be discovered with multicast Hellos (RFC 2328 C.5
+    and C.6): it is identified by its IP address on the network. On NBMA networks
+    its eligibility to become the designated router (priority) has to be defined,
+    and Hellos to it go out at the poll interval while it is down.
+    """
+
+    NBMA_NETWORK_TYPES = (OSPFNetworkTypeChoices.NON_BROADCAST,)
+    POINT_TO_MULTIPOINT_NETWORK_TYPES = (
+        OSPFNetworkTypeChoices.POINT_TO_MULTIPOINT,
+        OSPFNetworkTypeChoices.POINT_TO_MULTIPOINT_NON_BROADCAST,
+    )
+
+    ospf_interface = models.ForeignKey(
+        to='netbox_routing.OSPFInterface',
+        related_name='neighbors',
+        on_delete=models.CASCADE,
+        verbose_name=_('OSPF Interface'),
+    )
+    ip_address = IPAddressField(
+        verbose_name=_('IP Address'),
+        help_text=_('Interface address of the neighbor on the network'),
+    )
+    priority = models.PositiveSmallIntegerField(
+        verbose_name=_('Priority'),
+        help_text=_(
+            'Eligibility of the neighbor to become the designated router, 0 to 255; '
+            '0 is not eligible. Required on non-broadcast networks, not used on '
+            'point-to-multipoint ones'
+        ),
+        validators=[
+            MinValueValidator(OSPF_PRIORITY_MIN),
+            MaxValueValidator(OSPF_PRIORITY_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+    poll_interval = models.PositiveIntegerField(
+        verbose_name=_('Poll Interval'),
+        help_text=_(
+            'Seconds between Hellos to the neighbor while it is down, much larger '
+            'than the hello interval. Only on non-broadcast networks; empty uses '
+            'the platform default'
+        ),
+        validators=[MinValueValidator(1)],
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = ('ospf_interface', 'priority', 'poll_interval')
+    prerequisite_models = ('netbox_routing.OSPFInterface',)
+
+    class Meta:
+        verbose_name = 'OSPF Neighbor'
+        ordering = ('ospf_interface', 'ip_address', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('ospf_interface', 'ip_address'),
+                name='%(app_label)s_%(class)s_unique_interface_ip_address',
+                violation_error_message=_(
+                    'This neighbor is already configured on the OSPF interface.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return str(self.ip_address)
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:ospfneighbor', args=[self.pk])
+
+    def _local_networks(self):
+        """The IPv4 networks configured on the interface of the OSPF interface."""
+        networks = []
+        for address in self.ospf_interface.interface.ip_addresses.all():
+            interface_address = netaddr.IPNetwork(str(address.address))
+            if interface_address.version == 4:
+                networks.append(interface_address)
+        return networks
+
+    def clean(self):
+        super().clean()
+        if not self.ospf_interface_id:
+            return
+        network_type = self.ospf_interface.network_type
+        nbma = network_type in self.NBMA_NETWORK_TYPES
+        point_to_multipoint = network_type in self.POINT_TO_MULTIPOINT_NETWORK_TYPES
+        errors = {}
+        if not (nbma or point_to_multipoint):
+            errors['ospf_interface'] = _(
+                'Neighbors are configured on non-broadcast and point-to-multipoint '
+                'interfaces only.'
+            )
+        elif nbma:
+            if self.priority is None:
+                errors['priority'] = _(
+                    'The eligibility to become the designated router has to be '
+                    'defined on non-broadcast networks.'
+                )
+            if (
+                self.poll_interval is not None
+                and self.poll_interval <= self.ospf_interface.hello_interval
+            ):
+                errors['poll_interval'] = _(
+                    'The poll interval must be larger than the hello interval ({hello}).'
+                ).format(hello=self.ospf_interface.hello_interval)
+        else:
+            if self.priority is not None:
+                errors['priority'] = _(
+                    'No designated router is elected on point-to-multipoint networks.'
+                )
+            if self.poll_interval is not None:
+                errors['poll_interval'] = _(
+                    'The poll interval only applies to non-broadcast networks.'
+                )
+        if self.ip_address not in (None, ''):
+            try:
+                address = netaddr.IPAddress(self.ip_address)
+            except (netaddr.AddrFormatError, ValueError):
+                address = None  # reported by the field's own validation
+            if address is not None:
+                networks = self._local_networks()
+                if (
+                    address.version != 4
+                    or address.is_loopback()
+                    or address.is_multicast()
+                ):
+                    errors['ip_address'] = _(
+                        'The neighbor must have a unicast IPv4 address.'
+                    )
+                elif any(address == network.ip for network in networks):
+                    errors['ip_address'] = _(
+                        'This is an address of the interface itself.'
+                    )
+                elif networks and not any(address in network for network in networks):
+                    errors['ip_address'] = _(
+                        'The neighbor must be on a network attached to the interface.'
+                    )
+        if errors:
+            raise ValidationError(errors)

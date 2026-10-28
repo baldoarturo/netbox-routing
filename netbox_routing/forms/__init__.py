@@ -42,6 +42,9 @@ __all__ = (
     'OSPFSummaryAddressForm',
     'OSPFSummaryAddressBulkEditForm',
     'OSPFSummaryAddressFilterForm',
+    'OSPFNeighborForm',
+    'OSPFNeighborBulkEditForm',
+    'OSPFNeighborFilterForm',
     # IS-IS
     'ISISInstanceForm',
     'ISISInstanceBulkEditForm',

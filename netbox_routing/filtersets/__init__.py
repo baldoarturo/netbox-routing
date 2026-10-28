@@ -20,6 +20,7 @@ __all__ = (
     'OSPFRedistributionFilterSet',
     'OSPFVirtualLinkFilterSet',
     'OSPFSummaryAddressFilterSet',
+    'OSPFNeighborFilterSet',
     'ISISInstanceFilterSet',
     'ISISInterfaceFilterSet',
     'ISISSettingFilterSet',

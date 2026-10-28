@@ -55,6 +55,11 @@ urlpatterns = [
         'ospf/summary-address/<int:pk>/',
         include(get_model_urls(app_name, 'ospfsummaryaddress')),
     ),
+    path(
+        'ospf/neighbor/',
+        include(get_model_urls(app_name, 'ospfneighbor', detail=False)),
+    ),
+    path('ospf/neighbor/<int:pk>/', include(get_model_urls(app_name, 'ospfneighbor'))),
     # IS-IS
     path(
         'isis/setting/',

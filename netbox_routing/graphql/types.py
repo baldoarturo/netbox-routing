@@ -40,6 +40,7 @@ __all__ = (
     'OSPFRedistributionType',
     'OSPFVirtualLinkType',
     'OSPFSummaryAddressType',
+    'OSPFNeighborType',
     'PrefixListType',
     'PrefixListEntryType',
     'RouteMapType',

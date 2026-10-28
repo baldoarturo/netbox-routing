@@ -17,6 +17,7 @@ __all__ = (
     'OSPFRedistributionFilter',
     'OSPFVirtualLinkFilter',
     'OSPFSummaryAddressFilter',
+    'OSPFNeighborFilter',
 )
 
 
@@ -101,3 +102,15 @@ class OSPFSummaryAddressFilter(PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     instance_id: ID | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.OSPFNeighbor, lookups=True)
+class OSPFNeighborFilter(PrimaryModelFilter):
+    ospf_interface: (
+        Annotated[
+            'OSPFInterfaceFilter', strawberry.lazy('netbox_routing.graphql.filters')
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    ospf_interface_id: ID | None = strawberry_django.filter_field()
+    ip_address: BaseFilterLookup[str] | None = strawberry_django.filter_field()

@@ -33,6 +33,7 @@ from netbox_routing.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFNeighbor,
 )
 
 __all__ = (
@@ -43,6 +44,7 @@ __all__ = (
     'OSPFRedistributionForm',
     'OSPFVirtualLinkForm',
     'OSPFSummaryAddressForm',
+    'OSPFNeighborForm',
 )
 
 
@@ -620,6 +622,40 @@ class OSPFSummaryAddressForm(PrimaryModelForm):
             'prefix',
             'not_advertise',
             'route_tag',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+
+class OSPFNeighborForm(PrimaryModelForm):
+    ospf_interface = DynamicModelChoiceField(
+        queryset=OSPFInterface.objects.all(),
+        required=True,
+        selector=True,
+        label=_('OSPF Interface'),
+        help_text=_('A non-broadcast or point-to-multipoint interface'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'ospf_interface',
+            'ip_address',
+            'priority',
+            'poll_interval',
+            'description',
+            name=_('Neighbor'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFNeighbor
+        fields = (
+            'ospf_interface',
+            'ip_address',
+            'priority',
+            'poll_interval',
             'description',
             'comments',
             'tags',

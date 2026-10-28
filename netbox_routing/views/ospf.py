@@ -22,6 +22,7 @@ from netbox_routing.filtersets.ospf import (
     OSPFRedistributionFilterSet,
     OSPFVirtualLinkFilterSet,
     OSPFSummaryAddressFilterSet,
+    OSPFNeighborFilterSet,
 )
 from netbox_routing.forms import *
 from netbox_routing.models import (
@@ -32,6 +33,7 @@ from netbox_routing.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFNeighbor,
 )
 from netbox_routing.tables.ospf import (
     OSPFAreaTable,
@@ -41,6 +43,7 @@ from netbox_routing.tables.ospf import (
     OSPFRedistributionTable,
     OSPFVirtualLinkTable,
     OSPFSummaryAddressTable,
+    OSPFNeighborTable,
 )
 from netbox_routing.ui import *
 
@@ -89,6 +92,12 @@ __all__ = (
     'OSPFSummaryAddressBulkEditView',
     'OSPFSummaryAddressDeleteView',
     'OSPFSummaryAddressBulkDeleteView',
+    'OSPFNeighborListView',
+    'OSPFNeighborView',
+    'OSPFNeighborEditView',
+    'OSPFNeighborBulkEditView',
+    'OSPFNeighborDeleteView',
+    'OSPFNeighborBulkDeleteView',
 )
 
 
@@ -311,6 +320,12 @@ class OSPFInterfaceView(ObjectView):
             TagsPanel(),
         ],
         right_panels=[
+            panels.ObjectsTablePanel(
+                model='netbox_routing.OSPFNeighbor',
+                filters={'ospf_interface_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'instance', 'device', 'ospf_interface'],
+                title=_('Neighbors'),
+            ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
@@ -607,3 +622,65 @@ class OSPFSummaryAddressBulkDeleteView(BulkDeleteView):
     queryset = SUMMARY_ADDRESS_QUERYSET
     filterset = OSPFSummaryAddressFilterSet
     table = OSPFSummaryAddressTable
+
+
+#
+# Neighbor
+#
+NEIGHBOR_QUERYSET = OSPFNeighbor.objects.select_related(
+    'ospf_interface__instance__device',
+    'ospf_interface__instance__vrf',
+    'ospf_interface__area',
+    'ospf_interface__interface__device',
+)
+
+
+@register_model_view(OSPFNeighbor, name='list', path='', detail=False)
+class OSPFNeighborListView(ObjectListView):
+    queryset = NEIGHBOR_QUERYSET
+    table = OSPFNeighborTable
+    filterset = OSPFNeighborFilterSet
+    filterset_form = OSPFNeighborFilterForm
+
+
+@register_model_view(OSPFNeighbor)
+class OSPFNeighborView(ObjectView):
+    queryset = NEIGHBOR_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFNeighborPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFNeighbor, name='add', detail=False)
+@register_model_view(OSPFNeighbor, name='edit')
+class OSPFNeighborEditView(ObjectEditView):
+    queryset = NEIGHBOR_QUERYSET
+    form = OSPFNeighborForm
+
+
+@register_model_view(OSPFNeighbor, name='delete')
+class OSPFNeighborDeleteView(ObjectDeleteView):
+    queryset = NEIGHBOR_QUERYSET
+
+
+@register_model_view(OSPFNeighbor, name='bulk_edit', detail=False)
+class OSPFNeighborBulkEditView(BulkEditView):
+    queryset = NEIGHBOR_QUERYSET
+    filterset = OSPFNeighborFilterSet
+    table = OSPFNeighborTable
+    form = OSPFNeighborBulkEditForm
+
+
+@register_model_view(OSPFNeighbor, name='bulk_delete', detail=False)
+class OSPFNeighborBulkDeleteView(BulkDeleteView):
+    queryset = NEIGHBOR_QUERYSET
+    filterset = OSPFNeighborFilterSet
+    table = OSPFNeighborTable
