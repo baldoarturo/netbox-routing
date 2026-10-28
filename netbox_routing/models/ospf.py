@@ -466,6 +466,57 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         default=0,
     )
 
+    reference_bandwidth = models.PositiveIntegerField(
+        verbose_name=_('Reference Bandwidth'),
+        help_text=_(
+            'Mbps. Bandwidth that gets an interface cost of 1, used to derive '
+            'the cost of interfaces without one. Empty uses the platform default'
+        ),
+        validators=[MinValueValidator(1)],
+        blank=True,
+        null=True,
+    )
+    maximum_paths = models.PositiveSmallIntegerField(
+        verbose_name=_('Maximum Paths'),
+        help_text=_(
+            'Equal-cost paths installed for a destination (ECMP), 1 to 64. '
+            'Empty uses the platform default'
+        ),
+        validators=[MinValueValidator(1), MaxValueValidator(64)],
+        blank=True,
+        null=True,
+    )
+    distance_intra_area = models.PositiveSmallIntegerField(
+        verbose_name=_('Distance (Intra-Area)'),
+        help_text=_(
+            'Administrative distance of intra-area routes, 1 to 255. '
+            'Empty uses the platform default'
+        ),
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
+        blank=True,
+        null=True,
+    )
+    distance_inter_area = models.PositiveSmallIntegerField(
+        verbose_name=_('Distance (Inter-Area)'),
+        help_text=_(
+            'Administrative distance of inter-area routes, 1 to 255. '
+            'Empty uses the platform default'
+        ),
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
+        blank=True,
+        null=True,
+    )
+    distance_external = models.PositiveSmallIntegerField(
+        verbose_name=_('Distance (External)'),
+        help_text=_(
+            'Administrative distance of external routes, 1 to 255. '
+            'Empty uses the platform default'
+        ),
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
+        blank=True,
+        null=True,
+    )
+
     ADVANCED_FIELDS = (
         'spf_initial_delay',
         'spf_short_delay',
@@ -490,6 +541,11 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         'max_lsa_warning_only',
         'external_lsdb_limit',
         'exit_overflow_interval',
+        'reference_bandwidth',
+        'maximum_paths',
+        'distance_intra_area',
+        'distance_inter_area',
+        'distance_external',
     )
 
     clone_fields = (
