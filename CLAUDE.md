@@ -19,6 +19,13 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 7. **If you are not sure how to fix an issue, ask before coding.** Keep asking the user questions until no doubts remain, and ask for concrete examples (sample data, expected vs actual behaviour, a screenshot, a failing request) whenever they would remove ambiguity. Do not guess at the intended behaviour, and do not open a PR for a fix you are unsure about.
 8. **Routing protocol design must follow the existing RFCs.** Model fields, choices, defaults, validation and terminology for BGP, OSPF, EIGRP, IS-IS and the like must conform to the relevant RFCs (e.g. RFC 4271 for BGP, RFC 2328 for OSPFv2, RFC 5340 for OSPFv3, RFC 7868 for EIGRP, ISO 10589 / RFC 1195 for IS-IS). Cite the RFC in the issue or PR when a design choice depends on it.
 9. **If you have any doubt about the implementation, ask.** This applies to design and implementation, not only to bug fixes: when more than one reasonable approach exists, or the RFC is ambiguous or silent, ask the user before coding.
+10. **Track every body of work with a tracking issue and a GitHub project.** When a review, gap analysis or feature area produces more than a couple of issues, set it up like the OSPF one (tracking issue #90, project "OSPFv2 support"):
+    - One tracking issue titled `Tracking: <area>`. Body: a one-line intro ending with "Close each item through its own issue/branch/PR", then `##` sections with one `- [ ] #N short description` per issue (mark design items with `(design)`).
+    - Every item is also a sub-issue of the tracking issue (`gh api repos/baldoarturo/netbox-routing-protocols/issues/<tracking>/sub_issues -X POST -F sub_issue_id=<issue id, not number>`), so the progress bar updates itself.
+    - One GitHub project per area (GraphQL `createProjectV2`, owner `baldoarturo`), linked to the repo (`linkProjectV2ToRepository`), with the tracking issue and all items added. Keep the default workflows enabled (Auto-close issue, Item closed, Pull request merged) so closing an issue moves it to Done. The installed `gh` is too old for `gh project` and `gh label`: use `gh api`.
+    - Give the issues a shared area label (e.g. `ospf`, `prefix-list`).
+    - Claude keeps the tracking body current: when an issue is resolved, tick its `[x]` (strike through with `~#N~` and add the reason if it is dropped), and add new issues found later. Nothing ticks the checklist or closes the tracking issue automatically; close it by hand when every item is done.
+    - Do not start coding until the user approves the tracking.
 
 ## Running the dev server
 
