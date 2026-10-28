@@ -61,10 +61,6 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('Router ID'),
     )
-    process_id = forms.CharField(
-        required=False,
-        label=_('Process ID'),
-    )
     default_originate = forms.NullBooleanField(
         required=False,
         label=_('Default Originate'),
@@ -121,7 +117,7 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
             'filter_id',
             'tag',
         ),
-        FieldSet('device_id', 'vrf_id', 'router_id', 'process_id', name=_('Device')),
+        FieldSet('device_id', 'vrf_id', 'router_id', name=_('Device')),
         FieldSet(
             'default_originate',
             'default_originate_always',

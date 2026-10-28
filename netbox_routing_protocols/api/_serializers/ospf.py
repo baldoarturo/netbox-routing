@@ -52,7 +52,6 @@ class OSPFInstanceSerializer(NetBoxModelSerializer):
             'display',
             'name',
             'router_id',
-            'process_id',
             'device',
             'vrf',
             'default_originate',
@@ -72,7 +71,6 @@ class OSPFInstanceSerializer(NetBoxModelSerializer):
             'display',
             'name',
             'router_id',
-            'process_id',
             'device',
             'vrf',
         )

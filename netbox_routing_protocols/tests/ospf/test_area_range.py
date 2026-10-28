@@ -19,7 +19,7 @@ __all__ = (
 def _create_fixtures(cls):
     cls.device = create_test_device(name='Device 1')
     cls.instance = OSPFInstance.objects.create(
-        name='Instance 1', device=cls.device, router_id='1.1.1.1', process_id=1
+        name='Instance 1', device=cls.device, router_id='1.1.1.1'
     )
     cls.areas = [
         OSPFArea.objects.create(instance=cls.instance, area_id=str(i)) for i in (1, 2)

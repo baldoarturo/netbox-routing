@@ -40,21 +40,18 @@ class OSPFInstanceTestCase(
                 name="Instance 0",
                 device=devices[0],
                 router_id='10.0.0.1',
-                process_id='0',
                 vrf=None,
             ),
             cls.model(
                 name="Instance 1",
                 device=devices[0],
                 router_id='1.1.1.1',
-                process_id='1',
                 vrf=None,
             ),
             cls.model(
                 name="Instance 2",
                 device=devices[0],
                 router_id='2.2.2.2',
-                process_id='2',
                 vrf=vrf,
             ),
         )
@@ -64,7 +61,6 @@ class OSPFInstanceTestCase(
             'name': 'Instance X',
             'device': devices[1].pk,
             'router_id': '4.4.4.4',
-            'process_id': 4,
             'vrf': vrf.pk,
             'default_originate': True,
             'default_originate_always': True,
@@ -107,7 +103,7 @@ class OSPFAreaTestCase(
     def setUpTestData(cls):
         device = create_test_device(name='Device 1')
         instance = OSPFInstance.objects.create(
-            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+            name='Instance 1', device=device, router_id='1.1.1.1'
         )
         areas = (
             cls.model(instance=instance, area_id='1.1.1.1', area_type='stub'),
@@ -168,25 +164,21 @@ class OSPFInterfaceTestCase(
                 name="Instance 0",
                 device=devices[0],
                 router_id='10.0.0.1',
-                process_id='0',
             ),
             OSPFInstance(
                 name="Instance 1",
                 device=devices[0],
                 router_id='1.1.1.1',
-                process_id='1',
             ),
             OSPFInstance(
                 name="Instance 2",
                 device=devices[1],
                 router_id='2.2.2.2',
-                process_id='2',
             ),
             OSPFInstance(
                 name="Instance 3",
                 device=devices[1],
                 router_id='3.3.3.3',
-                process_id='3',
             ),
         )
         OSPFInstance.objects.bulk_create(instances)

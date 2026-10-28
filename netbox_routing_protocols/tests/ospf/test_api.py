@@ -20,7 +20,6 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
         'display',
         'id',
         'name',
-        'process_id',
         'router_id',
         'url',
         'vrf',
@@ -40,21 +39,18 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 name='Instance 1',
                 device=device,
                 router_id='1.1.1.1',
-                process_id=1,
                 vrf=None,
             ),
             cls.model(
                 name='Instance 2',
                 device=device,
                 router_id='2.2.2.2',
-                process_id=2,
                 vrf=vrf,
             ),
             cls.model(
                 name='Instance 3',
                 device=device,
                 router_id='3.3.3.3',
-                process_id=3,
                 vrf=None,
             ),
         )
@@ -65,7 +61,6 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 'name': 'Instance X',
                 'device': device.pk,
                 'router_id': '4.4.4.4',
-                'process_id': 4,
                 'vrf': vrf.pk,
                 'graceful_restart': 'planned-unplanned',
                 'graceful_restart_period': 300,
@@ -104,7 +99,7 @@ class OSPFAreaTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
     def setUpTestData(cls):
         device = create_test_device(name='Test Device')
         instance = OSPFInstance.objects.create(
-            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+            name='Instance 1', device=device, router_id='1.1.1.1'
         )
         data = (
             cls.model(instance=instance, area_id='1', area_type='stub'),
@@ -149,7 +144,7 @@ class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCas
     def setUpTestData(cls):
         device = create_test_device(name='Test Device')
         instance = OSPFInstance.objects.create(
-            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+            name='Instance 1', device=device, router_id='1.1.1.1'
         )
         area = OSPFArea.objects.create(instance=instance, area_id='0')
 

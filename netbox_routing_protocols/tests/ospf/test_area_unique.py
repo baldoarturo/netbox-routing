@@ -19,7 +19,6 @@ class OSPFAreaUniqueTestCase(TestCase):
                 name=f'Instance {i}',
                 device=device,
                 router_id=f'1.1.1.{i}',
-                process_id=i,
             )
             for i in (1, 2)
         ]
@@ -55,7 +54,6 @@ class OSPFAreaInstanceTestCase(TestCase):
                 name=f'Instance {i}',
                 device=cls.device,
                 router_id=f'1.1.1.{i}',
-                process_id=i,
             )
             for i in (1, 2)
         ]

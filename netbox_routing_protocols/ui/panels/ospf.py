@@ -20,7 +20,6 @@ __all__ = (
 
 class OSPFInstancePanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
-    process_id = attrs.NumericAttr('process_id', label=_('Process ID'))
     router_id = attrs.TextAttr('router_id', label=_('Router ID'))
     device = attrs.RelatedObjectAttr('device', label=_('Device'))
     vrf = attrs.RelatedObjectAttr('vrf', linkify=True)

@@ -40,14 +40,12 @@ class OSPFInstanceTestCase(TestCase):
                 name='Instance 1',
                 device=devices[0],
                 router_id='10.0.0.1',
-                process_id=0,
                 vrf=vrfs[0],
             ),
             OSPFInstance(
                 name='Instance 2',
                 device=devices[1],
                 router_id='1.1.1.1',
-                process_id=1,
                 vrf=vrfs[1],
                 default_originate=True,
                 default_originate_metric=50,
@@ -63,14 +61,12 @@ class OSPFInstanceTestCase(TestCase):
                 name='Instance 3',
                 device=devices[2],
                 router_id='2.2.2.2',
-                process_id=2,
                 vrf=None,
             ),
             OSPFInstance(
                 name='Instance 3',
                 device=devices[3],
                 router_id='3.3.3.3',
-                process_id=3,
                 vrf=vrfs[2],
             ),
         )
@@ -101,10 +97,6 @@ class OSPFInstanceTestCase(TestCase):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
         params = {'device': [data[0].name, data[1].name]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-
-    def test_process_id(self):
-        params = {'process_id': [1, 2]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_advanced_options(self):
@@ -159,13 +151,11 @@ class OSPFAreaTestCase(TestCase):
                 name='Instance 1',
                 device=devices[0],
                 router_id='1.1.1.1',
-                process_id=1,
             ),
             OSPFInstance(
                 name='Instance 2',
                 device=devices[1],
                 router_id='2.2.2.2',
-                process_id=2,
             ),
         )
         OSPFInstance.objects.bulk_create(instances)
@@ -251,28 +241,24 @@ class OSPFInterfaceTestCase(TestCase):
                 name='Instance 0',
                 device=devices[0],
                 router_id='10.0.0.1',
-                process_id=0,
                 vrf=vrfs[0],
             ),
             OSPFInstance(
                 name='Instance 1',
                 device=devices[1],
                 router_id='1.1.1.1',
-                process_id=1,
                 vrf=vrfs[1],
             ),
             OSPFInstance(
                 name='Instance 2',
                 device=devices[2],
                 router_id='2.2.2.2',
-                process_id=2,
                 vrf=None,
             ),
             OSPFInstance(
                 name='Instance 3',
                 device=devices[3],
                 router_id='3.3.3.3',
-                process_id=3,
                 vrf=vrfs[2],
             ),
         )

@@ -97,7 +97,6 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             'vrf_id',
             'vrf',
             'router_id',
-            'process_id',
             'default_originate',
             'default_originate_always',
             'default_originate_metric',

@@ -36,7 +36,7 @@ def _create_fixtures(cls):
     Interface.objects.bulk_create(cls.interfaces)
     cls.interfaces = list(Interface.objects.order_by('name'))
     instance = OSPFInstance.objects.create(
-        name='Instance 1', device=cls.device, router_id='1.1.1.1', process_id=1
+        name='Instance 1', device=cls.device, router_id='1.1.1.1'
     )
     area = OSPFArea.objects.create(instance=instance, area_id='0')
     cls.ospf_interfaces = [
