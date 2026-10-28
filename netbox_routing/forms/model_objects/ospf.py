@@ -112,6 +112,13 @@ class OSPFAreaForm(PrimaryModelForm):
 
     fieldsets = (
         FieldSet('instance', 'area_id', 'area_type', 'description', name=_('Area')),
+        FieldSet('default_cost', name=_('Stub / NSSA')),
+        FieldSet(
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
+            name=_('NSSA'),
+        ),
     )
 
     class Meta:
@@ -120,6 +127,10 @@ class OSPFAreaForm(PrimaryModelForm):
             'instance',
             'area_id',
             'area_type',
+            'default_cost',
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
             'description',
             'comments',
             'tags',

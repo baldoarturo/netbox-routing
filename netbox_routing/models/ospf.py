@@ -21,6 +21,8 @@ from netbox_routing.constants.ospf import (
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
     OSPF_INTERFACE_TIMERS,
+    OSPF_STUB_DEFAULT_COST_MAX,
+    OSPF_STUB_DEFAULT_COST_MIN,
     OSPF_TAG_MAX,
 )
 from netbox_routing.fields.ip import IPAddressField
@@ -158,8 +160,46 @@ class OSPFArea(PrimaryModel):
         null=False,
         default='standard',
     )
+    default_cost = models.PositiveIntegerField(
+        verbose_name=_('Default Cost'),
+        help_text=_(
+            'Cost of the default route the ABR advertises into the area '
+            '(stub and NSSA areas only)'
+        ),
+        validators=[
+            MinValueValidator(OSPF_STUB_DEFAULT_COST_MIN),
+            MaxValueValidator(OSPF_STUB_DEFAULT_COST_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+    nssa_translate_always = models.BooleanField(
+        verbose_name=_('Translate Type 7 Always'),
+        help_text=_('Always translate type 7 LSAs into type 5 (NSSA areas only)'),
+        default=False,
+    )
+    nssa_no_redistribution = models.BooleanField(
+        verbose_name=_('No Redistribution'),
+        help_text=_(
+            'Do not import redistributed routes into the NSSA (NSSA areas only)'
+        ),
+        default=False,
+    )
+    nssa_default_originate = models.BooleanField(
+        verbose_name=_('Default Information Originate'),
+        help_text=_('Originate a default type 7 LSA into the NSSA (NSSA areas only)'),
+        default=False,
+    )
     prerequisite_models = ('netbox_routing.OSPFInstance',)
-    clone_fields = ('instance', 'area_id', 'area_type')
+    clone_fields = (
+        'instance',
+        'area_id',
+        'area_type',
+        'default_cost',
+        'nssa_translate_always',
+        'nssa_no_redistribution',
+        'nssa_default_originate',
+    )
 
     class Meta:
         ordering = ['instance__name', 'area_id', 'pk']
@@ -182,6 +222,7 @@ class OSPFArea(PrimaryModel):
 
     def clean(self):
         super().clean()
+        self._clean_area_type_options()
         area_id = self.area_id
         try:
             int(area_id)
@@ -196,6 +237,30 @@ class OSPFArea(PrimaryModel):
                         ]
                     }
                 )
+
+    def _clean_area_type_options(self):
+        stub_types = (
+            OSPFAreaTypeChoices.STUB,
+            OSPFAreaTypeChoices.TSA,
+            OSPFAreaTypeChoices.NSSA,
+            OSPFAreaTypeChoices.TNSSA,
+        )
+        nssa_types = (OSPFAreaTypeChoices.NSSA, OSPFAreaTypeChoices.TNSSA)
+        errors = {}
+        if self.default_cost is not None and self.area_type not in stub_types:
+            errors['default_cost'] = _(
+                'The default cost only applies to stub and NSSA areas.'
+            )
+        if self.area_type not in nssa_types:
+            for field in (
+                'nssa_translate_always',
+                'nssa_no_redistribution',
+                'nssa_default_originate',
+            ):
+                if getattr(self, field):
+                    errors[field] = _('This option only applies to NSSA areas.')
+        if errors:
+            raise ValidationError(errors)
 
 
 class OSPFInterface(PrimaryModel):

@@ -37,6 +37,16 @@ class OSPFAreaPanel(panels.ObjectAttributesPanel):
     instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
     area_id = attrs.NumericAttr('area_id', label=_('Area ID'))
     area_type = attrs.ChoiceAttr('area_type', label=_('Area Type'))
+    default_cost = attrs.NumericAttr('default_cost', label=_('Default Cost'))
+    nssa_translate_always = attrs.BooleanAttr(
+        'nssa_translate_always', label=_('Translate Type 7 Always')
+    )
+    nssa_no_redistribution = attrs.BooleanAttr(
+        'nssa_no_redistribution', label=_('No Redistribution')
+    )
+    nssa_default_originate = attrs.BooleanAttr(
+        'nssa_default_originate', label=_('Default Information Originate')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 

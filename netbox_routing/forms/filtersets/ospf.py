@@ -96,6 +96,13 @@ class OSPFAreaFilterForm(NetBoxModelFilterSetForm):
     model = OSPFArea
     fieldsets = (
         FieldSet('q', 'device_id', 'instance_id', 'filter_id', 'area_type', 'tag'),
+        FieldSet(
+            'default_cost',
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
+            name=_('Stub / NSSA'),
+        ),
     )
 
     device_id = DynamicModelMultipleChoiceField(
@@ -113,6 +120,22 @@ class OSPFAreaFilterForm(NetBoxModelFilterSetForm):
     )
     area_type = forms.ChoiceField(
         choices=add_blank_choice(OSPFAreaTypeChoices), label='Area Type', required=False
+    )
+    default_cost = forms.IntegerField(required=False, label=_('Default Cost'))
+    nssa_translate_always = forms.NullBooleanField(
+        required=False,
+        label=_('Translate Type 7 Always'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    nssa_no_redistribution = forms.NullBooleanField(
+        required=False,
+        label=_('No Redistribution'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    nssa_default_originate = forms.NullBooleanField(
+        required=False,
+        label=_('Default Information Originate'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     tag = TagFilterField(model)
 

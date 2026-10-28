@@ -50,3 +50,8 @@ OSPF_EXTERNAL_METRIC_MAX = 16777214
 
 # Route tag: 32 bits (RFC 2328 A.4.5).
 OSPF_TAG_MAX = 4294967295
+
+# Cost of the default route an ABR advertises into a stub or NSSA area:
+# 24-bit metric (RFC 2328 C.2, StubDefaultCost).
+OSPF_STUB_DEFAULT_COST_MIN = 0
+OSPF_STUB_DEFAULT_COST_MAX = 16777215

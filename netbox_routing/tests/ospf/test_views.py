@@ -111,7 +111,11 @@ class OSPFAreaTestCase(
         cls.form_data = {
             'instance': instance.pk,
             'area_id': '4.4.4.4',
-            'area_type': 'standard',
+            'area_type': 'nssa',
+            'default_cost': 20,
+            'nssa_translate_always': True,
+            'nssa_no_redistribution': True,
+            'nssa_default_originate': True,
         }
 
         cls.bulk_edit_data = {
