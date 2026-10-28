@@ -13,6 +13,7 @@ __all__ = (
     'OSPFRedistributionPanel',
     'OSPFVirtualLinkPanel',
     'OSPFSummaryAddressPanel',
+    'OSPFNeighborPanel',
 )
 
 
@@ -242,4 +243,17 @@ class OSPFSummaryAddressPanel(panels.ObjectAttributesPanel):
     prefix = attrs.TextAttr('prefix', label=_('Prefix'))
     not_advertise = attrs.BooleanAttr('not_advertise', label=_('Do Not Advertise'))
     route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFNeighborPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr(
+        'ospf_interface.instance', label=_('Instance'), linkify=True
+    )
+    ospf_interface = attrs.RelatedObjectAttr(
+        'ospf_interface', label=_('OSPF Interface'), linkify=True
+    )
+    ip_address = attrs.TextAttr('ip_address', label=_('IP Address'))
+    priority = attrs.NumericAttr('priority', label=_('Priority'))
+    poll_interval = attrs.NumericAttr('poll_interval', label=_('Poll Interval'))
     description = attrs.TextAttr('description', label=_('Description'))

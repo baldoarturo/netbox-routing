@@ -22,6 +22,7 @@ from .ospf import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFNeighbor,
 )
 from .static import StaticRoute
 
@@ -54,6 +55,7 @@ __all__ = (
     'OSPFRedistribution',
     'OSPFVirtualLink',
     'OSPFSummaryAddress',
+    'OSPFNeighbor',
     # IS-IS
     'ISISInstance',
     'ISISInterface',

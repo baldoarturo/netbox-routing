@@ -14,6 +14,7 @@ from .ospf import (
     OSPFRedistributionFilterForm,
     OSPFVirtualLinkFilterForm,
     OSPFSummaryAddressFilterForm,
+    OSPFNeighborFilterForm,
 )
 from .isis import (
     ISISInstanceFilterForm,
@@ -67,6 +68,7 @@ __all__ = (
     'OSPFRedistributionFilterForm',
     'OSPFVirtualLinkFilterForm',
     'OSPFSummaryAddressFilterForm',
+    'OSPFNeighborFilterForm',
     # Routing Objects
     'PrefixListFilterForm',
     'PrefixListEntryFilterForm',

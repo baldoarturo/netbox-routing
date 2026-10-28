@@ -42,6 +42,7 @@ from netbox_routing.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFNeighbor,
 )
 
 __all__ = (
@@ -52,6 +53,7 @@ __all__ = (
     'OSPFRedistributionBulkEditForm',
     'OSPFVirtualLinkBulkEditForm',
     'OSPFSummaryAddressBulkEditForm',
+    'OSPFNeighborBulkEditForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -573,3 +575,26 @@ class OSPFSummaryAddressBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet('description'),
     )
     nullable_fields = ('route_tag', 'description')
+
+
+class OSPFNeighborBulkEditForm(NetBoxModelBulkEditForm):
+    priority = forms.IntegerField(
+        label=_('Priority'),
+        required=False,
+        min_value=OSPF_PRIORITY_MIN,
+        max_value=OSPF_PRIORITY_MAX,
+    )
+    poll_interval = forms.IntegerField(
+        label=_('Poll Interval'), required=False, min_value=1
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = OSPFNeighbor
+    fieldsets = (
+        FieldSet('priority', 'poll_interval'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('priority', 'poll_interval', 'description')

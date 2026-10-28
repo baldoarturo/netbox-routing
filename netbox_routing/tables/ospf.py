@@ -10,6 +10,7 @@ from netbox_routing.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFNeighbor,
 )
 
 __all__ = (
@@ -20,6 +21,7 @@ __all__ = (
     'OSPFRedistributionTable',
     'OSPFVirtualLinkTable',
     'OSPFSummaryAddressTable',
+    'OSPFNeighborTable',
 )
 
 
@@ -296,4 +298,42 @@ class OSPFSummaryAddressTable(NetBoxTable):
             'prefix',
             'not_advertise',
             'route_tag',
+        )
+
+
+class OSPFNeighborTable(NetBoxTable):
+    ospf_interface = tables.Column(verbose_name=_('OSPF Interface'), linkify=True)
+    instance = tables.Column(
+        verbose_name=_('Instance'),
+        linkify=True,
+        accessor='ospf_interface__instance',
+    )
+    device = tables.Column(
+        verbose_name=_('Device'),
+        linkify=True,
+        accessor='ospf_interface__interface__device',
+    )
+    ip_address = tables.Column(verbose_name=_('IP Address'), linkify=True)
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFNeighbor
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'ospf_interface',
+            'ip_address',
+            'priority',
+            'poll_interval',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'ospf_interface',
+            'ip_address',
+            'priority',
+            'poll_interval',
         )

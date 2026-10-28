@@ -31,6 +31,7 @@ from netbox_routing.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFNeighbor,
 )
 
 __all__ = (
@@ -41,6 +42,7 @@ __all__ = (
     'OSPFRedistributionFilterSet',
     'OSPFVirtualLinkFilterSet',
     'OSPFSummaryAddressFilterSet',
+    'OSPFNeighborFilterSet',
 )
 
 
@@ -498,4 +500,45 @@ class OSPFSummaryAddressFilterSet(NetBoxModelFilterSet):
         try:
             return queryset.filter(prefix=str(netaddr.IPNetwork(value).cidr))
         except (netaddr.AddrFormatError, ValueError):
+            return queryset.none()
+
+
+@register_filterset
+class OSPFNeighborFilterSet(NetBoxModelFilterSet):
+    ospf_interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface',
+        queryset=OSPFInterface.objects.all(),
+        label=_('OSPF Interface (ID)'),
+    )
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface__instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface__interface__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    ip_address = MultiValueCharFilter(method='filter_ip_address', label=_('IP Address'))
+
+    class Meta:
+        model = OSPFNeighbor
+        fields = ('ospf_interface', 'priority', 'poll_interval')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = (
+            Q(ospf_interface__instance__name__icontains=value)
+            | Q(ospf_interface__interface__name__icontains=value)
+            | Q(ospf_interface__interface__device__name__icontains=value)
+            | Q(ip_address__icontains=value)
+        )
+        return queryset.filter(qs_filter)
+
+    def filter_ip_address(self, queryset, name, value):
+        try:
+            return queryset.filter(**{f'{name}__in': value})
+        except ValidationError:
             return queryset.none()
