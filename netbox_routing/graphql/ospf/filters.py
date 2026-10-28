@@ -13,6 +13,7 @@ __all__ = (
     'OSPFAreaFilter',
     'OSPFInstanceFilter',
     'OSPFInterfaceFilter',
+    'OSPFNetworkFilter',
 )
 
 
@@ -41,3 +42,15 @@ class OSPFInterfaceFilter(InterfaceMixin, VRFMixin, PrimaryModelFilter):
     ) = strawberry_django.filter_field()
     area_id: ID | None = strawberry_django.filter_field()
     network_type: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.OSPFNetwork, lookups=True)
+class OSPFNetworkFilter(PrimaryModelFilter):
+    ospf_interface: (
+        Annotated[
+            'OSPFInterfaceFilter', strawberry.lazy('netbox_routing.graphql.filters')
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    ospf_interface_id: ID | None = strawberry_django.filter_field()
+    ip_address_id: ID | None = strawberry_django.filter_field()

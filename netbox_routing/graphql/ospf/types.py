@@ -9,12 +9,14 @@ from netbox_routing.graphql.ospf.filters import (
     OSPFInstanceFilter,
     OSPFAreaFilter,
     OSPFInterfaceFilter,
+    OSPFNetworkFilter,
 )
 
 __all__ = (
     'OSPFInstanceType',
     'OSPFAreaType',
     'OSPFInterfaceType',
+    'OSPFNetworkType',
 )
 
 
@@ -60,3 +62,11 @@ class OSPFInterfaceType(PrimaryObjectType):
     mtu_ignore: bool
     authentication: str | None
     passphrase: str | None
+
+
+@strawberry_django.type(models.OSPFNetwork, fields='__all__', filters=OSPFNetworkFilter)
+class OSPFNetworkType(PrimaryObjectType):
+    ospf_interface: Annotated[
+        "OSPFInterfaceType", strawberry.lazy('netbox_routing.graphql.types')
+    ]
+    ip_address: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')]

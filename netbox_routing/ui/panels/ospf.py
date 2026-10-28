@@ -7,6 +7,7 @@ __all__ = (
     'OSPFAreaPanel',
     'OSPFInterfacePanel',
     'OSPFInterfaceSettingsPanel',
+    'OSPFNetworkPanel',
 )
 
 
@@ -60,3 +61,18 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     bfd = attrs.BooleanAttr('bfd', label=_('BFD'))
     authentication = attrs.ChoiceAttr('authentication', label=_('Authentication'))
     passphrase = attrs.TextAttr('passphrase', label=_('Passphrase'))
+
+
+class OSPFNetworkPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr(
+        'ospf_interface.instance', label=_('Instance'), linkify=True
+    )
+    area = attrs.RelatedObjectAttr('ospf_interface.area', label=_('Area'), linkify=True)
+    ospf_interface = attrs.RelatedObjectAttr(
+        'ospf_interface', label=_('OSPF Interface'), linkify=True
+    )
+    ip_address = attrs.RelatedObjectAttr(
+        'ip_address', label=_('IP Address'), linkify=True
+    )
+    subnet = attrs.TextAttr('subnet', label=_('Subnet'))
+    description = attrs.TextAttr('description', label=_('Description'))

@@ -63,4 +63,18 @@ ospf_interfaces = PluginMenuItem(
     ),
 )
 
-MENUITEMS = (ospf_instance, ospf_area, ospf_interfaces)
+ospf_networks = PluginMenuItem(
+    link='plugins:netbox_routing:ospfnetwork_list',
+    link_text='Networks',
+    permissions=['netbox_routing.view_ospfnetwork'],
+    buttons=(
+        PluginMenuButton(
+            link='plugins:netbox_routing:ospfnetwork_add',
+            title='Add',
+            icon_class=COL_ADD,
+            permissions=['netbox_routing.add_ospfnetwork'],
+        ),
+    ),
+)
+
+MENUITEMS = (ospf_instance, ospf_area, ospf_interfaces, ospf_networks)

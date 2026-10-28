@@ -2,12 +2,13 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
+from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
 
 __all__ = (
     'OSPFAreaTable',
     'OSPFInstanceTable',
     'OSPFInterfaceTable',
+    'OSPFNetworkTable',
 )
 
 
@@ -94,3 +95,50 @@ class OSPFInterfaceTable(NetBoxTable):
             'network_type',
             'passive',
         )
+
+
+class OSPFNetworkTable(NetBoxTable):
+    ospf_interface = tables.Column(verbose_name=_('OSPF Interface'), linkify=True)
+    instance = tables.Column(
+        verbose_name=_('Instance'),
+        linkify=True,
+        accessor='ospf_interface__instance',
+    )
+    area = tables.Column(
+        verbose_name=_('Area'), linkify=True, accessor='ospf_interface__area'
+    )
+    device = tables.Column(
+        verbose_name=_('Device'),
+        linkify=True,
+        accessor='ospf_interface__interface__device',
+    )
+    ip_address = tables.Column(verbose_name=_('IP Address'), linkify=True)
+    subnet = tables.Column(
+        verbose_name=_('Subnet'), accessor='ip_address__address', orderable=False
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFNetwork
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'area',
+            'device',
+            'ospf_interface',
+            'ip_address',
+            'subnet',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'area',
+            'ospf_interface',
+            'ip_address',
+            'subnet',
+        )
+
+    def render_subnet(self, record):
+        return str(record.subnet)

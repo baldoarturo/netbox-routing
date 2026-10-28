@@ -26,6 +26,7 @@ __all__ = (
     'OSPFInstance',
     'OSPFArea',
     'OSPFInterface',
+    'OSPFNetwork',
 )
 
 
@@ -323,5 +324,72 @@ class OSPFInterface(PrimaryModel):
                     'dead_interval': _(
                         'The dead interval must be greater than the hello interval.'
                     )
+                }
+            )
+
+
+class OSPFNetwork(PrimaryModel):
+    """
+    A `network` statement of an OSPF interface: a reference to the IP address
+    (and therefore the subnet) configured on that interface. The statement
+    itself is not computed here.
+    """
+
+    ospf_interface = models.ForeignKey(
+        to='netbox_routing.OSPFInterface',
+        related_name='networks',
+        on_delete=models.CASCADE,
+        verbose_name=_('OSPF Interface'),
+    )
+    ip_address = models.ForeignKey(
+        to='ipam.IPAddress',
+        related_name='ospf_networks',
+        on_delete=models.CASCADE,
+        verbose_name=_('IP Address'),
+    )
+
+    clone_fields = ('ospf_interface',)
+    prerequisite_models = (
+        'netbox_routing.OSPFInterface',
+        'ipam.IPAddress',
+    )
+
+    class Meta:
+        verbose_name = 'OSPF Network'
+        ordering = ('ospf_interface', 'ip_address')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('ospf_interface', 'ip_address'),
+                name='%(app_label)s_%(class)s_unique_interface_ip_address',
+                violation_error_message=_(
+                    'This IP address is already a network of the OSPF interface.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return str(self.subnet)
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:ospfnetwork', args=[self.pk])
+
+    @property
+    def subnet(self):
+        return netaddr.IPNetwork(str(self.ip_address.address)).cidr
+
+    def clean(self):
+        super().clean()
+        if not (self.ospf_interface_id and self.ip_address_id):
+            return
+        if self.subnet.version != 4:
+            raise ValidationError(
+                {'ip_address': _('OSPFv2 networks must be IPv4 addresses.')}
+            )
+        if self.ip_address.assigned_object != self.ospf_interface.interface:
+            raise ValidationError(
+                {
+                    'ip_address': _(
+                        'The IP address must be assigned to the OSPF interface\'s interface ({interface}).'
+                    ).format(interface=self.ospf_interface.interface)
                 }
             )

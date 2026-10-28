@@ -6,7 +6,12 @@ from .bgp import (
     BGPSettingFilterForm,
     BFDProfileFilterForm,
 )
-from .ospf import OSPFAreaFilterForm, OSPFInstanceFilterForm, OSPFInterfaceFilterForm
+from .ospf import (
+    OSPFAreaFilterForm,
+    OSPFInstanceFilterForm,
+    OSPFInterfaceFilterForm,
+    OSPFNetworkFilterForm,
+)
 from .isis import (
     ISISInstanceFilterForm,
     ISISInterfaceFilterForm,
@@ -55,6 +60,7 @@ __all__ = (
     'OSPFAreaFilterForm',
     'OSPFInstanceFilterForm',
     'OSPFInterfaceFilterForm',
+    'OSPFNetworkFilterForm',
     # Routing Objects
     'PrefixListFilterForm',
     'PrefixListEntryFilterForm',

@@ -16,6 +16,7 @@ __all__ = (
     'OSPFInstanceFilterSet',
     'OSPFAreaFilterSet',
     'OSPFInterfaceFilterSet',
+    'OSPFNetworkFilterSet',
     'ISISInstanceFilterSet',
     'ISISInterfaceFilterSet',
     'ISISSettingFilterSet',

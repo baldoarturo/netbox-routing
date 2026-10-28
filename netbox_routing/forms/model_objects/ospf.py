@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.forms import ChoiceField
 
 from dcim.models import Interface, Device
-from ipam.models import VRF
+from ipam.models import VRF, IPAddress
 from netbox.forms import PrimaryModelForm
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import DynamicModelChoiceField
@@ -13,12 +13,13 @@ from utilities.forms.rendering import FieldSet
 from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.choices.ospf import OSPFExternalMetricTypeChoices
 from netbox_routing.constants.ospf import OSPF_INTERFACE_TIMERS
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
+from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
 
 __all__ = (
     'OSPFAreaForm',
     'OSPFInstanceForm',
     'OSPFInterfaceForm',
+    'OSPFNetworkForm',
 )
 
 
@@ -234,3 +235,39 @@ class OSPFInterfaceForm(PrimaryModelForm):
                         ),
                     }
                 )
+
+
+class OSPFNetworkForm(PrimaryModelForm):
+    ospf_interface = DynamicModelChoiceField(
+        queryset=OSPFInterface.objects.all(),
+        required=True,
+        selector=True,
+        label=_('OSPF Interface'),
+    )
+    ip_address = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=True,
+        selector=True,
+        label=_('IP Address'),
+        help_text=_('Must be an IPv4 address assigned to the OSPF interface'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'ospf_interface',
+            'ip_address',
+            'description',
+            name=_('Network'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFNetwork
+        fields = (
+            'ospf_interface',
+            'ip_address',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )

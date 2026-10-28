@@ -38,7 +38,12 @@ from .isis.types import (
     ISISPrefixSIDType,
     ISISSRv6LocatorType,
 )
-from .ospf.types import OSPFInstanceType, OSPFAreaType, OSPFInterfaceType
+from .ospf.types import (
+    OSPFInstanceType,
+    OSPFAreaType,
+    OSPFInterfaceType,
+    OSPFNetworkType,
+)
 from .static.types import StaticRouteType
 
 
@@ -58,6 +63,9 @@ class OSPFQuery:
 
     ospf_interface: OSPFInterfaceType = strawberry_django.field()
     ospf_interface_list: list[OSPFInterfaceType] = strawberry_django.field()
+
+    ospf_network: OSPFNetworkType = strawberry_django.field()
+    ospf_network_list: list[OSPFNetworkType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")

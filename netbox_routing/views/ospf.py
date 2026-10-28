@@ -18,13 +18,15 @@ from netbox_routing.filtersets.ospf import (
     OSPFInterfaceFilterSet,
     OSPFAreaFilterSet,
     OSPFInstanceFilterSet,
+    OSPFNetworkFilterSet,
 )
 from netbox_routing.forms import *
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
+from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
 from netbox_routing.tables.ospf import (
     OSPFAreaTable,
     OSPFInstanceTable,
     OSPFInterfaceTable,
+    OSPFNetworkTable,
 )
 from netbox_routing.ui import *
 
@@ -49,6 +51,12 @@ __all__ = (
     'OSPFInterfaceBulkEditView',
     'OSPFInterfaceDeleteView',
     'OSPFInterfaceBulkDeleteView',
+    'OSPFNetworkListView',
+    'OSPFNetworkView',
+    'OSPFNetworkEditView',
+    'OSPFNetworkBulkEditView',
+    'OSPFNetworkDeleteView',
+    'OSPFNetworkBulkDeleteView',
 )
 
 
@@ -297,3 +305,66 @@ class OSPFInterfaceBulkDeleteView(BulkDeleteView):
     )
     filterset = OSPFInterfaceFilterSet
     table = OSPFInterfaceTable
+
+
+#
+# Network
+#
+NETWORK_SELECT_RELATED = (
+    'ospf_interface__instance__device',
+    'ospf_interface__instance__vrf',
+    'ospf_interface__area',
+    'ospf_interface__interface__device',
+    'ip_address',
+)
+
+
+@register_model_view(OSPFNetwork, name='list', path='', detail=False)
+class OSPFNetworkListView(ObjectListView):
+    queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
+    table = OSPFNetworkTable
+    filterset = OSPFNetworkFilterSet
+    filterset_form = OSPFNetworkFilterForm
+
+
+@register_model_view(OSPFNetwork)
+class OSPFNetworkView(ObjectView):
+    queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFNetworkPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFNetwork, name='add', detail=False)
+@register_model_view(OSPFNetwork, name='edit')
+class OSPFNetworkEditView(ObjectEditView):
+    queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
+    form = OSPFNetworkForm
+
+
+@register_model_view(OSPFNetwork, name='delete')
+class OSPFNetworkDeleteView(ObjectDeleteView):
+    queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
+
+
+@register_model_view(OSPFNetwork, name='bulk_edit', detail=False)
+class OSPFNetworkBulkEditView(BulkEditView):
+    queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
+    filterset = OSPFNetworkFilterSet
+    table = OSPFNetworkTable
+    form = OSPFNetworkBulkEditForm
+
+
+@register_model_view(OSPFNetwork, name='bulk_delete', detail=False)
+class OSPFNetworkBulkDeleteView(BulkDeleteView):
+    queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
+    filterset = OSPFNetworkFilterSet
+    table = OSPFNetworkTable
