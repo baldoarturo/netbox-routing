@@ -78,6 +78,10 @@ class OSPFAreaSerializer(NetBoxModelSerializer):
             'instance',
             'area_id',
             'area_type',
+            'default_cost',
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
             'description',
             'comments',
         )

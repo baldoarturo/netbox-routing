@@ -78,7 +78,57 @@ class OSPFInstanceTestCase(TestCase):
 
 
 class OSPFAreaTestCase(TestCase):
-    pass
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Device 1')
+        cls.instance = OSPFInstance.objects.create(
+            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+        )
+
+    def _area(self, area_type, **kwargs):
+        return OSPFArea(
+            instance=self.instance, area_id='1', area_type=area_type, **kwargs
+        )
+
+    def test_options_default_to_off(self):
+        area = self._area('standard')
+        area.full_clean()
+        self.assertIsNone(area.default_cost)
+        self.assertFalse(area.nssa_translate_always)
+        self.assertFalse(area.nssa_no_redistribution)
+        self.assertFalse(area.nssa_default_originate)
+
+    def test_default_cost_only_for_stub_and_nssa_areas(self):
+        for area_type in ('stub', 'tsa', 'nssa', 'tnssa'):
+            with self.subTest(area_type=area_type):
+                self._area(area_type, default_cost=10).full_clean()
+        for area_type in ('standard', 'backbone'):
+            with self.subTest(area_type=area_type):
+                with self.assertRaises(ValidationError) as cm:
+                    self._area(area_type, default_cost=10).full_clean()
+                self.assertIn('default_cost', cm.exception.error_dict)
+
+    def test_default_cost_limits(self):
+        self._area('stub', default_cost=0).full_clean()
+        self._area('stub', default_cost=16777215).full_clean()
+        with self.assertRaises(ValidationError) as cm:
+            self._area('stub', default_cost=16777216).full_clean()
+        self.assertIn('default_cost', cm.exception.error_dict)
+
+    def test_nssa_options_only_for_nssa_areas(self):
+        for field in (
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
+        ):
+            for area_type in ('nssa', 'tnssa'):
+                with self.subTest(field=field, area_type=area_type):
+                    self._area(area_type, **{field: True}).full_clean()
+            for area_type in ('standard', 'backbone', 'stub', 'tsa'):
+                with self.subTest(field=field, area_type=area_type):
+                    with self.assertRaises(ValidationError) as cm:
+                        self._area(area_type, **{field: True}).full_clean()
+                    self.assertIn(field, cm.exception.error_dict)
 
 
 class OSPFInterfaceTestCase(TestCase):

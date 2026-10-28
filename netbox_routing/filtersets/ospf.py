@@ -134,7 +134,15 @@ class OSPFAreaFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = OSPFArea
-        fields = ('instance', 'area_id', 'area_type')
+        fields = (
+            'instance',
+            'area_id',
+            'area_type',
+            'default_cost',
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():

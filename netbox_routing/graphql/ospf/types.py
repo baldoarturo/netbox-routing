@@ -44,6 +44,10 @@ class OSPFAreaType(PrimaryObjectType):
     ]
     area_id: str
     area_type: str
+    default_cost: int | None
+    nssa_translate_always: bool
+    nssa_no_redistribution: bool
+    nssa_default_originate: bool
 
 
 @strawberry_django.type(

@@ -21,6 +21,8 @@ from netbox_routing.constants.ospf import (
     OSPF_HELLO_INTERVAL_MIN,
     OSPF_RETRANSMIT_INTERVAL_MAX,
     OSPF_RETRANSMIT_INTERVAL_MIN,
+    OSPF_STUB_DEFAULT_COST_MAX,
+    OSPF_STUB_DEFAULT_COST_MIN,
     OSPF_TRANSMIT_DELAY_MAX,
     OSPF_TRANSMIT_DELAY_MIN,
 )
@@ -103,14 +105,44 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
     area_type = forms.ChoiceField(
         label=_('Area Type'), choices=OSPFAreaTypeChoices, required=False
     )
+    default_cost = forms.IntegerField(
+        label=_('Default Cost'),
+        required=False,
+        min_value=OSPF_STUB_DEFAULT_COST_MIN,
+        max_value=OSPF_STUB_DEFAULT_COST_MAX,
+    )
+    nssa_translate_always = forms.ChoiceField(
+        label=_('Translate Type 7 Always'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
+    nssa_no_redistribution = forms.ChoiceField(
+        label=_('No Redistribution'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
+    nssa_default_originate = forms.ChoiceField(
+        label=_('Default Information Originate'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
     comments = CommentField()
 
     model = OSPFArea
-    fieldsets = (FieldSet('description'),)
-    nullable_fields = ()
+    fieldsets = (
+        FieldSet('area_type', 'default_cost'),
+        FieldSet(
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
+            name='NSSA',
+        ),
+        FieldSet('description'),
+    )
+    nullable_fields = ('default_cost',)
 
 
 class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):

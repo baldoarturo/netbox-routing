@@ -150,12 +150,31 @@ class OSPFAreaTestCase(TestCase):
 
         OSPFArea.objects.bulk_create(
             (
-                OSPFArea(instance=instances[0], area_id='0.0.0.0'),
+                OSPFArea(
+                    instance=instances[0],
+                    area_id='0.0.0.0',
+                    area_type='nssa',
+                    default_cost=20,
+                    nssa_translate_always=True,
+                ),
                 OSPFArea(instance=instances[1], area_id='1.1.1.1'),
                 OSPFArea(instance=instances[0], area_id=0),
                 OSPFArea(instance=instances[1], area_id=1),
             )
         )
+
+    def test_stub_nssa_options(self):
+        params = {'default_cost': [20]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'nssa_translate_always': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'nssa_translate_always': False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+        params = {'nssa_no_redistribution': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
 
     def test_q(self):
         params = {'q': '1.1.1.1'}

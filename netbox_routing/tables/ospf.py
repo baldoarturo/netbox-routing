@@ -57,7 +57,18 @@ class OSPFAreaTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = OSPFArea
-        fields = ('pk', 'id', 'instance', 'device', 'area_id', 'area_type')
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'area_id',
+            'area_type',
+            'default_cost',
+            'nssa_translate_always',
+            'nssa_no_redistribution',
+            'nssa_default_originate',
+        )
         default_columns = ('pk', 'id', 'instance', 'area_id', 'area_type')
 
 
