@@ -4,6 +4,7 @@ from dcim.models import Device, Interface
 from ipam.models import VRF
 from utilities.testing import create_test_device
 
+from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.filtersets import *
 from netbox_routing.models import *
 
@@ -258,6 +259,7 @@ class OSPFInterfaceTestCase(TestCase):
                 instance=instances[1],
                 area=areas[1],
                 passive=False,
+                network_type=OSPFNetworkTypeChoices.POINT_TO_POINT,
             ),
             OSPFInterface(
                 interface=interfaces[2],
@@ -270,9 +272,17 @@ class OSPFInterfaceTestCase(TestCase):
                 instance=instances[3],
                 area=areas[3],
                 passive=False,
+                network_type=OSPFNetworkTypeChoices.POINT_TO_POINT,
             ),
         )
         OSPFInterface.objects.bulk_create(data)
+
+    def test_network_type(self):
+        params = {'network_type': [OSPFNetworkTypeChoices.POINT_TO_POINT]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'network_type': [OSPFNetworkTypeChoices.BROADCAST]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_q(self):
         params = {'q': 'Interface 1'}

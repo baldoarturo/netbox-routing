@@ -73,6 +73,11 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         required=False,
         selector=True,
     )
+    network_type = forms.ChoiceField(
+        label=_('Network Type'),
+        choices=add_blank_choice(choices.OSPFNetworkTypeChoices),
+        required=False,
+    )
     passive = forms.ChoiceField(
         label=_('Passive'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
@@ -96,6 +101,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     fieldsets = (
         FieldSet('instance', 'area', name='OSPF'),
         FieldSet(
+            'network_type',
             'passive',
             'priority',
             'bfd',

@@ -4,6 +4,7 @@ from django.test import TestCase
 from dcim.models import Interface
 from utilities.testing import create_test_device
 
+from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.models import *
 
 __all__ = (
@@ -37,6 +38,11 @@ class OSPFInterfaceTestCase(TestCase):
         area = OSPFArea.objects.create(area_id='0.0.0.0')
         OSPFInterface.objects.create(
             instance=cls.instance, area=area, interface=interface
+        )
+
+    def test_network_type_defaults_to_broadcast(self):
+        self.assertEqual(
+            OSPFInterface.objects.get().network_type, OSPFNetworkTypeChoices.BROADCAST
         )
 
     def test_delete_device_with_ospf_interfaces(self):
