@@ -1,35 +1,41 @@
 #!/bin/bash
 set -euo pipefail
 
-# Usage: dev/run.sh [--netbox DIR] [--reset] [--no-server]
+# Usage: dev/run.sh [--netbox DIR] [--reset] [--no-demo] [--no-server]
 #   --netbox DIR  where NetBox is (default: $NETBOX_ROOT, or .netbox/ inside this
 #                 repository); cloned there at a pinned tag if it does not exist
 #   --reset       drop and recreate the dev database (never any other)
+#   --no-demo     create the database empty (every migration runs, a few minutes)
+#                 instead of from the NetBox demo data
 #   --no-server   prepare everything but do not start the server
 #
-# Runs NetBox with this plugin against its own database ($DEV_DB). It takes
+# Runs NetBox with this plugin against its own database ($PLUGIN_DEV_DB). It takes
 # care of everything it needs, so it works on a fresh clone of the repository,
 # and it can be run as many times as wanted (every step is skipped when it is
 # already done):
 #   1. installs podman and the build packages with apt or dnf (sudo) if missing
-#   2. clones NetBox (tag $NETBOX_REF, see dev/lib.sh) if DIR does not exist
+#   2. clones NetBox (tag $NETBOX_REF) if DIR does not exist
 #   3. creates the virtualenv there, with NetBox's requirements, this plugin
 #      (editable, from the main checkout) and podman-compose
 #   4. starts postgres and redis from dev/compose.yml if they are not running
-#   5. creates $DEV_DB from the NetBox demo data (downloaded) if it is missing;
+#   5. creates the database from the NetBox demo data (the version matching
+#      NetBox, downloaded) if it is missing;
 #      --reset drops it first
 #   6. migrates, makes sure an admin/admin user exists and starts the server
 #
-# Environment: NETBOX_ROOT (same as --netbox), NETBOX_ROUTING_DEV_DB (default:
-# netbox_routing_protocols_dev), PORT (default: 8000), NETBOX_REF, DEMO_VERSION.
+# The plugin-specific settings are in dev/plugin.conf. Environment: NETBOX_ROOT
+# (same as --netbox), PORT (default: 8000), DEMO_VERSION, and the values of
+# plugin.conf (PLUGIN_DEV_DB, NETBOX_REF...).
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 RESET=""
+DEMO=1
 SERVER=1
 while [ $# -gt 0 ]; do
     case "$1" in
         --reset) RESET=1 ;;
+        --no-demo) DEMO="" ;;
         --no-server) SERVER="" ;;
         --netbox) [ $# -ge 2 ] || die "--netbox needs a directory"; NETBOX_ROOT="$2"; shift ;;
         --netbox=*) NETBOX_ROOT="${1#--netbox=}" ;;
@@ -38,7 +44,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-DEV_DB="${NETBOX_ROUTING_DEV_DB:-netbox_routing_protocols_dev}"
+DEV_DB="$PLUGIN_DEV_DB"
 PORT="${PORT:-8000}"
 
 dev_setup
@@ -51,20 +57,26 @@ if [ -n "$RESET" ]; then
 fi
 
 if [ "$(psql_ -Atc "SELECT count(*) FROM pg_database WHERE datname = '$DEV_DB'")" = 0 ]; then
-    DEMO_SQL="$(demo_sql)"
-    say "Creating $DEV_DB from the demo data $DEMO_VERSION"
+    if [ -n "$DEMO" ]; then
+        demo_sql
+        say "Loading the demo data $DEMO_VERSION into $DEV_DB"
+    fi
     psql_ -c "CREATE DATABASE \"$DEV_DB\""
-    # Two fixes to the dump: it is owned by the postgres role, which this container
-    # does not have, and it empties the search_path, so the ltree operators used
-    # by its triggers cannot be found
-    grep -v '^\\restrict\|^\\unrestrict' "$DEMO_SQL" \
-        | sed "s/OWNER TO postgres;/OWNER TO netbox;/; s/set_config('search_path', '', false)/set_config('search_path', 'public', false)/" \
-        | podman exec -i "$POSTGRES" psql -U netbox -d "$DEV_DB" -v ON_ERROR_STOP=1 >/dev/null
+    if [ -n "$DEMO" ]; then
+        # Two fixes to the dump: it is owned by the postgres role, which this container
+        # does not have, and it empties the search_path, so the ltree operators used
+        # by its triggers cannot be found
+        grep -v '^\\restrict\|^\\unrestrict' "$DEMO_SQL" \
+            | sed "s/OWNER TO postgres;/OWNER TO netbox;/; s/set_config('search_path', '', false)/set_config('search_path', 'public', false)/" \
+            | podman exec -i "$POSTGRES" psql -U netbox -d "$DEV_DB" -v ON_ERROR_STOP=1 >/dev/null \
+            || { psql_ -c "DROP DATABASE \"$DEV_DB\"" >/dev/null; die "loading the demo data failed (the incomplete database was dropped)"; }
+    else
+        say "Created $DEV_DB empty"
+    fi
 fi
 
 export PYTHONPATH="$DEV_DIR${PYTHONPATH:+:$PYTHONPATH}"
 export NETBOX_CONFIGURATION=configuration_dev
-export NETBOX_ROUTING_DEV_DB="$DEV_DB"
 cd "$NETBOX_ROOT/netbox"
 
 say "Migrating $DEV_DB"

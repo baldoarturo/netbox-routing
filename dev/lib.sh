@@ -7,8 +7,9 @@
 # Variables a script can set before calling dev_setup:
 #   NETBOX_ROOT  where NetBox is (cloned there if missing). Default: .netbox/
 #                in the main checkout of this repository.
-# Environment overrides: NETBOX_REF (tag cloned when NetBox is missing),
-# DEMO_VERSION (demo data used for new databases).
+# The plugin-specific values (module, database, NetBox tag...) come from
+# dev/plugin.conf. Other overrides: DEMO_VERSION (demo data used for new
+# databases; default: the one matching the NetBox in use).
 
 DEV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # This checkout of the repository (a git worktree, maybe)
@@ -17,9 +18,9 @@ REPO_DIR="$(dirname "$DEV_DIR")"
 # where .netbox/ lives, shared by all the worktrees
 MAIN_DIR="$(cd "$(git -C "$DEV_DIR" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)"
 
-NETBOX_REF="${NETBOX_REF:-v4.7.4}"
-DEMO_VERSION="${DEMO_VERSION:-v4.7}"
-COMPOSE_PROJECT="netbox-routing-protocols-dev"
+source "$DEV_DIR/plugin.conf"
+export PLUGIN_MODULE PLUGIN_DEV_DB
+COMPOSE_PROJECT="$(echo "$PLUGIN_MODULE" | tr '_' '-')-dev"
 
 say() { echo "==> $*"; }
 die() { echo "error: $*" >&2; exit 1; }
@@ -138,15 +139,21 @@ dev_setup() {
     ensure_containers
 }
 
-# NetBox demo data (SQL dump), downloaded the first time a database needs it.
-# Prints the path.
+# NetBox demo data (SQL dump) matching the NetBox in use (4.7.3 -> v4.7),
+# downloaded the first time a database needs it. Sets DEMO_VERSION and DEMO_SQL.
 demo_sql() {
-    local sql="$NETBOX_ROOT/netbox-demo-$DEMO_VERSION.sql"
+    local version="${DEMO_VERSION:-}"
+    if [ -z "$version" ]; then
+        version="$(sed -n 's/^version: *"\{0,1\}\([0-9]*\.[0-9]*\).*/v\1/p' "$NETBOX_ROOT/netbox/release.yaml" | head -1)"
+        [ -n "$version" ] || die "could not tell the NetBox version from $NETBOX_ROOT/netbox/release.yaml: set DEMO_VERSION (e.g. v4.7)"
+    fi
+    DEMO_VERSION="$version"
+    local sql="$NETBOX_ROOT/netbox-demo-$version.sql"
     if [ ! -f "$sql" ]; then
-        say "Downloading the NetBox demo data $DEMO_VERSION" >&2
-        curl -fsSL -o "$sql.part" "https://github.com/netbox-community/netbox-demo-data/raw/refs/heads/master/sql/netbox-demo-$DEMO_VERSION.sql" \
-            || { rm -f "$sql.part"; die "could not download the demo data $DEMO_VERSION"; }
+        say "Downloading the NetBox demo data $version"
+        curl -fsSL -o "$sql.part" "https://github.com/netbox-community/netbox-demo-data/raw/refs/heads/master/sql/netbox-demo-$version.sql" \
+            || { rm -f "$sql.part"; die "could not download the demo data $version: set DEMO_VERSION to one that exists in netbox-community/netbox-demo-data"; }
         mv "$sql.part" "$sql"
     fi
-    echo "$sql"
+    DEMO_SQL="$sql"
 }

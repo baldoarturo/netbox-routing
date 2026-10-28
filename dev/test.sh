@@ -12,15 +12,16 @@ set -euo pipefail
 # Runs the plugin tests (all of them without arguments) against a copy of a
 # template database that is already migrated, instead of applying every NetBox
 # migration on each run, which takes about 4 minutes. The template is built once
-# from origin/main; each run clones it (under a second) and uses --keepdb, so
+# from $TEMPLATE_REF; each run clones it (under a second) and uses --keepdb, so
 # Django only applies the migrations the checked out branch adds.
 #
 # Examples:
 #   dev/test.sh
-#   dev/test.sh netbox_routing_protocols.tests.ospf
+#   dev/test.sh <module>.tests.some_package
 #   dev/test.sh --parallel=4          (a failing test then hides its error: rerun it alone)
 #
-# Environment: NETBOX_ROOT (same as --netbox).
+# The plugin-specific settings are in dev/plugin.conf. Environment: NETBOX_ROOT
+# (same as --netbox).
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
@@ -43,12 +44,11 @@ HAS_LABEL=""
 for arg in "${ARGS[@]+"${ARGS[@]}"}"; do
     case "$arg" in -*|[0-9]*) ;; *) HAS_LABEL=1 ;; esac
 done
-[ -n "$HAS_LABEL" ] || ARGS+=(netbox_routing_protocols)
+[ -n "$HAS_LABEL" ] || ARGS+=("$PLUGIN_MODULE")
 if [ -n "$OWN" ]; then
+    [ -n "$OWN_TEST_PATTERNS" ] || die "--own needs OWN_TEST_PATTERNS in dev/plugin.conf"
     # test ids contain the module and the class: select the hand-written ones
-    for pattern in test_models test_forms test_filtersets test_form_meta test_urls \
-        migration unique ModelTestCase FormTestCase FilterSetTestCase \
-        AuthenticationTestCase InheritanceTestCase; do
+    for pattern in $OWN_TEST_PATTERNS; do
         ARGS+=(-k "$pattern")
     done
 fi
@@ -74,23 +74,23 @@ drop_test_databases() {
 run_tests() { # $1: source directory of the plugin, rest: manage.py test arguments
     local source="$1"; shift
     (cd "$NETBOX_ROOT/netbox" && \
-        PYTHONPATH="$source:$DEV_DIR" NETBOX_CONFIGURATION=configuration_test \
+        PYTHONPATH="$source:$DEV_DIR" NETBOX_CONFIGURATION=configuration_test PLUGIN_MODULE="$PLUGIN_MODULE" \
         "$PYTHON" manage.py test "$@")
 }
 
 build_template() {
-    echo "==> Building the template database from origin/main (once, about 5 minutes)"
+    echo "==> Building the template database from $TEMPLATE_REF (once, about 5 minutes)"
     local source="$MAIN_DIR" tmp=""
-    if git -C "$MAIN_DIR" fetch -q origin main 2>/dev/null; then
+    if git -C "$MAIN_DIR" fetch -q "${TEMPLATE_REF%%/*}" "${TEMPLATE_REF#*/}" 2>/dev/null; then
         tmp="$(mktemp -d)"
-        if git -C "$MAIN_DIR" worktree add -q --detach "$tmp/main" origin/main 2>/dev/null; then
+        if git -C "$MAIN_DIR" worktree add -q --detach "$tmp/main" "$TEMPLATE_REF" 2>/dev/null; then
             source="$tmp/main"
         fi
     fi
     drop_test_databases
     drop_db "$TEMPLATE_DB"
     # creates and migrates the test database, then keeps it
-    run_tests "$source" netbox_routing_protocols.tests.test_urls --noinput --keepdb
+    run_tests "$source" "$TEMPLATE_TEST" --noinput --keepdb
     drop_db "$TEMPLATE_DB"
     psql_q -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$TEST_DB' AND pid <> pg_backend_pid()" >/dev/null
     psql_q -c "CREATE DATABASE \"$TEMPLATE_DB\" TEMPLATE \"$TEST_DB\"" >/dev/null
@@ -105,8 +105,8 @@ if [ -n "$REBUILD" ] || ! exists "$TEMPLATE_DB"; then
 else
     # The template must not hold migrations this checkout does not have
     missing=""
-    for name in $(podman exec -i "$POSTGRES" psql -U netbox -d "$TEMPLATE_DB" -Atq -c "SELECT name FROM django_migrations WHERE app = 'netbox_routing_protocols'" 2>/dev/null); do
-        [ -e "$REPO_DIR/netbox_routing_protocols/migrations/$name.py" ] || missing="$missing $name"
+    for name in $(podman exec -i "$POSTGRES" psql -U netbox -d "$TEMPLATE_DB" -Atq -c "SELECT name FROM django_migrations WHERE app = '$PLUGIN_MODULE'" 2>/dev/null); do
+        [ -e "$REPO_DIR/$PLUGIN_MODULE/migrations/$name.py" ] || missing="$missing $name"
     done
     if [ -n "$missing" ]; then
         echo "warning: the template has migrations this checkout lacks:$missing" >&2
