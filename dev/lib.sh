@@ -90,14 +90,15 @@ ensure_netbox() {
 
 # Virtualenv with NetBox's requirements, the plugin (editable, from the main
 # checkout), podman-compose and tblib (so `--parallel` can report failures).
-# Reinstalled only when those requirements change.
+# Reinstalled only when those requirements change, or when the checkout moves
+# (the editable install points to its path).
 ensure_venv() {
     if [ ! -x "$PYTHON" ]; then
         say "Creating the virtualenv in $VENV"
         "$(find_python)" -m venv "$VENV"
     fi
     local extras="podman-compose tblib" stamp="$VENV/.dev-requirements" want
-    want="$(cat "$NETBOX_ROOT/requirements.txt" "$MAIN_DIR/pyproject.toml" <(echo "$extras") | sha256sum | cut -d' ' -f1)"
+    want="$(cat "$NETBOX_ROOT/requirements.txt" "$MAIN_DIR/pyproject.toml" <(echo "$extras") <(echo "$MAIN_DIR") | sha256sum | cut -d' ' -f1)"
     if [ "$(cat "$stamp" 2>/dev/null)" != "$want" ]; then
         say "Installing NetBox requirements and the plugin (a few minutes the first time)"
         "$PYTHON" -m pip install -q --disable-pip-version-check -r "$NETBOX_ROOT/requirements.txt"
