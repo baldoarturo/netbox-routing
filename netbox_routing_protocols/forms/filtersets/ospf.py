@@ -10,6 +10,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFExternalMetricTypeChoices,
     OSPFGracefulRestartChoices,
     OSPFNetworkTypeChoices,
+    OSPFRangeTypeChoices,
     OSPFRedistributionProtocolChoices,
     OSPFRouteTypeChoices,
 )
@@ -493,7 +494,7 @@ class OSPFAreaRangeFilterForm(NetBoxModelFilterSetForm):
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet('device_id', 'instance_id', 'area_id', name=_('OSPF')),
-        FieldSet('prefix', 'advertise', name=_('Address Range')),
+        FieldSet('prefix', 'range_type', 'advertise', name=_('Address Range')),
     )
     device_id = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(),
@@ -514,6 +515,9 @@ class OSPFAreaRangeFilterForm(NetBoxModelFilterSetForm):
         label=_('Area'),
     )
     prefix = forms.CharField(required=False, label=_('Prefix'))
+    range_type = forms.MultipleChoiceField(
+        choices=OSPFRangeTypeChoices, required=False, label=_('Range Type')
+    )
     advertise = forms.NullBooleanField(
         required=False,
         label=_('Advertise'),

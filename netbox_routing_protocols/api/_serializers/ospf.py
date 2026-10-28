@@ -359,6 +359,7 @@ class OSPFAreaRangeSerializer(NetBoxModelSerializer):
             'display',
             'area',
             'prefix',
+            'range_type',
             'advertise',
             'description',
             'comments',

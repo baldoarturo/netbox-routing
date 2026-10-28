@@ -40,6 +40,46 @@ class OSPFAreaRangeModelTestCase(TestCase):
         self.assertTrue(area_range.advertise)
         self.assertEqual(str(area_range), '10.0.0.0/8')
 
+    def test_a_range_summarizes_intra_area_routes_by_default(self):
+        self.assertEqual(self._range().range_type, 'summary')
+
+    def test_nssa_ranges_only_exist_on_nssa_areas(self):
+        for number, area_type in enumerate(('nssa', 'tnssa'), start=90):
+            with self.subTest(area_type=area_type):
+                nssa = OSPFArea.objects.create(
+                    instance=self.instance,
+                    area_id=str(number),
+                    area_type=area_type,
+                )
+                OSPFAreaRange(
+                    area=nssa, prefix='10.0.0.0/8', range_type='nssa-external'
+                ).full_clean()
+        for number, area_type in enumerate(('standard', 'stub', 'tsa'), start=80):
+            with self.subTest(area_type=area_type):
+                other = OSPFArea.objects.create(
+                    instance=self.instance,
+                    area_id=str(number),
+                    area_type=area_type,
+                )
+                with self.assertRaises(ValidationError) as cm:
+                    OSPFAreaRange(
+                        area=other, prefix='10.0.0.0/8', range_type='nssa-external'
+                    ).full_clean()
+                self.assertIn('range_type', cm.exception.error_dict)
+
+    def test_the_same_prefix_can_be_a_summary_and_an_nssa_range(self):
+        nssa = OSPFArea.objects.create(
+            instance=self.instance, area_id='7', area_type='nssa'
+        )
+        OSPFAreaRange.objects.create(area=nssa, prefix='10.0.0.0/8')
+        OSPFAreaRange.objects.create(
+            area=nssa, prefix='10.0.0.0/8', range_type='nssa-external'
+        )
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            OSPFAreaRange.objects.create(
+                area=nssa, prefix='10.0.0.0/8', range_type='nssa-external'
+            )
+
     def test_a_range_can_be_not_advertised(self):
         self._range(advertise=False).full_clean()
 
@@ -79,16 +119,22 @@ class OSPFAreaRangeFilterSetTestCase(TestCase):
                     area=cls.areas[0], prefix='172.16.0.0/12', advertise=False
                 ),
                 OSPFAreaRange(area=cls.areas[1], prefix='10.0.0.0/8'),
+                OSPFAreaRange(
+                    area=cls.areas[1],
+                    prefix='192.168.0.0/16',
+                    range_type='nssa-external',
+                ),
             )
         )
 
     def test_filters(self):
         for params, expected in (
             ({'area_id': [self.areas[0].pk]}, 2),
-            ({'instance_id': [self.instance.pk]}, 3),
-            ({'device_id': [self.device.pk]}, 3),
+            ({'instance_id': [self.instance.pk]}, 4),
+            ({'device_id': [self.device.pk]}, 4),
             ({'prefix': '10.0.0.0/8'}, 2),
             ({'prefix': 'not a prefix'}, 0),
+            ({'range_type': ['nssa-external']}, 1),
             ({'advertise': False}, 1),
             ({'q': '172.16'}, 1),
         ):
@@ -123,6 +169,7 @@ class OSPFAreaRangeViewTestCase(
         cls.form_data = {
             'area': cls.areas[1].pk,
             'prefix': netaddr.IPNetwork('192.168.0.0/16'),
+            'range_type': 'summary',
             'advertise': False,
         }
         cls.bulk_edit_data = {'description': 'A test description', 'advertise': False}

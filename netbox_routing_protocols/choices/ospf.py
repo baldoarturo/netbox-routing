@@ -133,3 +133,15 @@ class OSPFRouteTypeChoices(ChoiceSet):
         (NSSA_EXTERNAL_1, 'NSSA External Type 1'),
         (NSSA_EXTERNAL_2, 'NSSA External Type 2'),
     ]
+
+
+class OSPFRangeTypeChoices(ChoiceSet):
+    """Kinds of address range of an area."""
+
+    SUMMARY = 'summary'
+    NSSA_EXTERNAL = 'nssa-external'
+
+    CHOICES = [
+        (SUMMARY, 'Summary of intra-area routes'),
+        (NSSA_EXTERNAL, 'NSSA external (type 7 to type 5)'),
+    ]

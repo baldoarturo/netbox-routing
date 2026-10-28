@@ -178,4 +178,5 @@ class OSPFAreaRangeType(PrimaryObjectType):
         "OSPFAreaType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     prefix: str
+    range_type: str
     advertise: bool

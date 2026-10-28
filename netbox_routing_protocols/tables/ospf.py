@@ -368,7 +368,16 @@ class OSPFAreaRangeTable(NetBoxTable):
             'device',
             'area',
             'prefix',
+            'range_type',
             'advertise',
             'description',
         )
-        default_columns = ('pk', 'id', 'instance', 'area', 'prefix', 'advertise')
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'area',
+            'prefix',
+            'range_type',
+            'advertise',
+        )
