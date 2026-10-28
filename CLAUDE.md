@@ -27,6 +27,10 @@ The user is the project manager: they ask, Claude does the work, they approve. T
     - Claude keeps the tracking body current: when an issue is resolved, tick its `[x]` (strike through with `~#N~` and add the reason if it is dropped), and add new issues found later. Nothing ticks the checklist or closes the tracking issue automatically; close it by hand when every item is done.
     - Do not start coding until the user approves the tracking.
 
+## Documentation
+
+`docs/` is the documentation for operators and users (MkDocs, see `docs/development.md`), not for developers: it explains what each protocol and feature is for, how to use it from the menu, and which RFC it comes from and why. A PR that adds or changes a feature updates its section in the page of the protocol (and the RFC index in `docs/rfc-index.md`). Check it with `mkdocs build --strict` (`pip install -r docs/requirements.txt`).
+
 ## Running the dev server
 
 `dev/run.sh` sets up everything and runs NetBox with this plugin against its own database (`netbox_routing_protocols_dev`, created from the NetBox demo data), so the plugin's migrations never run against any other database. It works on a fresh clone of the repository and can be run as often as wanted: every step is skipped when it is already done.
