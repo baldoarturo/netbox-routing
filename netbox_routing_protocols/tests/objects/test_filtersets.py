@@ -133,6 +133,21 @@ class PrefixListTestCase(TestCase):
         params = {'q': 'Prefix List 1-'}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
+    def test_q_description(self):
+        PrefixList.objects.filter(name='Prefix List 2-1').update(
+            description='customers upstream'
+        )
+        params = {'q': 'upstream'}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_name_and_family(self):
+        params = {'name': ['Prefix List 1-1']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {'family': 4}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+        params = {'family': 6}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+
 
 class PrefixListEntryTestCase(TestCase):
     queryset = PrefixListEntry.objects.all()
@@ -184,6 +199,13 @@ class PrefixListEntryTestCase(TestCase):
     def test_q(self):
         params = {'q': 'Prefix List 1'}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_q_description(self):
+        PrefixListEntry.objects.filter(pk=self.prefix_list_entry[0].pk).update(
+            description='default route filter'
+        )
+        params = {'q': 'default route'}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     def test_prefix_list(self):
         params = {

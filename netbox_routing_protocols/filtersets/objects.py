@@ -81,12 +81,12 @@ class PrefixListFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = PrefixList
-        fields = ('family',)
+        fields = ('name', 'family')
 
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        qs_filter = Q(name__icontains=value)
+        qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
         return queryset.filter(qs_filter).distinct()
 
 
@@ -137,6 +137,7 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
             return queryset
         qs_filter = Q(prefix_list__name__icontains=value)
         qs_filter |= Q(prefix__prefix__icontains=value)
+        qs_filter |= Q(description__icontains=value)
 
         return queryset.filter(qs_filter)
 

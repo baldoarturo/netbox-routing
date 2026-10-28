@@ -16,18 +16,41 @@ __all__ = (
 
 class PrefixListTable(NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
-    family = tables.Column(linkify=True, verbose_name=_('Family'))
+    family = tables.Column(
+        accessor='get_family_display', order_by=('family',), verbose_name=_('Family')
+    )
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_protocols:prefixlistentry_list',
+        url_params={'prefix_list_id': 'pk'},
+        verbose_name=_('Entries'),
+    )
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_routing_protocols:prefixlist_list'
+    )
 
     class Meta(NetBoxTable.Meta):
         model = PrefixList
-        fields = ('pk', 'id', 'name', 'family')
-        default_columns = ('pk', 'id', 'name')
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'family',
+            'entry_count',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+        )
+        default_columns = ('pk', 'name', 'family', 'entry_count', 'description')
 
 
 class PrefixListEntryTable(NetBoxTable):
     prefix_list = tables.Column(verbose_name=_('Prefix List'), linkify=True)
     prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
     action = columns.ChoiceFieldColumn()
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_routing_protocols:prefixlistentry_list'
+    )
 
     class Meta(NetBoxTable.Meta):
         model = PrefixListEntry
@@ -38,8 +61,12 @@ class PrefixListEntryTable(NetBoxTable):
             'sequence',
             'action',
             'prefix',
-            'le',
             'ge',
+            'le',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
         )
         default_columns = (
             'pk',
@@ -48,8 +75,8 @@ class PrefixListEntryTable(NetBoxTable):
             'sequence',
             'action',
             'prefix',
-            'le',
             'ge',
+            'le',
         )
 
 
