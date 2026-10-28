@@ -59,6 +59,22 @@ class OSPFInstance(PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:ospfinstance', args=[self.pk])
 
+    def clean(self):
+        super().clean()
+        if self.router_id is not None and self.router_id != '':
+            try:
+                router_id = netaddr.IPAddress(self.router_id)
+            except (netaddr.AddrFormatError, ValueError):
+                return  # reported by the field's own validation
+            if router_id.version != 4:
+                raise ValidationError(
+                    {'router_id': _('The router ID must be an IPv4 address (x.x.x.x).')}
+                )
+            if int(router_id) == 0:
+                raise ValidationError(
+                    {'router_id': _('The router ID cannot be 0.0.0.0.')}
+                )
+
 
 class OSPFArea(PrimaryModel):
     area_id = models.CharField(max_length=100, verbose_name='Area ID')
