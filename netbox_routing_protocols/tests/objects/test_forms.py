@@ -1,3 +1,4 @@
+from django import forms
 from django.test import TestCase
 
 from ipam.models import Prefix
@@ -120,6 +121,23 @@ class PrefixListTestCase(TestCase):
         with self.assertRaises(ValueError):
             form.save()
 
+    def test_family_is_a_radio_selector(self):
+        form = PrefixListForm()
+        self.assertIsInstance(form.fields['family'].widget, forms.RadioSelect)
+
+    def test_family_cannot_be_changed(self):
+        prefix_list = PrefixList.objects.create(name='Prefix List 2', family=4)
+        form = PrefixListForm(
+            instance=prefix_list,
+            data={'name': 'Prefix List 2', 'family': 6, 'description': 'changed'},
+        )
+        self.assertTrue(form.fields['family'].disabled)
+        self.assertTrue(form.is_valid())
+        form.save()
+        prefix_list.refresh_from_db()
+        self.assertEqual(prefix_list.family, 4)
+        self.assertEqual(prefix_list.description, 'changed')
+
 
 class PrefixListEntryTestCase(TestCase):
 
@@ -160,6 +178,32 @@ class PrefixListEntryTestCase(TestCase):
         )
         self.assertTrue(form.is_valid())
         self.assertTrue(form.save())
+
+    def test_family_mismatch(self):
+        prefix_v6 = Prefix.objects.create(prefix='2001:db8::/32')
+        form = PrefixListEntryForm(
+            data={
+                'prefix_list': self.prefix_list,
+                'sequence': 1,
+                'action': ActionChoices.PERMIT,
+                'ipam_prefix': prefix_v6.pk,
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('IPv6', str(form.errors))
+
+    def test_le_above_family_boundary(self):
+        form = PrefixListEntryForm(
+            data={
+                'prefix_list': self.prefix_list,
+                'sequence': 1,
+                'action': ActionChoices.PERMIT,
+                'ipam_prefix': self.prefix.pk,
+                'le': 33,
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('le', form.errors)
 
     def test_form_invalid(self):
         form = PrefixListEntryForm(

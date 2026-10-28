@@ -155,6 +155,82 @@ class PrefixListEntryTestCase(TestCase):
             self.assertIsInstance(ple, PrefixListEntry)
             self.assertEqual(str(ple), f'{self.prefix_list} permit {seq}')
 
+    def test_family_mismatch_is_rejected(self):
+        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
+        for prefix_list, prefix in (
+            (self.prefix_list, Prefix(prefix='2001:db8::/32')),
+            (self.prefix_list, CustomPrefix(prefix='2001:db8:1::/48')),
+            (v6_list, Prefix(prefix='10.0.7.0/24')),
+            (v6_list, CustomPrefix(prefix='10.0.8.0/24')),
+        ):
+            with self.subTest(f'{prefix_list.family} {prefix}'):
+                prefix.full_clean()
+                prefix.save()
+                entry = PrefixListEntry(
+                    prefix_list=prefix_list,
+                    action='permit',
+                    sequence=1,
+                    assigned_prefix=prefix,
+                )
+                with self.assertRaises(ValidationError):
+                    entry.full_clean()
+
+    def test_family_match_is_accepted(self):
+        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
+        prefix = CustomPrefix(prefix='2001:db8::/32')
+        prefix.full_clean()
+        prefix.save()
+        entry = PrefixListEntry(
+            prefix_list=v6_list,
+            action='permit',
+            sequence=1,
+            assigned_prefix=prefix,
+            ge=48,
+            le=128,
+        )
+        entry.full_clean()
+
+    def test_ge_le_follow_the_list_family(self):
+        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
+        for prefix_list, field, value, valid in (
+            (self.prefix_list, 'le', 32, True),
+            (self.prefix_list, 'le', 33, False),
+            (self.prefix_list, 'ge', 33, False),
+            (v6_list, 'le', 128, True),
+            (v6_list, 'le', 129, False),
+            (v6_list, 'ge', 129, False),
+        ):
+            with self.subTest(f'{prefix_list.family} {field} {value}'):
+                # without an assigned prefix the bounds still come from the list
+                entry = PrefixListEntry(
+                    prefix_list=prefix_list, action='permit', sequence=1
+                )
+                setattr(entry, field, value)
+                try:
+                    entry.clean()
+                except ValidationError as e:
+                    self.assertFalse(valid, e)
+                    self.assertIn(field, e.message_dict)
+                else:
+                    self.assertTrue(valid)
+
+    def test_ge_cannot_be_greater_than_le(self):
+        entry = PrefixListEntry(
+            prefix_list=self.prefix_list, action='permit', sequence=1, ge=28, le=24
+        )
+        with self.assertRaises(ValidationError):
+            entry.clean()
+
+    def test_family_cannot_be_changed(self):
+        self.prefix_list.family = 6
+        with self.assertRaises(ValidationError) as ctx:
+            self.prefix_list.full_clean()
+        self.assertIn('family', ctx.exception.message_dict)
+        self.prefix_list.refresh_from_db()
+        self.assertEqual(self.prefix_list.family, 4)
+        # saving it again with the same family is fine
+        self.prefix_list.full_clean()
+
     def _entry(self, prefix):
         prefix.full_clean()
         prefix.save()
