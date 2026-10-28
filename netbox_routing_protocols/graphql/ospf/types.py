@@ -44,6 +44,41 @@ class OSPFInstanceType(PrimaryObjectType):
     default_originate_always: bool
     default_originate_metric: int | None
     default_originate_metric_type: str
+    areas: list[
+        Annotated[
+            "OSPFAreaType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+    ]
+    interfaces: list[
+        Annotated[
+            "OSPFInterfaceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
+    redistributions: list[
+        Annotated[
+            "OSPFRedistributionType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
+    virtual_links: list[
+        Annotated[
+            "OSPFVirtualLinkType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
+    summary_addresses: list[
+        Annotated[
+            "OSPFSummaryAddressType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
+    prefix_sids: list[
+        Annotated[
+            "OSPFPrefixSIDType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
 
 
 @strawberry_django.type(models.OSPFArea, fields='__all__', filters=OSPFAreaFilter)
@@ -57,6 +92,24 @@ class OSPFAreaType(PrimaryObjectType):
     nssa_translate_always: bool
     nssa_no_redistribution: bool
     nssa_default_originate: bool
+    interfaces: list[
+        Annotated[
+            "OSPFInterfaceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
+    virtual_links: list[
+        Annotated[
+            "OSPFVirtualLinkType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
+    ranges: list[
+        Annotated[
+            "OSPFAreaRangeType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
 
 
 @strawberry_django.type(
@@ -85,6 +138,17 @@ class OSPFInterfaceType(PrimaryObjectType):
     mtu_ignore: bool
     authentication: str | None
     passphrase: str | None
+    networks: list[
+        Annotated[
+            "OSPFNetworkType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+    ]
+    neighbors: list[
+        Annotated[
+            "OSPFNeighborType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
 
 
 @strawberry_django.type(models.OSPFNetwork, fields='__all__', filters=OSPFNetworkFilter)
