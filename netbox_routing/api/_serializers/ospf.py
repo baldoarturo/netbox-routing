@@ -79,6 +79,7 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
     instance = OSPFInstanceSerializer(nested=True)
     area = OSPFAreaSerializer(nested=True)
     interface = InterfaceSerializer(nested=True)
+    mtu = serializers.IntegerField(source='interface.mtu', read_only=True)
 
     class Meta:
         model = OSPFInterface
@@ -98,6 +99,8 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'mtu',
+            'mtu_ignore',
             'authentication',
             'passphrase',
             'description',

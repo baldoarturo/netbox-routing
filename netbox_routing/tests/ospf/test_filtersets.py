@@ -254,6 +254,7 @@ class OSPFInterfaceTestCase(TestCase):
                 area=areas[0],
                 passive=True,
                 cost=10,
+                mtu_ignore=True,
                 hello_interval=30,
                 dead_interval=120,
             ),
@@ -294,6 +295,13 @@ class OSPFInterfaceTestCase(TestCase):
 
         params = {'cost': [10, 20]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_mtu_ignore(self):
+        params = {'mtu_ignore': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'mtu_ignore': False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
 
     def test_timers(self):
         params = {'hello_interval': [30]}

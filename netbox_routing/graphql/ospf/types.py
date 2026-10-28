@@ -53,5 +53,6 @@ class OSPFInterfaceType(PrimaryObjectType):
     retransmit_interval: int
     transmit_delay: int
     bfd: bool | None
+    mtu_ignore: bool
     authentication: str | None
     passphrase: str | None

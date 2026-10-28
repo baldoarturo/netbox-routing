@@ -202,6 +202,7 @@ class OSPFInterfaceTestCase(
             'network_type': OSPFNetworkTypeChoices.POINT_TO_POINT,
             'passive': True,
             'cost': 10,
+            'mtu_ignore': True,
             'hello_interval': 30,
             'dead_interval': 120,
         }

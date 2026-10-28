@@ -90,6 +90,7 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
             'priority',
             'cost',
             'bfd',
+            'mtu_ignore',
             'authentication',
             name=_('Attributes'),
         ),
@@ -145,6 +146,11 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
         choices=OSPFNetworkTypeChoices,
         required=False,
         label=_('Network Type'),
+    )
+    mtu_ignore = forms.NullBooleanField(
+        required=False,
+        label=_('MTU Ignore'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     priority = forms.IntegerField(required=False)
     cost = forms.IntegerField(required=False, label=_('Cost'))

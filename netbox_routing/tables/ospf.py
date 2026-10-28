@@ -54,6 +54,9 @@ class OSPFInterfaceTable(NetBoxTable):
     )
     area = tables.Column(verbose_name=_('Area'), linkify=True)
     interface = tables.Column(verbose_name=_('Interface'), linkify=True)
+    mtu = tables.Column(
+        verbose_name=_('MTU'), accessor='interface__mtu', orderable=False
+    )
 
     class Meta(NetBoxTable.Meta):
         model = OSPFInterface
@@ -73,6 +76,8 @@ class OSPFInterfaceTable(NetBoxTable):
             'dead_interval',
             'retransmit_interval',
             'transmit_delay',
+            'mtu',
+            'mtu_ignore',
             'authentication',
             'passphrase',
         )

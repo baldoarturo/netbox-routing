@@ -212,6 +212,14 @@ class OSPFInterface(PrimaryModel):
             MaxValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][1]),
         ],
     )
+    mtu_ignore = models.BooleanField(
+        verbose_name=_('MTU Ignore'),
+        help_text=_(
+            'Ignore the MTU mismatch check when forming adjacencies. '
+            'The MTU itself comes from the device interface.'
+        ),
+        default=False,
+    )
     authentication = models.CharField(
         max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
     )
@@ -229,6 +237,7 @@ class OSPFInterface(PrimaryModel):
         'dead_interval',
         'retransmit_interval',
         'transmit_delay',
+        'mtu_ignore',
         'authentication',
         'passphrase',
     )
