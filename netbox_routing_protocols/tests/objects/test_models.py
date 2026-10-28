@@ -242,6 +242,33 @@ class PrefixListEntryTestCase(TestCase):
         prefix.refresh_from_db()
         self.assertEqual(str(prefix.prefix), '10.8.0.0/24')
 
+    def test_sequence_range(self):
+        prefix = CustomPrefix.objects.create(prefix='10.0.11.0/24')
+        for sequence, valid in (
+            (0, False),
+            (1, True),
+            (32768, True),
+            (4294967294, True),
+            (4294967295, False),
+        ):
+            with self.subTest(sequence):
+                entry = PrefixListEntry(
+                    prefix_list=self.prefix_list,
+                    action='permit',
+                    sequence=sequence,
+                    assigned_prefix=prefix,
+                )
+                if valid:
+                    entry.full_clean()
+                    entry.save()
+                    entry.refresh_from_db()
+                    self.assertEqual(entry.sequence, sequence)
+                    entry.delete()
+                else:
+                    with self.assertRaises(ValidationError) as ctx:
+                        entry.full_clean()
+                    self.assertIn('sequence', ctx.exception.message_dict)
+
     def test_family_mismatch_is_rejected(self):
         v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
         for prefix_list, prefix in (

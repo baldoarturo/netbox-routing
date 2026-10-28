@@ -169,7 +169,9 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
         ct_field='assigned_prefix_type',
         fk_field='assigned_prefix_id',
     )
-    sequence = models.PositiveSmallIntegerField()
+    sequence = models.PositiveBigIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(4294967294)],
+    )
     action = models.CharField(max_length=6, choices=ActionChoices)
     ge = models.PositiveSmallIntegerField(
         verbose_name='GE',

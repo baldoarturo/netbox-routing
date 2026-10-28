@@ -115,7 +115,7 @@ class AutomatedFormDataCreationMixin:
             elif field == 'name':
                 kwargs[field] = f'{cls.model._meta.verbose_name}: {sequence}'
             elif field == 'sequence':
-                kwargs[field] = sequence
+                kwargs[field] = sequence or 100
             elif hasattr(cls, field) and isinstance(getattr(cls, field), Model):
                 kwargs[field] = getattr(cls, field).pk
             elif hasattr(cls, field) and type(getattr(cls, field)) in [
