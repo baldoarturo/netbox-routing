@@ -93,9 +93,21 @@ class OSPFInstanceForm(PrimaryModelForm):
 
 
 class OSPFAreaForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+
+    fieldsets = (
+        FieldSet('instance', 'area_id', 'area_type', 'description', name=_('Area')),
+    )
+
     class Meta:
         model = OSPFArea
         fields = (
+            'instance',
             'area_id',
             'area_type',
             'description',
@@ -126,6 +138,9 @@ class OSPFInterfaceForm(PrimaryModelForm):
         required=True,
         selector=True,
         label=_('Area'),
+        query_params={
+            'instance_id': '$instance',
+        },
     )
     interface = DynamicModelChoiceField(
         queryset=Interface.objects.all(),

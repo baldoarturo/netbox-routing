@@ -33,7 +33,7 @@ def _create_fixtures(cls):
     instance = OSPFInstance.objects.create(
         name='Instance 1', device=cls.device, router_id='1.1.1.1', process_id=1
     )
-    area = OSPFArea.objects.create(area_id='0')
+    area = OSPFArea.objects.create(instance=instance, area_id='0')
     cls.ospf_interfaces = [
         OSPFInterface.objects.create(instance=instance, area=area, interface=interface)
         for interface in cls.interfaces

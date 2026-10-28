@@ -79,22 +79,33 @@ class OSPFAreaTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
         'area_type',
         'display',
         'id',
+        'instance',
         'url',
     ]
+
+    user_permissions = (
+        'netbox_routing.view_ospfinstance',
+        'dcim.view_device',
+    )
 
     bulk_update_data = {'description': "A test description"}
 
     @classmethod
     def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        instance = OSPFInstance.objects.create(
+            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+        )
         data = (
-            cls.model(area_id='1', area_type='stub'),
-            cls.model(area_id='2', area_type='stub'),
-            cls.model(area_id='3', area_type='stub'),
+            cls.model(instance=instance, area_id='1', area_type='stub'),
+            cls.model(instance=instance, area_id='2', area_type='stub'),
+            cls.model(instance=instance, area_id='3', area_type='stub'),
         )
         cls.model.objects.bulk_create(data)
 
         cls.create_data = [
             {
+                'instance': instance.pk,
                 'area_id': '4',
                 'area_type': 'stub',
             },
@@ -130,7 +141,7 @@ class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCas
         instance = OSPFInstance.objects.create(
             name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
         )
-        area = OSPFArea.objects.create(area_id='0')
+        area = OSPFArea.objects.create(instance=instance, area_id='0')
 
         interfaces = (
             Interface(device=device, name='Interface 1', type='virtual'),

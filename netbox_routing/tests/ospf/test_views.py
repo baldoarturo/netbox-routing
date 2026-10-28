@@ -97,14 +97,19 @@ class OSPFAreaTestCase(
 
     @classmethod
     def setUpTestData(cls):
+        device = create_test_device(name='Device 1')
+        instance = OSPFInstance.objects.create(
+            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+        )
         areas = (
-            cls.model(area_id='0.0.0.0', area_type='stub'),
-            cls.model(area_id='1.1.1.1', area_type='tsa'),
-            cls.model(area_id='2.2.2.2', area_type='nssa'),
+            cls.model(instance=instance, area_id='0.0.0.0', area_type='stub'),
+            cls.model(instance=instance, area_id='1.1.1.1', area_type='tsa'),
+            cls.model(instance=instance, area_id='2.2.2.2', area_type='nssa'),
         )
         cls.model.objects.bulk_create(areas)
 
         cls.form_data = {
+            'instance': instance.pk,
             'area_id': '4.4.4.4',
             'area_type': 'standard',
         }
@@ -175,10 +180,10 @@ class OSPFInterfaceTestCase(
         OSPFInstance.objects.bulk_create(instances)
 
         areas = (
-            OSPFArea(area_id='0.0.0.0'),
-            OSPFArea(area_id='1.1.1.1'),
-            OSPFArea(area_id='2.2.2.2'),
-            OSPFArea(area_id='3.3.3.3'),
+            OSPFArea(instance=instances[0], area_id='0.0.0.0'),
+            OSPFArea(instance=instances[1], area_id='1.1.1.1'),
+            OSPFArea(instance=instances[2], area_id='2.2.2.2'),
+            OSPFArea(instance=instances[3], area_id='3.3.3.3'),
         )
         OSPFArea.objects.bulk_create(areas)
 

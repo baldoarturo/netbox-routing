@@ -157,7 +157,7 @@ class OSPFInstanceBulkImportView(BulkImportView):
     detail=False,
 )
 class OSPFAreaListView(ObjectListView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     table = OSPFAreaTable
     filterset = OSPFAreaFilterSet
     filterset_form = OSPFAreaFilterForm
@@ -165,7 +165,7 @@ class OSPFAreaListView(ObjectListView):
 
 @register_model_view(OSPFArea)
 class OSPFAreaView(ObjectView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -181,7 +181,7 @@ class OSPFAreaView(ObjectView):
 
 @register_model_view(OSPFArea, name='interfaces')
 class OSPFAreaInterfacesView(ObjectChildrenView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     child_model = OSPFInterface
     table = OSPFInterfaceTable
     filterset = OSPFInterfaceFilterSet
@@ -202,18 +202,18 @@ class OSPFAreaInterfacesView(ObjectChildrenView):
 @register_model_view(OSPFArea, name='add', detail=False)
 @register_model_view(OSPFArea, name='edit')
 class OSPFAreaEditView(ObjectEditView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     form = OSPFAreaForm
 
 
 @register_model_view(OSPFArea, name='delete')
 class OSPFAreaDeleteView(ObjectDeleteView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
 
 
 @register_model_view(OSPFArea, name='bulk_edit', detail=False)
 class OSPFAreaBulkEditView(BulkEditView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     table = OSPFAreaTable
     filterset = OSPFAreaFilterSet
     form = OSPFAreaBulkEditForm
@@ -221,14 +221,14 @@ class OSPFAreaBulkEditView(BulkEditView):
 
 @register_model_view(OSPFArea, name='bulk_delete', detail=False)
 class OSPFAreaBulkDeleteView(BulkDeleteView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     table = OSPFAreaTable
     filterset = OSPFAreaFilterSet
 
 
 @register_model_view(OSPFArea, name='bulk_import', detail=False)
 class OSPFAreaBulkImportView(BulkImportView):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     model_form = OSPFAreaImportForm
 
 

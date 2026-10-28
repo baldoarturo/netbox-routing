@@ -23,7 +23,7 @@ class OSPFInstanceViewSet(NetBoxModelViewSet):
 
 
 class OSPFAreaViewSet(NetBoxModelViewSet):
-    queryset = OSPFArea.objects.all()
+    queryset = OSPFArea.objects.select_related('instance__device', 'instance__vrf')
     serializer_class = OSPFAreaSerializer
     filterset_class = filtersets.OSPFAreaFilterSet
 
