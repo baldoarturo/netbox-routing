@@ -484,9 +484,9 @@ class OSPFNetwork(PrimaryModel):
 
 class OSPFRedistribution(PrimaryModel):
     """
-    Redistribution of routes learned from another protocol of the plugin into
-    an OSPF instance. Static routes have no source; for every other protocol
-    the source is the process that routes are taken from.
+    Redistribution of routes into an OSPF instance. Connected (local) and
+    static routes have no source; for the other protocols, which are the ones
+    modelled by the plugin, the source is the process routes are taken from.
     """
 
     SOURCE_FIELDS = {

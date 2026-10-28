@@ -46,6 +46,7 @@ class OSPFExternalMetricTypeChoices(ChoiceSet):
 
 
 class OSPFRedistributionProtocolChoices(ChoiceSet):
+    CONNECTED = 'connected'
     STATIC = 'static'
     EIGRP = 'eigrp'
     BGP = 'bgp'
@@ -53,6 +54,7 @@ class OSPFRedistributionProtocolChoices(ChoiceSet):
     ISIS = 'isis'
 
     CHOICES = [
+        (CONNECTED, 'Connected'),
         (STATIC, 'Static'),
         (EIGRP, 'EIGRP'),
         (BGP, 'BGP'),

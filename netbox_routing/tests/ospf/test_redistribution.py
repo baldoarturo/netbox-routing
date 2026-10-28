@@ -6,6 +6,7 @@ from ipam.models import ASN, RIR
 from utilities.testing import APIViewTestCases, ViewTestCases, create_test_device
 
 from netbox_routing.filtersets import OSPFRedistributionFilterSet
+from netbox_routing.forms import OSPFRedistributionForm
 from netbox_routing.models import (
     BGPRouter,
     EIGRPRouter,
@@ -17,6 +18,7 @@ from netbox_routing.tests.base import IPAddressFieldMixin
 
 __all__ = (
     'OSPFRedistributionModelTestCase',
+    'OSPFRedistributionFormTestCase',
     'OSPFRedistributionFilterSetTestCase',
     'OSPFRedistributionViewTestCase',
     'OSPFRedistributionAPITestCase',
@@ -79,6 +81,25 @@ class OSPFRedistributionModelTestCase(TestCase):
         self.assertEqual(redistribution.metric_type, '2')
         self.assertTrue(redistribution.subnets)
         self.assertIsNone(redistribution.source)
+
+    def test_connected_has_no_source(self):
+        redistribution = self._redistribution(protocol='connected')
+        redistribution.full_clean()
+        self.assertIsNone(redistribution.source)
+        with self.assertRaises(ValidationError) as cm:
+            self._redistribution(
+                protocol='connected', eigrp_source=self.eigrp
+            ).full_clean()
+        self.assertIn('eigrp_source', cm.exception.error_dict)
+
+    def test_connected_is_redistributed_only_once_per_instance(self):
+        OSPFRedistribution.objects.create(
+            instance=self.instances[0], protocol='connected'
+        )
+        with self.assertRaises(IntegrityError):
+            OSPFRedistribution.objects.create(
+                instance=self.instances[0], protocol='connected'
+            )
 
     def test_every_protocol_with_its_source_is_valid(self):
         for protocol, source in (
@@ -179,6 +200,79 @@ class OSPFRedistributionModelTestCase(TestCase):
         OSPFRedistribution.objects.create(instance=self.instances[0], protocol='static')
         self.instances[0].delete()
         self.assertFalse(OSPFRedistribution.objects.exists())
+
+
+class OSPFRedistributionFormTestCase(TestCase):
+    SOURCE_FIELDS = ('ospf_source', 'eigrp_source', 'bgp_source', 'isis_source')
+
+    @classmethod
+    def setUpTestData(cls):
+        _create_fixtures(cls)
+
+    def _source_fields(self, form):
+        return [name for name in self.SOURCE_FIELDS if name in form.fields]
+
+    def test_only_the_source_of_the_selected_protocol_is_shown(self):
+        for protocol, field in (
+            ('ospf', 'ospf_source'),
+            ('eigrp', 'eigrp_source'),
+            ('bgp', 'bgp_source'),
+            ('isis', 'isis_source'),
+        ):
+            with self.subTest(protocol=protocol):
+                form = OSPFRedistributionForm(initial={'protocol': protocol})
+                self.assertEqual(self._source_fields(form), [field])
+                form = OSPFRedistributionForm(data={'protocol': protocol})
+                self.assertEqual(self._source_fields(form), [field])
+
+    def test_no_source_without_a_source_protocol(self):
+        for protocol in (None, '', 'connected', 'static'):
+            with self.subTest(protocol=protocol):
+                form = OSPFRedistributionForm(
+                    initial={'protocol': protocol} if protocol else {}
+                )
+                self.assertEqual(self._source_fields(form), [])
+
+    def test_editing_shows_the_source_of_the_current_protocol(self):
+        redistribution = OSPFRedistribution.objects.create(
+            instance=self.instances[0], protocol='eigrp', eigrp_source=self.eigrp
+        )
+        form = OSPFRedistributionForm(instance=redistribution)
+        self.assertEqual(self._source_fields(form), ['eigrp_source'])
+
+    def test_changing_the_protocol_clears_the_previous_source(self):
+        redistribution = OSPFRedistribution.objects.create(
+            instance=self.instances[0], protocol='eigrp', eigrp_source=self.eigrp
+        )
+        for protocol in ('static', 'connected'):
+            with self.subTest(protocol=protocol):
+                form = OSPFRedistributionForm(
+                    data={
+                        'instance': self.instances[0].pk,
+                        'protocol': protocol,
+                        'metric_type': '2',
+                        'subnets': 'on',
+                    },
+                    instance=redistribution,
+                )
+                self.assertTrue(form.is_valid(), form.errors)
+                form.save()
+                redistribution.refresh_from_db()
+                self.assertEqual(redistribution.protocol, protocol)
+                self.assertIsNone(redistribution.eigrp_source)
+
+    def test_the_selected_source_is_saved(self):
+        form = OSPFRedistributionForm(
+            data={
+                'instance': self.instances[0].pk,
+                'protocol': 'eigrp',
+                'eigrp_source': self.eigrp.pk,
+                'metric_type': '2',
+                'subnets': 'on',
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().eigrp_source, self.eigrp)
 
 
 class OSPFRedistributionFilterSetTestCase(TestCase):
