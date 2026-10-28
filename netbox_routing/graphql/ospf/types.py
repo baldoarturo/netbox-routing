@@ -11,6 +11,7 @@ from netbox_routing.graphql.ospf.filters import (
     OSPFInterfaceFilter,
     OSPFNetworkFilter,
     OSPFRedistributionFilter,
+    OSPFVirtualLinkFilter,
 )
 
 __all__ = (
@@ -19,6 +20,7 @@ __all__ = (
     'OSPFInterfaceType',
     'OSPFNetworkType',
     'OSPFRedistributionType',
+    'OSPFVirtualLinkType',
 )
 
 
@@ -110,3 +112,16 @@ class OSPFRedistributionType(PrimaryObjectType):
     subnets: bool
     route_tag: int | None
     route_policy: str
+
+
+@strawberry_django.type(
+    models.OSPFVirtualLink, fields='__all__', filters=OSPFVirtualLinkFilter
+)
+class OSPFVirtualLinkType(PrimaryObjectType):
+    instance: Annotated[
+        "OSPFInstanceType", strawberry.lazy('netbox_routing.graphql.types')
+    ]
+    transit_area: Annotated[
+        "OSPFAreaType", strawberry.lazy('netbox_routing.graphql.types')
+    ]
+    remote_router_id: str

@@ -30,6 +30,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 
 __all__ = (
@@ -38,6 +39,7 @@ __all__ = (
     'OSPFInterfaceForm',
     'OSPFNetworkForm',
     'OSPFRedistributionForm',
+    'OSPFVirtualLinkForm',
 )
 
 
@@ -485,4 +487,76 @@ class OSPFRedistributionForm(PrimaryModelForm):
     def clean(self):
         if not self.cleaned_data.get('metric_type'):
             self.cleaned_data['metric_type'] = OSPFExternalMetricTypeChoices.TYPE_2
+        return super().clean()
+
+
+class OSPFVirtualLinkForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+    transit_area = DynamicModelChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Transit Area'),
+        query_params={'instance_id': '$instance'},
+    )
+
+    fieldsets = (
+        FieldSet(
+            'instance',
+            'transit_area',
+            'remote_router_id',
+            'description',
+            name=_('Virtual Link'),
+        ),
+        FieldSet(
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            name=_('Timers'),
+        ),
+        FieldSet(
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'passphrase',
+            'show_md5',
+            'key_chain',
+            name=_('Authentication'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFVirtualLink
+        fields = (
+            'instance',
+            'transit_area',
+            'remote_router_id',
+            *OSPF_INTERFACE_TIMERS,
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Empty timers and algorithm fall back to their default (see clean())
+        for name in (*OSPF_INTERFACE_TIMERS, 'message_digest_algorithm'):
+            self.fields[name].required = False
+
+    def clean(self):
+        for name, (_min, _max, default) in OSPF_INTERFACE_TIMERS.items():
+            if self.cleaned_data.get(name) is None:
+                self.cleaned_data[name] = default
+        if not self.cleaned_data.get('message_digest_algorithm'):
+            self.cleaned_data['message_digest_algorithm'] = (
+                OSPFMessageDigestAlgorithmChoices.MD5
+            )
         return super().clean()

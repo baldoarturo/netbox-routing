@@ -11,6 +11,7 @@ __all__ = (
     'OSPFInterfaceSettingsPanel',
     'OSPFNetworkPanel',
     'OSPFRedistributionPanel',
+    'OSPFVirtualLinkPanel',
 )
 
 
@@ -190,4 +191,25 @@ class OSPFRedistributionPanel(panels.ObjectAttributesPanel):
     subnets = attrs.BooleanAttr('subnets', label=_('Subnets'))
     route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
     route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFVirtualLinkPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    transit_area = attrs.RelatedObjectAttr(
+        'transit_area', label=_('Transit Area'), linkify=True
+    )
+    remote_router_id = attrs.TextAttr('remote_router_id', label=_('Remote Router ID'))
+    hello_interval = attrs.NumericAttr('hello_interval', label=_('Hello Interval'))
+    dead_interval = attrs.NumericAttr('dead_interval', label=_('Dead Interval'))
+    retransmit_interval = attrs.NumericAttr(
+        'retransmit_interval', label=_('Retransmit Interval')
+    )
+    transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
+    effective_authentication = attrs.TextAttr(
+        'effective_authentication', label=_('Authentication in Use')
+    )
+    authentication_source = attrs.TextAttr(
+        'authentication_source', label=_('Authentication Set At')
+    )
     description = attrs.TextAttr('description', label=_('Description'))

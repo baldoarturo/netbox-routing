@@ -9,6 +9,7 @@ from utilities.filters import MultiValueCharFilter
 from utilities.filtersets import register_filterset
 
 from netbox.filtersets import NetBoxModelFilterSet
+from netbox_routing.choices import AuthenticationChoices
 from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
@@ -27,6 +28,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 
 __all__ = (
@@ -35,6 +37,7 @@ __all__ = (
     'OSPFInterfaceFilterSet',
     'OSPFNetworkFilterSet',
     'OSPFRedistributionFilterSet',
+    'OSPFVirtualLinkFilterSet',
 )
 
 
@@ -385,3 +388,68 @@ class OSPFRedistributionFilterSet(NetBoxModelFilterSet):
             route_policy__icontains=value
         )
         return queryset.filter(qs_filter)
+
+
+@register_filterset
+class OSPFVirtualLinkFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    instance = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__name',
+        queryset=OSPFInstance.objects.all(),
+        to_field_name='name',
+        label=_('Instance'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    transit_area_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='transit_area',
+        queryset=OSPFArea.objects.all(),
+        label=_('Transit Area (ID)'),
+    )
+    remote_router_id = MultiValueCharFilter(
+        method='filter_rid',
+        label=_('Remote Router ID'),
+    )
+    authentication = django_filters.MultipleChoiceFilter(
+        choices=AuthenticationChoices,
+        label=_('Authentication'),
+    )
+    message_digest_algorithm = django_filters.MultipleChoiceFilter(
+        choices=OSPFMessageDigestAlgorithmChoices,
+        label=_('Message Digest Algorithm'),
+    )
+
+    class Meta:
+        model = OSPFVirtualLink
+        fields = (
+            'instance',
+            'transit_area',
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = (
+            Q(instance__name__icontains=value)
+            | Q(transit_area__area_id__icontains=value)
+            | Q(remote_router_id__icontains=value)
+        )
+        return queryset.filter(qs_filter)
+
+    def filter_rid(self, queryset, name, value):
+        try:
+            return queryset.filter(**{f'{name}__in': value})
+        except ValidationError:
+            return queryset.none()

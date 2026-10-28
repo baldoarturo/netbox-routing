@@ -38,6 +38,7 @@ __all__ = (
     'OSPFInterfaceType',
     'OSPFNetworkType',
     'OSPFRedistributionType',
+    'OSPFVirtualLinkType',
     'PrefixListType',
     'PrefixListEntryType',
     'RouteMapType',

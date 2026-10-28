@@ -20,6 +20,7 @@ from netbox_routing.filtersets.ospf import (
     OSPFInstanceFilterSet,
     OSPFNetworkFilterSet,
     OSPFRedistributionFilterSet,
+    OSPFVirtualLinkFilterSet,
 )
 from netbox_routing.forms import *
 from netbox_routing.models import (
@@ -28,6 +29,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 from netbox_routing.tables.ospf import (
     OSPFAreaTable,
@@ -35,6 +37,7 @@ from netbox_routing.tables.ospf import (
     OSPFInterfaceTable,
     OSPFNetworkTable,
     OSPFRedistributionTable,
+    OSPFVirtualLinkTable,
 )
 from netbox_routing.ui import *
 
@@ -71,6 +74,12 @@ __all__ = (
     'OSPFRedistributionBulkEditView',
     'OSPFRedistributionDeleteView',
     'OSPFRedistributionBulkDeleteView',
+    'OSPFVirtualLinkListView',
+    'OSPFVirtualLinkView',
+    'OSPFVirtualLinkEditView',
+    'OSPFVirtualLinkBulkEditView',
+    'OSPFVirtualLinkDeleteView',
+    'OSPFVirtualLinkBulkDeleteView',
 )
 
 
@@ -108,6 +117,12 @@ class OSPFInstanceView(ObjectView):
                 filters={'instance_id': lambda ctx: ctx['object'].pk},
                 exclude_columns=['id', 'instance', 'device'],
                 title=_('Redistribution'),
+            ),
+            panels.ObjectsTablePanel(
+                model='netbox_routing.OSPFVirtualLink',
+                filters={'instance_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'instance', 'device'],
+                title=_('Virtual Links'),
             ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
@@ -458,3 +473,63 @@ class OSPFRedistributionBulkDeleteView(BulkDeleteView):
     queryset = REDISTRIBUTION_QUERYSET
     filterset = OSPFRedistributionFilterSet
     table = OSPFRedistributionTable
+
+
+#
+# Virtual link
+#
+VIRTUAL_LINK_QUERYSET = OSPFVirtualLink.objects.select_related(
+    'instance__device', 'instance__vrf', 'transit_area__instance'
+)
+
+
+@register_model_view(OSPFVirtualLink, name='list', path='', detail=False)
+class OSPFVirtualLinkListView(ObjectListView):
+    queryset = VIRTUAL_LINK_QUERYSET
+    table = OSPFVirtualLinkTable
+    filterset = OSPFVirtualLinkFilterSet
+    filterset_form = OSPFVirtualLinkFilterForm
+
+
+@register_model_view(OSPFVirtualLink)
+class OSPFVirtualLinkView(ObjectView):
+    queryset = VIRTUAL_LINK_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFVirtualLinkPanel(),
+            OSPFAuthenticationPanel(title=_('Authentication')),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFVirtualLink, name='add', detail=False)
+@register_model_view(OSPFVirtualLink, name='edit')
+class OSPFVirtualLinkEditView(ObjectEditView):
+    queryset = VIRTUAL_LINK_QUERYSET
+    form = OSPFVirtualLinkForm
+
+
+@register_model_view(OSPFVirtualLink, name='delete')
+class OSPFVirtualLinkDeleteView(ObjectDeleteView):
+    queryset = VIRTUAL_LINK_QUERYSET
+
+
+@register_model_view(OSPFVirtualLink, name='bulk_edit', detail=False)
+class OSPFVirtualLinkBulkEditView(BulkEditView):
+    queryset = VIRTUAL_LINK_QUERYSET
+    filterset = OSPFVirtualLinkFilterSet
+    table = OSPFVirtualLinkTable
+    form = OSPFVirtualLinkBulkEditForm
+
+
+@register_model_view(OSPFVirtualLink, name='bulk_delete', detail=False)
+class OSPFVirtualLinkBulkDeleteView(BulkDeleteView):
+    queryset = VIRTUAL_LINK_QUERYSET
+    filterset = OSPFVirtualLinkFilterSet
+    table = OSPFVirtualLinkTable

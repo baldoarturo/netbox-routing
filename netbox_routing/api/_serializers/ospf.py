@@ -15,6 +15,7 @@ from netbox_routing.models import (
     OSPFInterface,
     OSPFNetwork,
     OSPFRedistribution,
+    OSPFVirtualLink,
 )
 
 __all__ = (
@@ -23,6 +24,7 @@ __all__ = (
     'OSPFInterfaceSerializer',
     'OSPFNetworkSerializer',
     'OSPFRedistributionSerializer',
+    'OSPFVirtualLinkSerializer',
 )
 
 
@@ -237,4 +239,48 @@ class OSPFRedistributionSerializer(NetBoxModelSerializer):
             'display',
             'instance',
             'protocol',
+        )
+
+
+class OSPFVirtualLinkSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing-api:ospfvirtuallink-detail'
+    )
+    instance = OSPFInstanceSerializer(nested=True)
+    transit_area = OSPFAreaSerializer(nested=True)
+    passphrase_md5 = serializers.CharField(
+        source='md5_digest', read_only=True, allow_null=True
+    )
+    effective_authentication = serializers.CharField(read_only=True, allow_null=True)
+    authentication_source = serializers.CharField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = OSPFVirtualLink
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'transit_area',
+            'remote_router_id',
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
+            'passphrase_md5',
+            'effective_authentication',
+            'authentication_source',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'transit_area',
+            'remote_router_id',
         )
