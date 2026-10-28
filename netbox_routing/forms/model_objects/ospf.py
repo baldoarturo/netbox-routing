@@ -422,7 +422,7 @@ class OSPFRedistributionForm(PrimaryModelForm):
         if not self.cleaned_data.get('metric_type'):
             self.cleaned_data['metric_type'] = OSPFExternalMetricTypeChoices.TYPE_2
         # A source left over from a previous protocol is not on the form anymore
-        for source_protocol, field in OSPFRedistribution.SOURCE_FIELDS.items():
+        for field in OSPFRedistribution.SOURCE_FIELDS.values():
             if field not in self.fields:
                 setattr(self.instance, field, None)
         return super().clean()
