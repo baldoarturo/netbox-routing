@@ -2,7 +2,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Interface, Device
-from ipam.models import VRF
+from ipam.models import VRF, IPAddress
 from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing.choices import AuthenticationChoices
 from netbox_routing.choices.ospf import (
@@ -13,12 +13,13 @@ from netbox_routing.choices.ospf import (
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
 
-from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface
+from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface, OSPFNetwork
 
 __all__ = (
     'OSPFAreaFilterForm',
     'OSPFInstanceFilterForm',
     'OSPFInterfaceFilterForm',
+    'OSPFNetworkFilterForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -191,5 +192,51 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
     transmit_delay = forms.IntegerField(required=False, label=_('Transmit Delay'))
     authentication = forms.ChoiceField(
         choices=add_blank_choice(AuthenticationChoices), required=False
+    )
+    tag = TagFilterField(model)
+
+
+class OSPFNetworkFilterForm(NetBoxModelFilterSetForm):
+    model = OSPFNetwork
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('instance_id', 'area_id', 'ospf_interface_id', name=_('OSPF')),
+        FieldSet('device_id', 'interface_id', 'ip_address_id', name=_('Device')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    area_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Area'),
+    )
+    ospf_interface_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInterface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Interface'),
+    )
+    interface_id = DynamicModelMultipleChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Interface'),
+    )
+    ip_address_id = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        selector=True,
+        label=_('IP Address'),
     )
     tag = TagFilterField(model)

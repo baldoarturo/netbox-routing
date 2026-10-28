@@ -23,12 +23,13 @@ from netbox_routing.constants.ospf import (
     OSPF_TRANSMIT_DELAY_MAX,
     OSPF_TRANSMIT_DELAY_MIN,
 )
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
+from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
 
 __all__ = (
     'OSPFInterfaceBulkEditForm',
     'OSPFInstanceBulkEditForm',
     'OSPFAreaBulkEditForm',
+    'OSPFNetworkBulkEditForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -198,3 +199,14 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet('description'),
     )
     nullable_fields = ()
+
+
+class OSPFNetworkBulkEditForm(NetBoxModelBulkEditForm):
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = OSPFNetwork
+    fieldsets = (FieldSet('description'),)
+    nullable_fields = ('description',)

@@ -36,6 +36,7 @@ __all__ = (
     'OSPFInstanceType',
     'OSPFAreaType',
     'OSPFInterfaceType',
+    'OSPFNetworkType',
     'PrefixListType',
     'PrefixListEntryType',
     'RouteMapType',

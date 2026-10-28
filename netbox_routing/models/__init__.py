@@ -13,7 +13,7 @@ from .isis import (
     ISISSRv6Locator,
 )
 from .objects import *
-from .ospf import OSPFArea, OSPFInstance, OSPFInterface
+from .ospf import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
 from .static import StaticRoute
 
 __all__ = (
@@ -40,6 +40,7 @@ __all__ = (
     'OSPFArea',
     'OSPFInstance',
     'OSPFInterface',
+    'OSPFNetwork',
     # IS-IS
     'ISISInstance',
     'ISISInterface',

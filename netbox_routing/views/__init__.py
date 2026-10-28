@@ -33,6 +33,10 @@ __all__ = (
     'OSPFInterfaceView',
     'OSPFInterfaceEditView',
     'OSPFInterfaceDeleteView',
+    'OSPFNetworkListView',
+    'OSPFNetworkView',
+    'OSPFNetworkEditView',
+    'OSPFNetworkDeleteView',
     # IS-IS
     'ISISInstanceListView',
     'ISISInstanceView',

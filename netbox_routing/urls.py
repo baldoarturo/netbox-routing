@@ -26,6 +26,11 @@ urlpatterns = [
     path(
         'ospf/interface/<int:pk>/', include(get_model_urls(app_name, 'ospfinterface'))
     ),
+    path(
+        'ospf/network/',
+        include(get_model_urls(app_name, 'ospfnetwork', detail=False)),
+    ),
+    path('ospf/network/<int:pk>/', include(get_model_urls(app_name, 'ospfnetwork'))),
     # IS-IS
     path(
         'isis/setting/',

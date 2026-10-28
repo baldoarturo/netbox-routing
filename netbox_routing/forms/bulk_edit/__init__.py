@@ -12,6 +12,7 @@ __all__ = (
     'OSPFInstanceBulkEditForm',
     'OSPFInterfaceBulkEditForm',
     'OSPFAreaBulkEditForm',
+    'OSPFNetworkBulkEditForm',
     # IS-IS
     'ISISInstanceBulkEditForm',
     'ISISInterfaceBulkEditForm',

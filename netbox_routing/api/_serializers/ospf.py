@@ -2,14 +2,16 @@ from rest_framework import serializers
 
 from dcim.api.serializers_.device_components import InterfaceSerializer
 from dcim.api.serializers_.devices import DeviceSerializer
+from ipam.api.serializers_.ip import IPAddressSerializer
 from ipam.api.serializers_.vrfs import VRFSerializer
 from netbox.api.serializers import NetBoxModelSerializer
-from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface
+from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface, OSPFNetwork
 
 __all__ = (
     'OSPFInstanceSerializer',
     'OSPFAreaSerializer',
     'OSPFInterfaceSerializer',
+    'OSPFNetworkSerializer',
 )
 
 
@@ -120,3 +122,37 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'network_type',
             'passive',
         )
+
+
+class OSPFNetworkSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing-api:ospfnetwork-detail'
+    )
+    ospf_interface = OSPFInterfaceSerializer(nested=True)
+    ip_address = IPAddressSerializer(nested=True)
+    subnet = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = OSPFNetwork
+        fields = (
+            'url',
+            'id',
+            'display',
+            'ospf_interface',
+            'ip_address',
+            'subnet',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = (
+            'url',
+            'id',
+            'display',
+            'ospf_interface',
+            'ip_address',
+        )
+
+    def get_subnet(self, obj):
+        return str(obj.subnet)

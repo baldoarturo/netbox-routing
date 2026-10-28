@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface
-from ipam.models import VRF
+from ipam.models import VRF, IPAddress
 from utilities.filters import MultiValueCharFilter
 from utilities.filtersets import register_filterset
 
@@ -14,9 +14,14 @@ from netbox_routing.choices.ospf import (
     OSPFExternalMetricTypeChoices,
     OSPFNetworkTypeChoices,
 )
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
+from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
 
-__all__ = ('OSPFAreaFilterSet', 'OSPFInstanceFilterSet', 'OSPFInterfaceFilterSet')
+__all__ = (
+    'OSPFAreaFilterSet',
+    'OSPFInstanceFilterSet',
+    'OSPFInterfaceFilterSet',
+    'OSPFNetworkFilterSet',
+)
 
 
 @register_filterset
@@ -225,5 +230,54 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             | Q(interface__name__icontains=value)
             | Q(interface__label__icontains=value)
             | Q(interface__device__name__icontains=value)
+        )
+        return queryset.filter(qs_filter)
+
+
+@register_filterset
+class OSPFNetworkFilterSet(NetBoxModelFilterSet):
+    ospf_interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface',
+        queryset=OSPFInterface.objects.all(),
+        label=_('OSPF Interface (ID)'),
+    )
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface__instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    area_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface__area',
+        queryset=OSPFArea.objects.all(),
+        label=_('Area (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface__interface__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface__interface',
+        queryset=Interface.objects.all(),
+        label=_('Interface (ID)'),
+    )
+    ip_address_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ip_address',
+        queryset=IPAddress.objects.all(),
+        label=_('IP Address (ID)'),
+    )
+
+    class Meta:
+        model = OSPFNetwork
+        fields = ('ospf_interface', 'ip_address')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = (
+            Q(ospf_interface__instance__name__icontains=value)
+            | Q(ospf_interface__area__area_id__icontains=value)
+            | Q(ospf_interface__interface__name__icontains=value)
+            | Q(ospf_interface__interface__device__name__icontains=value)
         )
         return queryset.filter(qs_filter)

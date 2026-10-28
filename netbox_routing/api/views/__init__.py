@@ -1,6 +1,11 @@
 from .community import *
 from .static import StaticRouteViewSet
-from .ospf import OSPFInstanceViewSet, OSPFAreaViewSet, OSPFInterfaceViewSet
+from .ospf import (
+    OSPFInstanceViewSet,
+    OSPFAreaViewSet,
+    OSPFInterfaceViewSet,
+    OSPFNetworkViewSet,
+)
 from .isis import (
     ISISInstanceViewSet,
     ISISInterfaceViewSet,
@@ -40,6 +45,7 @@ __all__ = (
     'OSPFInstanceViewSet',
     'OSPFAreaViewSet',
     'OSPFInterfaceViewSet',
+    'OSPFNetworkViewSet',
     'ISISInstanceViewSet',
     'ISISInterfaceViewSet',
     'ISISSettingViewSet',
