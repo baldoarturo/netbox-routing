@@ -81,6 +81,54 @@ class OSPFInterfaceTestCase(TestCase):
                 ospf_interface.full_clean()
             self.assertIn('cost', cm.exception.error_dict)
 
+    def test_timers_default_to_rfc_2328_values(self):
+        ospf_interface = OSPFInterface.objects.get()
+        self.assertEqual(ospf_interface.hello_interval, 10)
+        self.assertEqual(ospf_interface.dead_interval, 40)
+        self.assertEqual(ospf_interface.retransmit_interval, 5)
+        self.assertEqual(ospf_interface.transmit_delay, 1)
+
+    def test_timer_limits(self):
+        # dead_interval must also exceed hello_interval, so its lowest valid
+        # value is 2 while hello_interval is at its minimum of 1.
+        limits = {
+            'hello_interval': (1, 65535),
+            'dead_interval': (2, 4294967295),
+            'retransmit_interval': (1, 65535),
+            'transmit_delay': (1, 65535),
+        }
+        for name, (low, high) in limits.items():
+            with self.subTest(name=name):
+                for value in (low, high):
+                    ospf_interface = OSPFInterface.objects.get()
+                    ospf_interface.hello_interval = 1
+                    ospf_interface.dead_interval = 4294967295
+                    setattr(ospf_interface, name, value)
+                    if name == 'dead_interval':
+                        ospf_interface.hello_interval = 1
+                    ospf_interface.full_clean()
+                for value in (
+                    1 if name == 'dead_interval' else low - 1,
+                    high + 1,
+                ):
+                    ospf_interface = OSPFInterface.objects.get()
+                    setattr(ospf_interface, name, value)
+                    if name == 'dead_interval' and value == 1:
+                        ospf_interface.hello_interval = 1
+                    with self.assertRaises(ValidationError) as cm:
+                        ospf_interface.full_clean()
+                    self.assertTrue(
+                        {name, 'dead_interval'} & set(cm.exception.error_dict)
+                    )
+
+    def test_dead_interval_must_exceed_hello_interval(self):
+        ospf_interface = OSPFInterface.objects.get()
+        ospf_interface.hello_interval = 30
+        ospf_interface.dead_interval = 30
+        with self.assertRaises(ValidationError) as cm:
+            ospf_interface.full_clean()
+        self.assertIn('dead_interval', cm.exception.error_dict)
+
     def test_delete_device_with_ospf_interfaces(self):
         self.device.delete()
         self.assertFalse(OSPFInstance.objects.exists())

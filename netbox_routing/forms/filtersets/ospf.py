@@ -93,6 +93,13 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
             'authentication',
             name=_('Attributes'),
         ),
+        FieldSet(
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            name=_('Timers'),
+        ),
     )
     device_id = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(),
@@ -141,6 +148,12 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
     )
     priority = forms.IntegerField(required=False)
     cost = forms.IntegerField(required=False, label=_('Cost'))
+    hello_interval = forms.IntegerField(required=False, label=_('Hello Interval'))
+    dead_interval = forms.IntegerField(required=False, label=_('Dead Interval'))
+    retransmit_interval = forms.IntegerField(
+        required=False, label=_('Retransmit Interval')
+    )
+    transmit_delay = forms.IntegerField(required=False, label=_('Transmit Delay'))
     authentication = forms.ChoiceField(
         choices=add_blank_choice(AuthenticationChoices), required=False
     )

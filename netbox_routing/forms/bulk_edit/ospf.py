@@ -9,7 +9,18 @@ from utilities.forms.fields import DynamicModelChoiceField, CommentField
 
 from netbox_routing import choices
 from netbox_routing.choices.ospf import OSPFAreaTypeChoices
-from netbox_routing.constants.ospf import OSPF_COST_MAX, OSPF_COST_MIN
+from netbox_routing.constants.ospf import (
+    OSPF_COST_MAX,
+    OSPF_COST_MIN,
+    OSPF_DEAD_INTERVAL_MAX,
+    OSPF_DEAD_INTERVAL_MIN,
+    OSPF_HELLO_INTERVAL_MAX,
+    OSPF_HELLO_INTERVAL_MIN,
+    OSPF_RETRANSMIT_INTERVAL_MAX,
+    OSPF_RETRANSMIT_INTERVAL_MIN,
+    OSPF_TRANSMIT_DELAY_MAX,
+    OSPF_TRANSMIT_DELAY_MIN,
+)
 from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
 
 __all__ = (
@@ -92,6 +103,30 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     bfd = forms.ChoiceField(
         label=_('BFD'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
+    hello_interval = forms.IntegerField(
+        label=_('Hello Interval'),
+        required=False,
+        min_value=OSPF_HELLO_INTERVAL_MIN,
+        max_value=OSPF_HELLO_INTERVAL_MAX,
+    )
+    dead_interval = forms.IntegerField(
+        label=_('Dead Interval'),
+        required=False,
+        min_value=OSPF_DEAD_INTERVAL_MIN,
+        max_value=OSPF_DEAD_INTERVAL_MAX,
+    )
+    retransmit_interval = forms.IntegerField(
+        label=_('Retransmit Interval'),
+        required=False,
+        min_value=OSPF_RETRANSMIT_INTERVAL_MIN,
+        max_value=OSPF_RETRANSMIT_INTERVAL_MAX,
+    )
+    transmit_delay = forms.IntegerField(
+        label=_('Transmit Delay'),
+        required=False,
+        min_value=OSPF_TRANSMIT_DELAY_MIN,
+        max_value=OSPF_TRANSMIT_DELAY_MAX,
+    )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
         choices=add_blank_choice(choices.AuthenticationChoices),
@@ -116,6 +151,13 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'authentication',
             'passphrase',
             name='Attributes',
+        ),
+        FieldSet(
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            name='Timers',
         ),
         FieldSet('description'),
     )

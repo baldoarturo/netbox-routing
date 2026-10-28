@@ -48,6 +48,10 @@ class OSPFInterfaceType(PrimaryObjectType):
     passive: bool | None
     priority: str | None
     cost: int | None
+    hello_interval: int
+    dead_interval: int
+    retransmit_interval: int
+    transmit_delay: int
     bfd: bool | None
     authentication: str | None
     passphrase: str | None

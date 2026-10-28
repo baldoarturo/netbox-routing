@@ -35,6 +35,12 @@ class OSPFInterfacePanel(panels.ObjectAttributesPanel):
 class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     priority = attrs.NumericAttr('priority', label=_('Priority'))
     cost = attrs.NumericAttr('cost', label=_('Cost'))
+    hello_interval = attrs.NumericAttr('hello_interval', label=_('Hello Interval'))
+    dead_interval = attrs.NumericAttr('dead_interval', label=_('Dead Interval'))
+    retransmit_interval = attrs.NumericAttr(
+        'retransmit_interval', label=_('Retransmit Interval')
+    )
+    transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
     network_type = attrs.ChoiceAttr('network_type', label=_('Network Type'))
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
     bfd = attrs.BooleanAttr('bfd', label=_('BFD'))
