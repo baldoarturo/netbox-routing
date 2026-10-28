@@ -107,6 +107,27 @@ class OSPFAreaTestCase(TestCase):
         self.assertTrue(form.is_valid())
         self.assertTrue(form.save())
 
+    def test_area_zero_defaults_to_the_backbone_type(self):
+        for area_id in ('0', '0.0.0.0'):
+            with self.subTest(area_id=area_id):
+                form = OSPFAreaForm(
+                    data={
+                        'instance': self.instance.pk,
+                        'area_id': area_id,
+                        'area_type': 'standard',
+                    }
+                )
+                self.assertTrue(form.is_valid(), form.errors)
+                self.assertEqual(form.save().area_type, 'backbone')
+                OSPFArea.objects.all().delete()
+
+    def test_area_zero_cannot_be_a_stub(self):
+        form = OSPFAreaForm(
+            data={'instance': self.instance.pk, 'area_id': '0', 'area_type': 'stub'}
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('area_type', form.errors)
+
     def test_invalid_area(self):
         form = OSPFAreaForm(
             data={
@@ -146,6 +167,19 @@ class OSPFInterfaceTestCase(TestCase):
         )
         self.assertTrue(form.is_valid())
         self.assertTrue(form.save())
+
+    def test_priority_left_out_takes_its_default(self):
+        form = OSPFInterfaceForm(
+            data={
+                'device': Device.objects.first().pk,
+                'interface': Interface.objects.first().pk,
+                'instance': OSPFInstance.objects.first().pk,
+                'area': OSPFArea.objects.first().pk,
+                'network_type': 'broadcast',
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().priority, 1)
 
     def test_interface_with_incorrect_device(self):
         device = create_test_device(name='Device 2')

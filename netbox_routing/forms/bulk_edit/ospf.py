@@ -19,6 +19,8 @@ from netbox_routing.constants.ospf import (
     OSPF_GRACEFUL_RESTART_PERIOD_MIN,
     OSPF_MAX_LSA_THRESHOLD_MAX,
     OSPF_MAX_LSA_THRESHOLD_MIN,
+    OSPF_PRIORITY_MAX,
+    OSPF_PRIORITY_MIN,
     OSPF_TAG_MAX,
     OSPF_DEAD_INTERVAL_MIN,
     OSPF_HELLO_INTERVAL_MAX,
@@ -224,7 +226,12 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     passive = forms.ChoiceField(
         label=_('Passive'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
-    priority = forms.IntegerField(label=_('Priority'), required=False)
+    priority = forms.IntegerField(
+        label=_('Priority'),
+        required=False,
+        min_value=OSPF_PRIORITY_MIN,
+        max_value=OSPF_PRIORITY_MAX,
+    )
     cost = forms.IntegerField(
         label=_('Cost'),
         required=False,
