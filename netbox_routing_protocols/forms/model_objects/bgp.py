@@ -169,19 +169,19 @@ class BGPSettingMixin:
 class BGPSettingForm(PrimaryModelForm):
     router = DynamicModelChoiceField(
         queryset=BGPRouter.objects.all(),
-        required=True,
+        required=False,
         selector=True,
         label=_('Router'),
     )
     scope = DynamicModelChoiceField(
         queryset=BGPScope.objects.all(),
-        required=True,
+        required=False,
         selector=True,
         label=_('Scope'),
     )
     addressfamily = DynamicModelChoiceField(
         queryset=BGPAddressFamily.objects.all(),
-        required=True,
+        required=False,
         selector=True,
         label=_('Address Family'),
     )
@@ -239,12 +239,14 @@ class BGPSettingForm(PrimaryModelForm):
     def clean(self):
         super().clean()
 
+        # A selector that failed its own validation is missing from cleaned_data and
+        # already has its error: do not add a misleading one on top of it
+        fields = ('router', 'scope', 'addressfamily')
+        if any(field in self.errors for field in fields):
+            return
+
         # Handle object assignment
-        selected_objects = [
-            field
-            for field in ('router', 'scope', 'addressfamily')
-            if self.cleaned_data[field]
-        ]
+        selected_objects = [field for field in fields if self.cleaned_data.get(field)]
         if len(selected_objects) > 1:
             raise forms.ValidationError(
                 {
@@ -577,21 +579,23 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
     def clean(self):
         super().clean()
 
+        # A selector that failed its own validation is missing from cleaned_data and
+        # already has its error: do not add a misleading one on top of it
+        fields = (
+            'region',
+            'site_group',
+            'site',
+            'location',
+            'device',
+            'cluster_group',
+            'cluster',
+            'virtual_machine',
+        )
+        if any(field in self.errors for field in fields):
+            return
+
         # Handle object assignment
-        selected_objects = [
-            field
-            for field in (
-                'region',
-                'site_group',
-                'site',
-                'location',
-                'device',
-                'cluster_group',
-                'cluster',
-                'virtual_machine',
-            )
-            if self.cleaned_data[field]
-        ]
+        selected_objects = [field for field in fields if self.cleaned_data.get(field)]
         if len(selected_objects) > 1:
             raise forms.ValidationError(
                 {
@@ -857,10 +861,14 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
     def clean(self):
         super().clean()
 
+        # A selector that failed its own validation is missing from cleaned_data and
+        # already has its error: do not add a misleading one on top of it
+        fields = ('peer', 'peer_group')
+        if any(field in self.errors for field in fields):
+            return
+
         # Handle object assignment
-        selected_objects = [
-            field for field in ('peer', 'peer_group') if self.cleaned_data[field]
-        ]
+        selected_objects = [field for field in fields if self.cleaned_data.get(field)]
         if len(selected_objects) > 1:
             raise forms.ValidationError(
                 {
