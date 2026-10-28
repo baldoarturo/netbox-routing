@@ -11,6 +11,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFGracefulRestartChoices,
     OSPFNetworkTypeChoices,
     OSPFRedistributionProtocolChoices,
+    OSPFRouteTypeChoices,
 )
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
@@ -352,6 +353,7 @@ class OSPFRedistributionFilterForm(NetBoxModelFilterSetForm):
         FieldSet('device_id', 'instance_id', name=_('OSPF')),
         FieldSet(
             'protocol',
+            'ospf_match',
             'metric_type',
             'subnets',
             'route_tag',
@@ -379,6 +381,11 @@ class OSPFRedistributionFilterForm(NetBoxModelFilterSetForm):
         choices=OSPFExternalMetricTypeChoices,
         required=False,
         label=_('Metric Type'),
+    )
+    ospf_match = forms.MultipleChoiceField(
+        choices=OSPFRouteTypeChoices,
+        required=False,
+        label=_('OSPF Route Types'),
     )
     subnets = forms.NullBooleanField(
         required=False,

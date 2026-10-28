@@ -112,6 +112,7 @@ class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
     distance_external = attrs.NumericAttr(
         'distance_external', label=_('Distance (External)')
     )
+    default_metric = attrs.NumericAttr('default_metric', label=_('Default Metric'))
 
 
 class OSPFAuthenticationPanel(panels.ObjectAttributesPanel):
@@ -214,6 +215,7 @@ class OSPFRedistributionPanel(panels.ObjectAttributesPanel):
     metric_type = attrs.ChoiceAttr('metric_type', label=_('Metric Type'))
     subnets = attrs.BooleanAttr('subnets', label=_('Subnets'))
     route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    ospf_match = attrs.TextAttr('ospf_match_display', label=_('OSPF Route Types'))
     route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
     description = attrs.TextAttr('description', label=_('Description'))
 

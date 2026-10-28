@@ -95,6 +95,15 @@ class OSPFInstanceTestCase(TestCase):
                 for value in invalid:
                     self._assert_invalid(name, **{name: value})
 
+    def test_default_metric_limits(self):
+        instance = self._instance('10.0.0.1')
+        instance.full_clean()
+        self.assertIsNone(instance.default_metric)
+        for value in (0, 16777214):
+            instance.default_metric = value
+            instance.full_clean()
+        self._assert_invalid('default_metric', default_metric=16777215)
+
     def test_graceful_restart_period_limits(self):
         instance = self._instance('10.0.0.1')
         for period in (1, 1800):

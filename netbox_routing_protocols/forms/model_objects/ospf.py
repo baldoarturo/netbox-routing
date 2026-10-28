@@ -16,6 +16,8 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFMessageDigestAlgorithmChoices,
+    OSPFRedistributionProtocolChoices,
+    OSPFRouteTypeChoices,
 )
 from netbox_routing_protocols.constants.ospf import (
     OSPF_INTERFACE_TIMERS,
@@ -452,6 +454,12 @@ class OSPFRedistributionForm(PrimaryModelForm):
         label=_('IS-IS Source'),
         query_params={'device_id': '$device'},
     )
+    ospf_match = forms.MultipleChoiceField(
+        choices=OSPFRouteTypeChoices,
+        required=False,
+        label=_('OSPF Route Types'),
+        help_text=_('Empty uses the platform default'),
+    )
 
     fieldsets = (
         FieldSet(
@@ -463,10 +471,11 @@ class OSPFRedistributionForm(PrimaryModelForm):
         ),
         FieldSet(
             'ospf_source',
+            'ospf_match',
             'eigrp_source',
             'bgp_source',
             'isis_source',
-            name=_('Source (not for static)'),
+            name=_('Source'),
         ),
         FieldSet(
             'metric',
@@ -491,6 +500,7 @@ class OSPFRedistributionForm(PrimaryModelForm):
             'eigrp_source',
             'bgp_source',
             'isis_source',
+            'ospf_match',
             'metric',
             'metric_type',
             'subnets',
@@ -515,6 +525,9 @@ class OSPFRedistributionForm(PrimaryModelForm):
         for source_protocol, field in OSPFRedistribution.SOURCE_FIELDS.items():
             if source_protocol != protocol:
                 del self.fields[field]
+        # The route types only make sense when the source is OSPF
+        if protocol != OSPFRedistributionProtocolChoices.OSPF:
+            del self.fields['ospf_match']
 
     def clean(self):
         if not self.cleaned_data.get('metric_type'):
@@ -523,6 +536,8 @@ class OSPFRedistributionForm(PrimaryModelForm):
         for field in OSPFRedistribution.SOURCE_FIELDS.values():
             if field not in self.fields:
                 setattr(self.instance, field, None)
+        if 'ospf_match' not in self.fields:
+            self.instance.ospf_match = []
         return super().clean()
 
 

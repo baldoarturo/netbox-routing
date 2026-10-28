@@ -199,6 +199,9 @@ class OSPFRedistributionTable(NetBoxTable):
     protocol = tables.Column(verbose_name=_('Protocol'))
     source = tables.Column(verbose_name=_('Source'), orderable=False, empty_values=())
     subnets = tables.BooleanColumn(verbose_name=_('Subnets'))
+    ospf_match = tables.Column(
+        verbose_name=_('OSPF Route Types'), orderable=False, empty_values=()
+    )
 
     class Meta(NetBoxTable.Meta):
         model = OSPFRedistribution
@@ -209,6 +212,7 @@ class OSPFRedistributionTable(NetBoxTable):
             'device',
             'protocol',
             'source',
+            'ospf_match',
             'metric',
             'metric_type',
             'subnets',
@@ -229,6 +233,9 @@ class OSPFRedistributionTable(NetBoxTable):
 
     def render_protocol(self, record):
         return record.get_protocol_display()
+
+    def render_ospf_match(self, record):
+        return record.ospf_match_display
 
     def render_source(self, record):
         return str(record.source) if record.source else '—'
