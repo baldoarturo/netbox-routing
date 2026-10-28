@@ -13,13 +13,23 @@ from utilities.forms.rendering import FieldSet
 from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.choices.ospf import OSPFExternalMetricTypeChoices
 from netbox_routing.constants.ospf import OSPF_INTERFACE_TIMERS
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    BGPRouter,
+    EIGRPRouter,
+    ISISInstance,
+    OSPFArea,
+    OSPFInstance,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFAreaForm',
     'OSPFInstanceForm',
     'OSPFInterfaceForm',
     'OSPFNetworkForm',
+    'OSPFRedistributionForm',
 )
 
 
@@ -286,3 +296,85 @@ class OSPFNetworkForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+
+
+class OSPFRedistributionForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+    ospf_source = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Source'),
+    )
+    eigrp_source = DynamicModelChoiceField(
+        queryset=EIGRPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('EIGRP Source'),
+    )
+    bgp_source = DynamicModelChoiceField(
+        queryset=BGPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('BGP Source'),
+    )
+    isis_source = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('IS-IS Source'),
+    )
+
+    fieldsets = (
+        FieldSet('instance', 'protocol', 'description', name=_('Redistribution')),
+        FieldSet(
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            name=_('Source (not for static)'),
+        ),
+        FieldSet(
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            'route_policy',
+            name=_('Attributes'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFRedistribution
+        fields = (
+            'instance',
+            'protocol',
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # An empty metric type falls back to its default (see clean()).
+        self.fields['metric_type'].required = False
+
+    def clean(self):
+        if not self.cleaned_data.get('metric_type'):
+            self.cleaned_data['metric_type'] = OSPFExternalMetricTypeChoices.TYPE_2
+        return super().clean()

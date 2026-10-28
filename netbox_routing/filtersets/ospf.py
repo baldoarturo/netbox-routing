@@ -13,14 +13,25 @@ from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFNetworkTypeChoices,
+    OSPFRedistributionProtocolChoices,
 )
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    BGPRouter,
+    EIGRPRouter,
+    ISISInstance,
+    OSPFArea,
+    OSPFInstance,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFAreaFilterSet',
     'OSPFInstanceFilterSet',
     'OSPFInterfaceFilterSet',
     'OSPFNetworkFilterSet',
+    'OSPFRedistributionFilterSet',
 )
 
 
@@ -279,5 +290,72 @@ class OSPFNetworkFilterSet(NetBoxModelFilterSet):
             | Q(ospf_interface__area__area_id__icontains=value)
             | Q(ospf_interface__interface__name__icontains=value)
             | Q(ospf_interface__interface__device__name__icontains=value)
+        )
+        return queryset.filter(qs_filter)
+
+
+@register_filterset
+class OSPFRedistributionFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    instance = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__name',
+        queryset=OSPFInstance.objects.all(),
+        to_field_name='name',
+        label=_('Instance'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    protocol = django_filters.MultipleChoiceFilter(
+        choices=OSPFRedistributionProtocolChoices,
+        label=_('Protocol'),
+    )
+    ospf_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_source',
+        queryset=OSPFInstance.objects.all(),
+        label=_('OSPF Source (ID)'),
+    )
+    eigrp_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='eigrp_source',
+        queryset=EIGRPRouter.objects.all(),
+        label=_('EIGRP Source (ID)'),
+    )
+    bgp_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='bgp_source',
+        queryset=BGPRouter.objects.all(),
+        label=_('BGP Source (ID)'),
+    )
+    isis_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='isis_source',
+        queryset=ISISInstance.objects.all(),
+        label=_('IS-IS Source (ID)'),
+    )
+    metric_type = django_filters.MultipleChoiceFilter(
+        choices=OSPFExternalMetricTypeChoices,
+        label=_('Metric Type'),
+    )
+
+    class Meta:
+        model = OSPFRedistribution
+        fields = (
+            'instance',
+            'protocol',
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = Q(instance__name__icontains=value) | Q(
+            route_policy__icontains=value
         )
         return queryset.filter(qs_filter)

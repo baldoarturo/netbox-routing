@@ -1,0 +1,309 @@
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError
+from django.test import TestCase
+
+from ipam.models import ASN, RIR
+from utilities.testing import APIViewTestCases, ViewTestCases, create_test_device
+
+from netbox_routing.filtersets import OSPFRedistributionFilterSet
+from netbox_routing.models import (
+    BGPRouter,
+    EIGRPRouter,
+    ISISInstance,
+    OSPFInstance,
+    OSPFRedistribution,
+)
+from netbox_routing.tests.base import IPAddressFieldMixin
+
+__all__ = (
+    'OSPFRedistributionModelTestCase',
+    'OSPFRedistributionFilterSetTestCase',
+    'OSPFRedistributionViewTestCase',
+    'OSPFRedistributionAPITestCase',
+)
+
+
+def _create_fixtures(cls):
+    cls.device = create_test_device(name='Device 1')
+    cls.other_device = create_test_device(name='Device 2')
+    cls.instances = [
+        OSPFInstance.objects.create(
+            name=f'Instance {i}',
+            device=cls.device,
+            router_id=f'1.1.1.{i}',
+            process_id=i,
+        )
+        for i in (1, 2)
+    ]
+    cls.other_instance = OSPFInstance.objects.create(
+        name='Other', device=cls.other_device, router_id='9.9.9.9', process_id=9
+    )
+    cls.eigrp = EIGRPRouter.objects.create(device=cls.device, mode='classic', pid=100)
+    cls.other_eigrp = EIGRPRouter.objects.create(
+        device=cls.other_device, mode='classic', pid=100
+    )
+    cls.isis = ISISInstance.objects.create(device=cls.device, process_tag='core')
+    rir = RIR.objects.create(name='RIR', slug='rir')
+    cls.bgp = BGPRouter.objects.create(
+        name='BGP', asn=ASN.objects.create(asn=65000, rir=rir)
+    )
+
+
+class OSPFRedistributionModelTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        _create_fixtures(cls)
+
+    def _redistribution(self, **kwargs):
+        kwargs.setdefault('instance', self.instances[0])
+        return OSPFRedistribution(**kwargs)
+
+    def test_defaults(self):
+        redistribution = self._redistribution(protocol='static')
+        redistribution.full_clean()
+        self.assertEqual(redistribution.metric_type, '2')
+        self.assertTrue(redistribution.subnets)
+        self.assertIsNone(redistribution.source)
+
+    def test_every_protocol_with_its_source_is_valid(self):
+        for protocol, source in (
+            ('ospf', {'ospf_source': self.instances[1]}),
+            ('eigrp', {'eigrp_source': self.eigrp}),
+            ('bgp', {'bgp_source': self.bgp}),
+            ('isis', {'isis_source': self.isis}),
+        ):
+            with self.subTest(protocol=protocol):
+                redistribution = self._redistribution(protocol=protocol, **source)
+                redistribution.full_clean()
+                self.assertIsNotNone(redistribution.source)
+
+    def test_non_static_protocol_requires_its_source(self):
+        for protocol, field in (
+            ('ospf', 'ospf_source'),
+            ('eigrp', 'eigrp_source'),
+            ('bgp', 'bgp_source'),
+            ('isis', 'isis_source'),
+        ):
+            with self.subTest(protocol=protocol):
+                with self.assertRaises(ValidationError) as cm:
+                    self._redistribution(protocol=protocol).full_clean()
+                self.assertIn(field, cm.exception.error_dict)
+
+    def test_static_and_foreign_sources_are_rejected(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._redistribution(
+                protocol='static', eigrp_source=self.eigrp
+            ).full_clean()
+        self.assertIn('eigrp_source', cm.exception.error_dict)
+
+        with self.assertRaises(ValidationError) as cm:
+            self._redistribution(
+                protocol='bgp', bgp_source=self.bgp, isis_source=self.isis
+            ).full_clean()
+        self.assertIn('isis_source', cm.exception.error_dict)
+
+    def test_ospf_instance_cannot_be_redistributed_into_itself(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._redistribution(
+                protocol='ospf', ospf_source=self.instances[0]
+            ).full_clean()
+        self.assertIn('ospf_source', cm.exception.error_dict)
+
+    def test_source_must_be_on_the_same_device(self):
+        for protocol, source in (
+            ('ospf', {'ospf_source': self.other_instance}),
+            ('eigrp', {'eigrp_source': self.other_eigrp}),
+        ):
+            with self.subTest(protocol=protocol):
+                with self.assertRaises(ValidationError) as cm:
+                    self._redistribution(protocol=protocol, **source).full_clean()
+                self.assertIn(f'{protocol}_source', cm.exception.error_dict)
+
+    def test_limits(self):
+        redistribution = self._redistribution(protocol='static')
+        for metric in (0, 16777214):
+            redistribution.metric = metric
+            redistribution.full_clean()
+        redistribution.metric = 16777215
+        with self.assertRaises(ValidationError) as cm:
+            redistribution.full_clean()
+        self.assertIn('metric', cm.exception.error_dict)
+
+        redistribution.metric = None
+        for route_tag in (0, 4294967295):
+            redistribution.route_tag = route_tag
+            redistribution.full_clean()
+        redistribution.route_tag = 4294967296
+        with self.assertRaises(ValidationError) as cm:
+            redistribution.full_clean()
+        self.assertIn('route_tag', cm.exception.error_dict)
+
+    def test_a_source_is_redistributed_only_once_per_instance(self):
+        OSPFRedistribution.objects.create(
+            instance=self.instances[0], protocol='eigrp', eigrp_source=self.eigrp
+        )
+        with self.assertRaises(IntegrityError):
+            OSPFRedistribution.objects.create(
+                instance=self.instances[0], protocol='eigrp', eigrp_source=self.eigrp
+            )
+
+    def test_static_is_redistributed_only_once_per_instance(self):
+        OSPFRedistribution.objects.create(instance=self.instances[0], protocol='static')
+        with self.assertRaises(IntegrityError):
+            OSPFRedistribution.objects.create(
+                instance=self.instances[0], protocol='static'
+            )
+
+    def test_deleting_the_instance_deletes_its_redistributions(self):
+        OSPFRedistribution.objects.create(instance=self.instances[0], protocol='static')
+        self.instances[0].delete()
+        self.assertFalse(OSPFRedistribution.objects.exists())
+
+
+class OSPFRedistributionFilterSetTestCase(TestCase):
+    queryset = OSPFRedistribution.objects.all()
+    filterset = OSPFRedistributionFilterSet
+
+    @classmethod
+    def setUpTestData(cls):
+        _create_fixtures(cls)
+        OSPFRedistribution.objects.bulk_create(
+            (
+                OSPFRedistribution(
+                    instance=cls.instances[0],
+                    protocol='static',
+                    metric=10,
+                    route_policy='TO-OSPF',
+                ),
+                OSPFRedistribution(
+                    instance=cls.instances[0],
+                    protocol='eigrp',
+                    eigrp_source=cls.eigrp,
+                    metric_type='1',
+                    route_tag=7,
+                ),
+                OSPFRedistribution(
+                    instance=cls.instances[1], protocol='bgp', bgp_source=cls.bgp
+                ),
+                OSPFRedistribution(
+                    instance=cls.other_instance,
+                    protocol='isis',
+                    isis_source=cls.isis,
+                    subnets=False,
+                ),
+            )
+        )
+
+    def count(self, params):
+        return self.filterset(params, self.queryset).qs.count()
+
+    def test_instance_and_device(self):
+        self.assertEqual(self.count({'instance_id': [self.instances[0].pk]}), 2)
+        self.assertEqual(self.count({'instance': ['Instance 2']}), 1)
+        self.assertEqual(self.count({'device_id': [self.device.pk]}), 3)
+
+    def test_protocol_and_sources(self):
+        self.assertEqual(self.count({'protocol': ['static', 'bgp']}), 2)
+        self.assertEqual(self.count({'eigrp_source_id': [self.eigrp.pk]}), 1)
+        self.assertEqual(self.count({'bgp_source_id': [self.bgp.pk]}), 1)
+        self.assertEqual(self.count({'isis_source_id': [self.isis.pk]}), 1)
+
+    def test_attributes(self):
+        self.assertEqual(self.count({'metric': [10]}), 1)
+        self.assertEqual(self.count({'metric_type': ['1']}), 1)
+        self.assertEqual(self.count({'subnets': False}), 1)
+        self.assertEqual(self.count({'route_tag': [7]}), 1)
+
+    def test_q(self):
+        self.assertEqual(self.count({'q': 'TO-OSPF'}), 1)
+        self.assertEqual(self.count({'q': 'Instance 1'}), 2)
+
+
+class OSPFRedistributionViewTestCase(
+    ViewTestCases.GetObjectViewTestCase,
+    ViewTestCases.GetObjectChangelogViewTestCase,
+    ViewTestCases.CreateObjectViewTestCase,
+    ViewTestCases.EditObjectViewTestCase,
+    ViewTestCases.DeleteObjectViewTestCase,
+    ViewTestCases.ListObjectsViewTestCase,
+    ViewTestCases.BulkEditObjectsViewTestCase,
+    ViewTestCases.BulkDeleteObjectsViewTestCase,
+):
+    model = OSPFRedistribution
+
+    @classmethod
+    def setUpTestData(cls):
+        _create_fixtures(cls)
+        OSPFRedistribution.objects.bulk_create(
+            (
+                OSPFRedistribution(instance=cls.instances[0], protocol='static'),
+                OSPFRedistribution(
+                    instance=cls.instances[0], protocol='eigrp', eigrp_source=cls.eigrp
+                ),
+                OSPFRedistribution(
+                    instance=cls.instances[0], protocol='bgp', bgp_source=cls.bgp
+                ),
+            )
+        )
+        cls.form_data = {
+            'instance': cls.instances[1].pk,
+            'protocol': 'isis',
+            'isis_source': cls.isis.pk,
+            'metric': 20,
+            'metric_type': '1',
+            'subnets': True,
+            'route_tag': 5,
+            'route_policy': 'ISIS-TO-OSPF',
+        }
+        cls.bulk_edit_data = {
+            'description': 'A test description',
+            'route_policy': 'POLICY',
+        }
+
+    def _get_base_url(self):
+        return 'plugins:netbox_routing:ospfredistribution_{}'
+
+
+class OSPFRedistributionAPITestCase(
+    IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
+):
+    model = OSPFRedistribution
+    view_namespace = 'plugins-api:netbox_routing'
+    brief_fields = ['display', 'id', 'instance', 'protocol', 'url']
+
+    user_permissions = (
+        'netbox_routing.view_ospfinstance',
+        'netbox_routing.view_eigrprouter',
+        'netbox_routing.view_bgprouter',
+        'netbox_routing.view_isisinstance',
+        'dcim.view_device',
+        'ipam.view_asn',
+    )
+
+    bulk_update_data = {'description': 'A test description'}
+    # Changing the protocol of an existing object also needs its source changed
+    update_data = {'metric': 30, 'route_policy': 'UPDATED'}
+
+    @classmethod
+    def setUpTestData(cls):
+        _create_fixtures(cls)
+        OSPFRedistribution.objects.bulk_create(
+            (
+                OSPFRedistribution(instance=cls.instances[0], protocol='static'),
+                OSPFRedistribution(
+                    instance=cls.instances[0], protocol='eigrp', eigrp_source=cls.eigrp
+                ),
+                OSPFRedistribution(
+                    instance=cls.instances[0], protocol='bgp', bgp_source=cls.bgp
+                ),
+            )
+        )
+        cls.create_data = [
+            {
+                'instance': cls.instances[1].pk,
+                'protocol': 'isis',
+                'isis_source': cls.isis.pk,
+                'metric': 20,
+                'route_policy': 'ISIS-TO-OSPF',
+            },
+        ]

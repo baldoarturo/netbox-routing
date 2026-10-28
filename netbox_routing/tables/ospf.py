@@ -2,13 +2,20 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    OSPFArea,
+    OSPFInstance,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFAreaTable',
     'OSPFInstanceTable',
     'OSPFInterfaceTable',
     'OSPFNetworkTable',
+    'OSPFRedistributionTable',
 )
 
 
@@ -146,3 +153,46 @@ class OSPFNetworkTable(NetBoxTable):
 
     def render_subnet(self, record):
         return str(record.subnet)
+
+
+class OSPFRedistributionTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    protocol = tables.Column(verbose_name=_('Protocol'))
+    source = tables.Column(verbose_name=_('Source'), orderable=False, empty_values=())
+    subnets = tables.BooleanColumn(verbose_name=_('Subnets'))
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFRedistribution
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'protocol',
+            'source',
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            'route_policy',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'protocol',
+            'source',
+            'metric',
+            'metric_type',
+            'route_policy',
+        )
+
+    def render_protocol(self, record):
+        return record.get_protocol_display()
+
+    def render_source(self, record):
+        return str(record.source) if record.source else '—'

@@ -43,6 +43,7 @@ from .ospf.types import (
     OSPFAreaType,
     OSPFInterfaceType,
     OSPFNetworkType,
+    OSPFRedistributionType,
 )
 from .static.types import StaticRouteType
 
@@ -66,6 +67,9 @@ class OSPFQuery:
 
     ospf_network: OSPFNetworkType = strawberry_django.field()
     ospf_network_list: list[OSPFNetworkType] = strawberry_django.field()
+
+    ospf_redistribution: OSPFRedistributionType = strawberry_django.field()
+    ospf_redistribution_list: list[OSPFRedistributionType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")

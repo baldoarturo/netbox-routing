@@ -15,6 +15,7 @@ from netbox_routing.constants.ospf import (
     OSPF_DEAD_INTERVAL_MAX,
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
+    OSPF_TAG_MAX,
     OSPF_DEAD_INTERVAL_MIN,
     OSPF_HELLO_INTERVAL_MAX,
     OSPF_HELLO_INTERVAL_MIN,
@@ -23,13 +24,20 @@ from netbox_routing.constants.ospf import (
     OSPF_TRANSMIT_DELAY_MAX,
     OSPF_TRANSMIT_DELAY_MIN,
 )
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    OSPFArea,
+    OSPFInstance,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFInterfaceBulkEditForm',
     'OSPFInstanceBulkEditForm',
     'OSPFAreaBulkEditForm',
     'OSPFNetworkBulkEditForm',
+    'OSPFRedistributionBulkEditForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -210,3 +218,37 @@ class OSPFNetworkBulkEditForm(NetBoxModelBulkEditForm):
     model = OSPFNetwork
     fieldsets = (FieldSet('description'),)
     nullable_fields = ('description',)
+
+
+class OSPFRedistributionBulkEditForm(NetBoxModelBulkEditForm):
+    metric = forms.IntegerField(
+        label=_('Metric'),
+        required=False,
+        min_value=OSPF_EXTERNAL_METRIC_MIN,
+        max_value=OSPF_EXTERNAL_METRIC_MAX,
+    )
+    metric_type = forms.ChoiceField(
+        label=_('Metric Type'),
+        choices=add_blank_choice(choices.OSPFExternalMetricTypeChoices),
+        required=False,
+    )
+    subnets = forms.ChoiceField(
+        label=_('Subnets'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
+    route_tag = forms.IntegerField(
+        label=_('Route Tag'), required=False, min_value=0, max_value=OSPF_TAG_MAX
+    )
+    route_policy = forms.CharField(
+        label=_('Route Policy'), max_length=100, required=False
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = OSPFRedistribution
+    fieldsets = (
+        FieldSet('metric', 'metric_type', 'subnets', 'route_tag', 'route_policy'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('metric', 'route_tag', 'route_policy', 'description')

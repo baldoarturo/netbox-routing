@@ -19,14 +19,22 @@ from netbox_routing.filtersets.ospf import (
     OSPFAreaFilterSet,
     OSPFInstanceFilterSet,
     OSPFNetworkFilterSet,
+    OSPFRedistributionFilterSet,
 )
 from netbox_routing.forms import *
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    OSPFArea,
+    OSPFInstance,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 from netbox_routing.tables.ospf import (
     OSPFAreaTable,
     OSPFInstanceTable,
     OSPFInterfaceTable,
     OSPFNetworkTable,
+    OSPFRedistributionTable,
 )
 from netbox_routing.ui import *
 
@@ -57,6 +65,12 @@ __all__ = (
     'OSPFNetworkBulkEditView',
     'OSPFNetworkDeleteView',
     'OSPFNetworkBulkDeleteView',
+    'OSPFRedistributionListView',
+    'OSPFRedistributionView',
+    'OSPFRedistributionEditView',
+    'OSPFRedistributionBulkEditView',
+    'OSPFRedistributionDeleteView',
+    'OSPFRedistributionBulkDeleteView',
 )
 
 
@@ -86,6 +100,12 @@ class OSPFInstanceView(ObjectView):
                 filters={'instance_id': lambda ctx: ctx['object'].pk},
                 exclude_columns=['id'],
                 title=_('Areas'),
+            ),
+            panels.ObjectsTablePanel(
+                model='netbox_routing.OSPFRedistribution',
+                filters={'instance_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'instance', 'device'],
+                title=_('Redistribution'),
             ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
@@ -368,3 +388,67 @@ class OSPFNetworkBulkDeleteView(BulkDeleteView):
     queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
     filterset = OSPFNetworkFilterSet
     table = OSPFNetworkTable
+
+
+#
+# Redistribution
+#
+REDISTRIBUTION_SELECT_RELATED = (
+    'instance__device',
+    'instance__vrf',
+    'ospf_source__device',
+    'eigrp_source__device',
+    'bgp_source__asn',
+    'isis_source__device',
+)
+
+
+@register_model_view(OSPFRedistribution, name='list', path='', detail=False)
+class OSPFRedistributionListView(ObjectListView):
+    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    table = OSPFRedistributionTable
+    filterset = OSPFRedistributionFilterSet
+    filterset_form = OSPFRedistributionFilterForm
+
+
+@register_model_view(OSPFRedistribution)
+class OSPFRedistributionView(ObjectView):
+    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFRedistributionPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFRedistribution, name='add', detail=False)
+@register_model_view(OSPFRedistribution, name='edit')
+class OSPFRedistributionEditView(ObjectEditView):
+    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    form = OSPFRedistributionForm
+
+
+@register_model_view(OSPFRedistribution, name='delete')
+class OSPFRedistributionDeleteView(ObjectDeleteView):
+    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+
+
+@register_model_view(OSPFRedistribution, name='bulk_edit', detail=False)
+class OSPFRedistributionBulkEditView(BulkEditView):
+    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    filterset = OSPFRedistributionFilterSet
+    table = OSPFRedistributionTable
+    form = OSPFRedistributionBulkEditForm
+
+
+@register_model_view(OSPFRedistribution, name='bulk_delete', detail=False)
+class OSPFRedistributionBulkDeleteView(BulkDeleteView):
+    queryset = OSPFRedistribution.objects.select_related(*REDISTRIBUTION_SELECT_RELATED)
+    filterset = OSPFRedistributionFilterSet
+    table = OSPFRedistributionTable

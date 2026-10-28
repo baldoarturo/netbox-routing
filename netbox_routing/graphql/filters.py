@@ -38,6 +38,7 @@ __all__ = (
     'OSPFAreaFilter',
     'OSPFInterfaceFilter',
     'OSPFNetworkFilter',
+    'OSPFRedistributionFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
     'RouteMapFilter',

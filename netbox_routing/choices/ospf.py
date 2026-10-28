@@ -43,3 +43,19 @@ class OSPFExternalMetricTypeChoices(ChoiceSet):
         (TYPE_1, 'Type 1 (E1)'),
         (TYPE_2, 'Type 2 (E2)'),
     ]
+
+
+class OSPFRedistributionProtocolChoices(ChoiceSet):
+    STATIC = 'static'
+    EIGRP = 'eigrp'
+    BGP = 'bgp'
+    OSPF = 'ospf'
+    ISIS = 'isis'
+
+    CHOICES = [
+        (STATIC, 'Static'),
+        (EIGRP, 'EIGRP'),
+        (BGP, 'BGP'),
+        (OSPF, 'OSPF'),
+        (ISIS, 'IS-IS'),
+    ]

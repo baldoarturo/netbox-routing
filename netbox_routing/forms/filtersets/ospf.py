@@ -9,17 +9,25 @@ from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFNetworkTypeChoices,
+    OSPFRedistributionProtocolChoices,
 )
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
 
-from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    OSPFInstance,
+    OSPFArea,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFAreaFilterForm',
     'OSPFInstanceFilterForm',
     'OSPFInterfaceFilterForm',
     'OSPFNetworkFilterForm',
+    'OSPFRedistributionFilterForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -239,4 +247,48 @@ class OSPFNetworkFilterForm(NetBoxModelFilterSetForm):
         selector=True,
         label=_('IP Address'),
     )
+    tag = TagFilterField(model)
+
+
+class OSPFRedistributionFilterForm(NetBoxModelFilterSetForm):
+    model = OSPFRedistribution
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('OSPF')),
+        FieldSet(
+            'protocol',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            name=_('Redistribution'),
+        ),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    protocol = forms.MultipleChoiceField(
+        choices=OSPFRedistributionProtocolChoices,
+        required=False,
+        label=_('Protocol'),
+    )
+    metric_type = forms.MultipleChoiceField(
+        choices=OSPFExternalMetricTypeChoices,
+        required=False,
+        label=_('Metric Type'),
+    )
+    subnets = forms.NullBooleanField(
+        required=False,
+        label=_('Subnets'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    route_tag = forms.IntegerField(required=False, label=_('Route Tag'))
     tag = TagFilterField(model)

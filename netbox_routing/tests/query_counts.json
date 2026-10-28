@@ -45,6 +45,8 @@
   "ospfinterface:list_objects_with_permission": 16,
   "ospfnetwork:api_list_objects": 14,
   "ospfnetwork:list_objects_with_permission": 16,
+  "ospfredistribution:api_list_objects": 12,
+  "ospfredistribution:list_objects_with_permission": 16,
   "prefixlist:api_list_objects": 11,
   "prefixlist:list_objects_with_permission": 15,
   "prefixlistentry:api_list_objects": 13,

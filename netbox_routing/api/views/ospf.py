@@ -5,14 +5,22 @@ from netbox_routing.api.serializers import (
     OSPFAreaSerializer,
     OSPFInterfaceSerializer,
     OSPFNetworkSerializer,
+    OSPFRedistributionSerializer,
 )
-from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    OSPFInstance,
+    OSPFArea,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFInstanceViewSet',
     'OSPFAreaViewSet',
     'OSPFInterfaceViewSet',
     'OSPFNetworkViewSet',
+    'OSPFRedistributionViewSet',
 )
 
 
@@ -46,3 +54,16 @@ class OSPFNetworkViewSet(NetBoxModelViewSet):
     )
     serializer_class = OSPFNetworkSerializer
     filterset_class = filtersets.OSPFNetworkFilterSet
+
+
+class OSPFRedistributionViewSet(NetBoxModelViewSet):
+    queryset = OSPFRedistribution.objects.select_related(
+        'instance__device',
+        'instance__vrf',
+        'ospf_source__device',
+        'eigrp_source__device',
+        'bgp_source__asn',
+        'isis_source__device',
+    )
+    serializer_class = OSPFRedistributionSerializer
+    filterset_class = filtersets.OSPFRedistributionFilterSet

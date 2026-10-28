@@ -33,6 +33,9 @@ __all__ = (
     'OSPFNetworkForm',
     'OSPFNetworkBulkEditForm',
     'OSPFNetworkFilterForm',
+    'OSPFRedistributionForm',
+    'OSPFRedistributionBulkEditForm',
+    'OSPFRedistributionFilterForm',
     # IS-IS
     'ISISInstanceForm',
     'ISISInstanceBulkEditForm',
