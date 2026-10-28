@@ -12,7 +12,7 @@ from .community import COMMUNITY_MENU
 __all__ = ('menu',)
 
 menu = PluginMenu(
-    label='Netbox Routing',
+    label='Routing',
     groups=(
         ('Routing Objects', COMMUNITY_MENU + OBJECT_MENU),
         ('BFD', BFD_MENU),
