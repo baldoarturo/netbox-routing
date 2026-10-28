@@ -163,6 +163,34 @@ class OSPFAreaTestCase(TestCase):
             instance=self.instance, area_id='1', area_type=area_type, **kwargs
         )
 
+    def test_area_zero_must_be_the_backbone(self):
+        for area_id in ('0', '0.0.0.0'):
+            with self.subTest(area_id=area_id):
+                OSPFArea(
+                    instance=self.instance, area_id=area_id, area_type='backbone'
+                ).full_clean()
+                for area_type in ('standard', 'stub', 'tsa', 'nssa', 'tnssa'):
+                    with self.assertRaises(ValidationError) as cm:
+                        OSPFArea(
+                            instance=self.instance, area_id=area_id, area_type=area_type
+                        ).full_clean()
+                    self.assertIn('area_type', cm.exception.error_dict)
+
+    def test_only_area_zero_can_be_the_backbone(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._area('backbone').full_clean()
+        self.assertIn('area_id', cm.exception.error_dict)
+
+    def test_area_id_limits(self):
+        for area_id in ('1', '4294967295', '255.255.255.255', '0.0.0.1'):
+            with self.subTest(area_id=area_id):
+                OSPFArea(instance=self.instance, area_id=area_id).full_clean()
+        for area_id in ('-1', '4294967296', 'a.a.a.a', '1.2.3.256'):
+            with self.subTest(area_id=area_id):
+                with self.assertRaises(ValidationError) as cm:
+                    OSPFArea(instance=self.instance, area_id=area_id).full_clean()
+                self.assertIn('area_id', cm.exception.error_dict)
+
     def test_options_default_to_off(self):
         area = self._area('standard')
         area.full_clean()
@@ -237,6 +265,18 @@ class OSPFInterfaceTestCase(TestCase):
             with self.assertRaises(ValidationError) as cm:
                 ospf_interface.full_clean()
             self.assertIn('cost', cm.exception.error_dict)
+
+    def test_priority_defaults_to_one_and_is_limited_to_8_bits(self):
+        ospf_interface = OSPFInterface.objects.get()
+        self.assertEqual(ospf_interface.priority, 1)
+        for priority in (0, 255):
+            ospf_interface.priority = priority
+            ospf_interface.full_clean()
+        for priority in (-1, 256):
+            ospf_interface.priority = priority
+            with self.assertRaises(ValidationError) as cm:
+                ospf_interface.full_clean()
+            self.assertIn('priority', cm.exception.error_dict)
 
     def test_mtu_ignore_defaults_to_false(self):
         self.assertFalse(OSPFInterface.objects.get().mtu_ignore)

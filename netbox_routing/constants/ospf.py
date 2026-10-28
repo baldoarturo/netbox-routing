@@ -3,7 +3,9 @@
 OSPF_COST_MIN = 1
 OSPF_COST_MAX = 65535
 
-# Interface timers, in seconds. Defaults: RFC 2328 Appendix C.3.
+# Interface timers, in seconds. RFC 2328 Appendix C.3 names no formal defaults;
+# the defaults are the values it gives for a LAN (hello 10, dead 4 x hello,
+# retransmit 5, transmit delay 1).
 # Hello and dead intervals are limited by their packet field widths
 # (16 and 32 bits, A.3.2). Retransmit interval and transmit delay are capped
 # at 16 bits, as is the LS age they are compared with.
@@ -78,3 +80,9 @@ OSPF_GRACEFUL_RESTART_PERIOD_DEFAULT = 120
 OSPF_MAX_LSA_THRESHOLD_MIN = 1
 OSPF_MAX_LSA_THRESHOLD_MAX = 100
 OSPF_MAX_LSA_THRESHOLD_DEFAULT = 75
+
+# Router priority: 8-bit unsigned integer, 0 means never a designated router
+# (RFC 2328 C.3). The RFC names no default; 1 is the usual one.
+OSPF_PRIORITY_MIN = 0
+OSPF_PRIORITY_MAX = 255
+OSPF_PRIORITY_DEFAULT = 1

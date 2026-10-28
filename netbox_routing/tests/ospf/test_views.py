@@ -107,9 +107,9 @@ class OSPFAreaTestCase(
             name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
         )
         areas = (
-            cls.model(instance=instance, area_id='0.0.0.0', area_type='stub'),
-            cls.model(instance=instance, area_id='1.1.1.1', area_type='tsa'),
-            cls.model(instance=instance, area_id='2.2.2.2', area_type='nssa'),
+            cls.model(instance=instance, area_id='1.1.1.1', area_type='stub'),
+            cls.model(instance=instance, area_id='2.2.2.2', area_type='tsa'),
+            cls.model(instance=instance, area_id='3.3.3.3', area_type='nssa'),
         )
         cls.model.objects.bulk_create(areas)
 
@@ -125,7 +125,7 @@ class OSPFAreaTestCase(
 
         cls.bulk_edit_data = {
             'description': 'A test Area description',
-            'area_type': 'backbone',
+            'area_type': 'stub',
         }
 
     def _get_base_url(self):

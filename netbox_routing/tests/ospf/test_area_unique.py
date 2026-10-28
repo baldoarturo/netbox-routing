@@ -25,13 +25,22 @@ class OSPFAreaUniqueTestCase(TestCase):
         ]
 
     def test_area_id_must_be_unique_within_the_instance(self):
-        OSPFArea.objects.create(instance=self.instances[0], area_id='0.0.0.0')
-        with self.assertRaises(ValidationError):
-            OSPFArea(instance=self.instances[0], area_id='0.0.0.0').full_clean()
+        OSPFArea.objects.create(
+            instance=self.instances[0], area_id='0.0.0.0', area_type='backbone'
+        )
+        with self.assertRaises(ValidationError) as cm:
+            OSPFArea(
+                instance=self.instances[0], area_id='0.0.0.0', area_type='backbone'
+            ).full_clean()
+        self.assertIn('__all__', cm.exception.error_dict)
 
     def test_same_area_id_is_allowed_in_another_instance(self):
-        OSPFArea.objects.create(instance=self.instances[0], area_id='0.0.0.0')
-        OSPFArea(instance=self.instances[1], area_id='0.0.0.0').full_clean()
+        OSPFArea.objects.create(
+            instance=self.instances[0], area_id='0.0.0.0', area_type='backbone'
+        )
+        OSPFArea(
+            instance=self.instances[1], area_id='0.0.0.0', area_type='backbone'
+        ).full_clean()
 
 
 class OSPFAreaInstanceTestCase(TestCase):

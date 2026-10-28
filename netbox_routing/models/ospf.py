@@ -30,6 +30,9 @@ from netbox_routing.constants.ospf import (
     OSPF_MAX_LSA_THRESHOLD_DEFAULT,
     OSPF_MAX_LSA_THRESHOLD_MAX,
     OSPF_MAX_LSA_THRESHOLD_MIN,
+    OSPF_PRIORITY_DEFAULT,
+    OSPF_PRIORITY_MAX,
+    OSPF_PRIORITY_MIN,
     OSPF_SPF_HOLDDOWN_DEFAULT,
     OSPF_SPF_INITIAL_DELAY_DEFAULT,
     OSPF_SPF_LONG_DELAY_DEFAULT,
@@ -449,23 +452,34 @@ class OSPFArea(PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:ospfarea', args=[self.pk])
 
+    @property
+    def area_number(self):
+        """The area ID as a number (0.0.0.0 is 0), or None if it is invalid."""
+        try:
+            number = int(self.area_id)
+        except (TypeError, ValueError):
+            try:
+                number = int(netaddr.IPAddress(self.area_id))
+            except (netaddr.AddrFormatError, TypeError, ValueError):
+                return None
+        return number if 0 <= number <= 0xFFFFFFFF else None
+
     def clean(self):
         super().clean()
         self._clean_area_type_options()
-        area_id = self.area_id
-        try:
-            int(area_id)
-        except ValueError:
-            try:
-                str(netaddr.IPAddress(area_id))
-            except netaddr.core.AddrFormatError:
-                raise ValidationError(
-                    {
-                        'area_id': [
-                            'This field must be an integer or a valid net address'
-                        ]
-                    }
-                )
+        if self.area_number is None:
+            raise ValidationError(
+                {'area_id': ['This field must be an integer or a valid net address']}
+            )
+        # Area 0.0.0.0 is reserved for the backbone (RFC 2328 C.2)
+        if self.area_number == 0 and self.area_type != OSPFAreaTypeChoices.BACKBONE:
+            raise ValidationError(
+                {'area_type': _('Area 0 is the backbone: its type must be Backbone.')}
+            )
+        if self.area_number != 0 and self.area_type == OSPFAreaTypeChoices.BACKBONE:
+            raise ValidationError(
+                {'area_id': _('The backbone area ID must be 0 (0.0.0.0).')}
+            )
 
     def _clean_area_type_options(self):
         stub_types = (
@@ -515,7 +529,18 @@ class OSPFInterface(PrimaryModel):
         null=False,
     )
     passive = models.BooleanField(verbose_name='Passive', blank=True, null=True)
-    priority = models.IntegerField(blank=True, null=True)
+    priority = models.PositiveSmallIntegerField(
+        verbose_name=_('Priority'),
+        help_text=_(
+            'Designated router election priority, 0 to 255; 0 never becomes DR '
+            '(RFC 2328; default: 1)'
+        ),
+        validators=[
+            MinValueValidator(OSPF_PRIORITY_MIN),
+            MaxValueValidator(OSPF_PRIORITY_MAX),
+        ],
+        default=OSPF_PRIORITY_DEFAULT,
+    )
     bfd = models.BooleanField(blank=True, null=True, verbose_name='BFD')
     network_type = models.CharField(
         verbose_name=_('Network Type'),
@@ -539,7 +564,7 @@ class OSPFInterface(PrimaryModel):
     )
     hello_interval = models.PositiveIntegerField(
         verbose_name=_('Hello Interval'),
-        help_text=_('Seconds between Hello packets (RFC 2328 default: 10)'),
+        help_text=_('Seconds between Hello packets (RFC 2328 value for a LAN: 10)'),
         default=OSPF_INTERFACE_TIMERS['hello_interval'][2],
         validators=[
             MinValueValidator(OSPF_INTERFACE_TIMERS['hello_interval'][0]),
@@ -549,7 +574,7 @@ class OSPFInterface(PrimaryModel):
     dead_interval = models.PositiveBigIntegerField(
         verbose_name=_('Dead Interval'),
         help_text=_(
-            'Seconds without Hello packets before a neighbor is declared down (RFC 2328 default: 40)'
+            'Seconds without Hello packets before a neighbor is declared down (RFC 2328 value for a LAN: 4 x hello, 40)'
         ),
         default=OSPF_INTERFACE_TIMERS['dead_interval'][2],
         validators=[
@@ -559,7 +584,9 @@ class OSPFInterface(PrimaryModel):
     )
     retransmit_interval = models.PositiveIntegerField(
         verbose_name=_('Retransmit Interval'),
-        help_text=_('Seconds between LSA retransmissions (RFC 2328 default: 5)'),
+        help_text=_(
+            'Seconds between LSA retransmissions (RFC 2328 value for a LAN: 5)'
+        ),
         default=OSPF_INTERFACE_TIMERS['retransmit_interval'][2],
         validators=[
             MinValueValidator(OSPF_INTERFACE_TIMERS['retransmit_interval'][0]),
@@ -568,7 +595,9 @@ class OSPFInterface(PrimaryModel):
     )
     transmit_delay = models.PositiveIntegerField(
         verbose_name=_('Transmit Delay'),
-        help_text=_('Estimated seconds to transmit an LSA (RFC 2328 default: 1)'),
+        help_text=_(
+            'Estimated seconds to transmit an LSA (RFC 2328 value for a LAN: 1)'
+        ),
         default=OSPF_INTERFACE_TIMERS['transmit_delay'][2],
         validators=[
             MinValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][0]),
