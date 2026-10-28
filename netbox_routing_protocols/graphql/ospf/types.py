@@ -81,6 +81,7 @@ class OSPFInterfaceType(PrimaryObjectType):
     ttl_security: bool
     ttl_security_hops: int | None
     bfd: bool | None
+    unnumbered: bool
     mtu_ignore: bool
     authentication: str | None
     passphrase: str | None

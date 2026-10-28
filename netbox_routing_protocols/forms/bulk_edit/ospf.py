@@ -393,6 +393,9 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     bfd = forms.ChoiceField(
         label=_('BFD'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
+    unnumbered = forms.ChoiceField(
+        label=_('Unnumbered'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
     mtu_ignore = forms.ChoiceField(
         label=_('MTU Ignore'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
@@ -515,6 +518,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'cost',
             'bfd',
             'mtu_ignore',
+            'unnumbered',
             'prefix_suppression',
             'database_filter_all_out',
             'flood_reduction',

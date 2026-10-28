@@ -1326,6 +1326,14 @@ class OSPFInterface(
         blank=True,
         null=True,
     )
+    unnumbered = models.BooleanField(
+        verbose_name=_('Unnumbered'),
+        help_text=_(
+            'Point-to-point interface that borrows the address of another interface '
+            '(RFC 2328 1.2): it has no network statements'
+        ),
+        default=False,
+    )
     mtu_ignore = models.BooleanField(
         verbose_name=_('MTU Ignore'),
         help_text=_(
@@ -1403,6 +1411,22 @@ class OSPFInterface(
     def effective_authentication(self):
         source = self.get_authentication_source()[1]
         return source.authentication if source else None
+
+    def _clean_unnumbered(self):
+        if not self.unnumbered:
+            return
+        if self.network_type != OSPFNetworkTypeChoices.POINT_TO_POINT:
+            raise ValidationError(
+                {'unnumbered': _('Only point-to-point interfaces can be unnumbered.')}
+            )
+        if self.pk and self.networks.exists():
+            raise ValidationError(
+                {
+                    'unnumbered': _(
+                        'An unnumbered interface has no networks: remove them first.'
+                    )
+                }
+            )
 
     def _clean_fast_reroute(self):
         if self.fast_reroute and self.area_id and not self.area.fast_reroute:
@@ -1489,6 +1513,7 @@ class OSPFInterface(
         self._clean_traffic_engineering()
         self._clean_segment_routing()
         self._clean_fast_reroute()
+        self._clean_unnumbered()
         self._clean_timers()
         self._clean_ttl_security()
 
@@ -1546,6 +1571,14 @@ class OSPFNetwork(PrimaryModel):
         super().clean()
         if not (self.ospf_interface_id and self.ip_address_id):
             return
+        if self.ospf_interface.unnumbered:
+            raise ValidationError(
+                {
+                    'ospf_interface': _(
+                        'The interface is unnumbered: it has no networks.'
+                    )
+                }
+            )
         if self.subnet.version != 4:
             raise ValidationError(
                 {'ip_address': _('OSPFv2 networks must be IPv4 addresses.')}
