@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from django.forms import ChoiceField
 
 from dcim.models import Interface, Device
 from ipam.models import VRF
@@ -9,6 +10,7 @@ from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 
+from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
 
 __all__ = (
@@ -108,6 +110,11 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'device_id': '$device',
         },
     )
+    network_type = ChoiceField(
+        choices=OSPFNetworkTypeChoices,
+        required=True,
+        label=_('Network Type'),
+    )
 
     fieldsets = (
         FieldSet(
@@ -122,6 +129,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
         ),
         FieldSet(
             'interface',
+            'network_type',
             'priority',
             'passive',
             'bfd',
@@ -141,6 +149,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'instance',
             'area',
             'interface',
+            'network_type',
             'passive',
             'priority',
             'bfd',

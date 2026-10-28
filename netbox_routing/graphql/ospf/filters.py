@@ -40,3 +40,4 @@ class OSPFInterfaceFilter(InterfaceMixin, VRFMixin, PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     area_id: ID | None = strawberry_django.filter_field()
+    network_type: StrFilterLookup | None = strawberry_django.filter_field()

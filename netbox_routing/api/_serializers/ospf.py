@@ -89,6 +89,7 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'instance',
             'area',
             'interface',
+            'network_type',
             'passive',
             'priority',
             'bfd',
@@ -104,5 +105,6 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'instance',
             'area',
             'interface',
+            'network_type',
             'passive',
         )

@@ -110,6 +110,7 @@ class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCas
         'id',
         'instance',
         'interface',
+        'network_type',
         'passive',
         'url',
     ]

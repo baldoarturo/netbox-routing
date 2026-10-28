@@ -3,7 +3,8 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Interface, Device
 from ipam.models import VRF
 from netbox.forms import NetBoxModelImportForm
-from utilities.forms.fields import CSVModelChoiceField
+from utilities.forms.fields import CSVModelChoiceField, CSVChoiceField
+from netbox_routing.choices.ospf import OSPFNetworkTypeChoices
 
 from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface
 
@@ -79,6 +80,11 @@ class OSPFInterfaceImportForm(NetBoxModelImportForm):
         to_field_name="name",
         help_text=_("Name of interface"),
     )
+    network_type = CSVChoiceField(
+        choices=OSPFNetworkTypeChoices.CHOICES,
+        required=True,
+        help_text=_("OSPF network type"),
+    )
 
     class Meta:
         model = OSPFInterface
@@ -87,6 +93,7 @@ class OSPFInterfaceImportForm(NetBoxModelImportForm):
             "instance",
             "area",
             "interface",
+            "network_type",
             "passive",
             "priority",
             "bfd",
