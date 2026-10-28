@@ -145,6 +145,7 @@ class OSPFInterfaceImportForm(NetBoxModelImportForm):
             "ttl_security",
             "ttl_security_hops",
             "mtu_ignore",
+            "unnumbered",
             "adjacency_sid",
             "ldp_sync",
             "fast_reroute",

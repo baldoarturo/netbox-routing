@@ -182,6 +182,7 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
         'ttl_security_hops', label=_('TTL Security Hops')
     )
     mtu = attrs.NumericAttr('interface.mtu', label=_('MTU'))
+    unnumbered = attrs.BooleanAttr('unnumbered', label=_('Unnumbered'))
     mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
     adjacency_sid = attrs.NumericAttr('adjacency_sid', label=_('Adjacency SID'))
     fast_reroute = attrs.ChoiceAttr('fast_reroute', label=_('Fast Reroute'))

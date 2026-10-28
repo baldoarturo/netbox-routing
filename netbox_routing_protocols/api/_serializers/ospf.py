@@ -153,6 +153,7 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'ttl_security_hops',
             'mtu',
             'mtu_ignore',
+            'unnumbered',
             'adjacency_sid',
             'ldp_sync',
             'fast_reroute',

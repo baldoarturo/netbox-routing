@@ -272,6 +272,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'passive',
             'bfd',
             'mtu_ignore',
+            'unnumbered',
             'adjacency_sid',
             'ldp_sync',
             'fast_reroute',
@@ -329,6 +330,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'ttl_security',
             'ttl_security_hops',
             'mtu_ignore',
+            'unnumbered',
             'adjacency_sid',
             'ldp_sync',
             'fast_reroute',
@@ -401,6 +403,7 @@ class OSPFNetworkForm(PrimaryModelForm):
         queryset=OSPFInterface.objects.all(),
         required=True,
         selector=True,
+        query_params={'unnumbered': False},
         label=_('OSPF Interface'),
     )
     ip_address = DynamicModelChoiceField(
