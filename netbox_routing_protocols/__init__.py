@@ -33,6 +33,8 @@ class NetboxRouting(PluginConfig):
 
         super().ready()
 
+        from netbox_routing_protocols import signals  # noqa: F401
+
         # Add Generic Relations to appropriate models
         models = (
             ('region', Region),
