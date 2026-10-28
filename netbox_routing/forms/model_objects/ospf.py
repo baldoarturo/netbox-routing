@@ -13,13 +13,23 @@ from utilities.forms.rendering import FieldSet
 from netbox_routing.choices import OSPFNetworkTypeChoices
 from netbox_routing.choices.ospf import OSPFExternalMetricTypeChoices
 from netbox_routing.constants.ospf import OSPF_INTERFACE_TIMERS
-from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface, OSPFNetwork
+from netbox_routing.models import (
+    BGPRouter,
+    EIGRPRouter,
+    ISISInstance,
+    OSPFArea,
+    OSPFInstance,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFAreaForm',
     'OSPFInstanceForm',
     'OSPFInterfaceForm',
     'OSPFNetworkForm',
+    'OSPFRedistributionForm',
 )
 
 
@@ -286,3 +296,107 @@ class OSPFNetworkForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+
+
+class OSPFRedistributionForm(PrimaryModelForm):
+    # Only used to narrow the instance and the sources to one device; the model
+    # validates that the source really is on the instance's device.
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+        query_params={'device_id': '$device'},
+    )
+    ospf_source = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Source'),
+        query_params={'device_id': '$device'},
+    )
+    eigrp_source = DynamicModelChoiceField(
+        queryset=EIGRPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('EIGRP Source'),
+        query_params={'device_id': '$device'},
+    )
+    bgp_source = DynamicModelChoiceField(
+        queryset=BGPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('BGP Source'),
+        help_text=_('A BGP router assigned to the device'),
+    )
+    isis_source = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('IS-IS Source'),
+        query_params={'device_id': '$device'},
+    )
+
+    fieldsets = (
+        FieldSet(
+            'device',
+            'instance',
+            'protocol',
+            'description',
+            name=_('Redistribution'),
+        ),
+        FieldSet(
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            name=_('Source (not for static)'),
+        ),
+        FieldSet(
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            'route_policy',
+            name=_('Attributes'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFRedistribution
+        fields = (
+            'device',
+            'instance',
+            'protocol',
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial['device'] = self.instance.instance.device_id
+        # An empty metric type falls back to its default (see clean()).
+        self.fields['metric_type'].required = False
+
+    def clean(self):
+        if not self.cleaned_data.get('metric_type'):
+            self.cleaned_data['metric_type'] = OSPFExternalMetricTypeChoices.TYPE_2
+        return super().clean()

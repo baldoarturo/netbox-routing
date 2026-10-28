@@ -77,4 +77,24 @@ ospf_networks = PluginMenuItem(
     ),
 )
 
-MENUITEMS = (ospf_instance, ospf_area, ospf_interfaces, ospf_networks)
+ospf_redistributions = PluginMenuItem(
+    link='plugins:netbox_routing:ospfredistribution_list',
+    link_text='Redistribution',
+    permissions=['netbox_routing.view_ospfredistribution'],
+    buttons=(
+        PluginMenuButton(
+            link='plugins:netbox_routing:ospfredistribution_add',
+            title='Add',
+            icon_class=COL_ADD,
+            permissions=['netbox_routing.add_ospfredistribution'],
+        ),
+    ),
+)
+
+MENUITEMS = (
+    ospf_instance,
+    ospf_area,
+    ospf_interfaces,
+    ospf_networks,
+    ospf_redistributions,
+)

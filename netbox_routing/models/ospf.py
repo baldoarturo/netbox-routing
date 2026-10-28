@@ -1,4 +1,5 @@
 import netaddr
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -11,6 +12,7 @@ from netbox_routing import choices
 from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
+    OSPFRedistributionProtocolChoices,
 )
 from netbox_routing.constants import ERROR_UNIQUENESS_CONSTRAINT
 from netbox_routing.constants.ospf import (
@@ -19,6 +21,7 @@ from netbox_routing.constants.ospf import (
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
     OSPF_INTERFACE_TIMERS,
+    OSPF_TAG_MAX,
 )
 from netbox_routing.fields.ip import IPAddressField
 
@@ -27,6 +30,7 @@ __all__ = (
     'OSPFArea',
     'OSPFInterface',
     'OSPFNetwork',
+    'OSPFRedistribution',
 )
 
 
@@ -411,3 +415,187 @@ class OSPFNetwork(PrimaryModel):
                     ).format(interface=self.ospf_interface.interface)
                 }
             )
+
+
+class OSPFRedistribution(PrimaryModel):
+    """
+    Redistribution of routes learned from another protocol of the plugin into
+    an OSPF instance. Static routes have no source; for every other protocol
+    the source is the process that routes are taken from.
+    """
+
+    SOURCE_FIELDS = {
+        OSPFRedistributionProtocolChoices.OSPF: 'ospf_source',
+        OSPFRedistributionProtocolChoices.EIGRP: 'eigrp_source',
+        OSPFRedistributionProtocolChoices.BGP: 'bgp_source',
+        OSPFRedistributionProtocolChoices.ISIS: 'isis_source',
+    }
+
+    instance = models.ForeignKey(
+        to='netbox_routing.OSPFInstance',
+        related_name='redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    protocol = models.CharField(
+        verbose_name=_('Protocol'),
+        choices=OSPFRedistributionProtocolChoices,
+        max_length=20,
+    )
+    ospf_source = models.ForeignKey(
+        to='netbox_routing.OSPFInstance',
+        related_name='ospf_redistributed_into',
+        on_delete=models.CASCADE,
+        verbose_name=_('OSPF Source'),
+        blank=True,
+        null=True,
+    )
+    eigrp_source = models.ForeignKey(
+        to='netbox_routing.EIGRPRouter',
+        related_name='ospf_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('EIGRP Source'),
+        blank=True,
+        null=True,
+    )
+    bgp_source = models.ForeignKey(
+        to='netbox_routing.BGPRouter',
+        related_name='ospf_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('BGP Source'),
+        blank=True,
+        null=True,
+    )
+    isis_source = models.ForeignKey(
+        to='netbox_routing.ISISInstance',
+        related_name='ospf_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('IS-IS Source'),
+        blank=True,
+        null=True,
+    )
+    metric = models.PositiveIntegerField(
+        verbose_name=_('Metric'),
+        help_text=_('Metric of the redistributed routes'),
+        validators=[
+            MinValueValidator(OSPF_EXTERNAL_METRIC_MIN),
+            MaxValueValidator(OSPF_EXTERNAL_METRIC_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+    metric_type = models.CharField(
+        verbose_name=_('Metric Type'),
+        choices=OSPFExternalMetricTypeChoices,
+        default=OSPFExternalMetricTypeChoices.TYPE_2,
+        max_length=1,
+    )
+    subnets = models.BooleanField(
+        verbose_name=_('Subnets'),
+        help_text=_('Redistribute subnets, not only classful networks'),
+        default=True,
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route Tag'),
+        help_text=_('Tag set on the redistributed routes'),
+        validators=[MaxValueValidator(OSPF_TAG_MAX)],
+        blank=True,
+        null=True,
+    )
+    route_policy = models.CharField(
+        verbose_name=_('Route Policy'),
+        help_text=_('Name of the route policy applied to the redistributed routes'),
+        max_length=100,
+        blank=True,
+    )
+
+    clone_fields = (
+        'instance',
+        'protocol',
+        'metric',
+        'metric_type',
+        'subnets',
+        'route_tag',
+        'route_policy',
+    )
+    prerequisite_models = ('netbox_routing.OSPFInstance',)
+
+    class Meta:
+        verbose_name = 'OSPF Redistribution'
+        ordering = ('instance', 'protocol', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'instance',
+                    'protocol',
+                    'ospf_source',
+                    'eigrp_source',
+                    'bgp_source',
+                    'isis_source',
+                ),
+                name='%(app_label)s_%(class)s_unique_instance_source',
+                violation_error_message=_(
+                    'This source is already redistributed into the OSPF instance.'
+                ),
+                nulls_distinct=False,
+            ),
+        )
+
+    def __str__(self):
+        if self.source is None:
+            return self.get_protocol_display()
+        return f'{self.get_protocol_display()} {self.source}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:ospfredistribution', args=[self.pk])
+
+    @property
+    def source(self):
+        field = self.SOURCE_FIELDS.get(self.protocol)
+        return getattr(self, field) if field else None
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        for protocol, field in self.SOURCE_FIELDS.items():
+            is_set = getattr(self, f'{field}_id') is not None
+            if protocol == self.protocol and not is_set:
+                errors[field] = _('A source is required for this protocol.')
+            elif protocol != self.protocol and is_set:
+                errors[field] = _(
+                    'Only the source of the selected protocol is allowed.'
+                )
+        if errors:
+            raise ValidationError(errors)
+
+        if not self.instance_id or self.source is None:
+            return
+        if self.protocol == OSPFRedistributionProtocolChoices.OSPF:
+            if self.ospf_source_id == self.instance_id:
+                raise ValidationError(
+                    {
+                        'ospf_source': _(
+                            'An OSPF instance cannot be redistributed into itself.'
+                        )
+                    }
+                )
+        if not self._source_is_on_instance_device():
+            raise ValidationError(
+                {
+                    self.SOURCE_FIELDS[self.protocol]: _(
+                        'The source must be on the same device as the OSPF instance.'
+                    )
+                }
+            )
+
+    def _source_is_on_instance_device(self):
+        source = self.source
+        if self.protocol == OSPFRedistributionProtocolChoices.BGP:
+            # A BGP router is assigned to a generic object (device, site, ...)
+            device = self.instance.device
+            return (
+                source.assigned_object_type_id
+                == ContentType.objects.get_for_model(device).pk
+                and source.assigned_object_id == device.pk
+            )
+        return source.device_id == self.instance.device_id

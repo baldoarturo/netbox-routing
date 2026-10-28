@@ -10,6 +10,7 @@ from netbox_routing.graphql.ospf.filters import (
     OSPFAreaFilter,
     OSPFInterfaceFilter,
     OSPFNetworkFilter,
+    OSPFRedistributionFilter,
 )
 
 __all__ = (
@@ -17,6 +18,7 @@ __all__ = (
     'OSPFAreaType',
     'OSPFInterfaceType',
     'OSPFNetworkType',
+    'OSPFRedistributionType',
 )
 
 
@@ -73,3 +75,34 @@ class OSPFNetworkType(PrimaryObjectType):
         "OSPFInterfaceType", strawberry.lazy('netbox_routing.graphql.types')
     ]
     ip_address: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')]
+
+
+@strawberry_django.type(
+    models.OSPFRedistribution, fields='__all__', filters=OSPFRedistributionFilter
+)
+class OSPFRedistributionType(PrimaryObjectType):
+    instance: Annotated[
+        "OSPFInstanceType", strawberry.lazy('netbox_routing.graphql.types')
+    ]
+    protocol: str
+    ospf_source: (
+        Annotated["OSPFInstanceType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
+    )
+    eigrp_source: (
+        Annotated["EIGRPRouterType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
+    )
+    bgp_source: (
+        Annotated["BGPRouterType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
+    )
+    isis_source: (
+        Annotated["ISISInstanceType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
+    )
+    metric: int | None
+    metric_type: str
+    subnets: bool
+    route_tag: int | None
+    route_policy: str

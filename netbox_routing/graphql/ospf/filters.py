@@ -14,6 +14,7 @@ __all__ = (
     'OSPFInstanceFilter',
     'OSPFInterfaceFilter',
     'OSPFNetworkFilter',
+    'OSPFRedistributionFilter',
 )
 
 
@@ -61,3 +62,16 @@ class OSPFNetworkFilter(PrimaryModelFilter):
     ) = strawberry_django.filter_field()
     ospf_interface_id: ID | None = strawberry_django.filter_field()
     ip_address_id: ID | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.OSPFRedistribution, lookups=True)
+class OSPFRedistributionFilter(PrimaryModelFilter):
+    instance: (
+        Annotated[
+            'OSPFInstanceFilter', strawberry.lazy('netbox_routing.graphql.filters')
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    instance_id: ID | None = strawberry_django.filter_field()
+    protocol: StrFilterLookup | None = strawberry_django.filter_field()
+    route_policy: StrFilterLookup | None = strawberry_django.filter_field()

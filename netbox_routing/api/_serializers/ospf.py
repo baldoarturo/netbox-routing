@@ -5,13 +5,23 @@ from dcim.api.serializers_.devices import DeviceSerializer
 from ipam.api.serializers_.ip import IPAddressSerializer
 from ipam.api.serializers_.vrfs import VRFSerializer
 from netbox.api.serializers import NetBoxModelSerializer
-from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface, OSPFNetwork
+from netbox_routing.api._serializers.bgp import BGPRouterSerializer
+from netbox_routing.api._serializers.eigrp import EIGRPRouterSerializer
+from netbox_routing.api._serializers.isis import ISISInstanceSerializer
+from netbox_routing.models import (
+    OSPFInstance,
+    OSPFArea,
+    OSPFInterface,
+    OSPFNetwork,
+    OSPFRedistribution,
+)
 
 __all__ = (
     'OSPFInstanceSerializer',
     'OSPFAreaSerializer',
     'OSPFInterfaceSerializer',
     'OSPFNetworkSerializer',
+    'OSPFRedistributionSerializer',
 )
 
 
@@ -159,3 +169,44 @@ class OSPFNetworkSerializer(NetBoxModelSerializer):
 
     def get_subnet(self, obj):
         return str(obj.subnet)
+
+
+class OSPFRedistributionSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing-api:ospfredistribution-detail'
+    )
+    instance = OSPFInstanceSerializer(nested=True)
+    ospf_source = OSPFInstanceSerializer(nested=True, required=False, allow_null=True)
+    eigrp_source = EIGRPRouterSerializer(nested=True, required=False, allow_null=True)
+    bgp_source = BGPRouterSerializer(nested=True, required=False, allow_null=True)
+    isis_source = ISISInstanceSerializer(nested=True, required=False, allow_null=True)
+
+    class Meta:
+        model = OSPFRedistribution
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'protocol',
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            'metric',
+            'metric_type',
+            'subnets',
+            'route_tag',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'protocol',
+        )

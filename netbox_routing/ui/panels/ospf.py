@@ -8,6 +8,7 @@ __all__ = (
     'OSPFInterfacePanel',
     'OSPFInterfaceSettingsPanel',
     'OSPFNetworkPanel',
+    'OSPFRedistributionPanel',
 )
 
 
@@ -76,4 +77,16 @@ class OSPFNetworkPanel(panels.ObjectAttributesPanel):
         'ip_address', label=_('IP Address'), linkify=True
     )
     subnet = attrs.TextAttr('subnet', label=_('Subnet'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFRedistributionPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    protocol = attrs.ChoiceAttr('protocol', label=_('Protocol'))
+    source = attrs.TextAttr('source', label=_('Source'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    metric_type = attrs.ChoiceAttr('metric_type', label=_('Metric Type'))
+    subnets = attrs.BooleanAttr('subnets', label=_('Subnets'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
     description = attrs.TextAttr('description', label=_('Description'))
