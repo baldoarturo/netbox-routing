@@ -179,7 +179,9 @@ class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCas
                 'passive': True,
                 'priority': 2,
                 'authentication': 'message-digest',
+                'authentication_key_id': 1,
                 'passphrase': 'test-password',
+                'show_md5': True,
                 'bfd': True,
             },
         ]

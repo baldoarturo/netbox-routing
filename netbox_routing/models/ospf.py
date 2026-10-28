@@ -1,3 +1,5 @@
+import hashlib
+
 import netaddr
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -13,12 +15,15 @@ from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFGracefulRestartChoices,
+    OSPFMessageDigestAlgorithmChoices,
     OSPFRedistributionProtocolChoices,
 )
 from netbox_routing.constants import ERROR_UNIQUENESS_CONSTRAINT
 from netbox_routing.constants.ospf import (
     OSPF_COST_MAX,
     OSPF_COST_MIN,
+    OSPF_AUTH_KEY_ID_MAX,
+    OSPF_AUTH_KEY_ID_MIN,
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
     OSPF_GRACEFUL_RESTART_PERIOD_DEFAULT,
@@ -615,7 +620,40 @@ class OSPFInterface(PrimaryModel):
     authentication = models.CharField(
         max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
     )
-    passphrase = models.CharField(max_length=200, blank=True, null=True)
+    passphrase = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text=_('The key, stored as plain text. For message digest authentication'),
+    )
+    authentication_key_id = models.PositiveSmallIntegerField(
+        verbose_name=_('Key ID'),
+        help_text=_('Message digest key ID, 0 to 255 (RFC 2328 D.3)'),
+        validators=[
+            MinValueValidator(OSPF_AUTH_KEY_ID_MIN),
+            MaxValueValidator(OSPF_AUTH_KEY_ID_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+    message_digest_algorithm = models.CharField(
+        verbose_name=_('Message Digest Algorithm'),
+        help_text=_('MD5 (RFC 2328) or HMAC-SHA (RFC 5709); default: MD5'),
+        choices=OSPFMessageDigestAlgorithmChoices,
+        default=OSPFMessageDigestAlgorithmChoices.MD5,
+        max_length=20,
+    )
+    key_chain = models.CharField(
+        verbose_name=_('Key Chain'),
+        help_text=_('Name of the key chain, for key chain authentication'),
+        max_length=100,
+        blank=True,
+    )
+    show_md5 = models.BooleanField(
+        verbose_name=_('MD5 Digest'),
+        help_text=_('Also show the MD5 digest of the key'),
+        default=False,
+    )
 
     clone_fields = (
         'instance',
@@ -632,6 +670,10 @@ class OSPFInterface(PrimaryModel):
         'mtu_ignore',
         'authentication',
         'passphrase',
+        'authentication_key_id',
+        'message_digest_algorithm',
+        'key_chain',
+        'show_md5',
     )
     prerequisite_models = (
         'netbox_routing.OSPFInstance',
@@ -649,8 +691,50 @@ class OSPFInterface(PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:ospfinterface', args=[self.pk])
 
+    def get_passphrase_md5(self):
+        """The MD5 digest (hex) of the key, or None when there is no key."""
+        if not self.passphrase:
+            return None
+        return hashlib.md5(self.passphrase.encode()).hexdigest()
+
+    @property
+    def md5_digest(self):
+        """The MD5 digest of the key, only when it is set to be shown."""
+        return self.get_passphrase_md5() if self.show_md5 else None
+
+    def _clean_authentication(self):
+        errors = {}
+        auth = self.authentication
+        if auth == choices.AuthenticationChoices.MESSAGE_DIGEST:
+            if not self.passphrase:
+                errors['passphrase'] = _('A key is required for message digest.')
+            if self.authentication_key_id is None:
+                errors['authentication_key_id'] = _(
+                    'A key ID is required for message digest.'
+                )
+            if self.key_chain:
+                errors['key_chain'] = _('A key chain is not used with message digest.')
+        elif auth == choices.AuthenticationChoices.KEYCHAIN:
+            if not self.key_chain:
+                errors['key_chain'] = _('A key chain name is required.')
+            if self.passphrase:
+                errors['passphrase'] = _('A key is not used with a key chain.')
+            if self.authentication_key_id is not None:
+                errors['authentication_key_id'] = _(
+                    'A key ID is not used with a key chain.'
+                )
+        else:
+            for field in ('passphrase', 'authentication_key_id', 'key_chain'):
+                if getattr(self, field) not in (None, ''):
+                    errors[field] = _('Select an authentication type first.')
+        if self.show_md5 and not self.passphrase:
+            errors['show_md5'] = _('There is no key to show the MD5 digest of.')
+        if errors:
+            raise ValidationError(errors)
+
     def clean(self):
         super().clean()
+        self._clean_authentication()
         if (
             self.instance_id
             and self.area_id

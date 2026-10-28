@@ -108,6 +108,10 @@ class OSPFInterfaceTable(NetBoxTable):
             'mtu_ignore',
             'authentication',
             'passphrase',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'key_chain',
+            'show_md5',
         )
         default_columns = (
             'pk',

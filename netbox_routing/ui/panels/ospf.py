@@ -135,7 +135,15 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
     bfd = attrs.BooleanAttr('bfd', label=_('BFD'))
     authentication = attrs.ChoiceAttr('authentication', label=_('Authentication'))
+    authentication_key_id = attrs.NumericAttr(
+        'authentication_key_id', label=_('Key ID')
+    )
+    message_digest_algorithm = attrs.ChoiceAttr(
+        'message_digest_algorithm', label=_('Message Digest Algorithm')
+    )
+    key_chain = attrs.TextAttr('key_chain', label=_('Key Chain'))
     passphrase = attrs.TextAttr('passphrase', label=_('Passphrase'))
+    md5_digest = attrs.TextAttr('md5_digest', label=_('MD5 Digest'))
 
 
 class OSPFNetworkPanel(panels.ObjectAttributesPanel):

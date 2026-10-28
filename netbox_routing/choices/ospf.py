@@ -73,3 +73,21 @@ class OSPFGracefulRestartChoices(ChoiceSet):
         (PLANNED, 'Planned restarts only'),
         (PLANNED_UNPLANNED, 'Planned and unplanned restarts'),
     ]
+
+
+class OSPFMessageDigestAlgorithmChoices(ChoiceSet):
+    """Cryptographic authentication: MD5 (RFC 2328 D.3), HMAC-SHA (RFC 5709)."""
+
+    MD5 = 'md5'
+    HMAC_SHA_1 = 'hmac-sha-1'
+    HMAC_SHA_256 = 'hmac-sha-256'
+    HMAC_SHA_384 = 'hmac-sha-384'
+    HMAC_SHA_512 = 'hmac-sha-512'
+
+    CHOICES = [
+        (MD5, 'MD5'),
+        (HMAC_SHA_1, 'HMAC-SHA-1'),
+        (HMAC_SHA_256, 'HMAC-SHA-256'),
+        (HMAC_SHA_384, 'HMAC-SHA-384'),
+        (HMAC_SHA_512, 'HMAC-SHA-512'),
+    ]
