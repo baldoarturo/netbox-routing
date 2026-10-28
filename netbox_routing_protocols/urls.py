@@ -3,10 +3,13 @@ from django.urls import path, include
 from utilities.urls import get_model_urls
 
 from . import views  # noqa F401
+from .views.objects import PrefixMatchView
 
 app_name = 'netbox_routing_protocols'
 
 urlpatterns = [
+    # Tools
+    path('tools/prefix-match/', PrefixMatchView.as_view(), name='prefix_match'),
     path(
         'routes/static/', include(get_model_urls(app_name, 'staticroute', detail=False))
     ),
