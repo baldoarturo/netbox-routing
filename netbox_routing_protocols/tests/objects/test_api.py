@@ -364,6 +364,24 @@ class PrefixListFamilyTestCase(APITestCase):
         )
         self.assertHttpStatus(response, 400)
 
+    def test_large_sequence(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        prefix = Prefix.objects.create(prefix='10.0.0.0/24')
+        data = {
+            'prefix_list': self.v4.pk,
+            'action': 'permit',
+            'assigned_prefix_type': 'ipam.prefix',
+            'assigned_prefix_id': prefix.pk,
+        }
+        for sequence, status in ((4294967294, 201), (0, 400), (4294967295, 400)):
+            response = self.client.post(
+                self._url('prefixlistentry'),
+                {**data, 'sequence': sequence},
+                format='json',
+                **self.header,
+            )
+            self.assertHttpStatus(response, status)
+
     def test_ipv6_entry_with_ge_le(self):
         self.add_permissions(
             'netbox_routing_protocols.add_prefixlistentry',

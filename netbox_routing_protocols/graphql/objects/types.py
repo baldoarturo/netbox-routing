@@ -3,6 +3,7 @@ from typing import Annotated, Union
 import strawberry
 import strawberry_django
 
+from netbox.graphql.scalars import BigInt
 from netbox.graphql.types import PrimaryObjectType
 from netbox_routing_protocols import models
 from netbox_routing_protocols.graphql.objects.filters import *
@@ -60,7 +61,7 @@ class PrefixListEntryType(PrimaryObjectType):
         "PrefixListType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     action: str
-    sequence: int
+    sequence: BigInt
     assigned_prefix_type: (
         Annotated["ContentTypeType", strawberry.lazy('netbox.graphql.types')] | None
     )
