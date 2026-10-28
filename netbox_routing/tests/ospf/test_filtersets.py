@@ -39,7 +39,7 @@ class OSPFInstanceTestCase(TestCase):
             OSPFInstance(
                 name='Instance 1',
                 device=devices[0],
-                router_id='0.0.0.0',
+                router_id='10.0.0.1',
                 process_id=0,
                 vrf=vrfs[0],
             ),
@@ -219,7 +219,7 @@ class OSPFInterfaceTestCase(TestCase):
             OSPFInstance(
                 name='Instance 0',
                 device=devices[0],
-                router_id='0.0.0.0',
+                router_id='10.0.0.1',
                 process_id=0,
                 vrf=vrfs[0],
             ),

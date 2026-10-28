@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db.models import RestrictedError
 from django.test import TestCase
 
@@ -15,7 +16,31 @@ __all__ = (
 
 
 class OSPFInstanceTestCase(TestCase):
-    pass
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+
+    def _instance(self, router_id):
+        return OSPFInstance(
+            name='Instance 1', device=self.device, router_id=router_id, process_id=1
+        )
+
+    def test_router_id_ipv4_is_valid(self):
+        self._instance('10.0.0.1').full_clean()
+
+    def test_router_id_ipv6_is_rejected(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._instance('2001:db8::1').full_clean()
+        self.assertIn('router_id', cm.exception.error_dict)
+
+    def test_router_id_zero_is_rejected(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._instance('0.0.0.0').full_clean()
+        self.assertIn('router_id', cm.exception.error_dict)
+
+    def test_router_id_with_mask_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            self._instance('10.0.0.1/24').full_clean()
 
 
 class OSPFAreaTestCase(TestCase):
