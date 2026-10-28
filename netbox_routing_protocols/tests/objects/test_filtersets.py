@@ -11,6 +11,7 @@ __all__ = (
     'ASPathEntryTestCase',
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
+    'CustomPrefixTestCase',
     'RouteMapTestCase',
     'RouteMapEntryTestCase',
 )
@@ -232,6 +233,35 @@ class PrefixListEntryTestCase(TestCase):
             ]
         }
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_family(self):
+        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
+        prefix = CustomPrefix.objects.create(prefix='2001:db8::/32')
+        PrefixListEntry.objects.create(
+            prefix_list=v6_list, action='permit', sequence=1, assigned_prefix=prefix
+        )
+        self.assertEqual(
+            self.filterset({'family': 6}, self.queryset).qs.count(),
+            1,
+        )
+        self.assertEqual(
+            self.filterset({'family': 4}, self.queryset).qs.count(),
+            self.queryset.exclude(prefix_list=v6_list).count(),
+        )
+
+
+class CustomPrefixTestCase(TestCase):
+    queryset = CustomPrefix.objects.all()
+    filterset = CustomPrefixFilterSet
+
+    @classmethod
+    def setUpTestData(cls):
+        for prefix in ('10.0.0.0/24', '10.0.1.0/24', '2001:db8::/32'):
+            CustomPrefix.objects.create(prefix=prefix)
+
+    def test_family(self):
+        self.assertEqual(self.filterset({'family': 4}, self.queryset).qs.count(), 2)
+        self.assertEqual(self.filterset({'family': 6}, self.queryset).qs.count(), 1)
 
 
 class RouteMapTestCase(TestCase):

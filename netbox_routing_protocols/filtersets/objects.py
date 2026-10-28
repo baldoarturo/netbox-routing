@@ -127,6 +127,10 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
         to_field_name='prefix',
         label=_('Custom Prefix (Name)'),
     )
+    family = django_filters.NumberFilter(
+        field_name='prefix_list__family',
+        label=_('Address family'),
+    )
 
     class Meta:
         model = PrefixListEntry
@@ -164,6 +168,11 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
 
 @register_filterset
 class CustomPrefixFilterSet(NetBoxModelFilterSet):
+    family = django_filters.NumberFilter(
+        field_name='prefix',
+        lookup_expr='family',
+        label=_('Address family'),
+    )
 
     class Meta:
         model = CustomPrefix
