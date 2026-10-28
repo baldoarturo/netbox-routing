@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from ipam.models import Prefix
@@ -9,7 +10,11 @@ from utilities.forms.fields import (
 )
 from utilities.forms.rendering import TabbedGroups, FieldSet
 
-from netbox_routing_protocols.helpers.prefix_list import any_le
+from netbox_routing_protocols.helpers.prefix_list import (
+    SEQUENCE_STEP,
+    any_le,
+    next_sequence,
+)
 from netbox_routing_protocols.models.community import Community, CommunityList
 from netbox_routing_protocols.models.objects import *
 
@@ -125,10 +130,38 @@ class PrefixListEntryForm(PrimaryModelForm):
             'owner',
         )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # A new entry gets the next sequence number of the list, suggested here when
+        # the list is known (the add button of the list) and assigned on save otherwise
+        sequence = self.fields['sequence']
+        sequence.required = False
+        sequence.help_text = _(
+            'Leave empty to use the next one of the list (steps of %(step)s).'
+        ) % {'step': SEQUENCE_STEP}
+        if not self.instance.pk and not self.initial.get('sequence'):
+            prefix_list = str(self.initial.get('prefix_list') or '')
+            prefix_list = (
+                PrefixList.objects.filter(pk=prefix_list).first()
+                if prefix_list.isdigit()
+                else None
+            )
+            if prefix_list:
+                try:
+                    self.initial['sequence'] = next_sequence(prefix_list)
+                except ValidationError:
+                    pass
+
     def clean(self):
         super().clean()
         cleaned = self.cleaned_data
         ge, le, eq = (cleaned.get(field) for field in ('ge', 'le', 'eq'))
+
+        if cleaned.get('sequence') is None and cleaned.get('prefix_list'):
+            try:
+                cleaned['sequence'] = next_sequence(cleaned['prefix_list'])
+            except ValidationError as e:
+                raise forms.ValidationError({'sequence': e.messages})
 
         if eq is not None:
             if ge is not None or le is not None:

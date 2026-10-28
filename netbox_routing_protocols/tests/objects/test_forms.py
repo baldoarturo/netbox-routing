@@ -279,6 +279,33 @@ class PrefixListEntryTestCase(TestCase):
         self.assertIn('any_prefix', form.fields)
         self.assertFalse(form.fields['prefix'].required)
 
+    def test_sequence_is_assigned_when_empty(self):
+        for expected in (10, 20):
+            data = self._data()
+            del data['sequence']
+            form = PrefixListEntryForm(data=data)
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertEqual(form.save().sequence, expected)
+
+    def test_arbitrary_sequence_is_kept(self):
+        form = PrefixListEntryForm(data=self._data(sequence=7))
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().sequence, 7)
+
+    def test_sequence_is_suggested_for_a_known_list(self):
+        form = PrefixListEntryForm(initial={'prefix_list': self.prefix_list.pk})
+        self.assertEqual(form.initial['sequence'], 10)
+        self.assertFalse(form.fields['sequence'].required)
+        form = PrefixListEntryForm(data=self._data(sequence=25))
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        form = PrefixListEntryForm(initial={'prefix_list': str(self.prefix_list.pk)})
+        self.assertEqual(form.initial['sequence'], 30)
+        # nothing to suggest without a list, or when editing
+        self.assertNotIn('sequence', PrefixListEntryForm().initial)
+        entry = PrefixListEntry.objects.get()
+        self.assertEqual(PrefixListEntryForm(instance=entry).initial['sequence'], 25)
+
     def test_exact_length(self):
         form = PrefixListEntryForm(data=self._data(eq=16))
         self.assertTrue(form.is_valid(), form.errors)
