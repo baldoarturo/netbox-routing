@@ -93,6 +93,7 @@ class OSPFInterfaceSerializer(NetBoxModelSerializer):
             'passive',
             'priority',
             'bfd',
+            'cost',
             'authentication',
             'passphrase',
             'description',

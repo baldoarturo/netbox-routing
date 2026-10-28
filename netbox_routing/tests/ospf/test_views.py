@@ -201,6 +201,7 @@ class OSPFInterfaceTestCase(
             'instance': instances[3].pk,
             'network_type': OSPFNetworkTypeChoices.POINT_TO_POINT,
             'passive': True,
+            'cost': 10,
         }
 
         cls.bulk_edit_data = {

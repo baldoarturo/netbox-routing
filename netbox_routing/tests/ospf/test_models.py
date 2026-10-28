@@ -70,6 +70,17 @@ class OSPFInterfaceTestCase(TestCase):
             OSPFInterface.objects.get().network_type, OSPFNetworkTypeChoices.BROADCAST
         )
 
+    def test_cost_limits(self):
+        ospf_interface = OSPFInterface.objects.get()
+        for cost in (1, 65535, None):
+            ospf_interface.cost = cost
+            ospf_interface.full_clean()
+        for cost in (0, 65536):
+            ospf_interface.cost = cost
+            with self.assertRaises(ValidationError) as cm:
+                ospf_interface.full_clean()
+            self.assertIn('cost', cm.exception.error_dict)
+
     def test_delete_device_with_ospf_interfaces(self):
         self.device.delete()
         self.assertFalse(OSPFInstance.objects.exists())

@@ -9,6 +9,7 @@ from utilities.forms.fields import DynamicModelChoiceField, CommentField
 
 from netbox_routing import choices
 from netbox_routing.choices.ospf import OSPFAreaTypeChoices
+from netbox_routing.constants.ospf import OSPF_COST_MAX, OSPF_COST_MIN
 from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
 
 __all__ = (
@@ -82,6 +83,12 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         label=_('Passive'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
     priority = forms.IntegerField(label=_('Priority'), required=False)
+    cost = forms.IntegerField(
+        label=_('Cost'),
+        required=False,
+        min_value=OSPF_COST_MIN,
+        max_value=OSPF_COST_MAX,
+    )
     bfd = forms.ChoiceField(
         label=_('BFD'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
@@ -104,6 +111,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'network_type',
             'passive',
             'priority',
+            'cost',
             'bfd',
             'authentication',
             'passphrase',
