@@ -22,7 +22,10 @@ class NetboxRouting(PluginConfig):
 
     def ready(self):
 
-        from netbox_routing_protocols.fields.generic import NetBoxGenericRelation
+        from netbox_routing_protocols.fields.generic import (
+            NetBoxGenericRelation,
+            ProtectedGenericRelation,
+        )
         from dcim.models import Region, SiteGroup, Site, Location, Device
         from ipam.models import Prefix
         from virtualization.models import ClusterGroup, Cluster, VirtualMachine
@@ -50,7 +53,7 @@ class NetboxRouting(PluginConfig):
                 related_query_name=name,
             ).contribute_to_class(model, 'bgp_router')
 
-        NetBoxGenericRelation(
+        ProtectedGenericRelation(
             verbose_name=_('Prefix List Entries'),
             to=PrefixListEntry,
             related_name='prefixes',

@@ -1,7 +1,11 @@
 # from django.core.exceptions import ValidationError
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.db.models import ProtectedError
 from django.test import TestCase
+from django.urls import reverse
+
+from users.models import User
 
 from ipam.models import Prefix
 from netbox_routing_protocols.models.objects import *
@@ -150,6 +154,70 @@ class PrefixListEntryTestCase(TestCase):
             ple.save()
             self.assertIsInstance(ple, PrefixListEntry)
             self.assertEqual(str(ple), f'{self.prefix_list} permit {seq}')
+
+    def _entry(self, prefix):
+        prefix.full_clean()
+        prefix.save()
+        entry = PrefixListEntry(
+            prefix_list=self.prefix_list,
+            action='permit',
+            sequence=1,
+            assigned_prefix=prefix,
+        )
+        entry.full_clean()
+        entry.save()
+        return entry
+
+    def test_used_prefix_cannot_be_deleted(self):
+        for prefix in (
+            Prefix(prefix='10.0.1.0/24'),
+            CustomPrefix(prefix='10.0.2.0/24'),
+        ):
+            with self.subTest(type(prefix).__name__):
+                entry = self._entry(prefix)
+                with self.assertRaises(ProtectedError):
+                    prefix.delete()
+                with self.assertRaises(ProtectedError):
+                    type(prefix).objects.filter(pk=prefix.pk).delete()
+                self.assertTrue(type(prefix).objects.filter(pk=prefix.pk).exists())
+                self.assertTrue(PrefixListEntry.objects.filter(pk=entry.pk).exists())
+
+                # Once the entry is gone the prefix can be deleted
+                entry.delete()
+                prefix.delete()
+                self.assertFalse(type(prefix).objects.filter(pk=prefix.pk).exists())
+
+    def test_used_prefix_delete_view_shows_error(self):
+        user = User.objects.create_superuser('admin149', 'admin@example.com', 'x')
+        self.client.force_login(user)
+        for prefix, view in (
+            (Prefix(prefix='10.0.5.0/24'), 'ipam:prefix_delete'),
+            (
+                CustomPrefix(prefix='10.0.6.0/24'),
+                'plugins:netbox_routing_protocols:customprefix_delete',
+            ),
+        ):
+            with self.subTest(type(prefix).__name__):
+                self._entry(prefix)
+                url = reverse(view, kwargs={'pk': prefix.pk})
+                response = self.client.post(url, {'confirm': True}, follow=True)
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(type(prefix).objects.filter(pk=prefix.pk).exists())
+                self.assertContains(response, 'Unable to delete', status_code=200)
+                PrefixListEntry.objects.all().delete()
+
+    def test_unused_prefix_can_be_deleted(self):
+        prefix = Prefix(prefix='10.0.3.0/24')
+        prefix.full_clean()
+        prefix.save()
+        prefix.delete()
+        self.assertFalse(Prefix.objects.filter(prefix='10.0.3.0/24').exists())
+
+    def test_deleting_prefix_list_still_deletes_entries(self):
+        entry = self._entry(CustomPrefix(prefix='10.0.4.0/24'))
+        self.prefix_list.delete()
+        self.assertFalse(PrefixListEntry.objects.filter(pk=entry.pk).exists())
+        self.assertTrue(CustomPrefix.objects.filter(prefix='10.0.4.0/24').exists())
 
 
 class RouteMapTestCase(TestCase):

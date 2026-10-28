@@ -1,4 +1,4 @@
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import (
     MinValueValidator,
@@ -15,6 +15,7 @@ from ipam.choices import IPAddressFamilyChoices
 from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
+from netbox_routing_protocols.fields.generic import ProtectedGenericRelation
 from netbox_routing_protocols.models.community import *
 from netbox_routing_protocols.choices import ActionChoices
 from netbox_routing_protocols.constants.objects import PREFIX_ASSIGNMENT_MODELS
@@ -232,7 +233,7 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
 class CustomPrefix(PrimaryModel):
     prefix = IPNetworkField(help_text='IPv4 or IPv6 network with mask')
 
-    prefix_list_enties = GenericRelation(
+    prefix_list_enties = ProtectedGenericRelation(
         verbose_name=_('Settings'),
         to='netbox_routing_protocols.PrefixListEntry',
         related_name='custom_prefixes',
