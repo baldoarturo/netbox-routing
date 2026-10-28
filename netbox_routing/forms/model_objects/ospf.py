@@ -11,6 +11,7 @@ from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 
 from netbox_routing.choices import OSPFNetworkTypeChoices
+from netbox_routing.constants.ospf import OSPF_INTERFACE_TIMERS
 from netbox_routing.models import OSPFArea, OSPFInstance, OSPFInterface
 
 __all__ = (
@@ -137,6 +138,13 @@ class OSPFInterfaceForm(PrimaryModelForm):
             name=_('Interface'),
         ),
         FieldSet(
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
+            name=_('Timers'),
+        ),
+        FieldSet(
             'authentication',
             'passphrase',
             name=_('Authentication'),
@@ -155,6 +163,10 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'priority',
             'cost',
             'bfd',
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
             'authentication',
             'passphrase',
             'description',
@@ -172,8 +184,14 @@ class OSPFInterfaceForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             self.initial['device'] = self.instance.interface.device.pk
+        # An empty timer falls back to its RFC 2328 default (see clean()).
+        for name in OSPF_INTERFACE_TIMERS:
+            self.fields[name].required = False
 
     def clean(self):
+        for name, (_min, _max, default) in OSPF_INTERFACE_TIMERS.items():
+            if self.cleaned_data.get(name) is None:
+                self.cleaned_data[name] = default
         super().clean()
         if self.cleaned_data.get('instance') and self.cleaned_data.get('interface'):
             if (

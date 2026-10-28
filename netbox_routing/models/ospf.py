@@ -10,7 +10,11 @@ from netbox.models import PrimaryModel
 from netbox_routing import choices
 from netbox_routing.choices.ospf import OSPFAreaTypeChoices
 from netbox_routing.constants import ERROR_UNIQUENESS_CONSTRAINT
-from netbox_routing.constants.ospf import OSPF_COST_MAX, OSPF_COST_MIN
+from netbox_routing.constants.ospf import (
+    OSPF_COST_MAX,
+    OSPF_COST_MIN,
+    OSPF_INTERFACE_TIMERS,
+)
 from netbox_routing.fields.ip import IPAddressField
 
 __all__ = (
@@ -170,6 +174,44 @@ class OSPFInterface(PrimaryModel):
         blank=True,
         null=True,
     )
+    hello_interval = models.PositiveIntegerField(
+        verbose_name=_('Hello Interval'),
+        help_text=_('Seconds between Hello packets (RFC 2328 default: 10)'),
+        default=OSPF_INTERFACE_TIMERS['hello_interval'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['hello_interval'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['hello_interval'][1]),
+        ],
+    )
+    dead_interval = models.PositiveBigIntegerField(
+        verbose_name=_('Dead Interval'),
+        help_text=_(
+            'Seconds without Hello packets before a neighbor is declared down (RFC 2328 default: 40)'
+        ),
+        default=OSPF_INTERFACE_TIMERS['dead_interval'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['dead_interval'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['dead_interval'][1]),
+        ],
+    )
+    retransmit_interval = models.PositiveIntegerField(
+        verbose_name=_('Retransmit Interval'),
+        help_text=_('Seconds between LSA retransmissions (RFC 2328 default: 5)'),
+        default=OSPF_INTERFACE_TIMERS['retransmit_interval'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['retransmit_interval'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['retransmit_interval'][1]),
+        ],
+    )
+    transmit_delay = models.PositiveIntegerField(
+        verbose_name=_('Transmit Delay'),
+        help_text=_('Estimated seconds to transmit an LSA (RFC 2328 default: 1)'),
+        default=OSPF_INTERFACE_TIMERS['transmit_delay'][2],
+        validators=[
+            MinValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][0]),
+            MaxValueValidator(OSPF_INTERFACE_TIMERS['transmit_delay'][1]),
+        ],
+    )
     authentication = models.CharField(
         max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
     )
@@ -183,6 +225,10 @@ class OSPFInterface(PrimaryModel):
         'priority',
         'bfd',
         'cost',
+        'hello_interval',
+        'dead_interval',
+        'retransmit_interval',
+        'transmit_delay',
         'authentication',
         'passphrase',
     )
@@ -201,3 +247,18 @@ class OSPFInterface(PrimaryModel):
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:ospfinterface', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if (
+            self.hello_interval is not None
+            and self.dead_interval is not None
+            and self.dead_interval <= self.hello_interval
+        ):
+            raise ValidationError(
+                {
+                    'dead_interval': _(
+                        'The dead interval must be greater than the hello interval.'
+                    )
+                }
+            )

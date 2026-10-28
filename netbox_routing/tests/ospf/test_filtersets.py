@@ -254,6 +254,8 @@ class OSPFInterfaceTestCase(TestCase):
                 area=areas[0],
                 passive=True,
                 cost=10,
+                hello_interval=30,
+                dead_interval=120,
             ),
             OSPFInterface(
                 interface=interfaces[1],
@@ -292,6 +294,16 @@ class OSPFInterfaceTestCase(TestCase):
 
         params = {'cost': [10, 20]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_timers(self):
+        params = {'hello_interval': [30]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'hello_interval': [10]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+        params = {'dead_interval': [120]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     def test_q(self):
         params = {'q': 'Interface 1'}

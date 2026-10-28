@@ -195,6 +195,10 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             'bfd',
             'priority',
             'cost',
+            'hello_interval',
+            'dead_interval',
+            'retransmit_interval',
+            'transmit_delay',
             'authentication',
             'passphrase',
         )

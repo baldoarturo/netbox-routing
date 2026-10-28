@@ -202,6 +202,8 @@ class OSPFInterfaceTestCase(
             'network_type': OSPFNetworkTypeChoices.POINT_TO_POINT,
             'passive': True,
             'cost': 10,
+            'hello_interval': 30,
+            'dead_interval': 120,
         }
 
         cls.bulk_edit_data = {
