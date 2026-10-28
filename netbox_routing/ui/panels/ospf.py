@@ -96,6 +96,19 @@ class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
     exit_overflow_interval = attrs.NumericAttr(
         'exit_overflow_interval', label=_('Exit Overflow Interval')
     )
+    reference_bandwidth = attrs.NumericAttr(
+        'reference_bandwidth', label=_('Reference Bandwidth')
+    )
+    maximum_paths = attrs.NumericAttr('maximum_paths', label=_('Maximum Paths'))
+    distance_intra_area = attrs.NumericAttr(
+        'distance_intra_area', label=_('Distance (Intra-Area)')
+    )
+    distance_inter_area = attrs.NumericAttr(
+        'distance_inter_area', label=_('Distance (Inter-Area)')
+    )
+    distance_external = attrs.NumericAttr(
+        'distance_external', label=_('Distance (External)')
+    )
 
 
 class OSPFAuthenticationPanel(panels.ObjectAttributesPanel):

@@ -72,6 +72,11 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 'spf_initial_delay': 100,
                 'rfc1583_compatibility': False,
                 'max_lsa': 5000,
+                'reference_bandwidth': 10000,
+                'maximum_paths': 8,
+                'distance_intra_area': 100,
+                'distance_inter_area': 110,
+                'distance_external': 150,
             },
         ]
 

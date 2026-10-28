@@ -65,6 +65,36 @@ class OSPFInstanceTestCase(TestCase):
         instance.spf_initial_delay = instance.spf_short_delay = 200
         instance.full_clean()
 
+    def test_bandwidth_paths_and_distances_are_optional(self):
+        instance = self._instance('10.0.0.1')
+        instance.full_clean()
+        for name in (
+            'reference_bandwidth',
+            'maximum_paths',
+            'distance_intra_area',
+            'distance_inter_area',
+            'distance_external',
+        ):
+            self.assertIsNone(getattr(instance, name))
+
+    def test_bandwidth_paths_and_distances_limits(self):
+        limits = {
+            'reference_bandwidth': (1, 4294967),
+            'maximum_paths': (1, 64),
+            'distance_intra_area': (1, 255),
+            'distance_inter_area': (1, 255),
+            'distance_external': (1, 255),
+        }
+        for name, (low, high) in limits.items():
+            with self.subTest(name=name):
+                for value in (low, high):
+                    instance = self._instance('10.0.0.1')
+                    setattr(instance, name, value)
+                    instance.full_clean()
+                invalid = (0, high + 1) if name != 'reference_bandwidth' else (0,)
+                for value in invalid:
+                    self._assert_invalid(name, **{name: value})
+
     def test_graceful_restart_period_limits(self):
         instance = self._instance('10.0.0.1')
         for period in (1, 1800):

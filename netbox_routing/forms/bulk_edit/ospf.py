@@ -134,6 +134,21 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     max_lsa_warning_only = _boolean(_('Max LSAs Warning Only'))
     external_lsdb_limit = _integer(_('External LSDB Limit'))
     exit_overflow_interval = _integer(_('Exit Overflow Interval'))
+    reference_bandwidth = forms.IntegerField(
+        label=_('Reference Bandwidth'), required=False, min_value=1
+    )
+    maximum_paths = forms.IntegerField(
+        label=_('Maximum Paths'), required=False, min_value=1, max_value=64
+    )
+    distance_intra_area = forms.IntegerField(
+        label=_('Distance (Intra-Area)'), required=False, min_value=1, max_value=255
+    )
+    distance_inter_area = forms.IntegerField(
+        label=_('Distance (Inter-Area)'), required=False, min_value=1, max_value=255
+    )
+    distance_external = forms.IntegerField(
+        label=_('Distance (External)'), required=False, min_value=1, max_value=255
+    )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
         choices=add_blank_choice(choices.AuthenticationChoices),
@@ -191,6 +206,11 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         'max_metric_on_startup',
         'max_lsa',
         'external_lsdb_limit',
+        'reference_bandwidth',
+        'maximum_paths',
+        'distance_intra_area',
+        'distance_inter_area',
+        'distance_external',
         'description',
     )
 

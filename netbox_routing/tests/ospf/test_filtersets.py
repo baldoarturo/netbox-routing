@@ -56,6 +56,8 @@ class OSPFInstanceTestCase(TestCase):
                 bfd_all_interfaces=True,
                 rfc1583_compatibility=False,
                 spf_initial_delay=100,
+                maximum_paths=8,
+                distance_external=150,
             ),
             OSPFInstance(
                 name='Instance 3',
@@ -113,6 +115,8 @@ class OSPFInstanceTestCase(TestCase):
             ({'rfc1583_compatibility': False}, 1),
             ({'spf_initial_delay': [100]}, 1),
             ({'spf_initial_delay': [50]}, 3),
+            ({'maximum_paths': [8]}, 1),
+            ({'distance_external': [150]}, 1),
         ):
             with self.subTest(params=params):
                 self.assertEqual(
