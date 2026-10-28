@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from ipam.choices import IPAddressFamilyChoices
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelFilterSetForm
-from utilities.forms import add_blank_choice
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import DynamicModelMultipleChoiceField, TagFilterField
 from utilities.forms.rendering import FieldSet
 
@@ -40,7 +40,7 @@ class PrefixListEntryFilterForm(NetBoxModelFilterSetForm):
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet('prefix_list_id', 'family', 'action', name=_('Prefix List')),
-        FieldSet('prefix_id', 'ge', 'le', name=_('Match')),
+        FieldSet('prefix_id', 'any_prefix', 'ge', 'le', name=_('Match')),
     )
     prefix_list_id = DynamicModelMultipleChoiceField(
         queryset=PrefixList.objects.all(),
@@ -61,6 +61,11 @@ class PrefixListEntryFilterForm(NetBoxModelFilterSetForm):
         queryset=Prefix.objects.all(),
         required=False,
         label=_('Prefix'),
+    )
+    any_prefix = forms.NullBooleanField(
+        label=_('Any'),
+        required=False,
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     ge = forms.IntegerField(label=_('GE'), required=False, min_value=0, max_value=128)
     le = forms.IntegerField(label=_('LE'), required=False, min_value=0, max_value=128)

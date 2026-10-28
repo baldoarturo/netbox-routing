@@ -40,6 +40,7 @@ class PrefixListEntryPanel(panels.ObjectAttributesPanel):
     sequence = attrs.NumericAttr('sequence', label=_('Sequence'))
     action = attrs.ChoiceAttr('action', label=_('Action'))
     prefix = attrs.RelatedObjectAttr('prefix', linkify=True, label=_('Prefix'))
+    any_prefix = attrs.BooleanAttr('any_prefix', label=_('Any'))
     ge = attrs.NumericAttr('ge', label=_('Greater Than or Equal'))
     le = attrs.NumericAttr('le', label=_('Less Than or Equal'))
     description = attrs.TextAttr('description', label=_('Description'))

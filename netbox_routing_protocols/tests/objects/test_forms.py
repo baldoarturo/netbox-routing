@@ -143,7 +143,17 @@ class PrefixListTestCase(TestCase):
         self.assertTrue({'q', 'family', 'tag'} <= set(form.fields))
         form = PrefixListEntryFilterForm()
         self.assertTrue(
-            {'q', 'prefix_list_id', 'family', 'action', 'prefix_id', 'ge', 'le', 'tag'}
+            {
+                'q',
+                'prefix_list_id',
+                'family',
+                'action',
+                'prefix_id',
+                'any_prefix',
+                'ge',
+                'le',
+                'tag',
+            }
             <= set(form.fields)
         )
 
@@ -222,6 +232,74 @@ class PrefixListEntryTestCase(TestCase):
         names = {item for item in shown if isinstance(item, str)}
         self.assertLessEqual(names, set(form.fields))
         self.assertTrue({'prefix', 'ge', 'le', 'tags', 'owner'} <= names)
+
+    def test_any_has_no_prefix_and_matches_any_length(self):
+        v6_list = PrefixList.objects.create(name='Prefix List v6', family=6)
+        for sequence, (prefix_list, le) in enumerate(
+            ((self.prefix_list, 32), (v6_list, 128)), start=1
+        ):
+            with self.subTest(prefix_list.family):
+                data = self._data(
+                    prefix_list=prefix_list, any_prefix=True, sequence=sequence
+                )
+                del data['prefix']
+                form = PrefixListEntryForm(data=data)
+                self.assertTrue(form.is_valid(), form.errors)
+                entry = form.save()
+                self.assertIsNone(entry.prefix_id)
+                self.assertTrue(entry.any_prefix)
+                self.assertEqual((entry.ge, entry.le), (None, le))
+        # nothing is created in IPAM
+        self.assertFalse(
+            Prefix.objects.filter(prefix__in=['0.0.0.0/0', '::/0']).exists()
+        )
+
+    def test_any_keeps_explicit_ge_le(self):
+        data = self._data(any_prefix=True, ge=24)
+        del data['prefix']
+        form = PrefixListEntryForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual((entry.ge, entry.le), (24, None))
+
+    def test_any_and_a_prefix_are_exclusive(self):
+        form = PrefixListEntryForm(data=self._data(any_prefix=True))
+        self.assertFalse(form.is_valid())
+        self.assertIn('prefix', form.errors)
+
+    def test_prefix_or_any_is_required(self):
+        data = self._data()
+        del data['prefix']
+        form = PrefixListEntryForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('prefix', form.errors)
+
+    def test_any_option_is_shown_with_the_prefix(self):
+        form = PrefixListEntryForm()
+        self.assertIn('any_prefix', form.fields)
+        self.assertFalse(form.fields['prefix'].required)
+
+    def test_exact_length(self):
+        form = PrefixListEntryForm(data=self._data(eq=16))
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual((entry.ge, entry.le), (16, 16))
+
+    def test_exact_length_excludes_ge_le(self):
+        for extra in ({'ge': 16}, {'le': 24}):
+            with self.subTest(extra):
+                form = PrefixListEntryForm(data=self._data(eq=16, **extra))
+                self.assertFalse(form.is_valid())
+                self.assertIn('eq', form.errors)
+
+    def test_any_and_exact_length(self):
+        # the all zeros prefix matched at an exact length
+        data = self._data(any_prefix=True, eq=24)
+        del data['prefix']
+        form = PrefixListEntryForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual((entry.ge, entry.le), (24, 24))
 
     def test_form_invalid(self):
         form = PrefixListEntryForm(data={'prefix_list': self.prefix_list})

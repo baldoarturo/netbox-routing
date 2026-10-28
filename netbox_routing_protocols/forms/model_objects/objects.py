@@ -9,6 +9,7 @@ from utilities.forms.fields import (
 )
 from utilities.forms.rendering import TabbedGroups, FieldSet
 
+from netbox_routing_protocols.helpers.prefix_list import any_le
 from netbox_routing_protocols.models.community import Community, CommunityList
 from netbox_routing_protocols.models.objects import *
 
@@ -75,9 +76,17 @@ class PrefixListForm(PrimaryModelForm):
 class PrefixListEntryForm(PrimaryModelForm):
     prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
+        required=False,
         selector=True,
         label=_('Prefix'),
-        help_text=_('Declare the prefix in IPAM first.'),
+        help_text=_('Declare the prefix in IPAM first, or select Any.'),
+    )
+    eq = forms.IntegerField(
+        required=False,
+        min_value=0,
+        max_value=128,
+        label=_('Exact length'),
+        help_text=_('Match only prefixes of this length: sets GE and LE to it.'),
     )
 
     fieldsets = (
@@ -86,10 +95,11 @@ class PrefixListEntryForm(PrimaryModelForm):
             'sequence',
             'action',
         ),
-        FieldSet('prefix', name=_('Prefix')),
+        FieldSet('prefix', 'any_prefix', name=_('Prefix')),
         FieldSet(
             'ge',
             'le',
+            'eq',
             name=_('Filtering'),
         ),
         FieldSet(
@@ -106,6 +116,7 @@ class PrefixListEntryForm(PrimaryModelForm):
             'sequence',
             'action',
             'prefix',
+            'any_prefix',
             'ge',
             'le',
             'description',
@@ -113,6 +124,31 @@ class PrefixListEntryForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+
+    def clean(self):
+        super().clean()
+        cleaned = self.cleaned_data
+        ge, le, eq = (cleaned.get(field) for field in ('ge', 'le', 'eq'))
+
+        if eq is not None:
+            if ge is not None or le is not None:
+                raise forms.ValidationError(
+                    {'eq': _('Use either the exact length, or GE and LE.')}
+                )
+            cleaned['ge'] = cleaned['le'] = eq
+            ge = le = eq
+
+        # Any with no length given matches any prefix: LE is the longest length
+        prefix_list = cleaned.get('prefix_list')
+        if cleaned.get('any_prefix') and prefix_list and ge is None and le is None:
+            cleaned['le'] = any_le(prefix_list.family)
+
+    def _post_clean(self):
+        # Without a valid prefix there is nothing to validate on the model, and its
+        # "prefix required" error would only repeat the one the field already has
+        if 'prefix' in self.errors:
+            return
+        super()._post_clean()
 
 
 class RouteMapForm(PrimaryModelForm):

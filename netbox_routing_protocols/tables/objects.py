@@ -46,7 +46,15 @@ class PrefixListTable(NetBoxTable):
 
 class PrefixListEntryTable(NetBoxTable):
     prefix_list = tables.Column(verbose_name=_('Prefix List'), linkify=True)
-    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    prefix = tables.TemplateColumn(
+        template_code=(
+            '{% if record.any_prefix %}<span class="badge text-bg-secondary">any</span>'
+            '{% else %}<a href="{{ record.prefix.get_absolute_url }}">{{ record.prefix }}</a>'
+            '{% endif %}'
+        ),
+        order_by=('any_prefix', 'prefix'),
+        verbose_name=_('Prefix'),
+    )
     action = columns.ChoiceFieldColumn()
     tags = columns.TagColumn(
         url_name='plugins:netbox_routing_protocols:prefixlistentry_list'

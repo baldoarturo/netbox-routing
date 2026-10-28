@@ -237,6 +237,21 @@ class PrefixListEntryTestCase(TestCase):
         }
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
+    def test_any_prefix(self):
+        PrefixListEntry.objects.create(
+            prefix_list=self.prefix_list[0],
+            action=ActionChoices.PERMIT,
+            sequence=10,
+            any_prefix=True,
+            le=32,
+        )
+        self.assertEqual(
+            self.filterset({'any_prefix': True}, self.queryset).qs.count(), 1
+        )
+        self.assertEqual(
+            self.filterset({'any_prefix': False}, self.queryset).qs.count(), 4
+        )
+
     def test_second_prefix(self):
         params = {'prefix_id': [self.prefixes[1].pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)

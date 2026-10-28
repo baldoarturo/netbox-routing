@@ -152,6 +152,17 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
         on_delete=models.PROTECT,
         related_name='prefix_list_entries',
         verbose_name=_('Prefix'),
+        blank=True,
+        null=True,
+    )
+    any_prefix = models.BooleanField(
+        verbose_name=_('Any'),
+        default=False,
+        help_text=_(
+            'The all zeros prefix of the address family of the list (0.0.0.0/0 or '
+            '::/0), which IPAM cannot hold. With LE set to the longest length it '
+            'matches any prefix. Leave the prefix empty.'
+        ),
     )
     sequence = models.PositiveBigIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(4294967294)],
@@ -187,6 +198,14 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
                 name='%(app_label)s_%(class)s_unique_prefixlist_sequence',
                 violation_error_message="Prefix List sequence must be unique.",
             ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(any_prefix=True, prefix__isnull=True)
+                    | models.Q(any_prefix=False, prefix__isnull=False)
+                ),
+                name='%(app_label)s_%(class)s_prefix_or_any',
+                violation_error_message='Set a prefix, or Any without a prefix.',
+            ),
         )
 
     def __str__(self):
@@ -199,15 +218,32 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
 
     def clean(self):
         super().clean()
-        # The required fields report their own errors
-        if self.prefix_id is None or not hasattr(self, 'prefix_list'):
-            return
-        prefix = self.prefix.prefix
-        if isinstance(prefix, str):
-            prefix = netaddr.IPNetwork(prefix)
+        if not hasattr(self, 'prefix_list'):
+            return  # the required field reports its own error
         family = self.prefix_list.family
-        boundary = 32 if family == 4 else 128
 
+        if self.any_prefix:
+            if self.prefix_id is not None:
+                raise ValidationError(
+                    {'prefix': 'An entry that matches Any has no prefix.'}
+                )
+            length = 0
+        else:
+            if self.prefix_id is None:
+                raise ValidationError(
+                    {'prefix': 'A prefix is required, or select Any.'}
+                )
+            prefix = self.prefix.prefix
+            if isinstance(prefix, str):
+                prefix = netaddr.IPNetwork(prefix)
+            if prefix.version != family:
+                raise ValidationError(
+                    f'{prefix} is an IPv{prefix.version} prefix and cannot be added '
+                    f'to the IPv{family} prefix list {self.prefix_list}.'
+                )
+            length = prefix.prefixlen
+
+        boundary = 32 if family == 4 else 128
         if self.le is not None and self.le > boundary:
             raise ValidationError(
                 {
@@ -227,17 +263,11 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
                     'le': 'LE cannot be less than GE',
                 }
             )
-
-        if prefix.version != family:
-            raise ValidationError(
-                f'{prefix} is an IPv{prefix.version} prefix and cannot be added '
-                f'to the IPv{family} prefix list {self.prefix_list}.'
-            )
         # ge is "greater than or equal" and le "less than or equal" to the length of
         # the matched prefix: both accept a value equal to the prefix length
-        if self.ge is not None and self.ge < prefix.prefixlen:
+        if self.ge is not None and self.ge < length:
             raise ValidationError({'ge': 'GE cannot be less than the prefix length'})
-        if self.le is not None and self.le < prefix.prefixlen:
+        if self.le is not None and self.le < length:
             raise ValidationError({'le': 'LE cannot be less than the prefix length'})
 
 

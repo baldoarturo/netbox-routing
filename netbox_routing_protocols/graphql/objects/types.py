@@ -61,7 +61,8 @@ class PrefixListEntryType(PrimaryObjectType):
     ]
     action: str
     sequence: BigInt
-    prefix: Annotated["PrefixType", strawberry.lazy('ipam.graphql.types')]
+    prefix: Annotated["PrefixType", strawberry.lazy('ipam.graphql.types')] | None
+    any_prefix: bool
     le: int | None
     ge: int | None
 
