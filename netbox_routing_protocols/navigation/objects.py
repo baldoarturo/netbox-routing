@@ -96,9 +96,16 @@ aspath_entry = PluginMenuItem(
     ),
 )
 
+prefix_match = PluginMenuItem(
+    link='plugins:netbox_routing_protocols:prefix_match',
+    link_text='Search Prefix Match',
+    permissions=['netbox_routing_protocols.view_prefixlistentry'],
+)
+
 OBJECT_MENU = (
     prefixlist,
     prefixlist_entry,
+    prefix_match,
     routemap,
     routemap_entry,
     aspath,
