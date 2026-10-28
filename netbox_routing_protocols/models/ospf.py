@@ -23,6 +23,8 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFGracefulRestartChoices,
     OSPFMessageDigestAlgorithmChoices,
     OSPFRouteTypeChoices,
+    OSPFSegmentIdentifierChoices,
+    OSPFSRAlgorithmChoices,
     OSPFRedistributionProtocolChoices,
 )
 from netbox_routing_protocols.constants import ERROR_UNIQUENESS_CONSTRAINT
@@ -54,6 +56,9 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_SPF_TIME_TO_LEARN_DEFAULT,
     OSPF_STUB_DEFAULT_COST_MAX,
     OSPF_STUB_DEFAULT_COST_MIN,
+    OSPF_SR_INDEX_MAX,
+    OSPF_SR_LABEL_MAX,
+    OSPF_SR_LABEL_MIN,
     OSPF_TAG_MAX,
     OSPF_TE_ADMIN_GROUP_MAX,
     OSPF_TE_METRIC_MAX,
@@ -70,6 +75,7 @@ __all__ = (
     'OSPFSummaryAddress',
     'OSPFNeighbor',
     'OSPFAreaRange',
+    'OSPFPrefixSID',
 )
 
 
@@ -589,6 +595,38 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         null=True,
     )
 
+    segment_routing = models.BooleanField(
+        verbose_name=_('Segment Routing'),
+        help_text=_(
+            'Advertise segment routing (RFC 8665). It uses the extended prefix and '
+            'link opaque LSAs (RFC 7684), so it needs the opaque LSAs'
+        ),
+        default=False,
+    )
+    srgb_start = models.PositiveIntegerField(
+        verbose_name=_('SRGB Start'),
+        help_text=_(
+            'First label of the segment routing global block, 16 to 1048575. '
+            'Empty uses the platform default'
+        ),
+        validators=[
+            MinValueValidator(OSPF_SR_LABEL_MIN),
+            MaxValueValidator(OSPF_SR_LABEL_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+    srgb_size = models.PositiveIntegerField(
+        verbose_name=_('SRGB Size'),
+        help_text=_('Number of labels of the block (RFC 8665 2.1: more than 0)'),
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(OSPF_SR_LABEL_MAX - OSPF_SR_LABEL_MIN + 1),
+        ],
+        blank=True,
+        null=True,
+    )
+
     ADVANCED_FIELDS = (
         'spf_initial_delay',
         'spf_short_delay',
@@ -621,6 +659,9 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         'default_metric',
         'opaque_capability',
         'te_router_address',
+        'segment_routing',
+        'srgb_start',
+        'srgb_size',
     )
 
     clone_fields = (
@@ -744,9 +785,45 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
                 }
             )
 
+    def _clean_segment_routing(self):
+        errors = {}
+        if self.segment_routing and not self.opaque_capability:
+            errors['segment_routing'] = _('Segment routing needs the opaque LSAs.')
+        if (self.srgb_start is None) != (self.srgb_size is None):
+            errors['srgb_size'] = _('Set both the start and the size of the SRGB.')
+        elif self.srgb_start is not None:
+            if not self.segment_routing:
+                errors['srgb_start'] = _('Segment routing is not enabled.')
+            elif self.srgb_start + self.srgb_size - 1 > OSPF_SR_LABEL_MAX:
+                errors['srgb_size'] = _(
+                    'The block goes past the last MPLS label ({last}).'
+                ).format(last=OSPF_SR_LABEL_MAX)
+        if self.pk and not errors:
+            sids = self.prefix_sids.all()
+            if not self.segment_routing:
+                if (
+                    sids.exists()
+                    or self.interfaces.filter(adjacency_sid__isnull=False).exists()
+                ):
+                    errors['segment_routing'] = _(
+                        'The instance has prefix SIDs or adjacency SIDs.'
+                    )
+            elif (
+                self.srgb_size is not None
+                and sids.filter(
+                    sid_type=OSPFSegmentIdentifierChoices.INDEX, sid__gte=self.srgb_size
+                ).exists()
+            ):
+                errors['srgb_size'] = _(
+                    'There are prefix SIDs with an index outside the block.'
+                )
+        if errors:
+            raise ValidationError(errors)
+
     def clean(self):
         super().clean()
         self._clean_traffic_engineering()
+        self._clean_segment_routing()
         self._clean_advanced_options()
         self._clean_authentication()
         self._clean_interface_authentication()
@@ -1095,6 +1172,19 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         blank=True,
         null=True,
     )
+    adjacency_sid = models.PositiveIntegerField(
+        verbose_name=_('Adjacency SID'),
+        help_text=_(
+            'Local MPLS label of the adjacency over this interface, 16 to 1048575 '
+            '(RFC 8665 6.1). Needs segment routing on the instance'
+        ),
+        validators=[
+            MinValueValidator(OSPF_SR_LABEL_MIN),
+            MaxValueValidator(OSPF_SR_LABEL_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
     mtu_ignore = models.BooleanField(
         verbose_name=_('MTU Ignore'),
         help_text=_(
@@ -1116,6 +1206,7 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
         'retransmit_interval',
         'transmit_delay',
         'mtu_ignore',
+        'adjacency_sid',
         'te_metric',
         'te_max_reservable_bandwidth',
         'te_admin_group',
@@ -1169,6 +1260,16 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
     def effective_authentication(self):
         source = self.get_authentication_source()[1]
         return source.authentication if source else None
+
+    def _clean_segment_routing(self):
+        if (
+            self.adjacency_sid is not None
+            and self.instance_id
+            and not self.instance.segment_routing
+        ):
+            raise ValidationError(
+                {'adjacency_sid': _('Segment routing is not enabled on the instance.')}
+            )
 
     def _clean_traffic_engineering(self):
         """The traffic engineering attributes need the TE LSAs of the area."""
@@ -1237,6 +1338,7 @@ class OSPFInterface(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
             )
         self._clean_interface_scope()
         self._clean_traffic_engineering()
+        self._clean_segment_routing()
         self._clean_timers()
 
 
@@ -1970,3 +2072,137 @@ class OSPFAreaRange(PrimaryModel):
                     )
                 }
             )
+
+
+class OSPFPrefixSID(PrimaryModel):
+    """
+    A prefix segment identifier (RFC 8665 5): the SID of a prefix, advertised in
+    the extended prefix opaque LSA. The SID of a node is the one of a host route
+    of the router, usually its loopback, with the node flag (RFC 7684 2.1).
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFInstance',
+        related_name='prefix_sids',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    prefix = IPNetworkField(
+        verbose_name=_('Prefix'),
+        help_text=_('IPv4 prefix the SID is advertised for'),
+    )
+    sid_type = models.CharField(
+        verbose_name=_('SID Type'),
+        help_text=_(
+            'An index into the SRGB (flags V and L clear) or an absolute, local '
+            'MPLS label (V and L set). The other combinations are invalid'
+        ),
+        choices=OSPFSegmentIdentifierChoices,
+        default=OSPFSegmentIdentifierChoices.INDEX,
+        max_length=10,
+    )
+    sid = models.PositiveBigIntegerField(
+        verbose_name=_('SID'),
+        help_text=_('The index (up to 4294967295) or the label (16 to 1048575)'),
+        validators=[MaxValueValidator(OSPF_SR_INDEX_MAX)],
+    )
+    algorithm = models.PositiveSmallIntegerField(
+        verbose_name=_('Algorithm'),
+        help_text=_('SR-Algorithm the SID belongs to (RFC 8665 3.1)'),
+        choices=OSPFSRAlgorithmChoices,
+        default=OSPFSRAlgorithmChoices.SPF,
+    )
+    node_sid = models.BooleanField(
+        verbose_name=_('Node SID'),
+        help_text=_(
+            'The prefix identifies the router itself: the N flag of the extended '
+            'prefix TLV (RFC 7684 2.1). It has to be a host route'
+        ),
+        default=False,
+    )
+    no_php = models.BooleanField(
+        verbose_name=_('No PHP'),
+        help_text=_('NP flag: the penultimate hop must not pop the SID (RFC 8665 5)'),
+        default=False,
+    )
+    explicit_null = models.BooleanField(
+        verbose_name=_('Explicit Null'),
+        help_text=_(
+            'E flag: upstream neighbors replace the SID with an explicit null '
+            'label (RFC 8665 5)'
+        ),
+        default=False,
+    )
+
+    clone_fields = (
+        'instance',
+        'sid_type',
+        'algorithm',
+        'node_sid',
+        'no_php',
+        'explicit_null',
+    )
+    prerequisite_models = ('netbox_routing_protocols.OSPFInstance',)
+
+    class Meta:
+        verbose_name = 'OSPF Prefix SID'
+        verbose_name_plural = 'OSPF Prefix SIDs'
+        ordering = ('instance__name', 'prefix', 'algorithm', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'prefix', 'algorithm'),
+                name='%(app_label)s_%(class)s_unique_instance_prefix_algorithm',
+                violation_error_message=_(
+                    'This prefix already has a SID for the algorithm.'
+                ),
+            ),
+            models.UniqueConstraint(
+                fields=('instance', 'algorithm', 'sid_type', 'sid'),
+                name='%(app_label)s_%(class)s_unique_instance_algorithm_sid',
+                violation_error_message=_(
+                    'This SID is already used by another prefix for the algorithm.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.prefix} ({self.get_sid_type_display()} {self.sid})'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing_protocols:ospfprefixsid', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.instance_id and not self.instance.segment_routing:
+            errors['instance'] = _('Segment routing is not enabled on the instance.')
+        if self.sid is not None:
+            if self.sid_type == OSPFSegmentIdentifierChoices.ABSOLUTE:
+                if not OSPF_SR_LABEL_MIN <= self.sid <= OSPF_SR_LABEL_MAX:
+                    errors['sid'] = _('A label goes from {first} to {last}.').format(
+                        first=OSPF_SR_LABEL_MIN, last=OSPF_SR_LABEL_MAX
+                    )
+            elif (
+                self.instance_id
+                and self.instance.srgb_size is not None
+                and self.sid >= self.instance.srgb_size
+            ):
+                errors['sid'] = _(
+                    'The index is outside the SRGB, which has {size} labels.'
+                ).format(size=self.instance.srgb_size)
+        if self.prefix not in (None, ''):
+            try:
+                prefix = netaddr.IPNetwork(str(self.prefix))
+            except (netaddr.AddrFormatError, ValueError):
+                prefix = None  # reported by the field's own validation
+            if prefix is not None:
+                if prefix.version != 4:
+                    errors['prefix'] = _('OSPFv2 prefix SIDs are for IPv4 prefixes.')
+                elif prefix.ip != prefix.cidr.ip:
+                    errors['prefix'] = _(
+                        'The prefix has host bits set: use {cidr}.'
+                    ).format(cidr=prefix.cidr)
+                elif self.node_sid and prefix.prefixlen != 32:
+                    errors['node_sid'] = _('The SID of a node is for a host route.')
+        if errors:
+            raise ValidationError(errors)

@@ -147,6 +147,20 @@ ospf_area_ranges = PluginMenuItem(
     ),
 )
 
+ospf_prefix_sids = PluginMenuItem(
+    link='plugins:netbox_routing_protocols:ospfprefixsid_list',
+    link_text='Prefix SIDs',
+    permissions=['netbox_routing_protocols.view_ospfprefixsid'],
+    buttons=(
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfprefixsid_add',
+            title='Add',
+            icon_class=COL_ADD,
+            permissions=['netbox_routing_protocols.add_ospfprefixsid'],
+        ),
+    ),
+)
+
 MENUITEMS = (
     ospf_instance,
     ospf_area,
@@ -157,4 +171,5 @@ MENUITEMS = (
     ospf_summary_addresses,
     ospf_neighbors,
     ospf_area_ranges,
+    ospf_prefix_sids,
 )

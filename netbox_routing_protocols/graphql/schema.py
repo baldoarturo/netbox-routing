@@ -48,6 +48,7 @@ from .ospf.types import (
     OSPFSummaryAddressType,
     OSPFNeighborType,
     OSPFAreaRangeType,
+    OSPFPrefixSIDType,
 )
 from .static.types import StaticRouteType
 
@@ -86,6 +87,9 @@ class OSPFQuery:
 
     ospf_area_range: OSPFAreaRangeType = strawberry_django.field()
     ospf_area_range_list: list[OSPFAreaRangeType] = strawberry_django.field()
+
+    ospf_prefix_sid: OSPFPrefixSIDType = strawberry_django.field()
+    ospf_prefix_sid_list: list[OSPFPrefixSIDType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")

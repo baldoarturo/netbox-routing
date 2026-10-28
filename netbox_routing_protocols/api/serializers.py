@@ -20,6 +20,7 @@ __all__ = (
     'OSPFSummaryAddressSerializer',
     'OSPFNeighborSerializer',
     'OSPFAreaRangeSerializer',
+    'OSPFPrefixSIDSerializer',
     'ISISInstanceSerializer',
     'ISISInterfaceSerializer',
     'ISISSettingSerializer',

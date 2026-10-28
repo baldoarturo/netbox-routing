@@ -13,6 +13,8 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFRangeTypeChoices,
     OSPFRedistributionProtocolChoices,
     OSPFRouteTypeChoices,
+    OSPFSegmentIdentifierChoices,
+    OSPFSRAlgorithmChoices,
 )
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
@@ -27,6 +29,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 
 __all__ = (
@@ -39,6 +42,7 @@ __all__ = (
     'OSPFSummaryAddressFilterForm',
     'OSPFNeighborFilterForm',
     'OSPFAreaRangeFilterForm',
+    'OSPFPrefixSIDFilterForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -517,6 +521,43 @@ class OSPFAreaRangeFilterForm(NetBoxModelFilterSetForm):
     advertise = forms.NullBooleanField(
         required=False,
         label=_('Advertise'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    tag = TagFilterField(model)
+
+
+class OSPFPrefixSIDFilterForm(NetBoxModelFilterSetForm):
+    model = OSPFPrefixSID
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('OSPF')),
+        FieldSet(
+            'prefix', 'sid_type', 'sid', 'algorithm', 'node_sid', name=_('Prefix SID')
+        ),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    prefix = forms.CharField(required=False, label=_('Prefix'))
+    sid_type = forms.MultipleChoiceField(
+        choices=OSPFSegmentIdentifierChoices, required=False, label=_('SID Type')
+    )
+    sid = forms.IntegerField(required=False, label=_('SID'))
+    algorithm = forms.MultipleChoiceField(
+        choices=OSPFSRAlgorithmChoices, required=False, label=_('Algorithm')
+    )
+    node_sid = forms.NullBooleanField(
+        required=False,
+        label=_('Node SID'),
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     tag = TagFilterField(model)

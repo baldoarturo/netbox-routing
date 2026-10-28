@@ -145,3 +145,27 @@ class OSPFRangeTypeChoices(ChoiceSet):
         (SUMMARY, 'Summary of intra-area routes'),
         (NSSA_EXTERNAL, 'NSSA external (type 7 to type 5)'),
     ]
+
+
+class OSPFSegmentIdentifierChoices(ChoiceSet):
+    """How the value of a segment identifier is read (V and L flags, RFC 8665)."""
+
+    INDEX = 'index'
+    ABSOLUTE = 'absolute'
+
+    CHOICES = [
+        (INDEX, 'Index into the SRGB'),
+        (ABSOLUTE, 'Absolute label (local)'),
+    ]
+
+
+class OSPFSRAlgorithmChoices(ChoiceSet):
+    """SR-Algorithm values defined by RFC 8665."""
+
+    SPF = 0
+    STRICT_SPF = 1
+
+    CHOICES = [
+        (SPF, 'SPF'),
+        (STRICT_SPF, 'Strict SPF'),
+    ]

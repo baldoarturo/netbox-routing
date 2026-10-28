@@ -30,6 +30,8 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_RETRANSMIT_INTERVAL_MAX,
     OSPF_RETRANSMIT_INTERVAL_MIN,
     OSPF_STUB_DEFAULT_COST_MAX,
+    OSPF_SR_LABEL_MAX,
+    OSPF_SR_LABEL_MIN,
     OSPF_STUB_DEFAULT_COST_MIN,
     OSPF_TE_ADMIN_GROUP_MAX,
     OSPF_TE_METRIC_MAX,
@@ -46,6 +48,7 @@ from netbox_routing_protocols.models import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 
 __all__ = (
@@ -58,6 +61,7 @@ __all__ = (
     'OSPFSummaryAddressBulkEditForm',
     'OSPFNeighborBulkEditForm',
     'OSPFAreaRangeBulkEditForm',
+    'OSPFPrefixSIDBulkEditForm',
 )
 
 from utilities.forms.rendering import FieldSet
@@ -161,6 +165,19 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     te_router_address = forms.GenericIPAddressField(
         label=_('TE Router Address'), protocol='IPv4', required=False
     )
+    segment_routing = _boolean(_('Segment Routing'))
+    srgb_start = forms.IntegerField(
+        label=_('SRGB Start'),
+        required=False,
+        min_value=OSPF_SR_LABEL_MIN,
+        max_value=OSPF_SR_LABEL_MAX,
+    )
+    srgb_size = forms.IntegerField(
+        label=_('SRGB Size'),
+        required=False,
+        min_value=1,
+        max_value=OSPF_SR_LABEL_MAX - OSPF_SR_LABEL_MIN + 1,
+    )
     default_metric = forms.IntegerField(
         label=_('Default Metric'),
         required=False,
@@ -232,6 +249,8 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         'description',
         'default_metric',
         'te_router_address',
+        'srgb_start',
+        'srgb_size',
     )
 
 
@@ -416,6 +435,12 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
 
+    adjacency_sid = forms.IntegerField(
+        label=_('Adjacency SID'),
+        required=False,
+        min_value=OSPF_SR_LABEL_MIN,
+        max_value=OSPF_SR_LABEL_MAX,
+    )
     te_metric = forms.IntegerField(
         label=_('TE Metric'),
         required=False,
@@ -468,6 +493,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'transmit_delay',
             name='Timers',
         ),
+        FieldSet('adjacency_sid', name='Segment Routing'),
         FieldSet(
             'te_metric',
             'te_max_reservable_bandwidth',
@@ -476,7 +502,12 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         ),
         FieldSet('description'),
     )
-    nullable_fields = ('te_metric', 'te_max_reservable_bandwidth', 'te_admin_group')
+    nullable_fields = (
+        'adjacency_sid',
+        'te_metric',
+        'te_max_reservable_bandwidth',
+        'te_admin_group',
+    )
 
 
 class OSPFNetworkBulkEditForm(NetBoxModelBulkEditForm):
@@ -672,6 +703,34 @@ class OSPFAreaRangeBulkEditForm(NetBoxModelBulkEditForm):
     model = OSPFAreaRange
     fieldsets = (
         FieldSet('range_type', 'advertise'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('description',)
+
+
+class OSPFPrefixSIDBulkEditForm(NetBoxModelBulkEditForm):
+    algorithm = forms.ChoiceField(
+        label=_('Algorithm'),
+        choices=add_blank_choice(choices.OSPFSRAlgorithmChoices),
+        required=False,
+    )
+    node_sid = forms.ChoiceField(
+        label=_('Node SID'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
+    no_php = forms.ChoiceField(
+        label=_('No PHP'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
+    explicit_null = forms.ChoiceField(
+        label=_('Explicit Null'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = OSPFPrefixSID
+    fieldsets = (
+        FieldSet('algorithm', 'node_sid', 'no_php', 'explicit_null'),
         FieldSet('description'),
     )
     nullable_fields = ('description',)

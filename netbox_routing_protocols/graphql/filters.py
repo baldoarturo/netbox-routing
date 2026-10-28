@@ -43,6 +43,7 @@ __all__ = (
     'OSPFSummaryAddressFilter',
     'OSPFNeighborFilter',
     'OSPFAreaRangeFilter',
+    'OSPFPrefixSIDFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
     'RouteMapFilter',

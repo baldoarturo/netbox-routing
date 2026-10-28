@@ -24,6 +24,7 @@ from .ospf import (
     OSPFSummaryAddress,
     OSPFNeighbor,
     OSPFAreaRange,
+    OSPFPrefixSID,
 )
 from .static import StaticRoute
 
@@ -58,6 +59,7 @@ __all__ = (
     'OSPFSummaryAddress',
     'OSPFNeighbor',
     'OSPFAreaRange',
+    'OSPFPrefixSID',
     # IS-IS
     'ISISInstance',
     'ISISInterface',

@@ -15,6 +15,7 @@ from netbox_routing_protocols.graphql.ospf.filters import (
     OSPFSummaryAddressFilter,
     OSPFNeighborFilter,
     OSPFAreaRangeFilter,
+    OSPFPrefixSIDFilter,
 )
 
 __all__ = (
@@ -27,6 +28,7 @@ __all__ = (
     'OSPFSummaryAddressType',
     'OSPFNeighborType',
     'OSPFAreaRangeType',
+    'OSPFPrefixSIDType',
 )
 
 
@@ -179,3 +181,19 @@ class OSPFAreaRangeType(PrimaryObjectType):
     prefix: str
     range_type: str
     advertise: bool
+
+
+@strawberry_django.type(
+    models.OSPFPrefixSID, fields='__all__', filters=OSPFPrefixSIDFilter
+)
+class OSPFPrefixSIDType(PrimaryObjectType):
+    instance: Annotated[
+        "OSPFInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    prefix: str
+    sid_type: str
+    sid: int
+    algorithm: int
+    node_sid: bool
+    no_php: bool
+    explicit_null: bool
