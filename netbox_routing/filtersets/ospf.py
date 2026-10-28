@@ -32,6 +32,7 @@ from netbox_routing.models import (
     OSPFVirtualLink,
     OSPFSummaryAddress,
     OSPFNeighbor,
+    OSPFAreaRange,
 )
 
 __all__ = (
@@ -43,6 +44,7 @@ __all__ = (
     'OSPFVirtualLinkFilterSet',
     'OSPFSummaryAddressFilterSet',
     'OSPFNeighborFilterSet',
+    'OSPFAreaRangeFilterSet',
 )
 
 
@@ -541,4 +543,46 @@ class OSPFNeighborFilterSet(NetBoxModelFilterSet):
         try:
             return queryset.filter(**{f'{name}__in': value})
         except ValidationError:
+            return queryset.none()
+
+
+@register_filterset
+class OSPFAreaRangeFilterSet(NetBoxModelFilterSet):
+    area_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='area',
+        queryset=OSPFArea.objects.all(),
+        label=_('Area (ID)'),
+    )
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='area__instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='area__instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    prefix = django_filters.CharFilter(method='filter_prefix', label=_('Prefix'))
+
+    class Meta:
+        model = OSPFAreaRange
+        fields = ('area', 'prefix', 'advertise')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = (
+            Q(area__area_id__icontains=value)
+            | Q(area__instance__name__icontains=value)
+            | Q(prefix__icontains=value)
+        )
+        return queryset.filter(qs_filter)
+
+    def filter_prefix(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        try:
+            return queryset.filter(prefix=str(netaddr.IPNetwork(value).cidr))
+        except (netaddr.AddrFormatError, ValueError):
             return queryset.none()

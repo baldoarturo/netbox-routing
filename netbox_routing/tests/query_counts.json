@@ -39,6 +39,8 @@
   "isissrv6locator:api_list_objects": 12,
   "ospfarea:api_list_objects": 11,
   "ospfarea:list_objects_with_permission": 16,
+  "ospfarearange:api_list_objects": 12,
+  "ospfarearange:list_objects_with_permission": 16,
   "ospfinstance:api_list_objects": 11,
   "ospfinstance:list_objects_with_permission": 16,
   "ospfinterface:api_list_objects": 13,

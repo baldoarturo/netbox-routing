@@ -45,6 +45,9 @@ __all__ = (
     'OSPFNeighborForm',
     'OSPFNeighborBulkEditForm',
     'OSPFNeighborFilterForm',
+    'OSPFAreaRangeForm',
+    'OSPFAreaRangeBulkEditForm',
+    'OSPFAreaRangeFilterForm',
     # IS-IS
     'ISISInstanceForm',
     'ISISInstanceBulkEditForm',

@@ -23,6 +23,7 @@ from netbox_routing.filtersets.ospf import (
     OSPFVirtualLinkFilterSet,
     OSPFSummaryAddressFilterSet,
     OSPFNeighborFilterSet,
+    OSPFAreaRangeFilterSet,
 )
 from netbox_routing.forms import *
 from netbox_routing.models import (
@@ -34,6 +35,7 @@ from netbox_routing.models import (
     OSPFVirtualLink,
     OSPFSummaryAddress,
     OSPFNeighbor,
+    OSPFAreaRange,
 )
 from netbox_routing.tables.ospf import (
     OSPFAreaTable,
@@ -44,6 +46,7 @@ from netbox_routing.tables.ospf import (
     OSPFVirtualLinkTable,
     OSPFSummaryAddressTable,
     OSPFNeighborTable,
+    OSPFAreaRangeTable,
 )
 from netbox_routing.ui import *
 
@@ -98,6 +101,12 @@ __all__ = (
     'OSPFNeighborBulkEditView',
     'OSPFNeighborDeleteView',
     'OSPFNeighborBulkDeleteView',
+    'OSPFAreaRangeListView',
+    'OSPFAreaRangeView',
+    'OSPFAreaRangeEditView',
+    'OSPFAreaRangeBulkEditView',
+    'OSPFAreaRangeDeleteView',
+    'OSPFAreaRangeBulkDeleteView',
 )
 
 
@@ -235,6 +244,12 @@ class OSPFAreaView(ObjectView):
             TagsPanel(),
         ],
         right_panels=[
+            panels.ObjectsTablePanel(
+                model='netbox_routing.OSPFAreaRange',
+                filters={'area_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'instance', 'device', 'area'],
+                title=_('Address Ranges'),
+            ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
@@ -684,3 +699,62 @@ class OSPFNeighborBulkDeleteView(BulkDeleteView):
     queryset = NEIGHBOR_QUERYSET
     filterset = OSPFNeighborFilterSet
     table = OSPFNeighborTable
+
+
+#
+# Area range
+#
+AREA_RANGE_QUERYSET = OSPFAreaRange.objects.select_related(
+    'area__instance__device', 'area__instance__vrf'
+)
+
+
+@register_model_view(OSPFAreaRange, name='list', path='', detail=False)
+class OSPFAreaRangeListView(ObjectListView):
+    queryset = AREA_RANGE_QUERYSET
+    table = OSPFAreaRangeTable
+    filterset = OSPFAreaRangeFilterSet
+    filterset_form = OSPFAreaRangeFilterForm
+
+
+@register_model_view(OSPFAreaRange)
+class OSPFAreaRangeView(ObjectView):
+    queryset = AREA_RANGE_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFAreaRangePanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFAreaRange, name='add', detail=False)
+@register_model_view(OSPFAreaRange, name='edit')
+class OSPFAreaRangeEditView(ObjectEditView):
+    queryset = AREA_RANGE_QUERYSET
+    form = OSPFAreaRangeForm
+
+
+@register_model_view(OSPFAreaRange, name='delete')
+class OSPFAreaRangeDeleteView(ObjectDeleteView):
+    queryset = AREA_RANGE_QUERYSET
+
+
+@register_model_view(OSPFAreaRange, name='bulk_edit', detail=False)
+class OSPFAreaRangeBulkEditView(BulkEditView):
+    queryset = AREA_RANGE_QUERYSET
+    filterset = OSPFAreaRangeFilterSet
+    table = OSPFAreaRangeTable
+    form = OSPFAreaRangeBulkEditForm
+
+
+@register_model_view(OSPFAreaRange, name='bulk_delete', detail=False)
+class OSPFAreaRangeBulkDeleteView(BulkDeleteView):
+    queryset = AREA_RANGE_QUERYSET
+    filterset = OSPFAreaRangeFilterSet
+    table = OSPFAreaRangeTable

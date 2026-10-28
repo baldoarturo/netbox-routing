@@ -18,6 +18,7 @@ from netbox_routing.models import (
     OSPFVirtualLink,
     OSPFSummaryAddress,
     OSPFNeighbor,
+    OSPFAreaRange,
 )
 
 __all__ = (
@@ -29,6 +30,7 @@ __all__ = (
     'OSPFVirtualLinkSerializer',
     'OSPFSummaryAddressSerializer',
     'OSPFNeighborSerializer',
+    'OSPFAreaRangeSerializer',
 )
 
 
@@ -340,3 +342,26 @@ class OSPFNeighborSerializer(NetBoxModelSerializer):
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'ospf_interface', 'ip_address')
+
+
+class OSPFAreaRangeSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing-api:ospfarearange-detail'
+    )
+    area = OSPFAreaSerializer(nested=True)
+
+    class Meta:
+        model = OSPFAreaRange
+        fields = (
+            'url',
+            'id',
+            'display',
+            'area',
+            'prefix',
+            'advertise',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'area', 'prefix')

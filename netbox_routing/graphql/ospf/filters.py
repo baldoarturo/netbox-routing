@@ -18,6 +18,7 @@ __all__ = (
     'OSPFVirtualLinkFilter',
     'OSPFSummaryAddressFilter',
     'OSPFNeighborFilter',
+    'OSPFAreaRangeFilter',
 )
 
 
@@ -114,3 +115,12 @@ class OSPFNeighborFilter(PrimaryModelFilter):
     ) = strawberry_django.filter_field()
     ospf_interface_id: ID | None = strawberry_django.filter_field()
     ip_address: BaseFilterLookup[str] | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.OSPFAreaRange, lookups=True)
+class OSPFAreaRangeFilter(PrimaryModelFilter):
+    area: (
+        Annotated['OSPFAreaFilter', strawberry.lazy('netbox_routing.graphql.filters')]
+        | None
+    ) = strawberry_django.filter_field()
+    area_id: ID | None = strawberry_django.filter_field()

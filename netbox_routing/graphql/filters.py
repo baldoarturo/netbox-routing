@@ -42,6 +42,7 @@ __all__ = (
     'OSPFVirtualLinkFilter',
     'OSPFSummaryAddressFilter',
     'OSPFNeighborFilter',
+    'OSPFAreaRangeFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
     'RouteMapFilter',

@@ -14,6 +14,7 @@ __all__ = (
     'OSPFVirtualLinkPanel',
     'OSPFSummaryAddressPanel',
     'OSPFNeighborPanel',
+    'OSPFAreaRangePanel',
 )
 
 
@@ -256,4 +257,14 @@ class OSPFNeighborPanel(panels.ObjectAttributesPanel):
     ip_address = attrs.TextAttr('ip_address', label=_('IP Address'))
     priority = attrs.NumericAttr('priority', label=_('Priority'))
     poll_interval = attrs.NumericAttr('poll_interval', label=_('Poll Interval'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFAreaRangePanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr(
+        'area.instance', label=_('Instance'), linkify=True
+    )
+    area = attrs.RelatedObjectAttr('area', label=_('Area'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    advertise = attrs.BooleanAttr('advertise', label=_('Advertise'))
     description = attrs.TextAttr('description', label=_('Description'))

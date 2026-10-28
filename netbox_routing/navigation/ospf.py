@@ -133,6 +133,20 @@ ospf_neighbors = PluginMenuItem(
     ),
 )
 
+ospf_area_ranges = PluginMenuItem(
+    link='plugins:netbox_routing:ospfarearange_list',
+    link_text='Area Ranges',
+    permissions=['netbox_routing.view_ospfarearange'],
+    buttons=(
+        PluginMenuButton(
+            link='plugins:netbox_routing:ospfarearange_add',
+            title='Add',
+            icon_class=COL_ADD,
+            permissions=['netbox_routing.add_ospfarearange'],
+        ),
+    ),
+)
+
 MENUITEMS = (
     ospf_instance,
     ospf_area,
@@ -142,4 +156,5 @@ MENUITEMS = (
     ospf_virtual_links,
     ospf_summary_addresses,
     ospf_neighbors,
+    ospf_area_ranges,
 )

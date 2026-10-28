@@ -61,6 +61,7 @@ __all__ = (
     'OSPFVirtualLink',
     'OSPFSummaryAddress',
     'OSPFNeighbor',
+    'OSPFAreaRange',
 )
 
 
@@ -1633,3 +1634,72 @@ class OSPFNeighbor(PrimaryModel):
                     )
         if errors:
             raise ValidationError(errors)
+
+
+class OSPFAreaRange(PrimaryModel):
+    """
+    An address range of an area (RFC 2328 C.2): an [address, mask] pair that an
+    area border router summarizes into a single route when advertising the area
+    to the others. Its status is Advertise or DoNotAdvertise (the routes it
+    covers are not advertised outside the area at all).
+    """
+
+    area = models.ForeignKey(
+        to='netbox_routing.OSPFArea',
+        related_name='ranges',
+        on_delete=models.CASCADE,
+        verbose_name=_('Area'),
+    )
+    prefix = IPNetworkField(
+        verbose_name=_('Prefix'),
+        help_text=_('IPv4 address range of the area'),
+    )
+    advertise = models.BooleanField(
+        verbose_name=_('Advertise'),
+        help_text=_(
+            'Status of the range: advertised outside the area as a summary route '
+            '(Advertise), or not advertised at all (DoNotAdvertise). RFC 2328 C.2'
+        ),
+        default=True,
+    )
+
+    clone_fields = ('area', 'advertise')
+    prerequisite_models = ('netbox_routing.OSPFArea',)
+
+    class Meta:
+        verbose_name = 'OSPF Area Range'
+        ordering = ('area__instance__name', 'area__area_id', 'prefix', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('area', 'prefix'),
+                name='%(app_label)s_%(class)s_unique_area_prefix',
+                violation_error_message=_('This range already exists in the area.'),
+            ),
+        )
+
+    def __str__(self):
+        return str(self.prefix)
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:ospfarearange', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if self.prefix in (None, ''):
+            return
+        try:
+            prefix = netaddr.IPNetwork(str(self.prefix))
+        except (netaddr.AddrFormatError, ValueError):
+            return  # reported by the field's own validation
+        if prefix.version != 4:
+            raise ValidationError(
+                {'prefix': _('OSPFv2 address ranges must be IPv4 prefixes.')}
+            )
+        if prefix.ip != prefix.cidr.ip:
+            raise ValidationError(
+                {
+                    'prefix': _('The prefix has host bits set: use {cidr}.').format(
+                        cidr=prefix.cidr
+                    )
+                }
+            )

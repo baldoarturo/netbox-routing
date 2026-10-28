@@ -34,6 +34,7 @@ from netbox_routing.models import (
     OSPFVirtualLink,
     OSPFSummaryAddress,
     OSPFNeighbor,
+    OSPFAreaRange,
 )
 
 __all__ = (
@@ -45,6 +46,7 @@ __all__ = (
     'OSPFVirtualLinkForm',
     'OSPFSummaryAddressForm',
     'OSPFNeighborForm',
+    'OSPFAreaRangeForm',
 )
 
 
@@ -656,6 +658,37 @@ class OSPFNeighborForm(PrimaryModelForm):
             'ip_address',
             'priority',
             'poll_interval',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+
+class OSPFAreaRangeForm(PrimaryModelForm):
+    area = DynamicModelChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Area'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'area',
+            'prefix',
+            'advertise',
+            'description',
+            name=_('Address Range'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFAreaRange
+        fields = (
+            'area',
+            'prefix',
+            'advertise',
             'description',
             'comments',
             'tags',
