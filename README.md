@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/netbox-routing-protocols.svg)](https://pypi.org/project/netbox-routing-protocols/)
 [![Python](https://img.shields.io/pypi/pyversions/netbox-routing-protocols.svg)](https://pypi.org/project/netbox-routing-protocols/)
 [![NetBox](https://img.shields.io/badge/NetBox-4.7%2B-success.svg)](https://github.com/netbox-community/netbox)
-[![CI](https://github.com/baldoarturo/netbox-routing/actions/workflows/ci.yml/badge.svg)](https://github.com/baldoarturo/netbox-routing/actions/workflows/ci.yml)
+[![CI](https://github.com/baldoarturo/netbox-routing-protocols/actions/workflows/ci.yml/badge.svg)](https://github.com/baldoarturo/netbox-routing-protocols/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A plugin for tracking all kinds of routing information
@@ -62,13 +62,13 @@ The steps below assume NetBox lives in `/opt/netbox`; adjust paths to match your
 
    ```shell
    source /opt/netbox/venv/bin/activate
-   pip install git+https://github.com/baldoarturo/netbox-routing.git
+   pip install git+https://github.com/baldoarturo/netbox-routing-protocols.git
    ```
 
 2. Add it to `local_requirements.txt` so it is reinstalled whenever NetBox is upgraded:
 
    ```shell
-   echo "git+https://github.com/baldoarturo/netbox-routing.git" >> /opt/netbox/local_requirements.txt
+   echo "git+https://github.com/baldoarturo/netbox-routing-protocols.git" >> /opt/netbox/local_requirements.txt
    ```
 
 3. Enable the plugin in `configuration.py`:

@@ -4,13 +4,13 @@
 
 `netbox-routing-protocols` is a NetBox plugin for tracking routing information: static routes, EIGRP, OSPF and BGP (with templates/group inheritance, IPv4/IPv6 address families, VRF and VPNv4 support). IS-IS is on the roadmap.
 
-It was created by Daniel Sheppard (`dansheps`). This repo is a fork (`baldoarturo/netbox-routing`) of his upstream project. We forked it to develop it with modern tooling (AI-assisted, like Claude) and speed up development.
+It was created by Daniel Sheppard (`dansheps`). This repo is a fork (`baldoarturo/netbox-routing-protocols`) of his upstream project. We forked it to develop it with modern tooling (AI-assisted, like Claude) and speed up development.
 
 ## Working agreement
 
 The user is the project manager: they ask, Claude does the work, they approve. Treat this as a standing rule for every session.
 
-1. **Claude manages the issues.** Every bug we find gets a GitHub issue. Issues, branches and PRs go in the user's fork (`baldoarturo/netbox-routing`), never in Dan's upstream repo (`dansheps/netbox-routing`). Always pass `--repo baldoarturo/netbox-routing` to `gh`.
+1. **Claude manages the issues.** Every bug we find gets a GitHub issue. Issues, branches and PRs go in the user's fork (`baldoarturo/netbox-routing-protocols`), never in Dan's upstream repo (`dansheps/netbox-routing`). Always pass `--repo baldoarturo/netbox-routing-protocols` to `gh`.
 2. **One branch per issue, named `NN-name`.** Create a new branch for each issue, fix it there, and open a pull request against the fork's `main` (`Closes #N`). The branch name is the issue number followed by a short kebab-case name (`NN-name`, e.g. `67-claude-md-merge-rule` for issue #67), so branch and issue match numerically. Create the issue first to get its number.
 3. **Claude may merge its own PR once the issue is resolved.** Merge (`gh pr merge --merge`) when all of these hold: the full test suite passes locally, `makemigrations --check` is clean, the lint CI is green, and the PR actually resolves its issue. Do not merge, and ask first, if a test fails, the fix needs a product decision, the change is destructive or hard to undo (data loss, dropping fields), or it is not clearly what the user asked for.
 4. **Tests run locally, not in CI.** CI (`ci.yml`) only runs ruff and black. Run the whole suite against the dev PostgreSQL before pushing (see below). The full suite runs in CI only on release (`release-tests.yml`), using a migrated-schema cache built from `main` (`netbox-schema-cache.yml`).
