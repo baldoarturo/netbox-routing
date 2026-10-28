@@ -350,6 +350,23 @@ class PrefixListEntryTestCase(TestCase):
                 prefix=self._prefix('10.41.0.0/16'),
             )
 
+    def test_next_sequence(self):
+        from netbox_routing_protocols.helpers.prefix_list import next_sequence
+
+        prefix = self._prefix('10.50.0.0/16')
+        self.assertEqual(next_sequence(self.prefix_list), 10)
+        for sequence, expected in ((10, 20), (25, 30), (30, 40), (1, 40), (999, 1000)):
+            self._entry(prefix, sequence=sequence)
+            self.assertEqual(next_sequence(self.prefix_list), expected)
+        # numbers already handed out in the same request count too
+        self.assertEqual(next_sequence(self.prefix_list, after=1500), 1510)
+        # another list is independent
+        self.assertEqual(next_sequence(self.v6_list), 10)
+        # the highest sequence leaves no room
+        self._entry(prefix, sequence=4294967290)
+        with self.assertRaises(ValidationError):
+            next_sequence(self.prefix_list)
+
     def test_sequence_range(self):
         prefix = self._prefix('10.0.11.0/24')
         for sequence, valid in (

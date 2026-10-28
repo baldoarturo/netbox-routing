@@ -1,10 +1,11 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from ipam.choices import IPAddressFamilyChoices
 from ipam.api.serializers import PrefixSerializer
 from netbox.api.fields import ChoiceField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
-from netbox_routing_protocols.helpers.prefix_list import any_le
+from netbox_routing_protocols.helpers.prefix_list import any_le, next_sequence
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.api._serializers.community import *
 
@@ -133,6 +134,7 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
             'created',
             'last_updated',
         )
+        extra_kwargs = {'sequence': {'required': False, 'allow_null': True}}
         brief_fields = (
             'url',
             'id',
@@ -188,6 +190,19 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
         )
 
     def validate(self, data):
+        # A new entry without sequence gets the next one of its list. The serializer of a
+        # bulk request is shared by the entries, so they get consecutive numbers.
+        if self.instance is None and data.get('sequence') is None:
+            prefix_list = data.get('prefix_list')
+            if prefix_list is not None:
+                assigned = self.context.setdefault('prefix_list_sequences', {})
+                try:
+                    sequence = next_sequence(
+                        prefix_list, assigned.get(prefix_list.pk, 0)
+                    )
+                except DjangoValidationError as e:
+                    raise serializers.ValidationError({'sequence': e.messages})
+                assigned[prefix_list.pk] = data['sequence'] = sequence
         eq = data.pop('eq', None)
         if eq is not None:
             if data.get('ge') is not None or data.get('le') is not None:

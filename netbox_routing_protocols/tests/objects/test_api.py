@@ -392,6 +392,58 @@ class PrefixListFamilyTestCase(APITestCase):
         self.assertIsNone(response.data['prefix'])
         self.assertEqual(response.data['le'], 32)
 
+    def test_sequence_defaults_to_the_next_one(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        data = {'action': 'permit', 'prefix': prefix.pk}
+        for list_, expected in ((self.v4, 10), (self.v4, 20), (self.v6, 10)):
+            if list_ is self.v6:
+                data['prefix'] = Prefix.objects.create(prefix='2001:db8::/32').pk
+            response = self.client.post(
+                self._url('prefixlistentry'),
+                {**data, 'prefix_list': list_.pk},
+                format='json',
+                **self.header,
+            )
+            self.assertHttpStatus(response, 201)
+            self.assertEqual(response.data['sequence'], expected)
+        # an arbitrary one is accepted and the next follows it
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix=prefix.pk, sequence=55
+        )
+        self.assertEqual(response.data['sequence'], 55)
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix=prefix.pk, sequence=None
+        )
+        self.assertEqual(response.data['sequence'], 60)
+
+    def test_bulk_create_assigns_consecutive_sequences(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        entry = {'prefix_list': self.v4.pk, 'action': 'permit', 'prefix': prefix.pk}
+        response = self.client.post(
+            self._url('prefixlistentry'),
+            [entry, entry, {**entry, 'sequence': 5}, entry],
+            format='json',
+            **self.header,
+        )
+        self.assertHttpStatus(response, 201)
+        self.assertEqual([e['sequence'] for e in response.data], [10, 20, 5, 30])
+
+    def test_update_does_not_reassign_the_sequence(self):
+        self.add_permissions(
+            'netbox_routing_protocols.add_prefixlistentry',
+            'netbox_routing_protocols.change_prefixlistentry',
+        )
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix=prefix.pk, sequence=7
+        )
+        url = self._url('prefixlistentry', PrefixListEntry.objects.get())
+        response = self.client.patch(url, {'le': 24}, format='json', **self.header)
+        self.assertHttpStatus(response, 200)
+        self.assertEqual(response.data['sequence'], 7)
+
     def test_exact_length(self):
         self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
         prefix = Prefix.objects.create(prefix='10.0.0.0/8')
