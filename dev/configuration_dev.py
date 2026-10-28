@@ -13,7 +13,7 @@ from netbox.configuration import DATABASE
 
 DATABASE = {
     **DATABASE,
-    'NAME': os.environ.get('NETBOX_ROUTING_DEV_DB', 'netbox_routing_dev'),
+    'NAME': os.environ.get('NETBOX_ROUTING_DEV_DB', 'netbox_routing_protocols_dev'),
 }
 
-PLUGINS = ['netbox_routing']
+PLUGINS = ['netbox_routing_protocols']

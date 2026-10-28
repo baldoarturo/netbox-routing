@@ -1,0 +1,112 @@
+from django.db import models
+from django.db.models import CheckConstraint, Q
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+
+from ipam.fields import IPNetworkField
+from netbox.models import PrimaryModel
+from netbox_routing_protocols.fields.ip import IPAddressField
+
+__all__ = ('StaticRoute',)
+
+
+class StaticRoute(PrimaryModel):
+    devices = models.ManyToManyField(to='dcim.Device', related_name='static_routes')
+    vrf = models.ForeignKey(
+        to='ipam.VRF',
+        on_delete=models.PROTECT,
+        related_name='staticroutes',
+        blank=True,
+        null=True,
+        verbose_name='VRF',
+    )
+    prefix = IPNetworkField(
+        help_text=_('IPv4 or IPv6 network with mask'),
+    )
+    next_hop = IPAddressField(
+        verbose_name=_('Next Hop'),
+        blank=True,
+        null=True,
+    )
+    interface_next_hop = models.CharField(
+        max_length=100,
+        verbose_name='Interface Next Hop',
+        help_text='Forwarding interface, for routes without IP address as next hop',
+        blank=True,
+        null=True,
+    )
+    name = models.CharField(
+        max_length=50,
+        verbose_name='Name',
+        blank=True,
+        null=True,
+        help_text='Optional name for this static route',
+    )
+    metric = models.PositiveSmallIntegerField(
+        verbose_name='Metric',
+        blank=True,
+        default=1,
+    )
+    permanent = models.BooleanField(
+        default=False,
+        blank=True,
+        null=True,
+    )
+
+    tag = models.IntegerField(
+        verbose_name='Route Tag',
+        help_text='Optional tag for this static route',
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = (
+        'name',
+        'devices',
+        'prefix',
+        'next_hop',
+        'interface_next_hop',
+        'vrf',
+        'metric',
+        'permanent',
+    )
+
+    prerequisite_models = ('dcim.Device',)
+
+    class Meta:
+        ordering = ['vrf', 'prefix', 'metric', 'pk']
+        constraints = (
+            CheckConstraint(
+                condition=Q(Q(metric__lte=255) & Q(metric__gte=0)),
+                name='metric_gte_lte',
+            ),
+        )
+
+    def __str__(self):
+        name = [
+            f'{self.prefix}',
+        ]
+        if self.vrf:
+            name.append(f'VRF: {self.vrf}')
+        if self.next_hop or self.interface_next_hop:
+            name.append('via')
+            if self.next_hop:
+                name.append(f'{self.next_hop}')
+            if self.interface_next_hop:
+                name.append(f'{self.interface_next_hop}')
+        return ' '.join(name)
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing_protocols:staticroute', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if not self.interface_next_hop and not self.next_hop:
+            raise ValidationError(
+                {
+                    "next_hop": _(
+                        "A route requires set either an IP next hop or an Interface next hop."
+                    )
+                }
+            )

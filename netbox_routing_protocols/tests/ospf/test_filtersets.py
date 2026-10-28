@@ -1,0 +1,422 @@
+from django.test import TestCase
+
+from dcim.models import Device, Interface
+from ipam.models import VRF
+from utilities.testing import create_test_device
+
+from netbox_routing_protocols.choices import OSPFNetworkTypeChoices
+from netbox_routing_protocols.filtersets import *
+from netbox_routing_protocols.models import *
+
+__all__ = (
+    'OSPFInstanceTestCase',
+    'OSPFAreaTestCase',
+    'OSPFInterfaceTestCase',
+)
+
+
+class OSPFInstanceTestCase(TestCase):
+    queryset = OSPFInstance.objects.all()
+    filterset = OSPFInstanceFilterSet
+
+    @classmethod
+    def setUpTestData(cls):
+        vrfs = (
+            VRF(name='VRF 1'),
+            VRF(name='VRF 2'),
+            VRF(name='VRF 3'),
+        )
+        VRF.objects.bulk_create(vrfs)
+
+        devices = [
+            create_test_device(name='Device 1'),
+            create_test_device(name='Device 2'),
+            create_test_device(name='Device 3'),
+            create_test_device(name='Device 4'),
+        ]
+
+        data = (
+            OSPFInstance(
+                name='Instance 1',
+                device=devices[0],
+                router_id='10.0.0.1',
+                process_id=0,
+                vrf=vrfs[0],
+            ),
+            OSPFInstance(
+                name='Instance 2',
+                device=devices[1],
+                router_id='1.1.1.1',
+                process_id=1,
+                vrf=vrfs[1],
+                default_originate=True,
+                default_originate_metric=50,
+                default_originate_metric_type='1',
+                graceful_restart='planned',
+                bfd_all_interfaces=True,
+                rfc1583_compatibility=False,
+                spf_initial_delay=100,
+                maximum_paths=8,
+                distance_external=150,
+            ),
+            OSPFInstance(
+                name='Instance 3',
+                device=devices[2],
+                router_id='2.2.2.2',
+                process_id=2,
+                vrf=None,
+            ),
+            OSPFInstance(
+                name='Instance 3',
+                device=devices[3],
+                router_id='3.3.3.3',
+                process_id=3,
+                vrf=vrfs[2],
+            ),
+        )
+
+        OSPFInstance.objects.bulk_create(data)
+
+    def test_q(self):
+        params = {'q': 'Instance 1'}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_name(self):
+        params = {'name': ['Instance 1', 'Instance 2']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_vrf(self):
+        data = VRF.objects.all()[0:2]
+
+        params = {'vrf_id': [data[0].pk, data[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'vrf': [data[0].name, data[1].name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_device(self):
+        data = Device.objects.all()[0:2]
+
+        params = {'device_id': [data[0].pk, data[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'device': [data[0].name, data[1].name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_process_id(self):
+        params = {'process_id': [1, 2]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_advanced_options(self):
+        for params, expected in (
+            ({'graceful_restart': ['planned']}, 1),
+            ({'graceful_restart': ['disabled']}, 3),
+            ({'bfd_all_interfaces': True}, 1),
+            ({'rfc1583_compatibility': False}, 1),
+            ({'spf_initial_delay': [100]}, 1),
+            ({'spf_initial_delay': [50]}, 3),
+            ({'maximum_paths': [8]}, 1),
+            ({'distance_external': [150]}, 1),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self.filterset(params, self.queryset).qs.count(), expected
+                )
+
+    def test_default_originate(self):
+        params = {'default_originate': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'default_originate': False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+        params = {'default_originate_metric': [50]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'default_originate_metric_type': ['1']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'default_originate_metric_type': ['2']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+    def test_router_id(self):
+        params = {'router_id': ['1.1.1.1', '2.2.2.2']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+
+class OSPFAreaTestCase(TestCase):
+    queryset = OSPFArea.objects.all()
+    filterset = OSPFAreaFilterSet
+
+    @classmethod
+    def setUpTestData(cls):
+        devices = (
+            create_test_device(name='Device 1'),
+            create_test_device(name='Device 2'),
+        )
+        instances = (
+            OSPFInstance(
+                name='Instance 1',
+                device=devices[0],
+                router_id='1.1.1.1',
+                process_id=1,
+            ),
+            OSPFInstance(
+                name='Instance 2',
+                device=devices[1],
+                router_id='2.2.2.2',
+                process_id=2,
+            ),
+        )
+        OSPFInstance.objects.bulk_create(instances)
+
+        OSPFArea.objects.bulk_create(
+            (
+                OSPFArea(
+                    instance=instances[0],
+                    area_id='0.0.0.0',
+                    area_type='nssa',
+                    default_cost=20,
+                    nssa_translate_always=True,
+                ),
+                OSPFArea(instance=instances[1], area_id='1.1.1.1'),
+                OSPFArea(instance=instances[0], area_id=0),
+                OSPFArea(instance=instances[1], area_id=1),
+            )
+        )
+
+    def test_stub_nssa_options(self):
+        params = {'default_cost': [20]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'nssa_translate_always': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'nssa_translate_always': False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+        params = {'nssa_no_redistribution': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+
+    def test_q(self):
+        params = {'q': '1.1.1.1'}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_area_id(self):
+        params = {'area_id': ['0', '1.1.1.1']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_instance(self):
+        instances = OSPFInstance.objects.all()[0:2]
+
+        params = {'instance_id': [instances[0].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'instance_id': [instances[0].pk, instances[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+
+        params = {'instance': [instances[0].name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+
+class OSPFInterfaceTestCase(TestCase):
+    queryset = OSPFInterface.objects.all()
+    filterset = OSPFInterfaceFilterSet
+
+    @classmethod
+    def setUpTestData(cls):
+        vrfs = (
+            VRF(name='VRF 1'),
+            VRF(name='VRF 2'),
+            VRF(name='VRF 3'),
+        )
+        VRF.objects.bulk_create(vrfs)
+
+        devices = (
+            create_test_device(name='Device 1'),
+            create_test_device(name='Device 2'),
+            create_test_device(name='Device 3'),
+            create_test_device(name='Device 4'),
+        )
+        interfaces = (
+            Interface(device=devices[0], name='Interface 1', type='virtual'),
+            Interface(device=devices[1], name='Interface 2', type='virtual'),
+            Interface(device=devices[2], name='Interface 3', type='virtual'),
+            Interface(device=devices[3], name='Interface 4', type='virtual'),
+        )
+        Interface.objects.bulk_create(interfaces)
+
+        instances = (
+            OSPFInstance(
+                name='Instance 0',
+                device=devices[0],
+                router_id='10.0.0.1',
+                process_id=0,
+                vrf=vrfs[0],
+            ),
+            OSPFInstance(
+                name='Instance 1',
+                device=devices[1],
+                router_id='1.1.1.1',
+                process_id=1,
+                vrf=vrfs[1],
+            ),
+            OSPFInstance(
+                name='Instance 2',
+                device=devices[2],
+                router_id='2.2.2.2',
+                process_id=2,
+                vrf=None,
+            ),
+            OSPFInstance(
+                name='Instance 3',
+                device=devices[3],
+                router_id='3.3.3.3',
+                process_id=3,
+                vrf=vrfs[2],
+            ),
+        )
+        OSPFInstance.objects.bulk_create(instances)
+
+        areas = (
+            OSPFArea(instance=instances[0], area_id='0.0.0.0'),
+            OSPFArea(instance=instances[1], area_id=1),
+            OSPFArea(instance=instances[2], area_id='2.2.2.2'),
+            OSPFArea(instance=instances[3], area_id=3),
+        )
+        OSPFArea.objects.bulk_create(areas)
+
+        data = (
+            OSPFInterface(
+                interface=interfaces[0],
+                instance=instances[0],
+                area=areas[0],
+                passive=True,
+                cost=10,
+                prefix_suppression=True,
+                demand_circuit=False,
+                mtu_ignore=True,
+                hello_interval=30,
+                dead_interval=120,
+            ),
+            OSPFInterface(
+                interface=interfaces[1],
+                instance=instances[1],
+                area=areas[1],
+                passive=False,
+                network_type=OSPFNetworkTypeChoices.POINT_TO_POINT,
+                cost=20,
+            ),
+            OSPFInterface(
+                interface=interfaces[2],
+                instance=instances[2],
+                area=areas[2],
+                passive=True,
+            ),
+            OSPFInterface(
+                interface=interfaces[3],
+                instance=instances[3],
+                area=areas[3],
+                passive=False,
+                network_type=OSPFNetworkTypeChoices.POINT_TO_POINT,
+            ),
+        )
+        OSPFInterface.objects.bulk_create(data)
+
+    def test_network_type(self):
+        params = {'network_type': [OSPFNetworkTypeChoices.POINT_TO_POINT]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'network_type': [OSPFNetworkTypeChoices.BROADCAST]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_cost(self):
+        params = {'cost': [10]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'cost': [10, 20]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_misc_flags(self):
+        for params, expected in (
+            ({'prefix_suppression': True}, 1),
+            ({'demand_circuit': False}, 1),
+            ({'flood_reduction': True}, 0),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self.filterset(params, self.queryset).qs.count(), expected
+                )
+
+    def test_mtu_ignore(self):
+        params = {'mtu_ignore': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'mtu_ignore': False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+    def test_timers(self):
+        params = {'hello_interval': [30]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'hello_interval': [10]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+        params = {'dead_interval': [120]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_q(self):
+        params = {'q': 'Interface 1'}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'q': 'Instance 1'}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_instances(self):
+        data = OSPFInstance.objects.all()[0:2]
+
+        params = {'instance_id': [data[0].pk, data[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'instance': [data[0].name, data[1].name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_area(self):
+        data = OSPFArea.objects.all()[0:2]
+
+        params = {'area_id': [data[0].pk, data[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'area': [data[0].area_id, data[1].area_id]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_vrfs(self):
+        data = VRF.objects.all()[0:2]
+
+        params = {'vrf_id': [data[0].pk, data[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'vrf': [data[0].name, data[1].name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_devices(self):
+        data = Device.objects.all()[0:2]
+
+        params = {'device_id': [data[0].pk, data[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'device': [data[0].name, data[1].name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_interfaces(self):
+        data = Interface.objects.all()[0:2]
+
+        params = {'interface_id': [data[0].pk, data[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+        params = {'interface': [data[0].name, data[1].name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_passive(self):
+        params = {'passive': True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)

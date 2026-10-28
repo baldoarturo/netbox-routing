@@ -1,9 +1,9 @@
-# Netbox Routing
+# Netbox Routing Protocols
 
-[![PyPI](https://img.shields.io/pypi/v/netbox-routing.svg)](https://pypi.org/project/netbox-routing/)
-[![Python](https://img.shields.io/pypi/pyversions/netbox-routing.svg)](https://pypi.org/project/netbox-routing/)
+[![PyPI](https://img.shields.io/pypi/v/netbox-routing-protocols.svg)](https://pypi.org/project/netbox-routing-protocols/)
+[![Python](https://img.shields.io/pypi/pyversions/netbox-routing-protocols.svg)](https://pypi.org/project/netbox-routing-protocols/)
 [![NetBox](https://img.shields.io/badge/NetBox-4.7%2B-success.svg)](https://github.com/netbox-community/netbox)
-[![CI](https://github.com/dansheps/netbox-routing/actions/workflows/ci.yml/badge.svg)](https://github.com/dansheps/netbox-routing/actions/workflows/ci.yml)
+[![CI](https://github.com/baldoarturo/netbox-routing/actions/workflows/ci.yml/badge.svg)](https://github.com/baldoarturo/netbox-routing/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A plugin for tracking all kinds of routing information
@@ -52,7 +52,7 @@ A plugin for tracking all kinds of routing information
 Follows the standard [NetBox plugin installation procedure](https://netboxlabs.com/docs/netbox/plugins/#installing-plugins).
 
 > [!NOTE]
-> PyPI publishing is disabled in this fork for now, so the plugin is installed straight from GitHub instead of `pip install netbox-routing`.
+> PyPI publishing is disabled in this fork for now, so the plugin is installed straight from GitHub instead of `pip install netbox-routing-protocols`.
 
 ### Bare metal
 
@@ -75,7 +75,7 @@ The steps below assume NetBox lives in `/opt/netbox`; adjust paths to match your
 
    ```python
    PLUGINS = [
-       'netbox_routing',
+       'netbox_routing_protocols',
    ]
    ```
 
@@ -90,14 +90,14 @@ The steps below assume NetBox lives in `/opt/netbox`; adjust paths to match your
 
 ### Docker
 
-Plugins in Docker are installed by building a custom image, not with `pip` inside a running container. Follow the [netbox-docker plugin instructions](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins) and use the same git URL as the package, and `netbox_routing` as the plugin name in `PLUGINS`. Migrations and `collectstatic` run automatically when the container starts.
+Plugins in Docker are installed by building a custom image, not with `pip` inside a running container. Follow the [netbox-docker plugin instructions](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins) and use the same git URL as the package, and `netbox_routing_protocols` as the plugin name in `PLUGINS`. Migrations and `collectstatic` run automatically when the container starts.
 
 ### Migrating from netbox-bgp
 
 > [!NOTE]
 > This plugin is not compatible with `netbox-bgp`, but there is a built-in migration tool.
 >
-> Remove `netbox-bgp` from `PLUGINS`, make sure `netbox-routing` is installed, then run:
+> Remove `netbox-bgp` from `PLUGINS`, make sure `netbox-routing-protocols` is installed, then run:
 >
 > `python3 /opt/netbox/netbox/manage.py migrate-netbox-bgp`
 

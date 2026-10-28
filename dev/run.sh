@@ -17,7 +17,7 @@ set -euo pipefail
 #
 # Environment: NETBOX_ROOT (default: two levels above the main checkout of this
 # repository),
-# NETBOX_ROUTING_DEV_DB (default: netbox_routing_dev), PORT (default: 8000).
+# NETBOX_ROUTING_DEV_DB (default: netbox_routing_protocols_dev), PORT (default: 8000).
 
 RESET=""
 SERVER=1
@@ -33,7 +33,7 @@ DEV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # The main checkout of this repository (also when run from a git worktree)
 REPO_ROOT="$(cd "$(git -C "$DEV_DIR" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)"
 NETBOX_ROOT="${NETBOX_ROOT:-$(cd "$REPO_ROOT/../.." && pwd)}"
-DEV_DB="${NETBOX_ROUTING_DEV_DB:-netbox_routing_dev}"
+DEV_DB="${NETBOX_ROUTING_DEV_DB:-netbox_routing_protocols_dev}"
 SOURCE_DB="netbox"
 PORT="${PORT:-8000}"
 DEMO_SQL="$NETBOX_ROOT/netbox-demo-v4.6.sql"
