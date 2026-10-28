@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import RestrictedError
 from django.test import TestCase
 
+from ipam.models import VRF
 from dcim.models import Interface
 from utilities.testing import create_test_device
 
@@ -18,6 +19,7 @@ class OSPFAreaUniqueTestCase(TestCase):
             OSPFInstance.objects.create(
                 name=f'Instance {i}',
                 device=device,
+                vrf=VRF.objects.create(name='VRF 2') if i == 2 else None,
                 router_id=f'1.1.1.{i}',
             )
             for i in (1, 2)
@@ -53,6 +55,7 @@ class OSPFAreaInstanceTestCase(TestCase):
             OSPFInstance.objects.create(
                 name=f'Instance {i}',
                 device=cls.device,
+                vrf=VRF.objects.create(name='VRF 2') if i == 2 else None,
                 router_id=f'1.1.1.{i}',
             )
             for i in (1, 2)

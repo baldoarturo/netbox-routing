@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
+from ipam.models import VRF
 from utilities.testing import APIViewTestCases, ViewTestCases, create_test_device
 
 from netbox_routing_protocols.filtersets import OSPFVirtualLinkFilterSet
@@ -30,7 +31,10 @@ def _create_fixtures(cls):
         name='Instance 1', device=cls.device, router_id='1.1.1.1'
     )
     cls.other_instance = OSPFInstance.objects.create(
-        name='Instance 2', device=cls.device, router_id='2.2.2.2'
+        name='Instance 2',
+        device=cls.device,
+        vrf=VRF.objects.create(name='VRF 2'),
+        router_id='2.2.2.2',
     )
     cls.backbone = OSPFArea.objects.create(
         instance=cls.instance, area_id='0', area_type='backbone'

@@ -24,6 +24,7 @@ class OSPFAreaInstanceMigrationTestCase(TransactionTestCase):
         DeviceRole = apps.get_model('dcim', 'DeviceRole')
         Device = apps.get_model('dcim', 'Device')
         Interface = apps.get_model('dcim', 'Interface')
+        VRF = apps.get_model('ipam', 'VRF')
         Instance = apps.get_model('netbox_routing_protocols', 'OSPFInstance')
         Area = apps.get_model('netbox_routing_protocols', 'OSPFArea')
         OSPFInterface = apps.get_model('netbox_routing_protocols', 'OSPFInterface')
@@ -39,7 +40,11 @@ class OSPFAreaInstanceMigrationTestCase(TransactionTestCase):
         )
         instances = [
             Instance.objects.create(
-                name=f'I{i}', device=device, router_id=f'1.1.1.{i}', process_id=i
+                name=f'I{i}',
+                device=device,
+                vrf=VRF.objects.create(name='VRF 2') if i == 2 else None,
+                router_id=f'1.1.1.{i}',
+                process_id=i,
             )
             for i in (1, 2)
         ]
