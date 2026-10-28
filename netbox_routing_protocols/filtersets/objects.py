@@ -126,6 +126,7 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
             'prefix_list',
             'prefix_id',
             'prefix',
+            'any_prefix',
             'sequence',
             'action',
             'le',

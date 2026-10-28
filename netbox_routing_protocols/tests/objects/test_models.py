@@ -301,6 +301,55 @@ class PrefixListEntryTestCase(TestCase):
                     for row in table.rows:
                         row.get_cell(column.name)
 
+    def test_any_entry(self):
+        for prefix_list, boundary in ((self.prefix_list, 32), (self.v6_list, 128)):
+            with self.subTest(prefix_list.family):
+                entry = PrefixListEntry(
+                    prefix_list=prefix_list,
+                    action='permit',
+                    sequence=1,
+                    any_prefix=True,
+                    le=boundary,
+                )
+                entry.full_clean()
+                entry.save()
+                self.assertIsNone(entry.prefix_id)
+                # the all zeros prefix has length 0, ge and le are only bounded by the family
+                entry.ge = 8
+                entry.full_clean()
+                entry.le = boundary + 1
+                with self.assertRaises(ValidationError):
+                    entry.full_clean()
+                entry.delete()
+
+    def test_any_and_prefix_are_exclusive(self):
+        entry = PrefixListEntry(
+            prefix_list=self.prefix_list,
+            action='permit',
+            sequence=1,
+            any_prefix=True,
+            prefix=self._prefix('10.40.0.0/16'),
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            entry.full_clean()
+        self.assertIn('prefix', ctx.exception.message_dict)
+
+    def test_the_database_requires_a_prefix_or_any(self):
+        from django.db import transaction
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            PrefixListEntry.objects.create(
+                prefix_list=self.prefix_list, action='permit', sequence=1
+            )
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            PrefixListEntry.objects.create(
+                prefix_list=self.prefix_list,
+                action='permit',
+                sequence=2,
+                any_prefix=True,
+                prefix=self._prefix('10.41.0.0/16'),
+            )
+
     def test_sequence_range(self):
         prefix = self._prefix('10.0.11.0/24')
         for sequence, valid in (

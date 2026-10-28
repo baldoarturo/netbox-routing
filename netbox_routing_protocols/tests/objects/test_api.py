@@ -312,6 +312,98 @@ class PrefixListFamilyTestCase(APITestCase):
         )
         self.assertHttpStatus(response, 400)
 
+    def _post_entry(self, **data):
+        data.setdefault('action', 'permit')
+        data.setdefault('sequence', 1)
+        return self.client.post(
+            self._url('prefixlistentry'), data, format='json', **self.header
+        )
+
+    def test_any_shorthands(self):
+        self.add_permissions(
+            'netbox_routing_protocols.add_prefixlistentry',
+            'netbox_routing_protocols.view_prefixlistentry',
+        )
+        for sequence, (prefix_list, prefix, le) in enumerate(
+            (
+                (self.v4, 'any', 32),
+                (self.v4, '0.0.0.0/0', 32),
+                (self.v6, 'ANY', 128),
+                (self.v6, '::/0', 128),
+            ),
+            start=1,
+        ):
+            with self.subTest(f'{prefix_list.name} {prefix}'):
+                response = self._post_entry(
+                    prefix_list=prefix_list.pk, prefix=prefix, sequence=sequence
+                )
+                self.assertHttpStatus(response, 201)
+                self.assertIsNone(response.data['prefix'])
+                self.assertTrue(response.data['any_prefix'])
+                self.assertEqual((response.data['ge'], response.data['le']), (None, le))
+        # nothing is created in IPAM
+        self.assertFalse(
+            Prefix.objects.filter(prefix__in=['0.0.0.0/0', '::/0']).exists()
+        )
+
+    def test_any_flag_and_explicit_values(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        response = self._post_entry(prefix_list=self.v4.pk, prefix='any', ge=24)
+        self.assertHttpStatus(response, 201)
+        self.assertEqual((response.data['ge'], response.data['le']), (24, None))
+        # the explicit flag with a null prefix is the same entry
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix=None, any_prefix=True, sequence=2, le=32
+        )
+        self.assertHttpStatus(response, 201)
+        self.assertTrue(response.data['any_prefix'])
+
+    def test_any_errors(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        # the all zeros prefix of the other family does not fit the list
+        response = self._post_entry(prefix_list=self.v4.pk, prefix='::/0')
+        self.assertHttpStatus(response, 400)
+        # 'any' without a valid list cannot tell the family
+        response = self._post_entry(prefix_list=999999, prefix='any', sequence=2)
+        self.assertHttpStatus(response, 400)
+        # a prefix and any at the same time
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix=prefix.pk, any_prefix=True, sequence=3
+        )
+        self.assertHttpStatus(response, 400)
+        # neither
+        response = self._post_entry(prefix_list=self.v4.pk, sequence=4)
+        self.assertHttpStatus(response, 400)
+
+    def test_any_on_update_uses_the_list_of_the_entry(self):
+        self.add_permissions(
+            'netbox_routing_protocols.add_prefixlistentry',
+            'netbox_routing_protocols.change_prefixlistentry',
+        )
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        response = self._post_entry(prefix_list=self.v4.pk, prefix=prefix.pk)
+        self.assertHttpStatus(response, 201)
+        url = self._url('prefixlistentry', PrefixListEntry.objects.get())
+        response = self.client.patch(
+            url, {'prefix': 'any'}, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 200)
+        self.assertIsNone(response.data['prefix'])
+        self.assertEqual(response.data['le'], 32)
+
+    def test_exact_length(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        response = self._post_entry(prefix_list=self.v4.pk, prefix=prefix.pk, eq=16)
+        self.assertHttpStatus(response, 201)
+        self.assertEqual((response.data['ge'], response.data['le']), (16, 16))
+        self.assertNotIn('eq', response.data)
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix=prefix.pk, eq=16, ge=12, sequence=2
+        )
+        self.assertHttpStatus(response, 400)
+
     def test_large_sequence(self):
         self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
         prefix = Prefix.objects.create(prefix='10.0.0.0/24')
