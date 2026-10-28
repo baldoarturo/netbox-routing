@@ -1,7 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# Usage: dev/test.sh [--rebuild] [--own] [manage.py test arguments]
+# Usage: dev/test.sh [--netbox DIR] [--rebuild] [--own] [manage.py test arguments]
+#   --netbox DIR  where NetBox is (default: $NETBOX_ROOT, or .netbox/ inside this
+#                 repository); set up like dev/run.sh does if it is not there
 #   --rebuild  build the template database again
 #   --own      only the tests written by hand (models, forms, filters, migrations,
 #              validation rules), not the ones inherited from NetBox's CRUD test
@@ -18,18 +20,22 @@ set -euo pipefail
 #   dev/test.sh netbox_routing_protocols.tests.ospf
 #   dev/test.sh --parallel=4          (a failing test then hides its error: rerun it alone)
 #
-# Environment: NETBOX_ROOT (default: two levels above the main checkout of this
-# repository).
+# Environment: NETBOX_ROOT (same as --netbox).
+
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 REBUILD=""
 OWN=""
 ARGS=()
-for arg in "$@"; do
-    case "$arg" in
+while [ $# -gt 0 ]; do
+    case "$1" in
         --rebuild) REBUILD=1 ;;
         --own) OWN=1 ;;
-        *) ARGS+=("$arg") ;;
+        --netbox) [ $# -ge 2 ] || die "--netbox needs a directory"; NETBOX_ROOT="$2"; shift ;;
+        --netbox=*) NETBOX_ROOT="${1#--netbox=}" ;;
+        *) ARGS+=("$1") ;;
     esac
+    shift
 done
 # Without a test label Django would discover every test under the current
 # directory, NetBox's own included: default to the plugin's
@@ -47,26 +53,10 @@ if [ -n "$OWN" ]; then
     done
 fi
 
-DEV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$DEV_DIR")"
-MAIN_DIR="$(cd "$(git -C "$DEV_DIR" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)"
-NETBOX_ROOT="${NETBOX_ROOT:-$(cd "$MAIN_DIR/../.." && pwd)}"
-PYTHON="$NETBOX_ROOT/venv/bin/python"
 TEST_DB="test_netbox"
 TEMPLATE_DB="test_netbox_base"
 
-[ -x "$PYTHON" ] || { echo "error: $PYTHON not found, run $NETBOX_ROOT/setup-dev.sh first" >&2; exit 1; }
-
-POSTGRES="$(podman ps --filter "label=com.docker.compose.service=postgres" --format '{{.Names}}' 2>/dev/null | head -1)"
-if [ -z "$POSTGRES" ]; then
-    echo "==> Starting the containers"
-    podman-compose -f "$NETBOX_ROOT/compose.yml" up -d >/dev/null 2>&1
-    POSTGRES="$(podman ps --filter "label=com.docker.compose.service=postgres" --format '{{.Names}}' | head -1)"
-fi
-for _ in $(seq 1 30); do
-    podman ps --filter "name=$POSTGRES" --format '{{.Status}}' 2>/dev/null | grep -q '(healthy)' && break
-    sleep 2
-done
+dev_setup
 psql_() { podman exec -i "$POSTGRES" psql -U netbox -d postgres -v ON_ERROR_STOP=1 -q "$@" 2>&1 | grep -v 'level=warning' || true; }
 psql_q() { podman exec -i "$POSTGRES" psql -U netbox -d postgres -v ON_ERROR_STOP=1 -Atq "$@" 2>/dev/null; }
 exists() { [ "$(psql_q -c "SELECT count(*) FROM pg_database WHERE datname = '$1'")" = 1 ]; }

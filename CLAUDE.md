@@ -29,15 +29,21 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 
 ## Running the dev server
 
-`dev/run.sh` runs NetBox with this plugin against its own database (`netbox_routing_protocols_dev`, a copy of the shared `netbox` one), so the plugin's migrations never run against the shared database. It starts the podman containers if needed, creates the database if missing, migrates, makes sure `admin`/`admin` exists and starts the server on port 8000.
+`dev/run.sh` sets up everything and runs NetBox with this plugin against its own database (`netbox_routing_protocols_dev`, created from the NetBox demo data), so the plugin's migrations never run against any other database. It works on a fresh clone of the repository and can be run as often as wanted: every step is skipped when it is already done.
 
-- `dev/run.sh --reset` drops and rebuilds the dev database (only that one), so it can be run as often as wanted.
+1. Installs podman and the build packages with apt or dnf (asks for sudo) if missing.
+2. Clones NetBox at the pinned tag (`NETBOX_REF` in `dev/lib.sh`) if its directory does not exist. Default directory: `.netbox/` in the repository (git-ignored); use `--netbox DIR` or `NETBOX_ROOT` for another one. An existing NetBox is used as it is.
+3. Creates the venv in `<netbox>/venv` with NetBox's requirements, the plugin (editable, from the main checkout) and podman-compose.
+4. Starts postgres and redis from `dev/compose.yml` unless a compose project already runs those services.
+5. Creates the dev database from the demo data (downloaded the first time), migrates, makes sure `admin`/`admin` exists and starts the server on port 8000.
+
+- `dev/run.sh --reset` drops and rebuilds the dev database (only that one).
 - `dev/run.sh --no-server` prepares everything without starting the server.
-- The plugin is installed in editable mode from the main checkout, so the server runs whatever is checked out there.
+- The server runs whatever is checked out in the main checkout.
 
 ## Running tests locally
 
-`dev/test.sh` runs the plugin tests (all of them without arguments, or the labels you pass) against a copy of a migrated template database, so a run no longer spends about 4 minutes applying every NetBox migration. The template is built once from `origin/main`; each run clones it and uses `--keepdb`, so Django only applies the migrations of the branch. Run it from the main checkout or from a worktree.
+`dev/test.sh` runs the plugin tests (all of them without arguments, or the labels you pass) against a copy of a migrated template database, so a run no longer spends about 4 minutes applying every NetBox migration. The template is built once from `origin/main`; each run clones it and uses `--keepdb`, so Django only applies the migrations of the branch. Run it from the main checkout or from a worktree. It sets up NetBox, the venv and the containers like `dev/run.sh` does, and takes the same `--netbox DIR`.
 
 ```
 dev/test.sh                          # the whole suite

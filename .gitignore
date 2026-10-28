@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 .idea
+# NetBox checkout, venv and demo data downloaded by dev/run.sh
+/.netbox/
