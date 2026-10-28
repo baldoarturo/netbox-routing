@@ -1,3 +1,5 @@
+import os
+
 ###################################################################
 #  This file serves as a base configuration for testing purposes  #
 #  only. It is not intended for production use.                   #
@@ -14,9 +16,8 @@ DATABASE = {
     'CONN_MAX_AGE': 300,
 }
 
-PLUGINS = [
-    'netbox_routing',
-]
+# CI_BASE_SCHEMA builds the cached NetBox-only schema (no plugin migrations)
+PLUGINS = [] if os.environ.get('CI_BASE_SCHEMA') else ['netbox_routing']
 
 REDIS = {
     'tasks': {
