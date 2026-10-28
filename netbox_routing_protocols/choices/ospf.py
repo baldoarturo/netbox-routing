@@ -95,3 +95,23 @@ class OSPFMessageDigestAlgorithmChoices(ChoiceSet):
         (HMAC_SHA_384, 'HMAC-SHA-384'),
         (HMAC_SHA_512, 'HMAC-SHA-512'),
     ]
+
+
+class OSPFAuthenticationChoices(ChoiceSet):
+    """
+    Authentication types of OSPFv2 (RFC 2328 appendix D): null (0), simple
+    password (1) and cryptographic (2), the latter with the key given directly
+    (message digest) or through a key chain.
+    """
+
+    NULL = 'null'
+    SIMPLE = 'simple'
+    MESSAGE_DIGEST = 'message-digest'
+    KEYCHAIN = 'key-chain'
+
+    CHOICES = [
+        (SIMPLE, 'Simple Password'),
+        (MESSAGE_DIGEST, 'Message Digest'),
+        (KEYCHAIN, 'Key Chain'),
+        (NULL, 'Null Authentication'),
+    ]

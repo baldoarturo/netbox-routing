@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Interface, Device
 from ipam.models import VRF, IPAddress
 from netbox.forms import NetBoxModelFilterSetForm
-from netbox_routing_protocols.choices import AuthenticationChoices
+from netbox_routing_protocols.choices.ospf import OSPFAuthenticationChoices
 from netbox_routing_protocols.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
@@ -294,7 +294,7 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
     )
     transmit_delay = forms.IntegerField(required=False, label=_('Transmit Delay'))
     authentication = forms.ChoiceField(
-        choices=add_blank_choice(AuthenticationChoices), required=False
+        choices=add_blank_choice(OSPFAuthenticationChoices), required=False
     )
     tag = TagFilterField(model)
 
@@ -416,7 +416,7 @@ class OSPFVirtualLinkFilterForm(NetBoxModelFilterSetForm):
     )
     remote_router_id = forms.CharField(required=False, label=_('Remote Router ID'))
     authentication = forms.ChoiceField(
-        choices=add_blank_choice(AuthenticationChoices), required=False
+        choices=add_blank_choice(OSPFAuthenticationChoices), required=False
     )
     tag = TagFilterField(model)
 

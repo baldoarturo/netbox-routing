@@ -157,7 +157,7 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
-        choices=add_blank_choice(choices.AuthenticationChoices),
+        choices=add_blank_choice(choices.OSPFAuthenticationChoices),
         required=False,
     )
     passphrase = forms.CharField(label=_('Passphrase'), required=False)
@@ -248,7 +248,7 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
     )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
-        choices=add_blank_choice(choices.AuthenticationChoices),
+        choices=add_blank_choice(choices.OSPFAuthenticationChoices),
         required=False,
     )
     passphrase = forms.CharField(label=_('Passphrase'), required=False)
@@ -376,7 +376,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
-        choices=add_blank_choice(choices.AuthenticationChoices),
+        choices=add_blank_choice(choices.OSPFAuthenticationChoices),
         required=False,
     )
     passphrase = forms.CharField(label=_('Passphrase'), required=False)
@@ -510,7 +510,7 @@ class OSPFVirtualLinkBulkEditForm(NetBoxModelBulkEditForm):
     )
     authentication = forms.ChoiceField(
         label=_('Authentication'),
-        choices=add_blank_choice(choices.AuthenticationChoices),
+        choices=add_blank_choice(choices.OSPFAuthenticationChoices),
         required=False,
     )
     passphrase = forms.CharField(label=_('Passphrase'), required=False)

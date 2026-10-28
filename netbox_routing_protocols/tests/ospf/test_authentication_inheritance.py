@@ -95,6 +95,46 @@ class OSPFAuthenticationInheritanceTestCase(TestCase):
         self.assertIn('authentication', cm.exception.error_dict)
         self._ospf_interface(authentication='null').full_clean()
 
+    def test_the_three_authentication_types_cannot_be_mixed_in_an_area(self):
+        simple = {'authentication': 'simple', 'passphrase': 'secret'}
+        # (type of the area, type of the interface, conflict)
+        for area, interface, conflict in (
+            ('simple', 'simple', False),
+            ('simple', 'message-digest', True),
+            ('simple', 'key-chain', True),
+            ('simple', 'null', True),
+            ('message-digest', 'simple', True),
+            ('message-digest', 'key-chain', False),
+            ('null', 'simple', True),
+        ):
+            with self.subTest(area=area, interface=interface):
+                blocks = {
+                    'simple': simple,
+                    'message-digest': MD,
+                    'null': {'authentication': 'null'},
+                }
+                self._set(
+                    self.area,
+                    authentication=None,
+                    passphrase=None,
+                    authentication_key_id=None,
+                    key_chain='',
+                )
+                self._set(self.area, **blocks[area])
+                own = {
+                    'simple': simple,
+                    'message-digest': MD,
+                    'key-chain': {'authentication': 'key-chain', 'key_chain': 'c'},
+                    'null': {'authentication': 'null'},
+                }[interface]
+                ospf_interface = self._ospf_interface(**own)
+                if conflict:
+                    with self.assertRaises(ValidationError) as cm:
+                        ospf_interface.full_clean()
+                    self.assertIn('authentication', cm.exception.error_dict)
+                else:
+                    ospf_interface.full_clean()
+
     def test_the_instance_default_applies_to_areas_without_their_own(self):
         self._set(self.instance, **MD)
         with self.assertRaises(ValidationError):
