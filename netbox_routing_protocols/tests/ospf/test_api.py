@@ -51,7 +51,7 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 name='Instance 3',
                 device=device,
                 router_id='3.3.3.3',
-                vrf=None,
+                vrf=VRF.objects.create(name='Other VRF'),
             ),
         )
         cls.model.objects.bulk_create(data)
@@ -61,7 +61,7 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 'name': 'Instance X',
                 'device': device.pk,
                 'router_id': '4.4.4.4',
-                'vrf': vrf.pk,
+                'vrf': VRF.objects.create(name='Created VRF').pk,
                 'graceful_restart': 'planned-unplanned',
                 'graceful_restart_period': 300,
                 'spf_initial_delay': 100,

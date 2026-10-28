@@ -46,7 +46,7 @@ class OSPFInstanceTestCase(
                 name="Instance 1",
                 device=devices[0],
                 router_id='1.1.1.1',
-                vrf=None,
+                vrf=VRF.objects.create(name='Other'),
             ),
             cls.model(
                 name="Instance 2",
@@ -78,7 +78,6 @@ class OSPFInstanceTestCase(
 
         cls.bulk_edit_data = {
             'description': 'A test Instance description',
-            'vrf': vrf.pk,
         }
 
     def _get_base_url(self):
@@ -153,11 +152,13 @@ class OSPFInterfaceTestCase(
             create_test_device(name='Device 1'),
             create_test_device(name='Device 2'),
         ]
+        vrf1 = VRF.objects.create(name='VRF 1')
+        vrf3 = VRF.objects.create(name='VRF 3')
         interfaces = (
             Interface(name='Interface 1', device=devices[0], type='virtual'),
-            Interface(name='Interface 2', device=devices[0], type='virtual'),
+            Interface(name='Interface 2', device=devices[0], type='virtual', vrf=vrf1),
             Interface(name='Interface 3', device=devices[1], type='virtual'),
-            Interface(name='Interface 4', device=devices[1], type='virtual'),
+            Interface(name='Interface 4', device=devices[1], type='virtual', vrf=vrf3),
         )
         Interface.objects.bulk_create(interfaces)
 
@@ -170,6 +171,7 @@ class OSPFInterfaceTestCase(
             OSPFInstance(
                 name="Instance 1",
                 device=devices[0],
+                vrf=vrf1,
                 router_id='1.1.1.1',
             ),
             OSPFInstance(
@@ -180,6 +182,7 @@ class OSPFInterfaceTestCase(
             OSPFInstance(
                 name="Instance 3",
                 device=devices[1],
+                vrf=vrf3,
                 router_id='3.3.3.3',
             ),
         )

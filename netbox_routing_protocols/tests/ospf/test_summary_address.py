@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
+from ipam.models import VRF
 from utilities.testing import APIViewTestCases, ViewTestCases, create_test_device
 
 from netbox_routing_protocols.filtersets import OSPFSummaryAddressFilterSet
@@ -23,6 +24,7 @@ def _create_fixtures(cls):
         OSPFInstance.objects.create(
             name=f'Instance {i}',
             device=cls.device,
+            vrf=VRF.objects.create(name=f'VRF {i}'),
             router_id=f'1.1.1.{i}',
         )
         for i in (1, 2)

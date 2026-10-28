@@ -28,7 +28,6 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFSRAlgorithmChoices,
     OSPFRedistributionProtocolChoices,
 )
-from netbox_routing_protocols.constants import ERROR_UNIQUENESS_CONSTRAINT
 from netbox_routing_protocols.constants.ospf import (
     OSPF_COST_MAX,
     OSPF_COST_MIN,
@@ -768,9 +767,12 @@ class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
         verbose_name = 'OSPF Instance'
         constraints = (
             models.UniqueConstraint(
-                fields=('device', 'name'),
-                name='%(app_label)s_%(class)s_unique_device_name',
-                violation_error_message=ERROR_UNIQUENESS_CONSTRAINT,
+                fields=('device', 'vrf'),
+                name='%(app_label)s_%(class)s_unique_device_vrf',
+                violation_error_message=_(
+                    'The device already has an OSPF instance in this VRF '
+                    '(an empty VRF is the default VRF).'
+                ),
                 nulls_distinct=False,
             ),
         )
