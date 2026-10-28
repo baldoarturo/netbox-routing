@@ -113,6 +113,44 @@ class OSPFInterfaceAuthenticationTestCase(TestCase):
             authentication_key_id=1,
         )
 
+    def test_simple_password(self):
+        self._interface(authentication='simple', passphrase='secret').full_clean()
+        self._interface(authentication='simple', passphrase='12345678').full_clean()
+
+    def test_simple_password_has_at_most_8_characters(self):
+        self._assert_invalid(
+            'passphrase', authentication='simple', passphrase='123456789'
+        )
+
+    def test_simple_password_needs_a_password_and_nothing_else(self):
+        self._assert_invalid('passphrase', authentication='simple')
+        self._assert_invalid(
+            'authentication_key_id',
+            authentication='simple',
+            passphrase='secret',
+            authentication_key_id=1,
+        )
+        self._assert_invalid(
+            'key_chain',
+            authentication='simple',
+            passphrase='secret',
+            key_chain='chain',
+        )
+
+    def test_md5_key_has_at_most_16_characters(self):
+        message_digest = {
+            'authentication': 'message-digest',
+            'authentication_key_id': 1,
+        }
+        self._interface(passphrase='a' * 16, **message_digest).full_clean()
+        self._assert_invalid('passphrase', passphrase='a' * 17, **message_digest)
+        # the limit is the one of MD5, not of the HMAC-SHA algorithms
+        self._interface(
+            passphrase='a' * 17,
+            message_digest_algorithm='hmac-sha-256',
+            **message_digest,
+        ).full_clean()
+
     def test_key_without_authentication_is_rejected(self):
         self._assert_invalid('passphrase', passphrase='password')
         self._assert_invalid('key_chain', key_chain='chain')

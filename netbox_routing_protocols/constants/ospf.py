@@ -90,3 +90,8 @@ OSPF_PRIORITY_DEFAULT = 1
 # Cryptographic authentication Key ID: 8-bit field (RFC 2328 D.3).
 OSPF_AUTH_KEY_ID_MIN = 0
 OSPF_AUTH_KEY_ID_MAX = 255
+
+# Simple password: a 64-bit field per network (RFC 2328 D.2). MD5 key: 16 bytes
+# (RFC 2328 D.3).
+OSPF_SIMPLE_PASSWORD_MAX_LENGTH = 8
+OSPF_MD5_KEY_MAX_LENGTH = 16

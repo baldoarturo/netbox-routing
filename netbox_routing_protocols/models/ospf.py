@@ -17,6 +17,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFNetworkTypeChoices,
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
+    OSPFAuthenticationChoices,
     OSPFGracefulRestartChoices,
     OSPFMessageDigestAlgorithmChoices,
     OSPFRedistributionProtocolChoices,
@@ -38,9 +39,11 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_MAX_LSA_THRESHOLD_DEFAULT,
     OSPF_MAX_LSA_THRESHOLD_MAX,
     OSPF_MAX_LSA_THRESHOLD_MIN,
+    OSPF_MD5_KEY_MAX_LENGTH,
     OSPF_PRIORITY_DEFAULT,
     OSPF_PRIORITY_MAX,
     OSPF_PRIORITY_MIN,
+    OSPF_SIMPLE_PASSWORD_MAX_LENGTH,
     OSPF_SPF_HOLDDOWN_DEFAULT,
     OSPF_SPF_INITIAL_DELAY_DEFAULT,
     OSPF_SPF_LONG_DELAY_DEFAULT,
@@ -73,7 +76,7 @@ class OSPFAuthenticationMixin(models.Model):
     """
 
     authentication = models.CharField(
-        max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
+        max_length=50, choices=OSPFAuthenticationChoices, blank=True, null=True
     )
     passphrase = models.CharField(
         max_length=200,
@@ -136,16 +139,38 @@ class OSPFAuthenticationMixin(models.Model):
     def _clean_authentication(self):
         errors = {}
         auth = self.authentication
-        if auth == choices.AuthenticationChoices.MESSAGE_DIGEST:
+        if auth == OSPFAuthenticationChoices.SIMPLE:
+            if not self.passphrase:
+                errors['passphrase'] = _('A password is required.')
+            elif len(self.passphrase) > OSPF_SIMPLE_PASSWORD_MAX_LENGTH:
+                errors['passphrase'] = _(
+                    'A simple password has at most {length} characters (RFC 2328 D.2).'
+                ).format(length=OSPF_SIMPLE_PASSWORD_MAX_LENGTH)
+            if self.authentication_key_id is not None:
+                errors['authentication_key_id'] = _(
+                    'A key ID is not used with a simple password.'
+                )
+            if self.key_chain:
+                errors['key_chain'] = _(
+                    'A key chain is not used with a simple password.'
+                )
+        elif auth == OSPFAuthenticationChoices.MESSAGE_DIGEST:
             if not self.passphrase:
                 errors['passphrase'] = _('A key is required for message digest.')
+            elif (
+                self.message_digest_algorithm == OSPFMessageDigestAlgorithmChoices.MD5
+                and len(self.passphrase) > OSPF_MD5_KEY_MAX_LENGTH
+            ):
+                errors['passphrase'] = _(
+                    'An MD5 key has at most {length} characters (RFC 2328 D.3).'
+                ).format(length=OSPF_MD5_KEY_MAX_LENGTH)
             if self.authentication_key_id is None:
                 errors['authentication_key_id'] = _(
                     'A key ID is required for message digest.'
                 )
             if self.key_chain:
                 errors['key_chain'] = _('A key chain is not used with message digest.')
-        elif auth == choices.AuthenticationChoices.KEYCHAIN:
+        elif auth == OSPFAuthenticationChoices.KEYCHAIN:
             if not self.key_chain:
                 errors['key_chain'] = _('A key chain name is required.')
             if self.passphrase:
@@ -230,19 +255,24 @@ class OSPFTimersMixin(models.Model):
 
 def authentication_conflict(required, own):
     """
-    The authentication type is a parameter of the area (RFC 2328 C.2): its
-    interfaces cannot go without authentication when the area uses it, nor use
-    it when the area does not.
+    The authentication type (null, simple password or cryptographic) is a
+    parameter of the area, and has to be the same for all the routers attached
+    to a network (RFC 2328 C.2 and C.3): the interfaces of an area cannot use a
+    different type from the one the area uses.
     """
-    cryptographic = (
-        choices.AuthenticationChoices.MESSAGE_DIGEST,
-        choices.AuthenticationChoices.KEYCHAIN,
-    )
-    if required in cryptographic:
-        return own == choices.AuthenticationChoices.NULL
-    if required == choices.AuthenticationChoices.NULL:
-        return own in cryptographic
-    return False
+    if not required or not own:
+        return False
+    return _authentication_type(required) != _authentication_type(own)
+
+
+def _authentication_type(authentication):
+    """AuType of RFC 2328 D: the message digest and the key chain are both 2."""
+    if authentication in (
+        OSPFAuthenticationChoices.MESSAGE_DIGEST,
+        OSPFAuthenticationChoices.KEYCHAIN,
+    ):
+        return 2
+    return 1 if authentication == OSPFAuthenticationChoices.SIMPLE else 0
 
 
 def _authentication_conflict_error(interfaces, required):

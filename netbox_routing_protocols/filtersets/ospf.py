@@ -10,7 +10,7 @@ from utilities.filters import MultiValueCharFilter
 from utilities.filtersets import register_filterset
 
 from netbox.filtersets import NetBoxModelFilterSet
-from netbox_routing_protocols.choices import AuthenticationChoices
+from netbox_routing_protocols.choices.ospf import OSPFAuthenticationChoices
 from netbox_routing_protocols.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
@@ -429,7 +429,7 @@ class OSPFVirtualLinkFilterSet(NetBoxModelFilterSet):
         label=_('Remote Router ID'),
     )
     authentication = django_filters.MultipleChoiceFilter(
-        choices=AuthenticationChoices,
+        choices=OSPFAuthenticationChoices,
         label=_('Authentication'),
     )
     message_digest_algorithm = django_filters.MultipleChoiceFilter(
