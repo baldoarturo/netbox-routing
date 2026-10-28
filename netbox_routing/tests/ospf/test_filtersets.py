@@ -52,6 +52,10 @@ class OSPFInstanceTestCase(TestCase):
                 default_originate=True,
                 default_originate_metric=50,
                 default_originate_metric_type='1',
+                graceful_restart='planned',
+                bfd_all_interfaces=True,
+                rfc1583_compatibility=False,
+                spf_initial_delay=100,
             ),
             OSPFInstance(
                 name='Instance 3',
@@ -100,6 +104,20 @@ class OSPFInstanceTestCase(TestCase):
     def test_process_id(self):
         params = {'process_id': [1, 2]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_advanced_options(self):
+        for params, expected in (
+            ({'graceful_restart': ['planned']}, 1),
+            ({'graceful_restart': ['disabled']}, 3),
+            ({'bfd_all_interfaces': True}, 1),
+            ({'rfc1583_compatibility': False}, 1),
+            ({'spf_initial_delay': [100]}, 1),
+            ({'spf_initial_delay': [50]}, 3),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self.filterset(params, self.queryset).qs.count(), expected
+                )
 
     def test_default_originate(self):
         params = {'default_originate': True}

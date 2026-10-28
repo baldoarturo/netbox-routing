@@ -42,6 +42,7 @@ __all__ = (
     'RouteMapEntryMatchPanel',
     'RouteMapEntrySetPanel',
     'OSPFInstancePanel',
+    'OSPFInstanceAdvancedPanel',
     'OSPFAreaPanel',
     'OSPFInterfacePanel',
     'OSPFInterfaceSettingsPanel',

@@ -4,6 +4,7 @@ from netbox.ui import attrs, panels
 
 __all__ = (
     'OSPFInstancePanel',
+    'OSPFInstanceAdvancedPanel',
     'OSPFAreaPanel',
     'OSPFInterfacePanel',
     'OSPFInterfaceSettingsPanel',
@@ -31,6 +32,68 @@ class OSPFInstancePanel(panels.ObjectAttributesPanel):
         'default_originate_metric_type', label=_('Default Originate Metric Type')
     )
     description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFInstanceAdvancedPanel(panels.ObjectAttributesPanel):
+    spf_initial_delay = attrs.NumericAttr(
+        'spf_initial_delay', label=_('SPF Initial Delay')
+    )
+    spf_short_delay = attrs.NumericAttr('spf_short_delay', label=_('SPF Short Delay'))
+    spf_long_delay = attrs.NumericAttr('spf_long_delay', label=_('SPF Long Delay'))
+    spf_time_to_learn = attrs.NumericAttr(
+        'spf_time_to_learn', label=_('SPF Time to Learn')
+    )
+    spf_holddown = attrs.NumericAttr('spf_holddown', label=_('SPF Holddown'))
+    lsa_min_interval = attrs.NumericAttr(
+        'lsa_min_interval', label=_('LSA Minimum Interval')
+    )
+    lsa_min_arrival = attrs.NumericAttr(
+        'lsa_min_arrival', label=_('LSA Minimum Arrival')
+    )
+    max_metric_router_lsa = attrs.BooleanAttr(
+        'max_metric_router_lsa', label=_('Max Metric (Stub Router)')
+    )
+    max_metric_on_startup = attrs.NumericAttr(
+        'max_metric_on_startup', label=_('Max Metric On Startup')
+    )
+    graceful_restart = attrs.ChoiceAttr('graceful_restart', label=_('Graceful Restart'))
+    graceful_restart_period = attrs.NumericAttr(
+        'graceful_restart_period', label=_('Graceful Restart Period')
+    )
+    graceful_restart_helper = attrs.BooleanAttr(
+        'graceful_restart_helper', label=_('Graceful Restart Helper')
+    )
+    graceful_restart_helper_strict_lsa_checking = attrs.BooleanAttr(
+        'graceful_restart_helper_strict_lsa_checking', label=_('Strict LSA Checking')
+    )
+    rfc1583_compatibility = attrs.BooleanAttr(
+        'rfc1583_compatibility', label=_('RFC 1583 Compatibility')
+    )
+    log_adjacency_changes = attrs.BooleanAttr(
+        'log_adjacency_changes', label=_('Log Adjacency Changes')
+    )
+    log_adjacency_changes_detail = attrs.BooleanAttr(
+        'log_adjacency_changes_detail', label=_('Log Adjacency Changes in Detail')
+    )
+    bfd_all_interfaces = attrs.BooleanAttr(
+        'bfd_all_interfaces', label=_('BFD on All Interfaces')
+    )
+    passive_interface_default = attrs.BooleanAttr(
+        'passive_interface_default', label=_('Passive Interfaces by Default')
+    )
+    max_lsa = attrs.NumericAttr('max_lsa', label=_('Max LSAs'))
+    max_lsa_threshold = attrs.NumericAttr(
+        'max_lsa_threshold', label=_('Max LSAs Warning Threshold')
+    )
+    max_lsa_warning_only = attrs.BooleanAttr(
+        'max_lsa_warning_only', label=_('Max LSAs Warning Only')
+    )
+    external_lsdb_limit = attrs.NumericAttr(
+        'external_lsdb_limit', label=_('External LSDB Limit')
+    )
+    exit_overflow_interval = attrs.NumericAttr(
+        'exit_overflow_interval', label=_('Exit Overflow Interval')
+    )
 
 
 class OSPFAreaPanel(panels.ObjectAttributesPanel):

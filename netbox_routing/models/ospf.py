@@ -12,6 +12,7 @@ from netbox_routing import choices
 from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
+    OSPFGracefulRestartChoices,
     OSPFRedistributionProtocolChoices,
 )
 from netbox_routing.constants import ERROR_UNIQUENESS_CONSTRAINT
@@ -20,7 +21,20 @@ from netbox_routing.constants.ospf import (
     OSPF_COST_MIN,
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
+    OSPF_GRACEFUL_RESTART_PERIOD_DEFAULT,
+    OSPF_GRACEFUL_RESTART_PERIOD_MAX,
+    OSPF_GRACEFUL_RESTART_PERIOD_MIN,
     OSPF_INTERFACE_TIMERS,
+    OSPF_LSA_MIN_ARRIVAL_DEFAULT,
+    OSPF_LSA_MIN_INTERVAL_DEFAULT,
+    OSPF_MAX_LSA_THRESHOLD_DEFAULT,
+    OSPF_MAX_LSA_THRESHOLD_MAX,
+    OSPF_MAX_LSA_THRESHOLD_MIN,
+    OSPF_SPF_HOLDDOWN_DEFAULT,
+    OSPF_SPF_INITIAL_DELAY_DEFAULT,
+    OSPF_SPF_LONG_DELAY_DEFAULT,
+    OSPF_SPF_SHORT_DELAY_DEFAULT,
+    OSPF_SPF_TIME_TO_LEARN_DEFAULT,
     OSPF_STUB_DEFAULT_COST_MAX,
     OSPF_STUB_DEFAULT_COST_MIN,
     OSPF_TAG_MAX,
@@ -85,6 +99,193 @@ class OSPFInstance(PrimaryModel):
         max_length=1,
     )
 
+    # Advanced options. Fields left out of the UI take their default, which is
+    # the one in the RFC when there is one.
+    spf_initial_delay = models.PositiveIntegerField(
+        verbose_name=_('SPF Initial Delay'),
+        help_text=_('Milliseconds. SPF back-off, RFC 8405 (default: 50)'),
+        default=OSPF_SPF_INITIAL_DELAY_DEFAULT,
+    )
+    spf_short_delay = models.PositiveIntegerField(
+        verbose_name=_('SPF Short Delay'),
+        help_text=_('Milliseconds. SPF back-off, RFC 8405 (default: 200)'),
+        default=OSPF_SPF_SHORT_DELAY_DEFAULT,
+    )
+    spf_long_delay = models.PositiveIntegerField(
+        verbose_name=_('SPF Long Delay'),
+        help_text=_('Milliseconds. SPF back-off, RFC 8405 (default: 5000)'),
+        default=OSPF_SPF_LONG_DELAY_DEFAULT,
+    )
+    spf_time_to_learn = models.PositiveIntegerField(
+        verbose_name=_('SPF Time to Learn'),
+        help_text=_('Milliseconds. SPF back-off, RFC 8405 (default: 500)'),
+        default=OSPF_SPF_TIME_TO_LEARN_DEFAULT,
+    )
+    spf_holddown = models.PositiveIntegerField(
+        verbose_name=_('SPF Holddown'),
+        help_text=_(
+            'Milliseconds, longer than the time to learn. SPF back-off, RFC 8405 (default: 10000)'
+        ),
+        default=OSPF_SPF_HOLDDOWN_DEFAULT,
+    )
+    lsa_min_interval = models.PositiveIntegerField(
+        verbose_name=_('LSA Minimum Interval'),
+        help_text=_(
+            'Milliseconds between originations of the same LSA, '
+            'MinLSInterval in RFC 2328 (default: 5000)'
+        ),
+        default=OSPF_LSA_MIN_INTERVAL_DEFAULT,
+    )
+    lsa_min_arrival = models.PositiveIntegerField(
+        verbose_name=_('LSA Minimum Arrival'),
+        help_text=_(
+            'Milliseconds before accepting a new instance of the same LSA, '
+            'MinLSArrival in RFC 2328 (default: 1000)'
+        ),
+        default=OSPF_LSA_MIN_ARRIVAL_DEFAULT,
+    )
+    max_metric_router_lsa = models.BooleanField(
+        verbose_name=_('Max Metric (Stub Router)'),
+        help_text=_(
+            'Advertise the maximum metric in the router LSA so that '
+            'transit traffic avoids this router (RFC 6987)'
+        ),
+        default=False,
+    )
+    max_metric_on_startup = models.PositiveIntegerField(
+        verbose_name=_('Max Metric On Startup'),
+        help_text=_(
+            'Seconds to keep advertising the maximum metric after startup '
+            '(requires max metric)'
+        ),
+        validators=[MinValueValidator(1)],
+        blank=True,
+        null=True,
+    )
+    graceful_restart = models.CharField(
+        verbose_name=_('Graceful Restart'),
+        help_text=_('Restart support, RestartSupport in RFC 3623'),
+        choices=OSPFGracefulRestartChoices,
+        default=OSPFGracefulRestartChoices.DISABLED,
+        max_length=20,
+    )
+    graceful_restart_period = models.PositiveIntegerField(
+        verbose_name=_('Graceful Restart Period'),
+        help_text=_(
+            'Seconds, RestartInterval in RFC 3623: 1 to 1800 (suggested default: 120)'
+        ),
+        validators=[
+            MinValueValidator(OSPF_GRACEFUL_RESTART_PERIOD_MIN),
+            MaxValueValidator(OSPF_GRACEFUL_RESTART_PERIOD_MAX),
+        ],
+        default=OSPF_GRACEFUL_RESTART_PERIOD_DEFAULT,
+    )
+    graceful_restart_helper = models.BooleanField(
+        verbose_name=_('Graceful Restart Helper'),
+        help_text=_('Help neighbors that restart gracefully (RFC 3623)'),
+        default=True,
+    )
+    graceful_restart_helper_strict_lsa_checking = models.BooleanField(
+        verbose_name=_('Strict LSA Checking'),
+        help_text=_(
+            'The helper ends the graceful restart when relevant LSAs change '
+            '(RFC 3623, suggested default: enabled)'
+        ),
+        default=True,
+    )
+    rfc1583_compatibility = models.BooleanField(
+        verbose_name=_('RFC 1583 Compatibility'),
+        help_text=_(
+            'Preference rules for AS-external routes, RFC1583Compatibility in '
+            'RFC 2328 (default: enabled)'
+        ),
+        default=True,
+    )
+    log_adjacency_changes = models.BooleanField(
+        verbose_name=_('Log Adjacency Changes'),
+        default=False,
+    )
+    log_adjacency_changes_detail = models.BooleanField(
+        verbose_name=_('Log Adjacency Changes in Detail'),
+        help_text=_('Log every state change (requires log adjacency changes)'),
+        default=False,
+    )
+    bfd_all_interfaces = models.BooleanField(
+        verbose_name=_('BFD on All Interfaces'),
+        default=False,
+    )
+    passive_interface_default = models.BooleanField(
+        verbose_name=_('Passive Interfaces by Default'),
+        help_text=_('Interfaces are passive unless configured otherwise'),
+        default=False,
+    )
+    max_lsa = models.PositiveIntegerField(
+        verbose_name=_('Max LSAs'),
+        help_text=_('Maximum number of LSAs the process accepts'),
+        validators=[MinValueValidator(1)],
+        blank=True,
+        null=True,
+    )
+    max_lsa_threshold = models.PositiveIntegerField(
+        verbose_name=_('Max LSAs Warning Threshold'),
+        help_text=_('Percentage of max LSAs that triggers a warning (default: 75)'),
+        validators=[
+            MinValueValidator(OSPF_MAX_LSA_THRESHOLD_MIN),
+            MaxValueValidator(OSPF_MAX_LSA_THRESHOLD_MAX),
+        ],
+        default=OSPF_MAX_LSA_THRESHOLD_DEFAULT,
+    )
+    max_lsa_warning_only = models.BooleanField(
+        verbose_name=_('Max LSAs Warning Only'),
+        help_text=_(
+            'Only log a warning when the maximum is reached (requires max LSAs)'
+        ),
+        default=False,
+    )
+    external_lsdb_limit = models.PositiveIntegerField(
+        verbose_name=_('External LSDB Limit'),
+        help_text=_(
+            'Maximum number of non-default AS-external LSAs, ospfExtLsdbLimit in '
+            'RFC 1765. Empty means no limit'
+        ),
+        blank=True,
+        null=True,
+    )
+    exit_overflow_interval = models.PositiveIntegerField(
+        verbose_name=_('Exit Overflow Interval'),
+        help_text=_(
+            'Seconds before leaving the overflow state; 0 means never until restarted '
+            '(RFC 1765, default: 0; requires an external LSDB limit)'
+        ),
+        default=0,
+    )
+
+    ADVANCED_FIELDS = (
+        'spf_initial_delay',
+        'spf_short_delay',
+        'spf_long_delay',
+        'spf_time_to_learn',
+        'spf_holddown',
+        'lsa_min_interval',
+        'lsa_min_arrival',
+        'max_metric_router_lsa',
+        'max_metric_on_startup',
+        'graceful_restart',
+        'graceful_restart_period',
+        'graceful_restart_helper',
+        'graceful_restart_helper_strict_lsa_checking',
+        'rfc1583_compatibility',
+        'log_adjacency_changes',
+        'log_adjacency_changes_detail',
+        'bfd_all_interfaces',
+        'passive_interface_default',
+        'max_lsa',
+        'max_lsa_threshold',
+        'max_lsa_warning_only',
+        'external_lsdb_limit',
+        'exit_overflow_interval',
+    )
+
     clone_fields = (
         'name',
         'router_id',
@@ -95,7 +296,7 @@ class OSPFInstance(PrimaryModel):
         'default_originate_always',
         'default_originate_metric',
         'default_originate_metric_type',
-    )
+    ) + ADVANCED_FIELDS
     prerequisite_models = ('dcim.Device',)
 
     class Meta:
@@ -116,8 +317,36 @@ class OSPFInstance(PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:ospfinstance', args=[self.pk])
 
+    def _clean_advanced_options(self):
+        errors = {}
+        if not self.spf_initial_delay <= self.spf_short_delay:
+            errors['spf_short_delay'] = _(
+                'The short delay cannot be shorter than the initial delay.'
+            )
+        if not self.spf_short_delay <= self.spf_long_delay:
+            errors['spf_long_delay'] = _(
+                'The long delay cannot be shorter than the short delay.'
+            )
+        if not self.spf_holddown > self.spf_time_to_learn:
+            errors['spf_holddown'] = _(
+                'The holddown must be longer than the time to learn.'
+            )
+        if self.max_metric_on_startup is not None and not self.max_metric_router_lsa:
+            errors['max_metric_on_startup'] = _('Max metric must be enabled.')
+        if self.log_adjacency_changes_detail and not self.log_adjacency_changes:
+            errors['log_adjacency_changes_detail'] = _(
+                'Log adjacency changes must be enabled.'
+            )
+        if self.max_lsa_warning_only and self.max_lsa is None:
+            errors['max_lsa_warning_only'] = _('Max LSAs must be set.')
+        if self.exit_overflow_interval and self.external_lsdb_limit is None:
+            errors['exit_overflow_interval'] = _('An external LSDB limit must be set.')
+        if errors:
+            raise ValidationError(errors)
+
     def clean(self):
         super().clean()
+        self._clean_advanced_options()
         if not self.default_originate and (
             self.default_originate_always or self.default_originate_metric is not None
         ):

@@ -55,3 +55,26 @@ OSPF_TAG_MAX = 4294967295
 # 24-bit metric (RFC 2328 C.2, StubDefaultCost).
 OSPF_STUB_DEFAULT_COST_MIN = 0
 OSPF_STUB_DEFAULT_COST_MAX = 16777215
+
+# SPF back-off algorithm, in milliseconds. Defaults: RFC 8405 section 6.
+OSPF_SPF_INITIAL_DELAY_DEFAULT = 50
+OSPF_SPF_SHORT_DELAY_DEFAULT = 200
+OSPF_SPF_LONG_DELAY_DEFAULT = 5000
+OSPF_SPF_TIME_TO_LEARN_DEFAULT = 500
+OSPF_SPF_HOLDDOWN_DEFAULT = 10000
+
+# LSA origination and arrival limits, in milliseconds. Defaults: RFC 2328
+# Appendix B (MinLSInterval is 5 seconds, MinLSArrival is 1 second).
+OSPF_LSA_MIN_INTERVAL_DEFAULT = 5000
+OSPF_LSA_MIN_ARRIVAL_DEFAULT = 1000
+
+# Graceful restart grace period, in seconds: RFC 3623 appendix B.1 (range
+# 1 to 1800, suggested default 120).
+OSPF_GRACEFUL_RESTART_PERIOD_MIN = 1
+OSPF_GRACEFUL_RESTART_PERIOD_MAX = 1800
+OSPF_GRACEFUL_RESTART_PERIOD_DEFAULT = 120
+
+# Percentage of max-lsa at which a warning is logged (not set by an RFC).
+OSPF_MAX_LSA_THRESHOLD_MIN = 1
+OSPF_MAX_LSA_THRESHOLD_MAX = 100
+OSPF_MAX_LSA_THRESHOLD_DEFAULT = 75

@@ -67,6 +67,11 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 'router_id': '4.4.4.4',
                 'process_id': 4,
                 'vrf': vrf.pk,
+                'graceful_restart': 'planned-unplanned',
+                'graceful_restart_period': 300,
+                'spf_initial_delay': 100,
+                'rfc1583_compatibility': False,
+                'max_lsa': 5000,
             },
         ]
 

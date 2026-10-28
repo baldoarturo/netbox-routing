@@ -70,6 +70,11 @@ class OSPFInstanceTestCase(
             'default_originate_always': True,
             'default_originate_metric': 100,
             'default_originate_metric_type': '1',
+            'graceful_restart': 'planned',
+            'graceful_restart_period': 300,
+            'spf_initial_delay': 100,
+            'rfc1583_compatibility': False,
+            'max_lsa': 5000,
         }
 
         cls.bulk_edit_data = {

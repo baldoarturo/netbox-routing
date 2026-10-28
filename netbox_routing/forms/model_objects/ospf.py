@@ -69,6 +69,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             'default_originate_metric_type',
             name=_('Default Information'),
         ),
+        FieldSet(*OSPFInstance.ADVANCED_FIELDS, name=_('Advanced')),
     )
 
     class Meta:
@@ -83,6 +84,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             'default_originate_always',
             'default_originate_metric',
             'default_originate_metric_type',
+            *OSPFInstance.ADVANCED_FIELDS,
             'description',
             'comments',
             'tags',
@@ -91,14 +93,21 @@ class OSPFInstanceForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # An empty metric type falls back to its default (see clean()).
+        # Options left empty fall back to their default (see clean()).
         self.fields['default_originate_metric_type'].required = False
+        for name in OSPFInstance.ADVANCED_FIELDS:
+            if not OSPFInstance._meta.get_field(name).null:
+                self.fields[name].required = False
 
     def clean(self):
         if not self.cleaned_data.get('default_originate_metric_type'):
             self.cleaned_data['default_originate_metric_type'] = (
                 OSPFExternalMetricTypeChoices.TYPE_2
             )
+        for name in OSPFInstance.ADVANCED_FIELDS:
+            field = OSPFInstance._meta.get_field(name)
+            if not field.null and self.cleaned_data.get(name) in (None, ''):
+                self.cleaned_data[name] = field.get_default()
         return super().clean()
 
 

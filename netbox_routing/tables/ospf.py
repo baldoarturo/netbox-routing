@@ -37,6 +37,7 @@ class OSPFInstanceTable(NetBoxTable):
             'default_originate_always',
             'default_originate_metric',
             'default_originate_metric_type',
+            *OSPFInstance.ADVANCED_FIELDS,
         )
         default_columns = (
             'pk',
