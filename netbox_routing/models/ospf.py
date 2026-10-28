@@ -1211,7 +1211,12 @@ class OSPFVirtualLink(OSPFAuthenticationMixin, OSPFTimersMixin, PrimaryModel):
 
     class Meta:
         verbose_name = 'OSPF Virtual Link'
-        ordering = ('instance__name', 'transit_area__area_id', 'remote_router_id')
+        ordering = (
+            'instance__name',
+            'transit_area__area_id',
+            'remote_router_id',
+            'pk',
+        )
         constraints = (
             models.UniqueConstraint(
                 fields=('instance', 'transit_area', 'remote_router_id'),

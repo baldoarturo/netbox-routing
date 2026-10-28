@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'verbose_name': 'OSPF Virtual Link',
-                'ordering': ('instance__name', 'transit_area__area_id', 'remote_router_id'),
+                'ordering': ('instance__name', 'transit_area__area_id', 'remote_router_id', 'pk'),
                 'constraints': [models.UniqueConstraint(fields=('instance', 'transit_area', 'remote_router_id'), name='netbox_routing_ospfvirtuallink_unique_instance_transit_remote', violation_error_message='This virtual link already exists in the OSPF instance.')],
             },
             bases=(netbox.models.deletion.DeleteMixin, models.Model),
