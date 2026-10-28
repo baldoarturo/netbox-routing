@@ -1,4 +1,6 @@
 import json
+import re
+
 import netaddr
 
 from django.db.models import Model
@@ -8,6 +10,7 @@ from ipam.models import RIR, ASN, VRF, IPAddress
 from utilities.querysets import RestrictedQuerySet
 
 __all__ = (
+    'LeanCoreTestsMixin',
     'IPAddressFieldMixin',
     'AutomatedFormDataCreationMixin',
     'AutomatedModelCreationMixin',
@@ -17,6 +20,31 @@ __all__ = (
     'BulkEditMixin',
     'PluginBaseURLMixin',
 )
+
+
+# Tests NetBox's API and GUI test classes run for every model that check NetBox
+# itself, identical for all of them: permissions, edge cases of the bulk API,
+# GraphQL and OPTIONS. LeanCoreTestsMixin switches them off, so they run only on
+# one sample model per area (the classes without the mixin) and a new model does
+# not add about 25 tests that cannot fail because of the plugin.
+_NETBOX_CORE_TESTS = re.compile(
+    r'without_permission|anonymous|constrained_permission'
+    r'|^test_graphql_'
+    r'|^test_options_objects?$'
+    r'|^test_update_object_with_etag$'
+    r'|^test_bulk_(update|delete)_objects_'
+    r'(duplicate_id|malformed_entry|nonexistent_id|string_id|validation_error|no_body)$'
+    r'|^test_bulk_create_objects_invalid_item$'
+)
+
+
+class LeanCoreTestsMixin:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for name in dir(cls):
+            if _NETBOX_CORE_TESTS.search(name) and callable(getattr(cls, name, None)):
+                # unittest only collects callables
+                setattr(cls, name, None)
 
 
 class IPAddressFieldMixin:

@@ -56,6 +56,7 @@ class BGPRouterTestCase(
 
 
 class BGPScopeTestCase(
+    LeanCoreTestsMixin,
     BGPRouterMixin,
     BulkEditMixin,
     PluginBaseURLMixin,
@@ -91,6 +92,7 @@ class BGPScopeTestCase(
 
 
 class BGPAddressFamilyTestCase(
+    LeanCoreTestsMixin,
     BGPScopeMixin,
     BulkEditMixin,
     PluginBaseURLMixin,
@@ -126,6 +128,7 @@ class BGPAddressFamilyTestCase(
 
 
 class BGPPeerTestCase(
+    LeanCoreTestsMixin,
     BGPScopeMixin,
     BulkEditMixin,
     PluginBaseURLMixin,
@@ -172,6 +175,7 @@ class BGPPeerTestCase(
 
 
 class BGPPeerAddressFamilyTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     BGPPeerMixin,
     BGPAddressFamilyMixin,
@@ -207,6 +211,7 @@ class BGPPeerAddressFamilyTestCase(
 
 
 class BGPPeerTemplateTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     BGPAddressFamilyMixin,
     BulkEditMixin,
@@ -232,6 +237,7 @@ class BGPPeerTemplateTestCase(
 
 
 class BGPPolicyTemplateTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     BGPAddressFamilyMixin,
     BulkEditMixin,
@@ -257,6 +263,7 @@ class BGPPolicyTemplateTestCase(
 
 
 class BGPSessionTemplateTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     BGPAddressFamilyMixin,
     BulkEditMixin,
@@ -282,6 +289,7 @@ class BGPSessionTemplateTestCase(
 
 
 class BFDProfileTestCase(
+    LeanCoreTestsMixin,
     BulkEditMixin,
     PluginBaseURLMixin,
     ViewTestCases.GetObjectViewTestCase,

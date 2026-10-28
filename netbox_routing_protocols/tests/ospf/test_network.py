@@ -17,7 +17,7 @@ from netbox_routing_protocols.models import (
     OSPFInterface,
     OSPFNetwork,
 )
-from netbox_routing_protocols.tests.base import IPAddressFieldMixin
+from netbox_routing_protocols.tests.base import IPAddressFieldMixin, LeanCoreTestsMixin
 
 __all__ = (
     'OSPFNetworkModelTestCase',
@@ -141,6 +141,7 @@ class OSPFNetworkFilterSetTestCase(TestCase):
 
 
 class OSPFNetworkViewTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,
@@ -174,7 +175,9 @@ class OSPFNetworkViewTestCase(
         return 'plugins:netbox_routing_protocols:ospfnetwork_{}'
 
 
-class OSPFNetworkAPITestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
+class OSPFNetworkAPITestCase(
+    LeanCoreTestsMixin, IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
+):
     model = OSPFNetwork
     view_namespace = 'plugins-api:netbox_routing_protocols'
     brief_fields = ['display', 'id', 'ip_address', 'ospf_interface', 'url']

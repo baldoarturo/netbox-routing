@@ -7,6 +7,7 @@ from utilities.testing import APIViewTestCases, ViewTestCases, create_test_devic
 
 from netbox_routing_protocols.filtersets import OSPFSummaryAddressFilterSet
 from netbox_routing_protocols.models import OSPFInstance, OSPFSummaryAddress
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'OSPFSummaryAddressModelTestCase',
@@ -119,6 +120,7 @@ class OSPFSummaryAddressFilterSetTestCase(TestCase):
 
 
 class OSPFSummaryAddressViewTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,
@@ -152,7 +154,9 @@ class OSPFSummaryAddressViewTestCase(
         return 'plugins:netbox_routing_protocols:ospfsummaryaddress_{}'
 
 
-class OSPFSummaryAddressAPITestCase(APIViewTestCases.APIViewTestCase):
+class OSPFSummaryAddressAPITestCase(
+    LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
+):
     model = OSPFSummaryAddress
     view_namespace = 'plugins-api:netbox_routing_protocols'
     brief_fields = ['display', 'id', 'instance', 'prefix', 'url']

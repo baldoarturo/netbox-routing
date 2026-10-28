@@ -5,6 +5,7 @@ from utilities.testing import ViewTestCases
 
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.tests.base import (
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     AutomatedFormDataCreationMixin,
     BulkEditMixin,
@@ -86,6 +87,7 @@ class NBRObjectEntryMixin:
 
 
 class ASPathTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     AutomatedFormDataCreationMixin,
     BulkEditMixin,
@@ -108,6 +110,7 @@ class ASPathTestCase(
 
 
 class ASPathEntryTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     AutomatedFormDataCreationMixin,
     BulkEditMixin,
@@ -133,6 +136,7 @@ class ASPathEntryTestCase(
 
 
 class PrefixListTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     AutomatedFormDataCreationMixin,
     BulkEditMixin,
@@ -202,6 +206,7 @@ class PrefixListEntryTestCase(
 
 
 class RouteMapTestCase(
+    LeanCoreTestsMixin,
     AutomatedFormDataCreationMixin,
     AutomatedModelCreationMixin,
     BulkEditMixin,
@@ -223,6 +228,7 @@ class RouteMapTestCase(
 
 
 class RouteMapEntryTestCase(
+    LeanCoreTestsMixin,
     AutomatedFormDataCreationMixin,
     AutomatedModelCreationMixin,
     RouteMapMixin,

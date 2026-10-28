@@ -4,6 +4,7 @@ from utilities.testing import ViewTestCases
 from tenancy.models import Tenant
 
 from netbox_routing_protocols.models.community import *
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'CommunityTestCase',
@@ -80,6 +81,7 @@ class CommunityTestCase(
 
 
 class CommunityListTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,
@@ -140,6 +142,7 @@ class CommunityListTestCase(
 
 
 class CommunityListEntryTestCase(
+    LeanCoreTestsMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
     ViewTestCases.CreateObjectViewTestCase,

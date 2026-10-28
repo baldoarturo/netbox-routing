@@ -11,7 +11,7 @@ __all__ = (
 )
 
 
-class BGPPeerTemplateTestCase(APIViewTestCases.APIViewTestCase):
+class BGPPeerTemplateTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = BGPPeerTemplate
     view_namespace = "plugins-api:netbox_routing_protocols"
     brief_fields = [
@@ -39,7 +39,7 @@ class BGPPeerTemplateTestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class BGPPolicyTemplateTestCase(APIViewTestCases.APIViewTestCase):
+class BGPPolicyTemplateTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = BGPPolicyTemplate
     view_namespace = "plugins-api:netbox_routing_protocols"
     brief_fields = [
@@ -67,7 +67,7 @@ class BGPPolicyTemplateTestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class BGPSessionTemplateTestCase(APIViewTestCases.APIViewTestCase):
+class BGPSessionTemplateTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = BGPSessionTemplate
     view_namespace = "plugins-api:netbox_routing_protocols"
     brief_fields = [
@@ -127,6 +127,7 @@ class BGPRouterTestCase(
 
 
 class BGPScopeTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     BGPRouterMixin,
     VRFMixin,
@@ -158,7 +159,10 @@ class BGPScopeTestCase(
 
 
 class BGPAddressFamilyTestCase(
-    AutomatedModelCreationMixin, BGPScopeMixin, APIViewTestCases.APIViewTestCase
+    LeanCoreTestsMixin,
+    AutomatedModelCreationMixin,
+    BGPScopeMixin,
+    APIViewTestCases.APIViewTestCase,
 ):
     model = BGPAddressFamily
     view_namespace = "plugins-api:netbox_routing_protocols"
@@ -196,6 +200,7 @@ class BGPAddressFamilyTestCase(
 
 
 class BGPPeerTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     AddressesMixin,
     BGPScopeMixin,
@@ -242,6 +247,7 @@ class BGPPeerTestCase(
 
 
 class BGPPeerAddressFamilyTestCase(
+    LeanCoreTestsMixin,
     AutomatedModelCreationMixin,
     BGPPeerMixin,
     BGPAddressFamilyMixin,
@@ -283,6 +289,7 @@ class BGPPeerAddressFamilyTestCase(
 
 
 class BFDProfileTestCase(
+    LeanCoreTestsMixin,
     APIViewTestCases.APIViewTestCase,
 ):
     model = BFDProfile

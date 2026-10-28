@@ -3,6 +3,7 @@ from tenancy.models import Tenant
 from utilities.testing import APIViewTestCases  # , APITestCase, create_test_device
 
 from netbox_routing_protocols.models.community import *
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'CommunityTestCase',
@@ -49,7 +50,7 @@ class CommunityTestCase(APIViewTestCases.APIViewTestCase):
         ]
 
 
-class CommunityListTestCase(APIViewTestCases.APIViewTestCase):
+class CommunityListTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = CommunityList
     view_namespace = "plugins-api:netbox_routing_protocols"
     graphql_base_name = 'communitylist'
