@@ -1,13 +1,19 @@
+# The same checks run in CI (.github/workflows/ci.yml): `pre-commit run --all-files`.
+# Install the hooks once per clone with `pre-commit install`.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    rev: v0.17.3
     hooks:
-      - id: ruff
+      - id: ruff-check
         name: "Ruff linter"
-        args: [ netbox_routing_protocols/ ]
+        args: [ --config, ruff.toml ]
+        files: ^netbox_routing_protocols/
   - repo: https://github.com/psf/black
     rev: 26.10.1
     hooks:
       - id: black
         name: "Black"
-        args: [ --check, ]
+        # the options (single quotes kept) are in pyproject.toml; pre-commit passes
+        # the files one by one, so the migrations excluded there are excluded here too
+        files: ^netbox_routing_protocols/
+        exclude: ^netbox_routing_protocols/migrations/

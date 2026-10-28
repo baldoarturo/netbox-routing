@@ -25,11 +25,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install linters
-        run: pip install ruff black
+      - name: Install pre-commit
+        run: pip install pre-commit
 
-      - name: Check Ruff
-        run: ruff check --config ruff.toml netbox_routing_protocols/
-
-      - name: Check Black
-        run: black --check --skip-string-normalization netbox_routing_protocols
+      - name: Run the hooks (Ruff and Black)
+        run: pre-commit run --all-files --show-diff-on-failure

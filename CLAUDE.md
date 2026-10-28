@@ -60,5 +60,5 @@ dev/test.sh --rebuild                # build the template again
 - `--parallel` needs `tblib` in the NetBox venv (`pip install tblib`) to report failures, and hides the real error behind a pickle error otherwise: rerun that test alone.
 - After merging a branch with migrations into `main`, run `dev/test.sh --rebuild` once.
 - Without the script: the plugin is installed editable in the NetBox venv; use a config module that extends `netbox.configuration_testing` with `PLUGINS += ['netbox_routing_protocols']` (and `DEVELOPER = True`), and run `manage.py test netbox_routing_protocols --noinput` from `<netbox>/netbox`. Do not use `--keepdb` there across branches with different migrations.
-- Lint exactly like CI: `ruff check --config ruff.toml netbox_routing_protocols` and `black --check --skip-string-normalization netbox_routing_protocols`.
+- Lint exactly like CI: `pre-commit run --all-files` (Ruff and Black, configured in `.pre-commit-config.yaml`, which is what `ci.yml` runs on every pull request; the versions are pinned there). Install the hooks once per clone with `pre-commit install` (`pip install pre-commit`); worktrees share them. Without pre-commit: `ruff check --config ruff.toml netbox_routing_protocols` and `black --check --skip-string-normalization netbox_routing_protocols`.
 
