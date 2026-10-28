@@ -60,12 +60,20 @@ if [ -n "$RESET" ]; then
 fi
 
 if [ "$(psql_ -Atc "SELECT count(*) FROM pg_database WHERE datname = '$DEV_DB'")" = 0 ]; then
+    # A $SOURCE_DB migrated by the plugin before it was renamed (app label
+    # netbox_routing) cannot be copied: the renamed migrations would clash with its tables
+    OLD_APP=0
+    if [ "$(psql_ -Atc "SELECT count(*) FROM pg_database WHERE datname = '$SOURCE_DB'")" = 1 ]; then
+        OLD_APP="$(podman exec -i "$POSTGRES" psql -U netbox -d "$SOURCE_DB" -Atc \
+            "SELECT count(*) FROM django_migrations WHERE app = 'netbox_routing'" 2>/dev/null || echo 0)"
+    fi
     if [ "$(psql_ -Atc "SELECT count(*) FROM pg_database WHERE datname = '$SOURCE_DB'")" = 1 ] \
+        && [ "$OLD_APP" = 0 ] \
         && [ "$(psql_ -Atc "SELECT count(*) FROM pg_stat_activity WHERE datname = '$SOURCE_DB'")" = 0 ]; then
         echo "==> Creating $DEV_DB as a copy of $SOURCE_DB"
         psql_ -c "CREATE DATABASE \"$DEV_DB\" TEMPLATE \"$SOURCE_DB\""
     else
-        echo "==> Creating $DEV_DB from the demo data ($SOURCE_DB is missing or in use)"
+        echo "==> Creating $DEV_DB from the demo data ($SOURCE_DB is missing, in use or has the old netbox_routing app)"
         [ -f "$DEMO_SQL" ] || { echo "error: $DEMO_SQL not found" >&2; exit 1; }
         psql_ -c "CREATE DATABASE \"$DEV_DB\""
         grep -v '^\\restrict\|^\\unrestrict' "$DEMO_SQL" \
