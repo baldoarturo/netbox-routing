@@ -8,6 +8,7 @@ from netbox_routing.choices import AuthenticationChoices
 from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
+    OSPFGracefulRestartChoices,
     OSPFNetworkTypeChoices,
     OSPFRedistributionProtocolChoices,
 )
@@ -72,6 +73,36 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('Default Originate Metric Type'),
     )
+    graceful_restart = forms.MultipleChoiceField(
+        choices=OSPFGracefulRestartChoices,
+        required=False,
+        label=_('Graceful Restart'),
+    )
+    max_metric_router_lsa = forms.NullBooleanField(
+        required=False,
+        label=_('Max Metric (Stub Router)'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    rfc1583_compatibility = forms.NullBooleanField(
+        required=False,
+        label=_('RFC 1583 Compatibility'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    log_adjacency_changes = forms.NullBooleanField(
+        required=False,
+        label=_('Log Adjacency Changes'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    bfd_all_interfaces = forms.NullBooleanField(
+        required=False,
+        label=_('BFD on All Interfaces'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    passive_interface_default = forms.NullBooleanField(
+        required=False,
+        label=_('Passive Interfaces by Default'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
 
     model = OSPFInstance
     fieldsets = (
@@ -87,6 +118,15 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
             'default_originate_metric',
             'default_originate_metric_type',
             name=_('Default Information'),
+        ),
+        FieldSet(
+            'graceful_restart',
+            'max_metric_router_lsa',
+            'rfc1583_compatibility',
+            'log_adjacency_changes',
+            'bfd_all_interfaces',
+            'passive_interface_default',
+            name=_('Advanced'),
         ),
     )
     tag = TagFilterField(model)

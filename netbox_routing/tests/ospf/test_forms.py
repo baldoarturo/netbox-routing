@@ -35,6 +35,31 @@ class OSPFInstanceTestCase(TestCase):
         self.assertTrue(form.is_valid())
         self.assertTrue(form.save())
 
+    def test_advanced_options_left_out_take_their_default(self):
+        form = OSPFInstanceForm(
+            data={
+                'name': 'Instance 3',
+                'process_id': '2',
+                'router_id': '30.30.30.1',
+                'device': self.device.pk,
+                'graceful_restart': 'planned',
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        instance = form.save()
+        self.assertEqual(instance.graceful_restart, 'planned')
+        self.assertEqual(instance.spf_initial_delay, 50)
+        self.assertEqual(instance.graceful_restart_period, 120)
+        self.assertEqual(instance.max_lsa_threshold, 75)
+
+    def test_checkboxes_start_with_their_default(self):
+        # A checkbox that is not sent means unchecked, so the form has to show
+        # the default (RFC 2328: RFC 1583 compatibility is enabled).
+        form = OSPFInstanceForm()
+        self.assertIs(form.fields['rfc1583_compatibility'].initial, True)
+        self.assertIs(form.fields['graceful_restart_helper'].initial, True)
+        self.assertIs(form.fields['max_metric_router_lsa'].initial, False)
+
     def test_instance_with_vrf(self):
         form = OSPFInstanceForm(
             data={

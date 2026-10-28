@@ -41,6 +41,7 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
             "default_originate_always",
             "default_originate_metric",
             "default_originate_metric_type",
+            *OSPFInstance.ADVANCED_FIELDS,
             "description",
             "comments",
             "tags",

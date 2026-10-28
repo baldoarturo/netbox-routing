@@ -15,6 +15,10 @@ from netbox_routing.constants.ospf import (
     OSPF_DEAD_INTERVAL_MAX,
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
+    OSPF_GRACEFUL_RESTART_PERIOD_MAX,
+    OSPF_GRACEFUL_RESTART_PERIOD_MIN,
+    OSPF_MAX_LSA_THRESHOLD_MAX,
+    OSPF_MAX_LSA_THRESHOLD_MIN,
     OSPF_TAG_MAX,
     OSPF_DEAD_INTERVAL_MIN,
     OSPF_HELLO_INTERVAL_MAX,
@@ -43,6 +47,16 @@ __all__ = (
 )
 
 from utilities.forms.rendering import FieldSet
+
+
+def _integer(label):
+    return forms.IntegerField(label=label, required=False, min_value=0)
+
+
+def _boolean(label):
+    return forms.ChoiceField(
+        label=label, choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
 
 
 class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
@@ -75,6 +89,46 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         required=False,
     )
 
+    spf_initial_delay = _integer(_('SPF Initial Delay'))
+    spf_short_delay = _integer(_('SPF Short Delay'))
+    spf_long_delay = _integer(_('SPF Long Delay'))
+    spf_time_to_learn = _integer(_('SPF Time to Learn'))
+    spf_holddown = _integer(_('SPF Holddown'))
+    lsa_min_interval = _integer(_('LSA Minimum Interval'))
+    lsa_min_arrival = _integer(_('LSA Minimum Arrival'))
+    max_metric_router_lsa = _boolean(_('Max Metric (Stub Router)'))
+    max_metric_on_startup = forms.IntegerField(
+        label=_('Max Metric On Startup'), required=False, min_value=1
+    )
+    graceful_restart = forms.ChoiceField(
+        label=_('Graceful Restart'),
+        choices=add_blank_choice(choices.OSPFGracefulRestartChoices),
+        required=False,
+    )
+    graceful_restart_period = forms.IntegerField(
+        label=_('Graceful Restart Period'),
+        required=False,
+        min_value=OSPF_GRACEFUL_RESTART_PERIOD_MIN,
+        max_value=OSPF_GRACEFUL_RESTART_PERIOD_MAX,
+    )
+    graceful_restart_helper = _boolean(_('Graceful Restart Helper'))
+    graceful_restart_helper_strict_lsa_checking = _boolean(_('Strict LSA Checking'))
+    rfc1583_compatibility = _boolean(_('RFC 1583 Compatibility'))
+    log_adjacency_changes = _boolean(_('Log Adjacency Changes'))
+    log_adjacency_changes_detail = _boolean(_('Log Adjacency Changes in Detail'))
+    bfd_all_interfaces = _boolean(_('BFD on All Interfaces'))
+    passive_interface_default = _boolean(_('Passive Interfaces by Default'))
+    max_lsa = forms.IntegerField(label=_('Max LSAs'), required=False, min_value=1)
+    max_lsa_threshold = forms.IntegerField(
+        label=_('Max LSAs Warning Threshold'),
+        required=False,
+        min_value=OSPF_MAX_LSA_THRESHOLD_MIN,
+        max_value=OSPF_MAX_LSA_THRESHOLD_MAX,
+    )
+    max_lsa_warning_only = _boolean(_('Max LSAs Warning Only'))
+    external_lsdb_limit = _integer(_('External LSDB Limit'))
+    exit_overflow_interval = _integer(_('Exit Overflow Interval'))
+
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -93,10 +147,14 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet(
             'description',
         ),
+        FieldSet(*OSPFInstance.ADVANCED_FIELDS, name='Advanced'),
     )
     nullable_fields = (
         'vrf',
         'default_originate_metric',
+        'max_metric_on_startup',
+        'max_lsa',
+        'external_lsdb_limit',
         'description',
     )
 

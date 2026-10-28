@@ -12,6 +12,7 @@ from netbox.filtersets import NetBoxModelFilterSet
 from netbox_routing.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
+    OSPFGracefulRestartChoices,
     OSPFNetworkTypeChoices,
     OSPFRedistributionProtocolChoices,
 )
@@ -64,6 +65,10 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
         choices=OSPFExternalMetricTypeChoices,
         label=_('Default Originate Metric Type'),
     )
+    graceful_restart = django_filters.MultipleChoiceFilter(
+        choices=OSPFGracefulRestartChoices,
+        label=_('Graceful Restart'),
+    )
     router_id = MultiValueCharFilter(
         method='filter_rid',
         label=_('Router ID'),
@@ -83,6 +88,7 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             'default_originate_always',
             'default_originate_metric',
             'default_originate_metric_type',
+            *OSPFInstance.ADVANCED_FIELDS,
         )
 
     def search(self, queryset, name, value):

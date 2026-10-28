@@ -25,6 +25,79 @@ class OSPFInstanceTestCase(TestCase):
             name='Instance 1', device=self.device, router_id=router_id, process_id=1
         )
 
+    def test_advanced_options_default_to_the_rfc_values(self):
+        instance = self._instance('10.0.0.1')
+        instance.full_clean()
+        self.assertEqual(
+            (
+                instance.spf_initial_delay,
+                instance.spf_short_delay,
+                instance.spf_long_delay,
+                instance.spf_time_to_learn,
+                instance.spf_holddown,
+            ),
+            (50, 200, 5000, 500, 10000),
+        )
+        self.assertEqual(
+            (instance.lsa_min_interval, instance.lsa_min_arrival), (5000, 1000)
+        )
+        self.assertEqual(instance.graceful_restart, 'disabled')
+        self.assertEqual(instance.graceful_restart_period, 120)
+        self.assertTrue(instance.graceful_restart_helper_strict_lsa_checking)
+        self.assertTrue(instance.rfc1583_compatibility)
+        self.assertEqual(instance.exit_overflow_interval, 0)
+        self.assertIsNone(instance.external_lsdb_limit)
+        self.assertFalse(instance.max_metric_router_lsa)
+
+    def _assert_invalid(self, field, **values):
+        instance = self._instance('10.0.0.1')
+        for name, value in values.items():
+            setattr(instance, name, value)
+        with self.assertRaises(ValidationError) as cm:
+            instance.full_clean()
+        self.assertIn(field, cm.exception.error_dict)
+
+    def test_spf_delays_must_be_ordered(self):
+        self._assert_invalid('spf_short_delay', spf_initial_delay=300)
+        self._assert_invalid('spf_long_delay', spf_long_delay=100)
+        self._assert_invalid('spf_holddown', spf_holddown=500)
+        instance = self._instance('10.0.0.1')
+        instance.spf_initial_delay = instance.spf_short_delay = 200
+        instance.full_clean()
+
+    def test_graceful_restart_period_limits(self):
+        instance = self._instance('10.0.0.1')
+        for period in (1, 1800):
+            instance.graceful_restart_period = period
+            instance.full_clean()
+        for period in (0, 1801):
+            self._assert_invalid(
+                'graceful_restart_period', graceful_restart_period=period
+            )
+
+    def test_max_lsa_threshold_limits(self):
+        for threshold in (0, 101):
+            self._assert_invalid('max_lsa_threshold', max_lsa_threshold=threshold)
+
+    def test_dependent_options_need_their_parent(self):
+        self._assert_invalid('max_metric_on_startup', max_metric_on_startup=60)
+        self._assert_invalid(
+            'log_adjacency_changes_detail', log_adjacency_changes_detail=True
+        )
+        self._assert_invalid('max_lsa_warning_only', max_lsa_warning_only=True)
+        self._assert_invalid('exit_overflow_interval', exit_overflow_interval=30)
+
+        instance = self._instance('10.0.0.1')
+        instance.max_metric_router_lsa = True
+        instance.max_metric_on_startup = 60
+        instance.log_adjacency_changes = True
+        instance.log_adjacency_changes_detail = True
+        instance.max_lsa = 1000
+        instance.max_lsa_warning_only = True
+        instance.external_lsdb_limit = 500
+        instance.exit_overflow_interval = 30
+        instance.full_clean()
+
     def test_default_originate_defaults(self):
         instance = self._instance('10.0.0.1')
         instance.full_clean()

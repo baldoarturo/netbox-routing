@@ -59,3 +59,17 @@ class OSPFRedistributionProtocolChoices(ChoiceSet):
         (OSPF, 'OSPF'),
         (ISIS, 'IS-IS'),
     ]
+
+
+class OSPFGracefulRestartChoices(ChoiceSet):
+    """RestartSupport values of RFC 3623 appendix B.1."""
+
+    DISABLED = 'disabled'
+    PLANNED = 'planned'
+    PLANNED_UNPLANNED = 'planned-unplanned'
+
+    CHOICES = [
+        (DISABLED, 'Disabled'),
+        (PLANNED, 'Planned restarts only'),
+        (PLANNED_UNPLANNED, 'Planned and unplanned restarts'),
+    ]
