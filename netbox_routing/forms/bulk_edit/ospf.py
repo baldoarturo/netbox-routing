@@ -13,6 +13,8 @@ from netbox_routing.constants.ospf import (
     OSPF_COST_MAX,
     OSPF_COST_MIN,
     OSPF_DEAD_INTERVAL_MAX,
+    OSPF_EXTERNAL_METRIC_MAX,
+    OSPF_EXTERNAL_METRIC_MIN,
     OSPF_DEAD_INTERVAL_MIN,
     OSPF_HELLO_INTERVAL_MAX,
     OSPF_HELLO_INTERVAL_MIN,
@@ -40,6 +42,28 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
         queryset=VRF.objects.all(), label=_('VRF'), required=False, selector=True
     )
 
+    default_originate = forms.ChoiceField(
+        label=_('Default Originate'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
+    default_originate_always = forms.ChoiceField(
+        label=_('Default Originate Always'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
+    )
+    default_originate_metric = forms.IntegerField(
+        label=_('Default Originate Metric'),
+        required=False,
+        min_value=OSPF_EXTERNAL_METRIC_MIN,
+        max_value=OSPF_EXTERNAL_METRIC_MAX,
+    )
+    default_originate_metric_type = forms.ChoiceField(
+        label=_('Default Originate Metric Type'),
+        choices=add_blank_choice(choices.OSPFExternalMetricTypeChoices),
+        required=False,
+    )
+
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -49,11 +73,19 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     fieldsets = (
         FieldSet('device', 'vrf', name='OSPF'),
         FieldSet(
+            'default_originate',
+            'default_originate_always',
+            'default_originate_metric',
+            'default_originate_metric_type',
+            name='Default Information',
+        ),
+        FieldSet(
             'description',
         ),
     )
     nullable_fields = (
         'vrf',
+        'default_originate_metric',
         'description',
     )
 

@@ -8,11 +8,16 @@ from django.utils.translation import gettext_lazy as _
 from netbox.models import PrimaryModel
 
 from netbox_routing import choices
-from netbox_routing.choices.ospf import OSPFAreaTypeChoices
+from netbox_routing.choices.ospf import (
+    OSPFAreaTypeChoices,
+    OSPFExternalMetricTypeChoices,
+)
 from netbox_routing.constants import ERROR_UNIQUENESS_CONSTRAINT
 from netbox_routing.constants.ospf import (
     OSPF_COST_MAX,
     OSPF_COST_MIN,
+    OSPF_EXTERNAL_METRIC_MAX,
+    OSPF_EXTERNAL_METRIC_MIN,
     OSPF_INTERFACE_TIMERS,
 )
 from netbox_routing.fields.ip import IPAddressField
@@ -43,8 +48,47 @@ class OSPFInstance(PrimaryModel):
         blank=True,
         null=True,
     )
+    default_originate = models.BooleanField(
+        verbose_name=_('Default Originate'),
+        help_text=_(
+            'Originate a default route (0.0.0.0/0) into OSPF. '
+            'Unless "always" is set, it is only advertised while a default route exists.'
+        ),
+        default=False,
+    )
+    default_originate_always = models.BooleanField(
+        verbose_name=_('Default Originate Always'),
+        help_text=_('Advertise the default route even if none exists locally'),
+        default=False,
+    )
+    default_originate_metric = models.PositiveIntegerField(
+        verbose_name=_('Default Originate Metric'),
+        help_text=_('Metric of the originated default route'),
+        validators=[
+            MinValueValidator(OSPF_EXTERNAL_METRIC_MIN),
+            MaxValueValidator(OSPF_EXTERNAL_METRIC_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
+    default_originate_metric_type = models.CharField(
+        verbose_name=_('Default Originate Metric Type'),
+        choices=OSPFExternalMetricTypeChoices,
+        default=OSPFExternalMetricTypeChoices.TYPE_2,
+        max_length=1,
+    )
 
-    clone_fields = ('name', 'router_id', 'process_id', 'device', 'vrf')
+    clone_fields = (
+        'name',
+        'router_id',
+        'process_id',
+        'device',
+        'vrf',
+        'default_originate',
+        'default_originate_always',
+        'default_originate_metric',
+        'default_originate_metric_type',
+    )
     prerequisite_models = ('dcim.Device',)
 
     class Meta:
@@ -67,6 +111,16 @@ class OSPFInstance(PrimaryModel):
 
     def clean(self):
         super().clean()
+        if not self.default_originate and (
+            self.default_originate_always or self.default_originate_metric is not None
+        ):
+            raise ValidationError(
+                {
+                    'default_originate': _(
+                        'Default originate must be enabled to set "always" or a metric.'
+                    )
+                }
+            )
         if self.router_id is not None and self.router_id != '':
             try:
                 router_id = netaddr.IPAddress(self.router_id)

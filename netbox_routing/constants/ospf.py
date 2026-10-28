@@ -42,3 +42,8 @@ OSPF_INTERFACE_TIMERS = {
         OSPF_TRANSMIT_DELAY_DEFAULT,
     ),
 }
+
+# External (AS-external-LSA) metric is a 24-bit value; 0xFFFFFF is LSInfinity
+# (RFC 2328 A.4.5, 12.4.4).
+OSPF_EXTERNAL_METRIC_MIN = 0
+OSPF_EXTERNAL_METRIC_MAX = 16777214

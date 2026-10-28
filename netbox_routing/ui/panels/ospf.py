@@ -16,6 +16,18 @@ class OSPFInstancePanel(panels.ObjectAttributesPanel):
     router_id = attrs.TextAttr('router_id', label=_('Router ID'))
     device = attrs.RelatedObjectAttr('device', label=_('Device'))
     vrf = attrs.RelatedObjectAttr('vrf', linkify=True)
+    default_originate = attrs.BooleanAttr(
+        'default_originate', label=_('Default Originate')
+    )
+    default_originate_always = attrs.BooleanAttr(
+        'default_originate_always', label=_('Default Originate Always')
+    )
+    default_originate_metric = attrs.NumericAttr(
+        'default_originate_metric', label=_('Default Originate Metric')
+    )
+    default_originate_metric_type = attrs.ChoiceAttr(
+        'default_originate_metric_type', label=_('Default Originate Metric Type')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 
