@@ -169,3 +169,15 @@ class OSPFSRAlgorithmChoices(ChoiceSet):
         (SPF, 'SPF'),
         (STRICT_SPF, 'Strict SPF'),
     ]
+
+
+class OSPFFastRerouteChoices(ChoiceSet):
+    """IP fast reroute modes: loop-free alternates (RFC 5286) and remote LFA (RFC 7490)."""
+
+    LFA = 'lfa'
+    REMOTE_LFA = 'remote-lfa'
+
+    CHOICES = [
+        (LFA, 'Loop-Free Alternate (RFC 5286)'),
+        (REMOTE_LFA, 'Remote LFA (RFC 7490)'),
+    ]

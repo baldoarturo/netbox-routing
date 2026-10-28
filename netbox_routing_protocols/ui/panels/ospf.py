@@ -149,6 +149,7 @@ class OSPFAreaPanel(panels.ObjectAttributesPanel):
     traffic_engineering = attrs.BooleanAttr(
         'traffic_engineering', label=_('Traffic Engineering')
     )
+    fast_reroute = attrs.BooleanAttr('fast_reroute', label=_('Fast Reroute'))
     nssa_default_originate = attrs.BooleanAttr(
         'nssa_default_originate', label=_('Default Information Originate')
     )
@@ -178,6 +179,7 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     mtu = attrs.NumericAttr('interface.mtu', label=_('MTU'))
     mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
     adjacency_sid = attrs.NumericAttr('adjacency_sid', label=_('Adjacency SID'))
+    fast_reroute = attrs.ChoiceAttr('fast_reroute', label=_('Fast Reroute'))
     te_metric = attrs.NumericAttr('te_metric', label=_('TE Metric'))
     te_max_reservable_bandwidth = attrs.NumericAttr(
         'te_max_reservable_bandwidth', label=_('TE Maximum Reservable Bandwidth')

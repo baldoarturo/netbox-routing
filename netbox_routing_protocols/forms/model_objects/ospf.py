@@ -162,7 +162,7 @@ class OSPFAreaForm(PrimaryModelForm):
             'nssa_default_originate',
             name=_('NSSA'),
         ),
-        FieldSet('traffic_engineering', name=_('Traffic Engineering')),
+        FieldSet('traffic_engineering', 'fast_reroute', name=_('Advanced')),
         FieldSet(
             'authentication',
             'authentication_key_id',
@@ -204,6 +204,7 @@ class OSPFAreaForm(PrimaryModelForm):
             'nssa_no_redistribution',
             'nssa_default_originate',
             'traffic_engineering',
+            'fast_reroute',
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             'description',
             'comments',
@@ -272,6 +273,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'bfd',
             'mtu_ignore',
             'adjacency_sid',
+            'fast_reroute',
             name=_('Interface'),
         ),
         FieldSet(
@@ -327,6 +329,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'ttl_security_hops',
             'mtu_ignore',
             'adjacency_sid',
+            'fast_reroute',
             'te_metric',
             'te_max_reservable_bandwidth',
             'te_admin_group',

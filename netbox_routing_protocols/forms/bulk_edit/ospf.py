@@ -302,6 +302,9 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
     show_md5 = forms.ChoiceField(
         label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
+    fast_reroute = forms.ChoiceField(
+        label=_('Fast Reroute'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
+    )
     traffic_engineering = forms.ChoiceField(
         label=_('Traffic Engineering'),
         choices=BOOLEAN_WITH_BLANK_CHOICES,
@@ -330,7 +333,7 @@ class OSPFAreaBulkEditForm(NetBoxModelBulkEditForm):
             'key_chain',
             name='Authentication',
         ),
-        FieldSet('traffic_engineering'),
+        FieldSet('traffic_engineering', 'fast_reroute'),
         FieldSet('description'),
     )
     nullable_fields = ('default_cost',)
@@ -448,6 +451,11 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         label=_('MD5 Digest'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
 
+    fast_reroute = forms.ChoiceField(
+        label=_('Fast Reroute'),
+        choices=add_blank_choice(choices.OSPFFastRerouteChoices),
+        required=False,
+    )
     adjacency_sid = forms.IntegerField(
         label=_('Adjacency SID'),
         required=False,
@@ -509,6 +517,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             name='Timers',
         ),
         FieldSet('adjacency_sid', name='Segment Routing'),
+        FieldSet('fast_reroute', name='Fast Reroute'),
         FieldSet(
             'te_metric',
             'te_max_reservable_bandwidth',
@@ -518,6 +527,7 @@ class OSPFInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         FieldSet('description'),
     )
     nullable_fields = (
+        'fast_reroute',
         'ttl_security_hops',
         'adjacency_sid',
         'te_metric',

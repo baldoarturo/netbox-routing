@@ -4,7 +4,10 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Interface, Device
 from ipam.models import VRF, IPAddress
 from netbox.forms import NetBoxModelFilterSetForm
-from netbox_routing_protocols.choices.ospf import OSPFAuthenticationChoices
+from netbox_routing_protocols.choices.ospf import (
+    OSPFAuthenticationChoices,
+    OSPFFastRerouteChoices,
+)
 from netbox_routing_protocols.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
@@ -216,6 +219,7 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
             'transmit_delay',
             'ttl_security',
             'ttl_security_hops',
+            'fast_reroute',
             name=_('Timers'),
         ),
     )
@@ -295,6 +299,9 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
     dead_interval = forms.IntegerField(required=False, label=_('Dead Interval'))
     retransmit_interval = forms.IntegerField(
         required=False, label=_('Retransmit Interval')
+    )
+    fast_reroute = forms.MultipleChoiceField(
+        choices=OSPFFastRerouteChoices, required=False, label=_('Fast Reroute')
     )
     transmit_delay = forms.IntegerField(required=False, label=_('Transmit Delay'))
     ttl_security = forms.NullBooleanField(

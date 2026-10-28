@@ -15,6 +15,7 @@ from netbox.models import PrimaryModel
 
 from netbox_routing_protocols import choices
 from netbox_routing_protocols.choices.ospf import (
+    OSPFFastRerouteChoices,
     OSPFNetworkTypeChoices,
     OSPFRangeTypeChoices,
     OSPFAreaTypeChoices,
@@ -947,6 +948,14 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         ),
         default=False,
     )
+    fast_reroute = models.BooleanField(
+        verbose_name=_('Fast Reroute'),
+        help_text=_(
+            'Compute loop-free alternate next hops for the routes of the area '
+            '(RFC 5286); the interfaces choose the mode'
+        ),
+        default=False,
+    )
     prerequisite_models = ('netbox_routing_protocols.OSPFInstance',)
     clone_fields = (
         'instance',
@@ -957,6 +966,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         'nssa_no_redistribution',
         'nssa_default_originate',
         'traffic_engineering',
+        'fast_reroute',
         *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
     )
 
@@ -1055,6 +1065,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         self._clean_area_type_options()
         self._clean_authentication()
         self._clean_interface_authentication()
+        self._clean_fast_reroute()
         if self.area_number is None:
             raise ValidationError(
                 {'area_id': ['This field must be an integer or a valid net address']}
@@ -1067,6 +1078,21 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         if self.area_number != 0 and self.area_type == OSPFAreaTypeChoices.BACKBONE:
             raise ValidationError(
                 {'area_id': _('The backbone area ID must be 0 (0.0.0.0).')}
+            )
+
+    def _clean_fast_reroute(self):
+        if (
+            self.pk
+            and not self.fast_reroute
+            and self.interfaces.filter(fast_reroute__isnull=False).exists()
+        ):
+            raise ValidationError(
+                {
+                    'fast_reroute': _(
+                        'Interfaces of the area use fast reroute, which needs it '
+                        'enabled on the area.'
+                    )
+                }
             )
 
     def _clean_area_type_options(self):
@@ -1227,6 +1253,17 @@ class OSPFInterface(
         blank=True,
         null=True,
     )
+    fast_reroute = models.CharField(
+        verbose_name=_('Fast Reroute'),
+        max_length=20,
+        choices=OSPFFastRerouteChoices,
+        help_text=_(
+            'Protect the traffic that uses this interface with a precomputed '
+            'alternate. Needs fast reroute on the area'
+        ),
+        blank=True,
+        null=True,
+    )
     mtu_ignore = models.BooleanField(
         verbose_name=_('MTU Ignore'),
         help_text=_(
@@ -1249,6 +1286,7 @@ class OSPFInterface(
         'transmit_delay',
         'mtu_ignore',
         'adjacency_sid',
+        'fast_reroute',
         'te_metric',
         'te_max_reservable_bandwidth',
         'te_admin_group',
@@ -1302,6 +1340,12 @@ class OSPFInterface(
     def effective_authentication(self):
         source = self.get_authentication_source()[1]
         return source.authentication if source else None
+
+    def _clean_fast_reroute(self):
+        if self.fast_reroute and self.area_id and not self.area.fast_reroute:
+            raise ValidationError(
+                {'fast_reroute': _('Fast reroute is not enabled on the area.')}
+            )
 
     def _clean_segment_routing(self):
         if (
@@ -1381,6 +1425,7 @@ class OSPFInterface(
         self._clean_interface_scope()
         self._clean_traffic_engineering()
         self._clean_segment_routing()
+        self._clean_fast_reroute()
         self._clean_timers()
         self._clean_ttl_security()
 

@@ -167,6 +167,7 @@ class OSPFAreaFilterSet(NetBoxModelFilterSet):
             'nssa_no_redistribution',
             'nssa_default_originate',
             'traffic_engineering',
+            'fast_reroute',
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
         )
 
@@ -269,6 +270,7 @@ class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
             'ttl_security_hops',
             'mtu_ignore',
             'adjacency_sid',
+            'fast_reroute',
             'te_metric',
             'te_max_reservable_bandwidth',
             'te_admin_group',
