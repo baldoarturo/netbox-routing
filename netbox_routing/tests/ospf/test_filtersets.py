@@ -253,6 +253,7 @@ class OSPFInterfaceTestCase(TestCase):
                 instance=instances[0],
                 area=areas[0],
                 passive=True,
+                cost=10,
             ),
             OSPFInterface(
                 interface=interfaces[1],
@@ -260,6 +261,7 @@ class OSPFInterfaceTestCase(TestCase):
                 area=areas[1],
                 passive=False,
                 network_type=OSPFNetworkTypeChoices.POINT_TO_POINT,
+                cost=20,
             ),
             OSPFInterface(
                 interface=interfaces[2],
@@ -282,6 +284,13 @@ class OSPFInterfaceTestCase(TestCase):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
         params = {'network_type': [OSPFNetworkTypeChoices.BROADCAST]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_cost(self):
+        params = {'cost': [10]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+        params = {'cost': [10, 20]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_q(self):

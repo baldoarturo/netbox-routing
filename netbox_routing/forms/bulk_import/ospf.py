@@ -97,6 +97,7 @@ class OSPFInterfaceImportForm(NetBoxModelImportForm):
             "passive",
             "priority",
             "bfd",
+            "cost",
             "authentication",
             "passphrase",
             "description",

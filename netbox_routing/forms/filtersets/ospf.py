@@ -88,6 +88,7 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
         FieldSet(
             'network_type',
             'priority',
+            'cost',
             'bfd',
             'authentication',
             name=_('Attributes'),
@@ -139,6 +140,7 @@ class OSPFInterfaceFilterForm(NetBoxModelFilterSetForm):
         label=_('Network Type'),
     )
     priority = forms.IntegerField(required=False)
+    cost = forms.IntegerField(required=False, label=_('Cost'))
     authentication = forms.ChoiceField(
         choices=add_blank_choice(AuthenticationChoices), required=False
     )

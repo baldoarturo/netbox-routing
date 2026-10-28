@@ -1,5 +1,6 @@
 import netaddr
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -9,6 +10,7 @@ from netbox.models import PrimaryModel
 from netbox_routing import choices
 from netbox_routing.choices.ospf import OSPFAreaTypeChoices
 from netbox_routing.constants import ERROR_UNIQUENESS_CONSTRAINT
+from netbox_routing.constants.ospf import OSPF_COST_MAX, OSPF_COST_MIN
 from netbox_routing.fields.ip import IPAddressField
 
 __all__ = (
@@ -156,6 +158,18 @@ class OSPFInterface(PrimaryModel):
         blank=False,
         null=False,
     )
+    cost = models.PositiveIntegerField(
+        verbose_name=_('Cost'),
+        help_text=_(
+            'Interface output cost ({min}-{max}). Leave empty to derive it from the interface bandwidth.'
+        ).format(min=OSPF_COST_MIN, max=OSPF_COST_MAX),
+        validators=[
+            MinValueValidator(OSPF_COST_MIN),
+            MaxValueValidator(OSPF_COST_MAX),
+        ],
+        blank=True,
+        null=True,
+    )
     authentication = models.CharField(
         max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
     )
@@ -168,6 +182,7 @@ class OSPFInterface(PrimaryModel):
         'passive',
         'priority',
         'bfd',
+        'cost',
         'authentication',
         'passphrase',
     )

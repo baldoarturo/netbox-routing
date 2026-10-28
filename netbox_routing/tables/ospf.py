@@ -67,6 +67,7 @@ class OSPFInterfaceTable(NetBoxTable):
             'network_type',
             'passive',
             'priority',
+            'cost',
             'bfd',
             'authentication',
             'passphrase',
