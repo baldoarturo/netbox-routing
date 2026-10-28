@@ -171,6 +171,10 @@ class OSPFInterfaceSettingsPanel(panels.ObjectAttributesPanel):
         'retransmit_interval', label=_('Retransmit Interval')
     )
     transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
+    ttl_security = attrs.BooleanAttr('ttl_security', label=_('TTL Security'))
+    ttl_security_hops = attrs.NumericAttr(
+        'ttl_security_hops', label=_('TTL Security Hops')
+    )
     mtu = attrs.NumericAttr('interface.mtu', label=_('MTU'))
     mtu_ignore = attrs.BooleanAttr('mtu_ignore', label=_('MTU Ignore'))
     adjacency_sid = attrs.NumericAttr('adjacency_sid', label=_('Adjacency SID'))
@@ -250,6 +254,10 @@ class OSPFVirtualLinkPanel(panels.ObjectAttributesPanel):
         'retransmit_interval', label=_('Retransmit Interval')
     )
     transmit_delay = attrs.NumericAttr('transmit_delay', label=_('Transmit Delay'))
+    ttl_security = attrs.BooleanAttr('ttl_security', label=_('TTL Security'))
+    ttl_security_hops = attrs.NumericAttr(
+        'ttl_security_hops', label=_('TTL Security Hops')
+    )
     effective_authentication = attrs.TextAttr(
         'effective_authentication', label=_('Authentication in Use')
     )

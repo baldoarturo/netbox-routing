@@ -78,6 +78,8 @@ class OSPFInterfaceType(PrimaryObjectType):
     dead_interval: int
     retransmit_interval: int
     transmit_delay: int
+    ttl_security: bool
+    ttl_security_hops: int | None
     bfd: bool | None
     mtu_ignore: bool
     authentication: str | None

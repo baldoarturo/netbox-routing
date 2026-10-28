@@ -141,6 +141,8 @@ class OSPFInterfaceImportForm(NetBoxModelImportForm):
             "dead_interval",
             "retransmit_interval",
             "transmit_delay",
+            "ttl_security",
+            "ttl_security_hops",
             "mtu_ignore",
             "adjacency_sid",
             "te_metric",

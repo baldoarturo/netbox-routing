@@ -3,6 +3,10 @@
 OSPF_COST_MIN = 1
 OSPF_COST_MAX = 65535
 
+# RFC 5082: a TTL of 255 at the sender, minus the hops the packet may cross
+OSPF_TTL_SECURITY_HOPS_MIN = 1
+OSPF_TTL_SECURITY_HOPS_MAX = 254
+
 # Interface timers, in seconds. RFC 2328 Appendix C.3 names no formal defaults;
 # the defaults are the values it gives for a LAN (hello 10, dead 4 x hello,
 # retransmit 5, transmit delay 1).
