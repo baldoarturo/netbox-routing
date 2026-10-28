@@ -16,6 +16,7 @@ from netbox.models import PrimaryModel
 from netbox_routing_protocols import choices
 from netbox_routing_protocols.choices.ospf import (
     OSPFNetworkTypeChoices,
+    OSPFRangeTypeChoices,
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFAuthenticationChoices,
@@ -1759,16 +1760,26 @@ class OSPFAreaRange(PrimaryModel):
         verbose_name=_('Prefix'),
         help_text=_('IPv4 address range of the area'),
     )
+    range_type = models.CharField(
+        verbose_name=_('Range Type'),
+        help_text=_(
+            'Summary of the intra-area routes (RFC 2328 C.2), or, on an NSSA, '
+            'the addresses of the type 7 LSAs translated into type 5 (RFC 3101 3.2)'
+        ),
+        choices=OSPFRangeTypeChoices,
+        default=OSPFRangeTypeChoices.SUMMARY,
+        max_length=20,
+    )
     advertise = models.BooleanField(
         verbose_name=_('Advertise'),
         help_text=_(
-            'Status of the range: advertised outside the area as a summary route '
-            '(Advertise), or not advertised at all (DoNotAdvertise). RFC 2328 C.2'
+            'Status of the range: advertised outside the area as a single route '
+            '(Advertise), or not advertised at all (DoNotAdvertise)'
         ),
         default=True,
     )
 
-    clone_fields = ('area', 'advertise')
+    clone_fields = ('area', 'range_type', 'advertise')
     prerequisite_models = ('netbox_routing_protocols.OSPFArea',)
 
     class Meta:
@@ -1776,8 +1787,8 @@ class OSPFAreaRange(PrimaryModel):
         ordering = ('area__instance__name', 'area__area_id', 'prefix', 'pk')
         constraints = (
             models.UniqueConstraint(
-                fields=('area', 'prefix'),
-                name='%(app_label)s_%(class)s_unique_area_prefix',
+                fields=('area', 'range_type', 'prefix'),
+                name='%(app_label)s_%(class)s_unique_area_type_prefix',
                 violation_error_message=_('This range already exists in the area.'),
             ),
         )
@@ -1790,6 +1801,15 @@ class OSPFAreaRange(PrimaryModel):
 
     def clean(self):
         super().clean()
+        if (
+            self.area_id
+            and self.range_type == OSPFRangeTypeChoices.NSSA_EXTERNAL
+            and self.area.area_type
+            not in (OSPFAreaTypeChoices.NSSA, OSPFAreaTypeChoices.TNSSA)
+        ):
+            raise ValidationError(
+                {'range_type': _('Type 7 to type 5 ranges only exist on NSSA areas.')}
+            )
         if self.prefix in (None, ''):
             return
         try:

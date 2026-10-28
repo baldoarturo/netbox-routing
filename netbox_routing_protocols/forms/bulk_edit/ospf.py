@@ -622,6 +622,11 @@ class OSPFNeighborBulkEditForm(NetBoxModelBulkEditForm):
 
 
 class OSPFAreaRangeBulkEditForm(NetBoxModelBulkEditForm):
+    range_type = forms.ChoiceField(
+        label=_('Range Type'),
+        choices=add_blank_choice(choices.OSPFRangeTypeChoices),
+        required=False,
+    )
     advertise = forms.ChoiceField(
         label=_('Advertise'), choices=BOOLEAN_WITH_BLANK_CHOICES, required=False
     )
@@ -632,7 +637,7 @@ class OSPFAreaRangeBulkEditForm(NetBoxModelBulkEditForm):
 
     model = OSPFAreaRange
     fieldsets = (
-        FieldSet('advertise'),
+        FieldSet('range_type', 'advertise'),
         FieldSet('description'),
     )
     nullable_fields = ('description',)

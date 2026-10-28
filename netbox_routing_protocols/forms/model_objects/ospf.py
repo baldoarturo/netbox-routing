@@ -692,6 +692,7 @@ class OSPFAreaRangeForm(PrimaryModelForm):
         FieldSet(
             'area',
             'prefix',
+            'range_type',
             'advertise',
             'description',
             name=_('Address Range'),
@@ -703,6 +704,7 @@ class OSPFAreaRangeForm(PrimaryModelForm):
         fields = (
             'area',
             'prefix',
+            'range_type',
             'advertise',
             'description',
             'comments',

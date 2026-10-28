@@ -17,6 +17,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFGracefulRestartChoices,
     OSPFMessageDigestAlgorithmChoices,
     OSPFNetworkTypeChoices,
+    OSPFRangeTypeChoices,
     OSPFRedistributionProtocolChoices,
     OSPFRouteTypeChoices,
 )
@@ -573,10 +574,14 @@ class OSPFAreaRangeFilterSet(NetBoxModelFilterSet):
         label=_('Device (ID)'),
     )
     prefix = django_filters.CharFilter(method='filter_prefix', label=_('Prefix'))
+    range_type = django_filters.MultipleChoiceFilter(
+        choices=OSPFRangeTypeChoices,
+        label=_('Range Type'),
+    )
 
     class Meta:
         model = OSPFAreaRange
-        fields = ('area', 'prefix', 'advertise')
+        fields = ('area', 'prefix', 'range_type', 'advertise')
 
     def search(self, queryset, name, value):
         if not value.strip():

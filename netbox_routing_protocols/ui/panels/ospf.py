@@ -268,5 +268,6 @@ class OSPFAreaRangePanel(panels.ObjectAttributesPanel):
     )
     area = attrs.RelatedObjectAttr('area', label=_('Area'), linkify=True)
     prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    range_type = attrs.ChoiceAttr('range_type', label=_('Range Type'))
     advertise = attrs.BooleanAttr('advertise', label=_('Advertise'))
     description = attrs.TextAttr('description', label=_('Description'))
