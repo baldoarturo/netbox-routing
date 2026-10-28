@@ -15,6 +15,7 @@ from .isis import (
 from .objects import *
 from .ospf import (
     OSPFArea,
+    OSPFAuthenticationMixin,
     OSPFInstance,
     OSPFInterface,
     OSPFNetwork,
@@ -44,6 +45,7 @@ __all__ = (
     'EIGRPInterface',
     # OSPF
     'OSPFArea',
+    'OSPFAuthenticationMixin',
     'OSPFInstance',
     'OSPFInterface',
     'OSPFNetwork',

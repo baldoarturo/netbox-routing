@@ -6,7 +6,12 @@ from netbox.forms import NetBoxModelImportForm
 from utilities.forms.fields import CSVModelChoiceField, CSVChoiceField
 from netbox_routing.choices.ospf import OSPFNetworkTypeChoices
 
-from netbox_routing.models import OSPFInstance, OSPFArea, OSPFInterface
+from netbox_routing.models import (
+    OSPFAuthenticationMixin,
+    OSPFInstance,
+    OSPFArea,
+    OSPFInterface,
+)
 
 __all__ = (
     "OSPFInstanceImportForm",
@@ -42,6 +47,7 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
             "default_originate_metric",
             "default_originate_metric_type",
             *OSPFInstance.ADVANCED_FIELDS,
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             "description",
             "comments",
             "tags",
@@ -73,6 +79,7 @@ class OSPFAreaImportForm(NetBoxModelImportForm):
             "nssa_translate_always",
             "nssa_no_redistribution",
             "nssa_default_originate",
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             "description",
             "comments",
             "tags",

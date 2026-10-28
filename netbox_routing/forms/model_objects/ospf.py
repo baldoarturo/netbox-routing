@@ -21,6 +21,7 @@ from netbox_routing.constants.ospf import (
     OSPF_PRIORITY_DEFAULT,
 )
 from netbox_routing.models import (
+    OSPFAuthenticationMixin,
     BGPRouter,
     EIGRPRouter,
     ISISInstance,
@@ -77,6 +78,15 @@ class OSPFInstanceForm(PrimaryModelForm):
             name=_('Default Information'),
         ),
         FieldSet(*OSPFInstance.ADVANCED_FIELDS, name=_('Advanced')),
+        FieldSet(
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'passphrase',
+            'show_md5',
+            'key_chain',
+            name=_('Authentication'),
+        ),
     )
 
     class Meta:
@@ -92,6 +102,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             'default_originate_metric',
             'default_originate_metric_type',
             *OSPFInstance.ADVANCED_FIELDS,
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             'description',
             'comments',
             'tags',
@@ -102,6 +113,7 @@ class OSPFInstanceForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         # Options left empty fall back to their default (see clean()).
         self.fields['default_originate_metric_type'].required = False
+        self.fields['message_digest_algorithm'].required = False
         for name in OSPFInstance.ADVANCED_FIELDS:
             if not OSPFInstance._meta.get_field(name).null:
                 self.fields[name].required = False
@@ -115,6 +127,10 @@ class OSPFInstanceForm(PrimaryModelForm):
             field = OSPFInstance._meta.get_field(name)
             if not field.null and self.cleaned_data.get(name) in (None, ''):
                 self.cleaned_data[name] = field.get_default()
+        if not self.cleaned_data.get('message_digest_algorithm'):
+            self.cleaned_data['message_digest_algorithm'] = (
+                OSPFMessageDigestAlgorithmChoices.MD5
+            )
         return super().clean()
 
 
@@ -135,9 +151,27 @@ class OSPFAreaForm(PrimaryModelForm):
             'nssa_default_originate',
             name=_('NSSA'),
         ),
+        FieldSet(
+            'authentication',
+            'authentication_key_id',
+            'message_digest_algorithm',
+            'passphrase',
+            'show_md5',
+            'key_chain',
+            name=_('Authentication'),
+        ),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # An empty algorithm falls back to its default (see clean())
+        self.fields['message_digest_algorithm'].required = False
+
     def clean(self):
+        if not self.cleaned_data.get('message_digest_algorithm'):
+            self.cleaned_data['message_digest_algorithm'] = (
+                OSPFMessageDigestAlgorithmChoices.MD5
+            )
         # Area 0 is the backbone: the untouched default type becomes Backbone
         area = OSPFArea(area_id=self.cleaned_data.get('area_id'))
         if (
@@ -157,6 +191,7 @@ class OSPFAreaForm(PrimaryModelForm):
             'nssa_translate_always',
             'nssa_no_redistribution',
             'nssa_default_originate',
+            *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             'description',
             'comments',
             'tags',

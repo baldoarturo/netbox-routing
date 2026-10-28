@@ -93,6 +93,7 @@ class OSPFInstanceView(ObjectView):
         left_panels=[
             OSPFInstancePanel(),
             OSPFInstanceAdvancedPanel(title=_('Advanced')),
+            OSPFAuthenticationPanel(title=_('Authentication')),
             TagsPanel(),
         ],
         right_panels=[
@@ -191,6 +192,7 @@ class OSPFAreaView(ObjectView):
     layout = layout.SimpleLayout(
         left_panels=[
             OSPFAreaPanel(),
+            OSPFAuthenticationPanel(title=_('Authentication')),
             TagsPanel(),
         ],
         right_panels=[
