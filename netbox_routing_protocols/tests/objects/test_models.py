@@ -555,3 +555,24 @@ class RouteMapEntryTestCase(TestCase):
             rme.save()
             self.assertIsInstance(rme, RouteMapEntry)
             self.assertEqual(str(rme), f'{self.route_map} permit {seq}')
+
+
+class PrefixSignalTestCase(TestCase):
+    """Changing an IPAM prefix that would break prefix list entries is refused"""
+
+    def test_the_message_names_a_few_entries_and_counts_the_rest(self):
+        prefix_list = PrefixList.objects.create(name='Signal', family=4)
+        prefix = Prefix.objects.create(prefix='10.0.0.0/24')
+        for sequence in range(1, 8):
+            PrefixListEntry.objects.create(
+                prefix_list=prefix_list,
+                sequence=sequence,
+                action='permit',
+                prefix=prefix,
+                ge=28,
+            )
+        prefix.prefix = '10.0.0.0/29'
+        with self.assertRaisesMessage(AbortRequest, 'and 2 more'):
+            prefix.save()
+        prefix.refresh_from_db()
+        self.assertEqual(str(prefix.prefix), '10.0.0.0/24')

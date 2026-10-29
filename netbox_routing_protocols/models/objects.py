@@ -100,6 +100,10 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
 
 
 class PrefixList(PrimaryModel):
+    """
+    An ordered list of prefix rules of one address family, which cannot change once set.
+    """
+
     name = models.CharField(max_length=100)
     family = models.PositiveSmallIntegerField(choices=IPAddressFamilyChoices, default=4)
 
@@ -141,6 +145,12 @@ class PrefixList(PrimaryModel):
 
 
 class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
+    """
+    A rule of a prefix list: permit or deny the prefixes inside an IPAM prefix (or Any, the
+    all zeros prefix IPAM cannot hold) whose length is within ge..le, both inclusive.
+    Lists are evaluated by sequence, first match wins; see helpers/prefix_list.match_range.
+    """
+
     prefix_list = models.ForeignKey(
         to=PrefixList,
         on_delete=models.CASCADE,

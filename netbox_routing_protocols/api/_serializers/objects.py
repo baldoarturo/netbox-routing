@@ -103,6 +103,12 @@ class PrefixListSerializer(PrimaryModelSerializer):
 
 
 class PrefixListEntrySerializer(PrimaryModelSerializer):
+    """
+    Besides the model fields: write-only `eq` (ge = le), `prefix` also accepts "any" or the
+    all zeros prefix, an empty `sequence` takes the next free one, and `warnings` lists the
+    entries that overlap with the one written.
+    """
+
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:prefixlistentry-detail'
     )
@@ -169,11 +175,19 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
         literal = {'0.0.0.0/0': 4, '::/0': 6}
         if value != 'any' and value not in literal:
             return data  # not a shorthand: the nested serializer reports it
-        family = literal.get(value)
-        if family is None:
-            family = self._list_family(data.get('prefix_list'))
+        family = self._list_family(data.get('prefix_list'))
         if family is None and isinstance(self.instance, PrefixListEntry):
             family = self.instance.prefix_list.family
+        if value in literal:
+            # The literal names a family: it must be the one of the list
+            if family is not None and family != literal[value]:
+                raise serializers.ValidationError(
+                    {
+                        'prefix': f"'{value}' is an IPv{literal[value]} prefix and "
+                        f'cannot be added to an IPv{family} prefix list.'
+                    }
+                )
+            family = literal[value]
         if family is None:
             raise serializers.ValidationError(
                 {

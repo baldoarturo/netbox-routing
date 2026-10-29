@@ -377,6 +377,15 @@ class PrefixListFamilyTestCase(APITestCase):
         response = self._post_entry(prefix_list=self.v4.pk, sequence=4)
         self.assertHttpStatus(response, 400)
 
+    def test_any_literal_of_another_family_than_the_list_is_rejected(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        for prefix_list, prefix in ((self.v6, '0.0.0.0/0'), (self.v4, '::/0')):
+            with self.subTest(f'{prefix_list.name} {prefix}'):
+                response = self._post_entry(prefix_list=prefix_list.pk, prefix=prefix)
+                self.assertHttpStatus(response, 400)
+                self.assertIn('cannot be added to an IPv', str(response.data['prefix']))
+        self.assertFalse(PrefixListEntry.objects.exists())
+
     def test_any_on_update_uses_the_list_of_the_entry(self):
         self.add_permissions(
             'netbox_routing_protocols.add_prefixlistentry',

@@ -62,6 +62,10 @@ class ASPathEntryForm(PrimaryModelForm):
 
 
 class PrefixListForm(PrimaryModelForm):
+    """
+    The family is chosen once: the form shows it read only when editing.
+    """
+
     class Meta:
         model = PrefixList
         fields = (
@@ -85,6 +89,11 @@ class PrefixListForm(PrimaryModelForm):
 
 
 class PrefixListEntryForm(PrimaryModelForm):
+    """
+    Empty sequence takes the next one (new entries only), `eq` fills ge and le, Any with no
+    length matches everything, and overlaps with other entries are flashed as warnings.
+    """
+
     prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
@@ -140,11 +149,14 @@ class PrefixListEntryForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         # A new entry gets the next sequence number of the list, suggested here when
         # the list is known (the add button of the list) and assigned on save otherwise
-        sequence = self.fields['sequence']
-        sequence.required = False
-        sequence.help_text = _(
-            'Leave empty to use the next one of the list (steps of %(step)s).'
-        ) % {'step': SEQUENCE_STEP}
+        # Only for a new entry: emptying it on an existing one would silently move the
+        # entry to the end of the list
+        if not self.instance.pk:
+            sequence = self.fields['sequence']
+            sequence.required = False
+            sequence.help_text = _(
+                'Leave empty to use the next one of the list (steps of %(step)s).'
+            ) % {'step': SEQUENCE_STEP}
         if not self.instance.pk and not self.initial.get('sequence'):
             prefix_list = str(self.initial.get('prefix_list') or '')
             prefix_list = (
