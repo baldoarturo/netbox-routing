@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
 from dcim.models import Device
 from ipam.models import ASN, VRF, IPAddress
-from netbox_routing_protocols.models import PrefixList, RoutePolicy
+from netbox_routing_protocols.models import ASPath, PrefixList, RoutePolicy
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filtersets import register_filterset
 
@@ -24,6 +24,24 @@ __all__ = (
     'BGPPeerAddressFamilyFilterSet',
     'BFDProfileFilterSet',
 )
+
+
+class ASPathUsageFilterSetMixin(django_filters.FilterSet):
+    """The objects that use an AS-path through the route policy they apply, in or out"""
+
+    aspath_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=ASPath.objects.all(),
+        method='filter_aspath',
+        label=_('AS-Path used by a route policy (ID)'),
+    )
+
+    def filter_aspath(self, queryset, name, value):
+        if not value:
+            return queryset
+        return queryset.filter(
+            Q(routepolicy_in__route_policy_entries__match_aspath__in=value)
+            | Q(routepolicy_out__route_policy_entries__match_aspath__in=value)
+        ).distinct()
 
 
 class PolicyFilterSetMixin(django_filters.FilterSet):
@@ -123,7 +141,10 @@ class BGPPeerTemplateFilterSet(
 
 @register_filterset
 class BGPPolicyTemplateFilterSet(
-    PolicyFilterSetMixin, TenancyFilterSet, PrimaryModelFilterSet
+    ASPathUsageFilterSetMixin,
+    PolicyFilterSetMixin,
+    TenancyFilterSet,
+    PrimaryModelFilterSet,
 ):
     name = django_filters.CharFilter()
     enabled = django_filters.BooleanFilter()
@@ -350,7 +371,7 @@ class BGPPeerFilterSet(NetBoxModelFilterSet):
 
 
 @register_filterset
-class BGPPeerAddressFamilyFilterSet(NetBoxModelFilterSet):
+class BGPPeerAddressFamilyFilterSet(ASPathUsageFilterSetMixin, NetBoxModelFilterSet):
     peer_id = django_filters.ModelMultipleChoiceFilter(
         field_name='peer',
         queryset=BGPScope.objects.all(),

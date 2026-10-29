@@ -187,8 +187,9 @@ Only identical patterns are detected: whether two different regular expressions 
 decided in general.
 
 The page of an AS-path shows its entries with an **Add entry** button (the form opens with the
-AS-path chosen, the next sequence suggested and *permit* preselected), and where it is used (the
-route policy entries that match it). **Duplicate** copies an AS-path with all its entries under a
+AS-path chosen, the next sequence suggested and *permit* preselected), and where it is used, like a prefix list: the
+route policy entries that match it, their route policies, and the BGP policy templates and peer
+address families that apply those policies (in or out), each with a link to the filtered list. **Duplicate** copies an AS-path with all its entries under a
 new name. The lists and entry tables have the edit, delete and changelog buttons and can be filtered
 by name, description, AS-path, action, sequence and pattern, and the action of several entries can be
 changed at once with bulk edit.

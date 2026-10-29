@@ -41,7 +41,12 @@ from netbox_routing_protocols.helpers.prefix_list import (
 )
 from netbox_routing_protocols.filtersets.objects import *
 from netbox_routing_protocols.forms.objects import *
-from netbox_routing_protocols.models import Community, CommunityList
+from netbox_routing_protocols.models import (
+    BGPPeerAddressFamily,
+    BGPPolicyTemplate,
+    Community,
+    CommunityList,
+)
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.tables.objects import *
 from netbox_routing_protocols.ui import *
@@ -796,8 +801,13 @@ class ASPathView(GetRelatedModelsMixin, ObjectView):
     )
 
     def get_extra_context(self, request, instance):
-        # Where the AS-path is used: the route policy entries that match it (a many to
-        # many relation is not detected by NetBox)
+        # Where the AS-path is used: the route policy entries that match it, their route
+        # policies and the BGP objects that apply those (a many to many relation is not
+        # detected by NetBox)
+        policies = RoutePolicy.objects.filter(
+            route_policy_entries__match_aspath=instance
+        )
+        in_use = Q(routepolicy_in__in=policies) | Q(routepolicy_out__in=policies)
         return {
             'related_models': self.get_related_models(
                 request,
@@ -808,6 +818,24 @@ class ASPathView(GetRelatedModelsMixin, ObjectView):
                             match_aspath=instance
                         ),
                         'match_aspath_id',
+                    ),
+                    (
+                        RoutePolicy.objects.restrict(request.user, 'view')
+                        .filter(route_policy_entries__match_aspath=instance)
+                        .distinct(),
+                        'match_aspath_id',
+                    ),
+                    (
+                        BGPPolicyTemplate.objects.restrict(request.user, 'view')
+                        .filter(in_use)
+                        .distinct(),
+                        'aspath_id',
+                    ),
+                    (
+                        BGPPeerAddressFamily.objects.restrict(request.user, 'view')
+                        .filter(in_use)
+                        .distinct(),
+                        'aspath_id',
                     ),
                 ),
             )
