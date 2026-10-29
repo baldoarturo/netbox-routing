@@ -175,15 +175,30 @@ to match routes (see [Route policies](#route-policies)).
 | Action (entry) | **Permit** or **Deny**. New entries start with *permit*. |
 | Pattern (entry) | The match, see below. |
 
-The **pattern** is a POSIX extended regular expression (the family used by Cisco IOS/IOS-XR, Arista
-EOS and FRR), where `_` is an ordinary character so the usual `_65001_` is accepted. The plugin
-stores and shows the pattern, it does not run it, and it does not check any vendor's own dialect
-(Junos matches whole AS numbers instead of characters, for example). It checks that the pattern is
-valid POSIX: not empty, balanced groups, valid bracket expressions (`[0-9]`, `[[:digit:]]`) and
-repetitions (`*`, `+`, `?`, `{m,n}`), something to repeat, no empty alternatives, and no extensions
-that POSIX lacks (`\d`, `(?:...)`). Every AS number written in it must also fit the 32-bit AS_PATH
-([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)), in plain (`0`..`4294967295`) or asdot (`1.10`,
-each part up to `65535`, [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) notation.
+The **pattern** is a regular expression written over the AS numbers of the path, which are read as
+text separated by spaces (`65001 65002 65003`). The plugin **stores and shows** the pattern, it does
+not run it, and it has no support for any vendor's own dialect: it checks the pattern as a POSIX
+extended regular expression (ERE), nothing more. A pattern is accepted when:
+
+- it is not empty and has only printable ASCII characters;
+- the groups `( )` are balanced and have something inside, and there are no empty alternatives
+  (`a||b`, `(a|)`);
+- the bracket expressions are valid: `[0-9]`, `[^5]`, `[[:digit:]]` (the POSIX classes `alnum`,
+  `alpha`, `blank`, `cntrl`, `digit`, `graph`, `lower`, `print`, `punct`, `space`, `upper`, `xdigit`),
+  with ranges in order;
+- the repetitions `*`, `+`, `?`, `{m}`, `{m,}` and `{m,n}` (up to 255, `m` not above `n`) follow
+  something to repeat;
+- the anchors `^` and `$` and the dot `.` are used as in POSIX, and a backslash only escapes a
+  special character (`\(`, `\.`). The extensions POSIX lacks are refused: `\d`, `\w`, `(?:...)`,
+  lookaheads and back-references;
+- every AS number written in it fits the 32-bit AS_PATH ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)),
+  in plain notation (`0` to `4294967295`) or asdot (`1.10`, each part up to `65535`,
+  [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)). Digits inside brackets and repetitions are
+  not AS numbers.
+
+The underscore `_` has no special meaning: it is a plain character. Examples that are valid:
+`^65001 `, `(65002|65003)$`, `^[0-9]+$`, `^65001( 65002)*$`, `.*` and `^$` (an empty path, a route
+originated in the local AS).
 
 Leave the **sequence** empty and the entry takes the next multiple of 10 above the last one of the
 AS-path (the form suggests it when you add an entry from the AS-path, and the API and the import
@@ -210,7 +225,7 @@ columns. Bulk edit changes the description, the AS-path or the action of several
 
 ### Using the API
 
-The REST API (`/api/plugins/routing/objects/aspath/` and `/api/plugins/routing/objects/aspath-entry/`)
+The REST API (`/api/plugins/routing/objects/as-path/` and `/api/plugins/routing/objects/as-path-entry/`)
 follows the same rules as the form, and both objects carry `owner`, `tags`, `custom_fields`,
 `created` and `last_updated` like any other NetBox object.
 

@@ -3,7 +3,9 @@ from typing import Annotated
 import strawberry
 import strawberry_django
 from strawberry import ID
+from strawberry_django import StrFilterLookup
 
+from netbox.graphql.filter_lookups import BigIntegerLookup
 from netbox.graphql.filters import PrimaryModelFilter
 from netbox_routing_protocols import models
 
@@ -19,7 +21,7 @@ __all__ = (
 
 @strawberry_django.filter(models.ASPath, lookups=True)
 class ASPathFilter(PrimaryModelFilter):
-    pass
+    name: StrFilterLookup | None = strawberry_django.filter_field()
 
 
 @strawberry_django.filter(models.ASPathEntry, lookups=True)
@@ -32,11 +34,14 @@ class ASPathEntryFilter(PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     aspath_id: ID | None = strawberry_django.filter_field()
+    sequence: BigIntegerLookup | None = strawberry_django.filter_field()
+    action: StrFilterLookup | None = strawberry_django.filter_field()
+    pattern: StrFilterLookup | None = strawberry_django.filter_field()
 
 
 @strawberry_django.filter(models.PrefixList, lookups=True)
 class PrefixListFilter(PrimaryModelFilter):
-    pass
+    name: StrFilterLookup | None = strawberry_django.filter_field()
 
 
 @strawberry_django.filter(models.PrefixListEntry, lookups=True)
@@ -49,6 +54,8 @@ class PrefixListEntryFilter(PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     prefix_list_id: ID | None = strawberry_django.filter_field()
+    sequence: BigIntegerLookup | None = strawberry_django.filter_field()
+    action: StrFilterLookup | None = strawberry_django.filter_field()
 
 
 @strawberry_django.filter(models.RoutePolicy, lookups=True)

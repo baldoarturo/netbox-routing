@@ -192,3 +192,42 @@ class ASPathAPIFieldsTestCase(APITestCase):
         for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
             self.assertIn(field, response.data)
         self.assertEqual([t['name'] for t in response.data['tags']], ['edge'])
+
+
+class ASPathGraphQLFiltersTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Gql')
+        cls.first = make_entry(cls.aspath, 10, '^1$')
+        cls.second = make_entry(cls.aspath, 20, '^2$', 'deny')
+
+    def query(self, text):
+        response = self.client.post(
+            reverse('graphql'), {'query': text}, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 200)
+        self.assertNotIn('errors', response.json(), response.json())
+        return response.json()['data']
+
+    def test_entries_can_be_filtered(self):
+        self.add_permissions(
+            'netbox_routing_protocols.view_aspath',
+            'netbox_routing_protocols.view_aspathentry',
+        )
+        for filters, expected in (
+            ('sequence: {filter_lookup: {exact: 20}}', [self.second]),
+            ('action: {exact: "deny"}', [self.second]),
+            ('pattern: {exact: "^1$"}', [self.first]),
+        ):
+            with self.subTest(filters):
+                data = self.query(
+                    f'{{ aspath_entry_list(filters: {{{filters}}}) {{ id pattern }} }}'
+                )
+                self.assertEqual(
+                    {int(row['id']) for row in data['aspath_entry_list']},
+                    {entry.pk for entry in expected},
+                )
+        data = self.query('{ aspath_list(filters: {name: {exact: "Gql"}}) { id } }')
+        self.assertEqual(len(data['aspath_list']), 1)
+        data = self.query('{ aspath_list(filters: {name: {exact: "None"}}) { id } }')
+        self.assertEqual(data['aspath_list'], [])
