@@ -37,6 +37,7 @@ __all__ = (
     'ASPathForm',
     'ASPathEntryForm',
     'ASPathDuplicateForm',
+    'ASPathResequenceForm',
 )
 
 
@@ -148,6 +149,24 @@ class ASPathDuplicateForm(forms.Form):
         if ASPath.objects.filter(name__iexact=name).exists():
             raise forms.ValidationError(_('An AS-path with this name already exists.'))
         return name
+
+
+class ASPathResequenceForm(forms.Form):
+    """The first number and the step of a resequence"""
+
+    start = forms.IntegerField(
+        min_value=1,
+        max_value=4294967294,
+        initial=SEQUENCE_STEP,
+        label=_('First number'),
+    )
+    step = forms.IntegerField(
+        min_value=1,
+        max_value=4294967294,
+        initial=SEQUENCE_STEP,
+        label=_('Step'),
+        help_text=_('Distance between the numbers, to leave room to insert entries.'),
+    )
 
 
 class PrefixListForm(PrimaryModelForm):

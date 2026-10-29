@@ -21,6 +21,7 @@ __all__ = (
     'PrefixListImportTestCase',
     'PrefixListImportOverlapTestCase',
     'ASPathImportTestCase',
+    'ASPathImportDuplicatesTestCase',
 )
 
 
@@ -266,3 +267,41 @@ class ASPathImportTestCase(TestCase):
             {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
         )
         self.assertFalse(ASPathEntry.objects.exists())
+
+
+class ASPathImportDuplicatesTestCase(TestCase):
+    def test_the_import_summarizes_entries_with_the_same_pattern(self):
+        user = User.objects.create_superuser('importer', 'i@example.com', 'x')
+        self.client.force_login(user)
+        aspath = ASPath.objects.create(name='Path')
+        ASPathEntry.objects.create(
+            aspath=aspath, sequence=5, action='permit', pattern='^1$'
+        )
+        csv = 'aspath,action,pattern\nPath,deny,^1$\nPath,permit,^2$\nPath,permit,^2$\n'
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:aspathentry_bulk_import'),
+            {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
+            follow=True,
+        )
+        texts = [str(message) for message in response.context['messages']]
+        summary = [text for text in texts if 'same pattern' in text]
+        self.assertEqual(len(summary), 1, texts)
+        self.assertIn('AS-path Path', summary[0])
+        self.assertIn('1 shadowed, 1 shadows', summary[0])
+        self.assertEqual(ASPathEntry.objects.count(), 4)
+
+    def test_no_summary_without_duplicates(self):
+        user = User.objects.create_superuser('importer', 'i@example.com', 'x')
+        self.client.force_login(user)
+        ASPath.objects.create(name='Path')
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:aspathentry_bulk_import'),
+            {
+                'data': 'aspath,action,pattern\nPath,permit,^1$\nPath,permit,^2$\n',
+                'format': 'csv',
+                'csv_delimiter': ',',
+            },
+            follow=True,
+        )
+        texts = [str(message) for message in response.context['messages']]
+        self.assertFalse([text for text in texts if 'same pattern' in text], texts)

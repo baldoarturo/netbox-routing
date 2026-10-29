@@ -231,3 +231,57 @@ class ASPathGraphQLFiltersTestCase(APITestCase):
         self.assertEqual(len(data['aspath_list']), 1)
         data = self.query('{ aspath_list(filters: {name: {exact: "None"}}) { id } }')
         self.assertEqual(data['aspath_list'], [])
+
+
+class ASPathResequenceAPITestCase(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.aspath = ASPath.objects.create(name='Reseq')
+        make_entry(self.aspath, 3, '^1$')
+        make_entry(self.aspath, 4, '^2$')
+        self.url = reverse(
+            'plugins-api:netbox_routing_protocols-api:aspath-resequence',
+            kwargs={'pk': self.aspath.pk},
+        )
+        self.permissions = (
+            'netbox_routing_protocols.change_aspath',
+            'netbox_routing_protocols.view_aspath',
+        )
+
+    def sequences(self):
+        return list(
+            self.aspath.aspath_entries.order_by('sequence').values_list(
+                'sequence', flat=True
+            )
+        )
+
+    def test_resequence_with_defaults_and_values(self):
+        self.add_permissions(
+            *self.permissions, 'netbox_routing_protocols.change_aspathentry'
+        )
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 200)
+        self.assertEqual(response.data, {'changed': 2})
+        self.assertEqual(self.sequences(), [10, 20])
+        self.client.patch(
+            self.url, {'start': 100, 'step': 50}, format='json', **self.header
+        )
+        self.assertEqual(self.sequences(), [100, 150])
+
+    def test_invalid_values(self):
+        self.add_permissions(
+            *self.permissions, 'netbox_routing_protocols.change_aspathentry'
+        )
+        for data in ({'start': 'x'}, {'step': -1}, {'start': 4294967294, 'step': 10}):
+            with self.subTest(data):
+                response = self.client.patch(
+                    self.url, data, format='json', **self.header
+                )
+                self.assertHttpStatus(response, 400)
+        self.assertEqual(self.sequences(), [3, 4])
+
+    def test_it_needs_the_permission_to_change_entries(self):
+        self.add_permissions(*self.permissions)
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 403)
+        self.assertEqual(self.sequences(), [3, 4])
