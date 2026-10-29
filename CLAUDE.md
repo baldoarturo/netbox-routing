@@ -56,16 +56,16 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 ```
 dev/test.sh                          # the whole suite
 dev/test.sh netbox_routing_protocols.tests.ospf
-dev/test.sh --parallel=4             # about twice as fast
+dev/test.sh --serial                 # one process, to debug a failure
 dev/test.sh --own                    # only the hand-written tests, a quick loop
 dev/test.sh --rebuild                # build the template again
 ```
 
-- Measured on the whole suite (2048 tests): about 6 minutes before, 129 s with the script, 55 s with `--parallel=4`.
+- Measured on the whole suite (2048 tests): about 6 minutes before, 129 s with the script, 55 s with `--parallel=4`, which is now the default.
 - Test classes that inherit NetBox's API/GUI test cases (`APIViewTestCases`, `ViewTestCases`) carry `LeanCoreTestsMixin` (`tests/base.py`), which switches off the checks that test NetBox itself and are identical for every model: permissions, bulk API edge cases, GraphQL, OPTIONS, etag. They run only on one sample model per area, whose classes do not have the mixin: `StaticRoute`, `BGPRouter`, `Community`, `PrefixListEntry`, `OSPFInstance` and `ISISInstance` (API and GUI). Add the mixin to the test classes of every new model. Do not add tests that only exercise NetBox or Django: test what the plugin defines (clean rules, constraints, defaults, filters, forms, serializers).
 - Only the plugin's tests run, never NetBox's own: without a test label the script defaults to `netbox_routing_protocols`.
 - `--own` skips the tests inherited from NetBox's CRUD test classes (API and GUI, about 85 % of the suite) and runs the ones written by hand (models, forms, filters, migrations, validation rules). Run the whole suite once before merging.
-- `--parallel` needs `tblib` in the NetBox venv (`pip install tblib`) to report failures, and hides the real error behind a pickle error otherwise: rerun that test alone.
+- The default `--parallel=4` needs `tblib` in the NetBox venv (the script installs it) to report failures; without it the real error hides behind a pickle error: rerun that test with `--serial`.
 - After merging a branch with migrations into `main`, run `dev/test.sh --rebuild` once.
 - Without the script: the plugin is installed editable in the NetBox venv; use a config module that extends `netbox.configuration_testing` with `PLUGINS += ['netbox_routing_protocols']` (and `DEVELOPER = True`), and run `manage.py test netbox_routing_protocols --noinput` from `<netbox>/netbox`. Do not use `--keepdb` there across branches with different migrations.
 - Lint exactly like CI: `pre-commit run --all-files` (Ruff and Black, configured in `.pre-commit-config.yaml`, which is what `ci.yml` runs on every pull request; the versions are pinned there). Install the hooks once per clone with `pre-commit install` (`pip install pre-commit`); worktrees share them. Without pre-commit: `ruff check --config ruff.toml netbox_routing_protocols` and `black --check --skip-string-normalization netbox_routing_protocols`.

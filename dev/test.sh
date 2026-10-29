@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Usage: dev/test.sh [--netbox DIR] [--rebuild] [--own] [manage.py test arguments]
+# Usage: dev/test.sh [--netbox DIR] [--rebuild] [--own] [--serial] [manage.py test arguments]
 #   --netbox DIR  where NetBox is (default: $NETBOX_ROOT, or .netbox/ inside this
 #                 repository); set up like dev/run.sh does if it is not there
 #   --rebuild  build the template database again
+#   --serial   do not run in parallel (the default is --parallel=4)
 #   --own      only the tests written by hand (models, forms, filters, migrations,
 #              validation rules), not the ones inherited from NetBox's CRUD test
 #              classes for the API and the GUI: a quick loop while developing
@@ -18,7 +19,8 @@ set -euo pipefail
 # Examples:
 #   dev/test.sh
 #   dev/test.sh <module>.tests.some_package
-#   dev/test.sh --parallel=4          (a failing test then hides its error: rerun it alone)
+#   dev/test.sh --parallel=8          a different number of processes
+#   dev/test.sh --serial <label>      one process, to debug a failure
 #
 # The plugin-specific settings are in dev/plugin.conf. Environment: NETBOX_ROOT
 # (same as --netbox).
@@ -27,11 +29,14 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 REBUILD=""
 OWN=""
+PARALLEL=1
 ARGS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --rebuild) REBUILD=1 ;;
         --own) OWN=1 ;;
+        --serial) PARALLEL="" ;;
+        --parallel|--parallel=*) PARALLEL=""; ARGS+=("$1") ;;
         --netbox) [ $# -ge 2 ] || die "--netbox needs a directory"; NETBOX_ROOT="$2"; shift ;;
         --netbox=*) NETBOX_ROOT="${1#--netbox=}" ;;
         *) ARGS+=("$1") ;;
@@ -45,6 +50,7 @@ for arg in "${ARGS[@]+"${ARGS[@]}"}"; do
     case "$arg" in -*|[0-9]*) ;; *) HAS_LABEL=1 ;; esac
 done
 [ -n "$HAS_LABEL" ] || ARGS+=("$PLUGIN_MODULE")
+[ -z "$PARALLEL" ] || ARGS+=(--parallel=4)
 if [ -n "$OWN" ]; then
     [ -n "$OWN_TEST_PATTERNS" ] || die "--own needs OWN_TEST_PATTERNS in dev/plugin.conf"
     # test ids contain the module and the class: select the hand-written ones

@@ -54,7 +54,7 @@ the checked out branch. It sets NetBox up like `run.sh` does if needed.
 
 - `--rebuild` builds the template again (after merging a branch with migrations).
 - `--own` runs only the hand-written tests (`OWN_TEST_PATTERNS`), a quick loop.
-- `--parallel=4` is faster; a failing test then hides its error, so rerun it alone.
+- Tests run with `--parallel=4` by default; `--serial` runs one process (to debug a failure), `--parallel=N` picks another number.
 - Two runs at the same time share the test databases and break each other.
 
 ## Using it in another plugin
