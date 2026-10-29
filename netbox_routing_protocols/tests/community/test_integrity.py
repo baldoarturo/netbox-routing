@@ -243,7 +243,7 @@ class CommunityListTestCase(TestCase):
 class CommunityMigrationTestCase(TestCase):
     def test_data_migration(self):
         migration = importlib.import_module(
-            'netbox_routing_protocols.migrations.0082_community_integrity'
+            'netbox_routing_protocols.migrations.0083_community_integrity'
         )
         a, b, c = (
             Community.objects.create(community=value)
