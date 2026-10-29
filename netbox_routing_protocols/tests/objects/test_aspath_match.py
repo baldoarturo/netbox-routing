@@ -25,6 +25,10 @@ class ParseASPathTestCase(SimpleTestCase):
         self.assertEqual(parse_as_path('  65001   65002 '), '65001 65002')
         self.assertEqual(parse_as_path('1.10 4294967295 0'), '1.10 4294967295 0')
 
+    def test_the_as_prefix_is_dropped(self):
+        self.assertEqual(parse_as_path('AS65001 as65002 65003'), '65001 65002 65003')
+        self.assertEqual(parse_as_path('AS1.10'), '1.10')
+
     def test_invalid_paths(self):
         for text in (
             '',
@@ -34,6 +38,10 @@ class ParseASPathTestCase(SimpleTestCase):
             '4294967296',
             '70000.1',
             '²',
+            'AS',
+            'ASN65001',
+            'AS AS65001',
+            'AS4294967296',
         ):
             with self.subTest(text), self.assertRaises(ValidationError):
                 parse_as_path(text)
@@ -103,6 +111,11 @@ class ASPathMatchViewTestCase(TestCase):
         self.assertContains(response, 'also matches, not reached')
         self.assertNotContains(response, '30 permit')
         self.assertNotContains(response, 'Unused')
+
+    def test_a_path_with_the_as_prefix_is_shown_normalized(self):
+        response = self.client.get(self.url, {'q': 'AS65001 as65002'})
+        self.assertContains(response, 'AS paths matching 65001 65002')
+        self.assertContains(response, '10 deny ^65001 65002$')
 
     def test_the_first_entry_of_each_aspath_is_the_effective_one(self):
         results = self.client.get(self.url, {'q': '65001 65002'}).context['results']

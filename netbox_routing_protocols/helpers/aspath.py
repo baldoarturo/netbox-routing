@@ -298,9 +298,13 @@ def parse_as_path(text):
     """
     The AS_PATH a user typed, as the text the patterns are matched against: AS numbers
     separated by one space. Each one must be a valid AS number (asplain or asdot, see
-    validate_pattern). Raises ValidationError otherwise.
+    validate_pattern), optionally written with the usual ``AS`` prefix (``AS65001``), which
+    is dropped: nothing stores it, the patterns are over the bare numbers. Raises
+    ValidationError otherwise.
     """
-    tokens = text.split()
+    tokens = [
+        token[2:] if token[:2].upper() == 'AS' else token for token in text.split()
+    ]
     if not tokens:
         raise ValidationError(_('Type an AS path, for example 65001 65002.'))
     for token in tokens:
