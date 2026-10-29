@@ -622,7 +622,7 @@ class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
             .filter(aspath__in=aspaths)
             .select_related('aspath')
         )
-        matched, timed_out = aspath_helpers.evaluate_path(path, entries)
+        matched, timed_out, not_evaluated = aspath_helpers.evaluate_path(path, entries)
         results = [
             {
                 'aspath': aspath,
@@ -637,7 +637,12 @@ class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
             }
             for aspath, rows in matched
         ]
-        context = {'path': path, 'results': results, 'timed_out': timed_out}
+        context = {
+            'path': path,
+            'results': results,
+            'timed_out': timed_out,
+            'not_evaluated': not_evaluated,
+        }
         if show_all:
             matched = [result['aspath'].pk for result in results]
             context['unmatched'] = aspaths.exclude(pk__in=matched)

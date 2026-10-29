@@ -197,7 +197,9 @@ neither has the `AS` prefix: patterns are written over the bare numbers.
 
 A pattern is not proved safe: some regular expressions can take very long on some paths (nested
 repetitions such as `(\d+ ?)+`). *Search AS Path Match* gives each entry a fraction of a second, and
-the entries that take longer are skipped and listed in a warning, instead of hanging the page.
+the entries that take longer are skipped and listed in a warning, instead of hanging the page. The
+whole search also has a limit of a few seconds: if it is reached, the entries not yet evaluated are
+counted in a warning and the results may be incomplete.
 
 Leave the **sequence** empty and the entry takes the next multiple of 10 above the last one of the
 AS-path (the form suggests it when you add an entry from the AS-path, and the API and the import

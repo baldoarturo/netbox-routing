@@ -139,7 +139,7 @@ class CatastrophicPatternTestCase(TestCase):
 
     def test_the_slow_entry_is_reported_and_the_others_still_match(self):
         with mock.patch.object(aspath_helpers, 'MATCH_TIMEOUT', 0.05):
-            results, timed_out = aspath_helpers.evaluate_path(
+            results, timed_out, _left = aspath_helpers.evaluate_path(
                 self.PATH, ASPathEntry.objects.select_related('aspath')
             )
         self.assertEqual(timed_out, [self.slow])
@@ -157,7 +157,36 @@ class CatastrophicPatternTestCase(TestCase):
         self.assertContains(response, '20 permit ^65001 ')
 
     def test_a_normal_pattern_is_not_reported(self):
-        _results, timed_out = aspath_helpers.evaluate_path(
+        _results, timed_out, not_evaluated = aspath_helpers.evaluate_path(
             '65001 65002', ASPathEntry.objects.select_related('aspath')
         )
-        self.assertEqual(timed_out, [])
+        self.assertEqual((timed_out, not_evaluated), ([], 0))
+
+    def test_the_whole_search_has_a_time_limit(self):
+        for sequence in range(30, 70, 10):
+            make_entry(self.aspath, sequence, f'{self.SLOW}{sequence}')
+        with (
+            mock.patch.object(aspath_helpers, 'MATCH_TIMEOUT', 0.05),
+            mock.patch.object(aspath_helpers, 'MATCH_BUDGET', 0.08),
+        ):
+            _results, _timed_out, not_evaluated = aspath_helpers.evaluate_path(
+                self.PATH, ASPathEntry.objects.select_related('aspath')
+            )
+        # the budget runs out before the last entries: they are counted, not evaluated
+        self.assertGreater(not_evaluated, 0)
+        self.assertLessEqual(not_evaluated, ASPathEntry.objects.count())
+
+    def test_the_page_says_the_search_was_cut(self):
+        self.client.force_login(self.user)
+        for sequence in range(30, 70, 10):
+            make_entry(self.aspath, sequence, f'{self.SLOW}{sequence}')
+        with (
+            mock.patch.object(aspath_helpers, 'MATCH_TIMEOUT', 0.05),
+            mock.patch.object(aspath_helpers, 'MATCH_BUDGET', 0.08),
+        ):
+            response = self.client.get(
+                reverse('plugins:netbox_routing_protocols:aspath_match'),
+                {'q': self.PATH},
+            )
+        self.assertContains(response, 'The time limit of the search was reached')
+        self.assertContains(response, 'may be incomplete')
