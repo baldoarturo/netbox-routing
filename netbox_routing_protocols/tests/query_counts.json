@@ -61,10 +61,10 @@
   "prefixlist:list_objects_with_permission": 16,
   "prefixlistentry:api_list_objects": 12,
   "prefixlistentry:list_objects_with_permission": 16,
-  "routemap:api_list_objects": 11,
-  "routemap:list_objects_with_permission": 15,
-  "routemapentry:api_list_objects": 15,
-  "routemapentry:list_objects_with_permission": 15,
+  "routepolicy:api_list_objects": 11,
+  "routepolicy:list_objects_with_permission": 15,
+  "routepolicyentry:api_list_objects": 15,
+  "routepolicyentry:list_objects_with_permission": 15,
   "staticroute:api_list_objects": 12,
   "staticroute:list_objects_with_permission": 17
 }

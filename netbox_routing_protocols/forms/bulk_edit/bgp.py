@@ -7,7 +7,7 @@ from netbox_routing_protocols.forms.bulk_edit.base import (
     EnableMixin,
     TenantBulkEditMixin,
 )
-from netbox_routing_protocols.models import RouteMap, PrefixList
+from netbox_routing_protocols.models import RoutePolicy, PrefixList
 from utilities.forms.fields import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
@@ -44,15 +44,15 @@ class BGPPolicyMixin:
         required=False,
         selector=True,
     )
-    routemap_in = DynamicModelChoiceField(
-        label=_('Route Map (in)'),
-        queryset=RouteMap.objects.all(),
+    routepolicy_in = DynamicModelChoiceField(
+        label=_('Route Policy (in)'),
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
     )
-    routemap_out = DynamicModelChoiceField(
-        label=_('Route Map (out)'),
-        queryset=RouteMap.objects.all(),
+    routepolicy_out = DynamicModelChoiceField(
+        label=_('Route Policy (out)'),
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
     )
@@ -211,8 +211,8 @@ class BGPPolicyTemplateBulkEditForm(
         FieldSet(
             'prefixlist_in',
             'prefixlist_out',
-            'routemap_in',
-            'routemap_out',
+            'routepolicy_in',
+            'routepolicy_out',
         ),
         FieldSet('tenant', name=_('Tenancy')),
     )
@@ -221,8 +221,8 @@ class BGPPolicyTemplateBulkEditForm(
         'parents',
         'prefixlist_in',
         'prefixlist_out',
-        'routemap_in',
-        'routemap_out',
+        'routepolicy_in',
+        'routepolicy_out',
         'tenant',
     )
 
@@ -344,8 +344,8 @@ class BGPPeerAddressFamilyBulkEditForm(
         FieldSet(
             'prefixlist_out',
             'prefixlist_in',
-            'routemap_out',
-            'routemap_in',
+            'routepolicy_out',
+            'routepolicy_in',
         ),
         FieldSet('tenant', name=_('Tenancy')),
     )
@@ -353,8 +353,8 @@ class BGPPeerAddressFamilyBulkEditForm(
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
 

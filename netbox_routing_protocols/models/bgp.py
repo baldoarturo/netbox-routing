@@ -186,17 +186,17 @@ class BGPPolicyTemplate(PrimaryModel):
         blank=True,
         null=True,
     )
-    routemap_out = models.ForeignKey(
-        verbose_name=_('Outbound Route Map'),
-        to='netbox_routing_protocols.RouteMap',
+    routepolicy_out = models.ForeignKey(
+        verbose_name=_('Outbound Route Policy'),
+        to='netbox_routing_protocols.RoutePolicy',
         on_delete=models.PROTECT,
         related_name='template_afs_out',
         blank=True,
         null=True,
     )
-    routemap_in = models.ForeignKey(
-        verbose_name=_('Inbound Route Map'),
-        to='netbox_routing_protocols.RouteMap',
+    routepolicy_in = models.ForeignKey(
+        verbose_name=_('Inbound Route Policy'),
+        to='netbox_routing_protocols.RoutePolicy',
         on_delete=models.PROTECT,
         related_name='template_afs_in',
         blank=True,
@@ -217,8 +217,8 @@ class BGPPolicyTemplate(PrimaryModel):
         'enabled',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
     )
     prerequisite_models = ('netbox_routing_protocols.BGPRouter',)
 
@@ -724,17 +724,17 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
         blank=True,
         null=True,
     )
-    routemap_out = models.ForeignKey(
-        verbose_name=_('Outbound Route Map'),
-        to='netbox_routing_protocols.RouteMap',
+    routepolicy_out = models.ForeignKey(
+        verbose_name=_('Outbound Route Policy'),
+        to='netbox_routing_protocols.RoutePolicy',
         on_delete=models.PROTECT,
         related_name='peer_address_families_out',
         blank=True,
         null=True,
     )
-    routemap_in = models.ForeignKey(
-        verbose_name=_('Inbound Route Map'),
-        to='netbox_routing_protocols.RouteMap',
+    routepolicy_in = models.ForeignKey(
+        verbose_name=_('Inbound Route Policy'),
+        to='netbox_routing_protocols.RoutePolicy',
         on_delete=models.PROTECT,
         related_name='peer_address_families_in',
         blank=True,
@@ -763,8 +763,8 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
         'enabled',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     prerequisite_models = (

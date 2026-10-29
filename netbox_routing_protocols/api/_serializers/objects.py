@@ -18,8 +18,8 @@ __all__ = (
     'ASPathEntrySerializer',
     'PrefixListSerializer',
     'PrefixListEntrySerializer',
-    'RouteMapSerializer',
-    'RouteMapEntrySerializer',
+    'RoutePolicySerializer',
+    'RoutePolicyEntrySerializer',
 )
 
 
@@ -271,13 +271,13 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
         return super().validate(data)
 
 
-class RouteMapSerializer(NetBoxModelSerializer):
+class RoutePolicySerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_routing_protocols-api:routemap-detail'
+        view_name='plugins-api:netbox_routing_protocols-api:routepolicy-detail'
     )
 
     class Meta:
-        model = RouteMap
+        model = RoutePolicy
         fields = (
             'url',
             'id',
@@ -289,11 +289,11 @@ class RouteMapSerializer(NetBoxModelSerializer):
         brief_fields = ('url', 'id', 'display', 'name')
 
 
-class RouteMapEntrySerializer(NetBoxModelSerializer):
+class RoutePolicyEntrySerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_routing_protocols-api:routemapentry-detail'
+        view_name='plugins-api:netbox_routing_protocols-api:routepolicyentry-detail'
     )
-    route_map = RouteMapSerializer(nested=True)
+    route_policy = RoutePolicySerializer(nested=True)
     match_prefix_list = PrefixListSerializer(nested=True, many=True, required=False)
     match_community_list = CommunityListSerializer(
         nested=True, many=True, required=False
@@ -302,12 +302,12 @@ class RouteMapEntrySerializer(NetBoxModelSerializer):
     match_aspath = ASPathSerializer(nested=True, many=True, required=False)
 
     class Meta:
-        model = RouteMapEntry
+        model = RoutePolicyEntry
         fields = (
             'url',
             'id',
             'display',
-            'route_map',
+            'route_policy',
             'sequence',
             'action',
             'flow_control',
@@ -324,7 +324,7 @@ class RouteMapEntrySerializer(NetBoxModelSerializer):
             'url',
             'id',
             'display',
-            'route_map',
+            'route_policy',
             'sequence',
             'action',
         )

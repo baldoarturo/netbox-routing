@@ -45,7 +45,7 @@ __all__ = (
     'OSPFPrefixSIDType',
     'PrefixListType',
     'PrefixListEntryType',
-    'RouteMapType',
-    'RouteMapEntryType',
+    'RoutePolicyType',
+    'RoutePolicyEntryType',
     'StaticRouteType',
 )

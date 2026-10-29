@@ -12,8 +12,8 @@ __all__ = (
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
     'PrefixListFamilyTestCase',
-    'RouteMapTestCase',
-    'RouteMapEntryTestCase',
+    'RoutePolicyTestCase',
+    'RoutePolicyEntryTestCase',
 )
 
 
@@ -544,8 +544,8 @@ class PrefixListFamilyTestCase(APITestCase):
         self.assertHttpStatus(response, 400)
 
 
-class RouteMapTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
-    model = RouteMap
+class RoutePolicyTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
+    model = RoutePolicy
     view_namespace = "plugins-api:netbox_routing_protocols"
     brief_fields = [
         'display',
@@ -558,37 +558,37 @@ class RouteMapTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.route_map = (
+        cls.route_policy = (
             cls.model(
-                name='Route Map 1',
+                name='Route Policy 1',
             ),
             cls.model(
-                name='Route Map 2',
+                name='Route Policy 2',
             ),
             cls.model(
-                name='Route Map 3',
+                name='Route Policy 3',
             ),
         )
-        cls.model.objects.bulk_create(cls.route_map)
+        cls.model.objects.bulk_create(cls.route_policy)
 
         cls.create_data = [
             {
-                'name': 'Route Map 4',
+                'name': 'Route Policy 4',
             },
             {
-                'name': 'Route Map 5',
+                'name': 'Route Policy 5',
             },
         ]
 
 
-class RouteMapEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
-    model = RouteMapEntry
+class RoutePolicyEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
+    model = RoutePolicyEntry
     view_namespace = "plugins-api:netbox_routing_protocols"
     brief_fields = [
         'action',
         'display',
         'id',
-        'route_map',
+        'route_policy',
         'sequence',
         'url',
     ]
@@ -597,51 +597,51 @@ class RouteMapEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
 
     @classmethod
     def setUpTestData(cls):
-        cls.route_map = (
-            RouteMap(
-                name='Route Map 1',
+        cls.route_policy = (
+            RoutePolicy(
+                name='Route Policy 1',
             ),
-            RouteMap(
-                name='Route Map 2',
+            RoutePolicy(
+                name='Route Policy 2',
             ),
         )
-        RouteMap.objects.bulk_create(cls.route_map)
+        RoutePolicy.objects.bulk_create(cls.route_policy)
 
-        cls.route_map_entry = (
+        cls.route_policy_entry = (
             cls.model(
-                route_map=cls.route_map[0],
+                route_policy=cls.route_policy[0],
                 action='permit',
                 sequence=1,
                 match={'tags': 1},
                 set={},
             ),
             cls.model(
-                route_map=cls.route_map[0],
+                route_policy=cls.route_policy[0],
                 action='permit',
                 sequence=2,
                 match={'tags': 2},
                 set={},
             ),
             cls.model(
-                route_map=cls.route_map[1],
+                route_policy=cls.route_policy[1],
                 action='permit',
                 sequence=1,
                 match={'tags': 3},
                 set={},
             ),
         )
-        cls.model.objects.bulk_create(cls.route_map_entry)
+        cls.model.objects.bulk_create(cls.route_policy_entry)
 
         cls.create_data = [
             {
-                'route_map': cls.route_map[0].pk,
+                'route_policy': cls.route_policy[0].pk,
                 'action': 'permit',
                 'sequence': 3,
                 'flow_control': 4,
                 'match': {'tags': 4},
             },
             {
-                'route_map': cls.route_map[0].pk,
+                'route_policy': cls.route_policy[0].pk,
                 'action': 'permit',
                 'sequence': 4,
                 'match': {'tags': 5},

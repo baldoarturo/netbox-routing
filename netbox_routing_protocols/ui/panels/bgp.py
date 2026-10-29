@@ -37,8 +37,8 @@ class BFDProfileSessionPanel(panels.ObjectAttributesPanel):
 class BGPPolicyFilteringPanel(panels.ObjectAttributesPanel):
     prefixlist_out = attrs.RelatedObjectAttr('prefixlist_out', linkify=True)
     prefixlist_in = attrs.RelatedObjectAttr('prefixlist_in', linkify=True)
-    routemap_out = attrs.RelatedObjectAttr('routemap_out', linkify=True)
-    routemap_in = attrs.RelatedObjectAttr('routemap_in', linkify=True)
+    routepolicy_out = attrs.RelatedObjectAttr('routepolicy_out', linkify=True)
+    routepolicy_in = attrs.RelatedObjectAttr('routepolicy_in', linkify=True)
 
 
 class BGPPeerSettingPanel(panels.ObjectAttributesPanel):

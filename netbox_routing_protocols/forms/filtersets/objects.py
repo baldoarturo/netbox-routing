@@ -14,8 +14,8 @@ from netbox_routing_protocols.models.objects import *
 __all__ = (
     'PrefixListFilterForm',
     'PrefixListEntryFilterForm',
-    'RouteMapFilterForm',
-    'RouteMapEntryFilterForm',
+    'RoutePolicyFilterForm',
+    'RoutePolicyEntryFilterForm',
     'ASPathFilterForm',
     'ASPathEntryFilterForm',
 )
@@ -72,12 +72,12 @@ class PrefixListEntryFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class RouteMapFilterForm(NetBoxModelFilterSetForm):
-    model = RouteMap
+class RoutePolicyFilterForm(NetBoxModelFilterSetForm):
+    model = RoutePolicy
 
 
-class RouteMapEntryFilterForm(NetBoxModelFilterSetForm):
-    model = RouteMapEntry
+class RoutePolicyEntryFilterForm(NetBoxModelFilterSetForm):
+    model = RoutePolicyEntry
 
 
 class ASPathFilterForm(NetBoxModelFilterSetForm):

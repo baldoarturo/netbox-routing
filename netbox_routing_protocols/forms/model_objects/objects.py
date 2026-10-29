@@ -31,8 +31,8 @@ __all__ = (
     'PrefixListResequenceForm',
     'PrefixListDuplicateForm',
     'PrefixListEntryForm',
-    'RouteMapForm',
-    'RouteMapEntryForm',
+    'RoutePolicyForm',
+    'RoutePolicyEntryForm',
     'ASPathForm',
     'ASPathEntryForm',
 )
@@ -282,9 +282,9 @@ class PrefixListEntryForm(PrimaryModelForm):
             )
 
 
-class RouteMapForm(PrimaryModelForm):
+class RoutePolicyForm(PrimaryModelForm):
     class Meta:
-        model = RouteMap
+        model = RoutePolicy
         fields = (
             'name',
             'description',
@@ -294,7 +294,7 @@ class RouteMapForm(PrimaryModelForm):
         )
 
 
-class RouteMapEntryForm(PrimaryModelForm):
+class RoutePolicyEntryForm(PrimaryModelForm):
     flow_control = forms.IntegerField(
         required=False,
         label=_("Continue"),
@@ -327,7 +327,7 @@ class RouteMapEntryForm(PrimaryModelForm):
 
     fieldsets = (
         FieldSet(
-            'route_map',
+            'route_policy',
             'sequence',
             'action',
         ),
@@ -348,9 +348,9 @@ class RouteMapEntryForm(PrimaryModelForm):
     )
 
     class Meta:
-        model = RouteMapEntry
+        model = RoutePolicyEntry
         fields = (
-            'route_map',
+            'route_policy',
             'sequence',
             'action',
             'flow_control',

@@ -15,8 +15,8 @@ from netbox_routing_protocols.models.objects import *
 __all__ = (
     'PrefixListViewSet',
     'PrefixListEntryViewSet',
-    'RouteMapViewSet',
-    'RouteMapEntryViewSet',
+    'RoutePolicyViewSet',
+    'RoutePolicyEntryViewSet',
     'ASPathViewSet',
     'ASPathEntryViewSet',
 )
@@ -57,16 +57,16 @@ class PrefixListEntryViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.PrefixListEntryFilterSet
 
 
-class RouteMapViewSet(NetBoxModelViewSet):
-    queryset = RouteMap.objects.all()
-    serializer_class = RouteMapSerializer
-    filterset_class = filtersets.RouteMapFilterSet
+class RoutePolicyViewSet(NetBoxModelViewSet):
+    queryset = RoutePolicy.objects.all()
+    serializer_class = RoutePolicySerializer
+    filterset_class = filtersets.RoutePolicyFilterSet
 
 
-class RouteMapEntryViewSet(NetBoxModelViewSet):
-    queryset = RouteMapEntry.objects.select_related('route_map')
-    serializer_class = RouteMapEntrySerializer
-    filterset_class = filtersets.RouteMapEntryFilterSet
+class RoutePolicyEntryViewSet(NetBoxModelViewSet):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    serializer_class = RoutePolicyEntrySerializer
+    filterset_class = filtersets.RoutePolicyEntryFilterSet
 
 
 class ASPathViewSet(NetBoxModelViewSet):

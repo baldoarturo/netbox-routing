@@ -98,7 +98,7 @@ class ISISSRv6LocatorSerializer(NetBoxModelSerializer):
         model = ISISSRv6Locator
         # prefix (IPNetworkField) and vendor_ext (JSONField) round-trip via
         # NetBoxModelSerializer's default field mapping — no explicit declaration
-        # needed (mirrors StaticRouteSerializer.prefix / RouteMapEntrySerializer.vendor_ext).
+        # needed (mirrors StaticRouteSerializer.prefix / RoutePolicyEntrySerializer.vendor_ext).
         fields = (
             'url',
             'id',

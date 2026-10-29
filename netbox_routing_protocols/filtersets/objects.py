@@ -12,8 +12,8 @@ from netbox_routing_protocols.models.community import *
 __all__ = (
     'PrefixListFilterSet',
     'PrefixListEntryFilterSet',
-    'RouteMapFilterSet',
-    'RouteMapEntryFilterSet',
+    'RoutePolicyFilterSet',
+    'RoutePolicyEntryFilterSet',
     'ASPathFilterSet',
     'ASPathEntryFilterSet',
 )
@@ -21,10 +21,10 @@ __all__ = (
 
 @register_filterset
 class ASPathFilterSet(NetBoxModelFilterSet):
-    route_map_entry_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='route_map_entries',
-        queryset=RouteMapEntry.objects.all(),
-        label=_('Route Map Entry (ID)'),
+    route_policy_entry_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy_entries',
+        queryset=RoutePolicyEntry.objects.all(),
+        label=_('Route Policy Entry (ID)'),
     )
 
     class Meta:
@@ -73,10 +73,10 @@ class ASPathEntryFilterSet(NetBoxModelFilterSet):
 
 @register_filterset
 class PrefixListFilterSet(NetBoxModelFilterSet):
-    route_map_entry_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='route_map_entries',
-        queryset=RouteMapEntry.objects.all(),
-        label=_('Route Map Entry (ID)'),
+    route_policy_entry_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy_entries',
+        queryset=RoutePolicyEntry.objects.all(),
+        label=_('Route Policy Entry (ID)'),
     )
 
     class Meta:
@@ -144,10 +144,10 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
 
 
 @register_filterset
-class RouteMapFilterSet(NetBoxModelFilterSet):
+class RoutePolicyFilterSet(NetBoxModelFilterSet):
 
     class Meta:
-        model = RouteMap
+        model = RoutePolicy
         fields = ()
 
     def search(self, queryset, name, value):
@@ -158,17 +158,17 @@ class RouteMapFilterSet(NetBoxModelFilterSet):
 
 
 @register_filterset
-class RouteMapEntryFilterSet(NetBoxModelFilterSet):
-    route_map_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='route_map',
-        queryset=RouteMap.objects.all(),
-        label=_('Route Map (ID)'),
+class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
+    route_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Route Policy (ID)'),
     )
-    route_map = django_filters.ModelMultipleChoiceFilter(
-        field_name='route_map__name',
-        queryset=RouteMap.objects.all(),
+    route_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy__name',
+        queryset=RoutePolicy.objects.all(),
         to_field_name='name',
-        label=_('Route Map (Name)'),
+        label=_('Route Policy (Name)'),
     )
     match_prefix_list_id = django_filters.ModelMultipleChoiceFilter(
         field_name='match_prefix_list',
@@ -216,10 +216,10 @@ class RouteMapEntryFilterSet(NetBoxModelFilterSet):
     )
 
     class Meta:
-        model = RouteMapEntry
+        model = RoutePolicyEntry
         fields = (
-            'route_map_id',
-            'route_map',
+            'route_policy_id',
+            'route_policy',
             'sequence',
             'action',
             'match_prefix_list_id',
@@ -235,7 +235,7 @@ class RouteMapEntryFilterSet(NetBoxModelFilterSet):
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        qs_filter = Q(route_map__name__icontains=value)
+        qs_filter = Q(route_policy__name__icontains=value)
         qs_filter |= Q(match__icontains=value)
         qs_filter |= Q(set__icontains=value)
         return queryset.filter(qs_filter).distinct()

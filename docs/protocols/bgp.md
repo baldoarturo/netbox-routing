@@ -17,7 +17,7 @@ BGP router (ASN, assigned to a device / site / region / cluster / VM)
  └─ Scope (global table, or one VRF)
      ├─ Settings
      ├─ Address family (IPv4 unicast, VPNv4, EVPN, ...)
-     │   └─ Peer address family ── policy (prefix lists, route maps)
+     │   └─ Peer address family ── policy (prefix lists, route policies)
      └─ Peer (neighbor IP address)
          ├─ Settings
          └─ Peer address families
@@ -104,7 +104,7 @@ scope (for example IPv4 unicast) plus the filters applied to that peer in that f
 | Address family | One of the scope's address families. |
 | Enabled | Activate the family for the neighbor. |
 | Prefix list in / out | Prefix lists ([routing objects](../routing-objects.md#prefix-lists)) that filter what is received from and sent to the neighbor. |
-| Route map in / out | Route maps that filter or modify routes in each direction. |
+| Route policy in / out | Route policies that filter or modify routes in each direction. |
 | Policy template | Apply a [policy template](#policy-templates). |
 
 ## Templates
@@ -121,7 +121,7 @@ Fields: parent, enabled, local AS, remote AS, TTL, BFD profile, password, tenant
 
 ### Policy templates
 
-**BGP → Policy Templates**: the **filters** (prefix lists in/out, route maps in/out). A policy template
+**BGP → Policy Templates**: the **filters** (prefix lists in/out, route policies in/out). A policy template
 can have several *parents*; a peer address family points at one.
 
 ### Peer templates
@@ -187,7 +187,7 @@ BGP router
               assigned to: Peer or Peer template · address_family → Address family
               · peer_policy → Policy template · enabled? · tenant → Tenant
               · prefixlist_in → Prefix list · prefixlist_out → Prefix list
-              · routemap_in → Route map · routemap_out → Route map
+              · routepolicy_in → Route policy · routepolicy_out → Route policy
               └─ Settings: key · value
 
 Session template
@@ -197,7 +197,7 @@ Session template
 Policy template
 └─ name · parents → Policy template (several) · enabled? · tenant → Tenant
    · prefixlist_in → Prefix list · prefixlist_out → Prefix list
-   · routemap_in → Route map · routemap_out → Route map
+   · routepolicy_in → Route policy · routepolicy_out → Route policy
 
 Peer template
 └─ name · remote_as → ASN · enabled? · tenant → Tenant

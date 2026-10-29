@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device
 from ipam.models import ASN, VRF, IPAddress
 from netbox.forms import NetBoxModelFilterSetForm, PrimaryModelFilterSetForm
-from netbox_routing_protocols.models import PrefixList, RouteMap
+from netbox_routing_protocols.models import PrefixList, RoutePolicy
 from tenancy.forms import TenancyFilterForm
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
 from utilities.forms.rendering import FieldSet
@@ -39,17 +39,17 @@ class BGPPolicyFilterFormMixin(forms.Form):
         selector=True,
         label=_('Outgoing Prefix List'),
     )
-    routemap_in_id = DynamicModelMultipleChoiceField(
-        queryset=RouteMap.objects.all(),
+    routepolicy_in_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Incoming Route Map'),
+        label=_('Incoming Route Policy'),
     )
-    routemap_out_id = DynamicModelMultipleChoiceField(
-        queryset=RouteMap.objects.all(),
+    routepolicy_out_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Outgoing Route Map'),
+        label=_('Outgoing Route Policy'),
     )
 
 
@@ -96,8 +96,8 @@ class BGPPolicyTemplateFilterForm(
         FieldSet(
             'prefixlist_in_id',
             'prefixlist_out_id',
-            'routemap_in_id',
-            'routemap_out_id',
+            'routepolicy_in_id',
+            'routepolicy_out_id',
             name=_('Filtering'),
         ),
         FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),

@@ -17,8 +17,8 @@ __all__ = (
     'ASPathEntryTestCase',
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
-    'RouteMapTestCase',
-    'RouteMapEntryTestCase',
+    'RoutePolicyTestCase',
+    'RoutePolicyEntryTestCase',
 )
 
 
@@ -205,7 +205,7 @@ class PrefixListEntryTestCase(
         cls.form_data['prefix'] = cls.form_data['prefix'].pk
 
 
-class RouteMapTestCase(
+class RoutePolicyTestCase(
     LeanCoreTestsMixin,
     AutomatedFormDataCreationMixin,
     AutomatedModelCreationMixin,
@@ -220,18 +220,18 @@ class RouteMapTestCase(
     ViewTestCases.BulkDeleteObjectsViewTestCase,
 ):
     # ViewTestCases.BulkImportObjectsViewTestCase,
-    model = RouteMap
+    model = RoutePolicy
     routing_required_fields = ('name',)
 
     def _get_base_url(self):
-        return 'plugins:netbox_routing_protocols:routemap_{}'
+        return 'plugins:netbox_routing_protocols:routepolicy_{}'
 
 
-class RouteMapEntryTestCase(
+class RoutePolicyEntryTestCase(
     LeanCoreTestsMixin,
     AutomatedFormDataCreationMixin,
     AutomatedModelCreationMixin,
-    RouteMapMixin,
+    RoutePolicyMixin,
     BulkEditMixin,
     ViewTestCases.GetObjectViewTestCase,
     ViewTestCases.GetObjectChangelogViewTestCase,
@@ -243,17 +243,17 @@ class RouteMapEntryTestCase(
     ViewTestCases.BulkDeleteObjectsViewTestCase,
 ):
     # ViewTestCases.BulkImportObjectsViewTestCase,
-    model = RouteMapEntry
+    model = RoutePolicyEntry
     action = 'permit'
     set = {}
     match = {
         'tags': 1234,
     }
-    routing_required_fields = ('match', 'set', 'route_map', 'action', 'sequence')
+    routing_required_fields = ('match', 'set', 'route_policy', 'action', 'sequence')
 
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
 
     def _get_base_url(self):
-        return 'plugins:netbox_routing_protocols:routemapentry_{}'
+        return 'plugins:netbox_routing_protocols:routepolicyentry_{}'

@@ -1,7 +1,7 @@
 # NetBox Routing Protocols
 
 A NetBox plugin to **document the routing configuration of your network**: static routes, BGP,
-OSPF, IS-IS and EIGRP, together with the objects they use (prefix lists, route maps, AS paths,
+OSPF, IS-IS and EIGRP, together with the objects they use (prefix lists, route policies, AS paths,
 communities) and BFD profiles.
 
 NetBox already knows your devices, interfaces, IP addresses, prefixes, VRFs, ASNs and tenants.
@@ -22,7 +22,7 @@ instance?"* is one search away, next to the rest of your inventory.
 | OSPF (v2, IPv4) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | [OSPF](protocols/ospf.md) |
 | IS-IS | Instances, interfaces, levels, authentication, segment routing, Flex-Algo, SRv6 | [IS-IS](protocols/isis.md) |
 | EIGRP | Routers (classic and named), address families, networks, interfaces | [EIGRP](protocols/eigrp.md) |
-| Routing objects | Prefix lists, route maps, AS paths, communities and community lists | [Routing objects](routing-objects.md) |
+| Routing objects | Prefix lists, route policies, AS paths, communities and community lists | [Routing objects](routing-objects.md) |
 | BFD | Reusable BFD timer profiles | [BFD](bfd.md) |
 
 ## Where to start

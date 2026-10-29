@@ -14,8 +14,8 @@ __all__ = (
     'ASPathEntryType',
     'PrefixListType',
     'PrefixListEntryType',
-    'RouteMapType',
-    'RouteMapEntryType',
+    'RoutePolicyType',
+    'RoutePolicyEntryType',
 )
 
 
@@ -67,22 +67,22 @@ class PrefixListEntryType(PrimaryObjectType):
     ge: int | None
 
 
-@strawberry_django.type(models.RouteMap, fields='__all__', filters=RouteMapFilter)
-class RouteMapType(PrimaryObjectType):
+@strawberry_django.type(models.RoutePolicy, fields='__all__', filters=RoutePolicyFilter)
+class RoutePolicyType(PrimaryObjectType):
     name: str
 
 
 @strawberry_django.type(
-    models.RouteMapEntry,
+    models.RoutePolicyEntry,
     fields='__all__',
-    filters=RouteMapEntryFilter,
+    filters=RoutePolicyEntryFilter,
     select_related=[
-        'route_map',
+        'route_policy',
     ],
 )
-class RouteMapEntryType(PrimaryObjectType):
-    route_map: Annotated[
-        "RouteMapType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+class RoutePolicyEntryType(PrimaryObjectType):
+    route_policy: Annotated[
+        "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     action: str
     sequence: int

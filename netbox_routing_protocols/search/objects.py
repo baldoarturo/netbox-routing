@@ -64,8 +64,8 @@ class PrefixListEntryIndex(SearchIndex):
 
 
 @register_search
-class RouteMapIndex(SearchIndex):
-    model = RouteMap
+class RoutePolicyIndex(SearchIndex):
+    model = RoutePolicy
     fields = (
         ('name', 100),
         ('description', 4000),
@@ -75,13 +75,13 @@ class RouteMapIndex(SearchIndex):
 
 
 @register_search
-class RouteMapEntryIndex(SearchIndex):
-    model = RouteMapEntry
+class RoutePolicyEntryIndex(SearchIndex):
+    model = RoutePolicyEntry
     fields = (
-        ('route_map', 100),
+        ('route_policy', 100),
         ('match', 200),
         ('set', 300),
         ('description', 4000),
         ('comments', 5000),
     )
-    display_attrs = ('route_map',)
+    display_attrs = ('route_policy',)

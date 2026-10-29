@@ -21,8 +21,8 @@ __all__ = (
     'ASPathEntry',
     'PrefixList',
     'PrefixListEntry',
-    'RouteMap',
-    'RouteMapEntry',
+    'RoutePolicy',
+    'RoutePolicyEntry',
 )
 
 
@@ -281,7 +281,7 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
             raise ValidationError({'le': 'LE cannot be less than the prefix length'})
 
 
-class RouteMap(PrimaryModel):
+class RoutePolicy(PrimaryModel):
     name = models.CharField(max_length=100)
 
     clone_fields = ()
@@ -305,16 +305,16 @@ class RouteMap(PrimaryModel):
 
     def get_absolute_url(self):
         return reverse(
-            'plugins:netbox_routing_protocols:routemap', kwargs={'pk': self.pk}
+            'plugins:netbox_routing_protocols:routepolicy', kwargs={'pk': self.pk}
         )
 
 
-class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
-    route_map = models.ForeignKey(
-        to=RouteMap,
+class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
+    route_policy = models.ForeignKey(
+        to=RoutePolicy,
         on_delete=models.CASCADE,
-        related_name='route_map_entries',
-        verbose_name='Route Map',
+        related_name='route_policy_entries',
+        verbose_name='Route Policy',
     )
     action = models.CharField(max_length=6, choices=ActionChoices)
     sequence = models.PositiveSmallIntegerField()
@@ -324,22 +324,22 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
     match_community_list = models.ManyToManyField(
         to=CommunityList,
         blank=True,
-        related_name='route_map_entries',
+        related_name='route_policy_entries',
     )
     match_community = models.ManyToManyField(
         to=Community,
         blank=True,
-        related_name='route_map_entries',
+        related_name='route_policy_entries',
     )
     match_aspath = models.ManyToManyField(
         to=ASPath,
         blank=True,
-        related_name='route_map_entries',
+        related_name='route_policy_entries',
     )
     match_prefix_list = models.ManyToManyField(
         to=PrefixList,
         blank=True,
-        related_name='route_map_entries',
+        related_name='route_policy_entries',
     )
     match = models.JSONField(
         blank=True,
@@ -355,26 +355,28 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
     )
 
     clone_fields = (
-        'route_map',
+        'route_policy',
         'action',
     )
-    prerequisite_models = ('netbox_routing_protocols.RouteMap',)
+    prerequisite_models = ('netbox_routing_protocols.RoutePolicy',)
 
     class Meta:
-        ordering = ['route_map', 'sequence']
+        ordering = ['route_policy', 'sequence']
         constraints = (
             models.UniqueConstraint(
                 fields=(
-                    'route_map',
+                    'route_policy',
                     'sequence',
                 ),
-                name='%(app_label)s_%(class)s_unique_routemap_sequence',
-                violation_error_message="Route Map sequence must be unique.",
+                name='%(app_label)s_%(class)s_unique_routepolicy_sequence',
+                violation_error_message="Route Policy sequence must be unique.",
             ),
         )
 
     def __str__(self):
-        return f'{self.route_map.name} {self.action} {self.sequence}'
+        return f'{self.route_policy.name} {self.action} {self.sequence}'
 
     def get_absolute_url(self):
-        return reverse('plugins:netbox_routing_protocols:routemapentry', args=[self.pk])
+        return reverse(
+            'plugins:netbox_routing_protocols:routepolicyentry', args=[self.pk]
+        )

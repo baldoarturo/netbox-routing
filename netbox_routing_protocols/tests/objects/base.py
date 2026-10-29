@@ -4,7 +4,7 @@ __all__ = (
     'ParentObjectMixin',
     'ASPathMixin',
     'PrefixListMixin',
-    'RouteMapMixin',
+    'RoutePolicyMixin',
 )
 
 
@@ -28,7 +28,9 @@ class PrefixListMixin:
         )
 
 
-class RouteMapMixin:
+class RoutePolicyMixin:
     @classmethod
     def setUpTestData(cls):
-        cls.route_map = RouteMap.objects.create(name=f'{RouteMap._meta.verbose_name}')
+        cls.route_policy = RoutePolicy.objects.create(
+            name=f'{RoutePolicy._meta.verbose_name}'
+        )

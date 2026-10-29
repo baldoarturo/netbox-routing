@@ -46,7 +46,7 @@ __all__ = (
     'OSPFPrefixSIDFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
-    'RouteMapFilter',
-    'RouteMapEntryFilter',
+    'RoutePolicyFilter',
+    'RoutePolicyEntryFilter',
     'StaticRouteFilter',
 )

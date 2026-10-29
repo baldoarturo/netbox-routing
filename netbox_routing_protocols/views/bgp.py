@@ -187,7 +187,7 @@ class BGPPeerTemplateBulkDeleteView(BulkDeleteView):
 @register_model_view(BGPPolicyTemplate, name='list', path='', detail=False)
 class BGPPolicyTemplateListView(ObjectListView):
     queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
     )
     filterset = BGPPolicyTemplateFilterSet
     filterset_form = BGPPolicyTemplateFilterForm
@@ -197,7 +197,7 @@ class BGPPolicyTemplateListView(ObjectListView):
 @register_model_view(BGPPolicyTemplate)
 class BGPPolicyTemplateView(ObjectView):
     queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
     )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
@@ -217,7 +217,7 @@ class BGPPolicyTemplateView(ObjectView):
 @register_model_view(BGPPolicyTemplate, name='edit')
 class BGPPolicyTemplateEditView(ObjectEditView):
     queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
     )
     form = BGPPolicyTemplateForm
 
@@ -225,14 +225,14 @@ class BGPPolicyTemplateEditView(ObjectEditView):
 @register_model_view(BGPPolicyTemplate, name='delete')
 class BGPPolicyTemplateDeleteView(ObjectDeleteView):
     queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
     )
 
 
 @register_model_view(BGPPolicyTemplate, name='bulk_edit', detail=False)
 class BGPPolicyTemplateBulkEditView(BulkEditView):
     queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
     )
     filterset = BGPPolicyTemplateFilterSet
     form = BGPPolicyTemplateBulkEditForm
@@ -242,7 +242,7 @@ class BGPPolicyTemplateBulkEditView(BulkEditView):
 @register_model_view(BGPPolicyTemplate, name='bulk_delete', detail=False)
 class BGPPolicyTemplateBulkDeleteView(BulkDeleteView):
     queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
     )
     filterset = BGPPolicyTemplateFilterSet
     table = BGPPolicyTemplateTable
@@ -750,8 +750,8 @@ class BGPPeerAddressFamilyListView(ObjectListView):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     filterset = BGPPeerAddressFamilyFilterSet
@@ -766,8 +766,8 @@ class BGPPeerAddressFamilyView(ObjectView):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     template_name = 'generic/object.html'
@@ -793,8 +793,8 @@ class BGPPeerAddressFamilyEditView(ObjectEditView):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     form = BGPPeerAddressFamilyForm
@@ -807,8 +807,8 @@ class BGPPeerAddressFamilyDeleteView(ObjectDeleteView):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
 
@@ -820,8 +820,8 @@ class BGPPeerAddressFamilyBulkEditView(BulkEditView):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     filterset = BGPPeerAddressFamilyFilterSet
@@ -836,8 +836,8 @@ class BGPPeerAddressFamilyBulkDeleteView(BulkDeleteView):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     filterset = BGPPeerAddressFamilyFilterSet
@@ -851,8 +851,8 @@ class BGPPeerAddressFamilySettingsView(BGPSettingViewMixin, ObjectChildrenView):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     tab = ViewTab(

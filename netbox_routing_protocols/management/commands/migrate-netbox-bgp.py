@@ -74,8 +74,8 @@ class Command(BaseCommand):
                     'prefix_list_entry': {},
                     'aspath': {},
                     'aspath_entry': {},
-                    'route_map': {},
-                    'route_map_entry': {},
+                    'route_policy': {},
+                    'route_policy_entry': {},
                     'router': {},
                     'peer_group': {},
                 }
@@ -354,21 +354,21 @@ class Command(BaseCommand):
                     # Weight is discarded
                     #
                     try:
-                        entry = RouteMap.objects.get(name=item.name)
-                        if not mapping['route_map'].get(item.pk):
-                            mapping['route_map'][item.pk] = entry
-                    except RouteMap.DoesNotExist:
-                        entry = RouteMap(
+                        entry = RoutePolicy.objects.get(name=item.name)
+                        if not mapping['route_policy'].get(item.pk):
+                            mapping['route_policy'][item.pk] = entry
+                    except RoutePolicy.DoesNotExist:
+                        entry = RoutePolicy(
                             name=item.name,
                             description=item.description,
                             comments=item.comments,
                         )
                         entry.full_clean()
                         entry.save()
-                        mapping['route_map'][item.pk] = entry
+                        mapping['route_policy'][item.pk] = entry
 
                 for item in netbox_bgp.RoutingPolicyRule.objects.all():
-                    route_map = mapping['route_map'][item.routing_policy.pk]
+                    route_policy = mapping['route_policy'][item.routing_policy.pk]
                     community_list = [
                         mapping['community_list'][cl].pk
                         for cl in item.match_community_list.values_list(
@@ -405,14 +405,14 @@ class Command(BaseCommand):
                     if not match:
                         match = {}
                     try:
-                        entry = RouteMapEntry.objects.get(
-                            route_map=route_map, sequence=item.index
+                        entry = RoutePolicyEntry.objects.get(
+                            route_policy=route_policy, sequence=item.index
                         )
-                        if not mapping['route_map_entry'].get(item.pk):
-                            mapping['route_map_entry'][item.pk] = entry
-                    except RouteMapEntry.DoesNotExist:
-                        entry = RouteMapEntry(
-                            route_map=route_map,
+                        if not mapping['route_policy_entry'].get(item.pk):
+                            mapping['route_policy_entry'][item.pk] = entry
+                    except RoutePolicyEntry.DoesNotExist:
+                        entry = RoutePolicyEntry(
+                            route_policy=route_policy,
                             sequence=item.index,
                             action=item.action,
                             match=match,
@@ -426,7 +426,7 @@ class Command(BaseCommand):
                         entry.match_community_list.set(community_list)
                         entry.match_community.set(community)
                         entry.match_aspath.set(aspath)
-                        mapping['route_map_entry'][item.pk] = entry
+                        mapping['route_policy_entry'][item.pk] = entry
 
                 for item in netbox_bgp.BGPPeerGroup.objects.all():
 
@@ -465,14 +465,14 @@ class Command(BaseCommand):
                         mapping['peer_group'][item.pk] = entry
 
                     import_policies = (
-                        mapping['route_map'][
+                        mapping['route_policy'][
                             item.import_policies.first().routingpolicy.pk
                         ]
                         if item.import_policies
                         else None
                     )
                     export_policies = (
-                        mapping['route_map'][
+                        mapping['route_policy'][
                             item.export_policies.first().routingpolicy.pk
                         ]
                         if item.export_policies
@@ -487,8 +487,8 @@ class Command(BaseCommand):
                         peer_af = BGPPeerAddressFamily(
                             assigned_object=entry,
                             address_family=ipv4_af,
-                            routemap_in=import_policies,
-                            routemap_out=export_policies,
+                            routepolicy_in=import_policies,
+                            routepolicy_out=export_policies,
                         )
                         peer_af.full_clean()
                         peer_af.save()
@@ -501,8 +501,8 @@ class Command(BaseCommand):
                         peer_af = BGPPeerAddressFamily(
                             assigned_object=entry,
                             address_family=ipv6_af,
-                            routemap_in=import_policies,
-                            routemap_out=export_policies,
+                            routepolicy_in=import_policies,
+                            routepolicy_out=export_policies,
                         )
                         peer_af.full_clean()
                         peer_af.save()
@@ -560,12 +560,12 @@ class Command(BaseCommand):
                     export_policy = None
                     if item.import_policies:
                         policy = item.import_policies.first()
-                        import_policy = mapping['route_map'].get(
+                        import_policy = mapping['route_policy'].get(
                             policy.routingpolicy.pk
                         )
                     if item.export_policies:
                         policy = item.export_policies.first()
-                        export_policy = mapping['route_map'].get(
+                        export_policy = mapping['route_policy'].get(
                             policy.routingpolicy.pk
                         )
 
@@ -577,8 +577,8 @@ class Command(BaseCommand):
                         peeraf = BGPPeerAddressFamily(
                             assigned_object=peer,
                             address_family=af,
-                            routemap_in=import_policy,
-                            routemap_out=export_policy,
+                            routepolicy_in=import_policy,
+                            routepolicy_out=export_policy,
                             prefixlist_in=(
                                 mapping['prefix_list'].get(item.prefix_list_in.pk)
                                 if item.prefix_list_in

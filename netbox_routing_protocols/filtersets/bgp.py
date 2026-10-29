@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
 from dcim.models import Device
 from ipam.models import ASN, VRF, IPAddress
-from netbox_routing_protocols.models import PrefixList, RouteMap
+from netbox_routing_protocols.models import PrefixList, RoutePolicy
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filtersets import register_filterset
 
@@ -49,27 +49,27 @@ class PolicyFilterSetMixin(django_filters.FilterSet):
         to_field_name='name',
         label=_('Outgoing Prefix List (Name)'),
     )
-    routemap_in_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='routemap_in_id',
-        queryset=RouteMap.objects.all(),
-        label=_('Incoming Route Map (ID)'),
+    routepolicy_in_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='routepolicy_in_id',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Incoming Route Policy (ID)'),
     )
-    routemap_in = django_filters.ModelMultipleChoiceFilter(
-        field_name='routemap_in_id__name',
-        queryset=RouteMap.objects.all(),
+    routepolicy_in = django_filters.ModelMultipleChoiceFilter(
+        field_name='routepolicy_in_id__name',
+        queryset=RoutePolicy.objects.all(),
         to_field_name='name',
-        label=_('Incoming Route Map (Name)'),
+        label=_('Incoming Route Policy (Name)'),
     )
-    routemap_out_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='routemap_out_id',
-        queryset=RouteMap.objects.all(),
-        label=_('Outgoing Route Map (ID)'),
+    routepolicy_out_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='routepolicy_out_id',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Outgoing Route Policy (ID)'),
     )
-    routemap_out = django_filters.ModelMultipleChoiceFilter(
-        field_name='routemap_out_id__name',
-        queryset=RouteMap.objects.all(),
+    routepolicy_out = django_filters.ModelMultipleChoiceFilter(
+        field_name='routepolicy_out_id__name',
+        queryset=RoutePolicy.objects.all(),
         to_field_name='name',
-        label=_('Outgoing Route Map (Name)'),
+        label=_('Outgoing Route Policy (Name)'),
     )
 
 
@@ -147,8 +147,8 @@ class BGPPolicyTemplateFilterSet(
             'enabled',
             'prefixlist_in',
             'prefixlist_out',
-            'routemap_in',
-            'routemap_out',
+            'routepolicy_in',
+            'routepolicy_out',
             'tenant_group',
             'tenant',
         )

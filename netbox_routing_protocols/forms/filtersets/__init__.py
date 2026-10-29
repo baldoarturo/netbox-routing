@@ -32,8 +32,8 @@ from .isis import (
 from .objects import (
     PrefixListFilterForm,
     PrefixListEntryFilterForm,
-    RouteMapFilterForm,
-    RouteMapEntryFilterForm,
+    RoutePolicyFilterForm,
+    RoutePolicyEntryFilterForm,
 )
 from .eigrp import *
 
@@ -76,6 +76,6 @@ __all__ = (
     # Routing Objects
     'PrefixListFilterForm',
     'PrefixListEntryFilterForm',
-    'RouteMapFilterForm',
-    'RouteMapEntryFilterForm',
+    'RoutePolicyFilterForm',
+    'RoutePolicyEntryFilterForm',
 )

@@ -13,8 +13,8 @@ __all__ = (
     'ASPathEntryTestCase',
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
-    'RouteMapTestCase',
-    'RouteMapEntryTestCase',
+    'RoutePolicyTestCase',
+    'RoutePolicyEntryTestCase',
 )
 
 
@@ -339,16 +339,16 @@ class PrefixListEntryTestCase(TestCase):
             form.save()
 
 
-class RouteMapTestCase(TestCase):
+class RoutePolicyTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
         pass
 
     def test_object(self):
-        form = RouteMapForm(
+        form = RoutePolicyForm(
             data={
-                'name': 'Route Map 1',
+                'name': 'Route Policy 1',
                 'description': 'Description',
                 'comment': 'Comment',
             }
@@ -357,18 +357,18 @@ class RouteMapTestCase(TestCase):
         self.assertTrue(form.save())
 
     def test_minimal_object(self):
-        form = RouteMapForm(
+        form = RoutePolicyForm(
             data={
-                'name': 'Route Map 1',
+                'name': 'Route Policy 1',
             }
         )
         self.assertTrue(form.is_valid())
         self.assertTrue(form.save())
 
     def test_form_invalid(self):
-        form = RouteMapForm(
+        form = RoutePolicyForm(
             data={
-                'name': 'Route Map 1 Too Long Name Needs to be over 100 characters long and enough characters to cau'
+                'name': 'Route Policy 1 Too Long Name Needs to be over 100 characters long and enough characters to cau'
                 'se an error with the form validation',
             }
         )
@@ -377,19 +377,19 @@ class RouteMapTestCase(TestCase):
             form.save()
 
 
-class RouteMapEntryTestCase(TestCase):
+class RoutePolicyEntryTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.route_map = RouteMap.objects.create(
-            name='Route Map 1',
+        cls.route_policy = RoutePolicy.objects.create(
+            name='Route Policy 1',
         )
         cls.community = Community.objects.create(community='64512', status='active')
 
     def test_object(self):
-        form = RouteMapEntryForm(
+        form = RoutePolicyEntryForm(
             data={
-                'route_map': self.route_map,
+                'route_policy': self.route_policy,
                 'sequence': 1,
                 'action': ActionChoices.PERMIT,
                 'match_community': [
@@ -411,9 +411,9 @@ class RouteMapEntryTestCase(TestCase):
         )
 
     def test_form_invalid(self):
-        form = RouteMapEntryForm(
+        form = RoutePolicyEntryForm(
             data={
-                'route_map': self.route_map,
+                'route_policy': self.route_policy,
             }
         )
         self.assertFalse(form.is_valid())

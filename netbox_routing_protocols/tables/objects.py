@@ -9,8 +9,8 @@ __all__ = (
     'ASPathEntryTable',
     'PrefixListTable',
     'PrefixListEntryTable',
-    'RouteMapTable',
-    'RouteMapEntryTable',
+    'RoutePolicyTable',
+    'RoutePolicyEntryTable',
 )
 
 
@@ -99,24 +99,24 @@ class PrefixListEntryTable(NetBoxTable):
         )
 
 
-class RouteMapTable(NetBoxTable):
+class RoutePolicyTable(NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
 
     class Meta(NetBoxTable.Meta):
-        model = RouteMap
+        model = RoutePolicy
         fields = ('pk', 'id', 'name')
         default_columns = ('pk', 'id', 'name')
 
 
-class RouteMapEntryTable(NetBoxTable):
-    route_map = tables.Column(verbose_name=_('Route Map'), linkify=True)
+class RoutePolicyEntryTable(NetBoxTable):
+    route_policy = tables.Column(verbose_name=_('Route Policy'), linkify=True)
     action = columns.ChoiceFieldColumn()
     flow_control = tables.Column(verbose_name=_('Flow Control (Continue)'))
 
     class Meta(NetBoxTable.Meta):
-        model = RouteMapEntry
-        fields = ('pk', 'id', 'route_map', 'sequence', 'action', 'flow_control')
-        default_columns = ('pk', 'id', 'route_map', 'sequence', 'action')
+        model = RoutePolicyEntry
+        fields = ('pk', 'id', 'route_policy', 'sequence', 'action', 'flow_control')
+        default_columns = ('pk', 'id', 'route_policy', 'sequence', 'action')
 
 
 class ASPathTable(NetBoxTable):
