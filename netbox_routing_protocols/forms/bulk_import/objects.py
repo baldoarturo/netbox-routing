@@ -125,7 +125,9 @@ class PrefixListEntryImportForm(PrimaryModelImportForm):
         try:
             prefixes = Prefix.objects.filter(prefix=value)
         except (ValidationError, ValueError, TypeError):
-            self.add_error('prefix', _('"%(value)s" is not a valid prefix.') % {'value': value})
+            self.add_error(
+                'prefix', _('"%(value)s" is not a valid prefix.') % {'value': value}
+            )
             return None
         if vrf:
             prefixes = prefixes.filter(vrf=vrf)
