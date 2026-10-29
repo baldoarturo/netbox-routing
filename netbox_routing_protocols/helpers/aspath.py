@@ -1,4 +1,5 @@
 import re
+import time
 
 import regex
 from django.core.exceptions import ValidationError
@@ -19,6 +20,9 @@ MAX_ASDOT_PART = 65535
 # How long a pattern may take on a path in the match tool, in seconds: a pattern that
 # backtracks without end (catastrophic) is cut instead of hanging the server
 MATCH_TIMEOUT = 0.2
+# ... and how long all the entries of a request may take together, in seconds: the entries
+# left when it is over are not evaluated
+MATCH_BUDGET = 5.0
 
 # What is not an AS number inside a pattern: escapes (\\1, \\d), bracket expressions
 # ([0-9]) and repetitions ({2,3})
@@ -117,14 +121,17 @@ def parse_as_path(text):
     return ' '.join(tokens)
 
 
-def entry_matches(entry, path):
+def entry_matches(entry, path, timeout=None):
     """
     Whether the pattern of the entry matches the AS_PATH text (see parse_as_path). Returns
-    None when the pattern takes longer than MATCH_TIMEOUT, and False when the engine does
-    not read it (a pattern saved before it was validated).
+    None when the pattern takes longer than the timeout (MATCH_TIMEOUT by default), and
+    False when the engine does not read it (a pattern saved before it was validated).
     """
     try:
-        return regex.search(entry.pattern, path, timeout=MATCH_TIMEOUT) is not None
+        return (
+            regex.search(entry.pattern, path, timeout=timeout or MATCH_TIMEOUT)
+            is not None
+        )
     except TimeoutError:
         return None
     except regex.error:
@@ -133,21 +140,32 @@ def entry_matches(entry, path):
 
 def evaluate_path(path, entries):
     """
-    Evaluate an AS_PATH text against entries of any number of AS-paths: a tuple of the list
-    of (aspath, [(entry, effective)]) by name, with the entries that match it by sequence,
-    and the list of the entries that timed out. The first matching entry of each AS-path is
-    the effective: the action of the AS-path for that path. AS-paths with no matching entry
-    are not returned.
+    Evaluate an AS_PATH text against entries of any number of AS-paths. Returns a tuple:
+    the list of (aspath, [(entry, effective)]) by name, with the entries that match it by
+    sequence (the first matching entry of each AS-path is the effective: the action of the
+    AS-path for that path; AS-paths with no matching entry are not returned), the list of
+    the entries that took longer than MATCH_TIMEOUT, and the number of entries that were not
+    evaluated because the MATCH_BUDGET of the whole request was used up.
     """
     results = {}
     timed_out = []
+    not_evaluated = 0
+    deadline = time.monotonic() + MATCH_BUDGET
     for entry in sorted(entries, key=lambda e: (e.aspath.name.lower(), e.sequence)):
-        matched = entry_matches(entry, path)
+        left = deadline - time.monotonic()
+        if left <= 0:
+            not_evaluated += 1
+            continue
+        matched = entry_matches(entry, path, timeout=min(MATCH_TIMEOUT, left))
         if matched is None:
             timed_out.append(entry)
         elif matched:
             results.setdefault(entry.aspath, []).append(entry)
-    return [
-        (aspath, [(entry, index == 0) for index, entry in enumerate(matches)])
-        for aspath, matches in results.items()
-    ], timed_out
+    return (
+        [
+            (aspath, [(entry, index == 0) for index, entry in enumerate(matches)])
+            for aspath, matches in results.items()
+        ],
+        timed_out,
+        not_evaluated,
+    )

@@ -2,6 +2,11 @@
 {% if error %}
   <div class="alert alert-warning">{{ error }}</div>
 {% elif path %}
+  {% if not_evaluated %}
+    <div class="alert alert-warning">
+      {% blocktrans count count=not_evaluated %}The time limit of the search was reached: {{ count }} entry was not evaluated, so the results may be incomplete.{% plural %}The time limit of the search was reached: {{ count }} entries were not evaluated, so the results may be incomplete.{% endblocktrans %}
+    </div>
+  {% endif %}
   {% if timed_out %}
     <div class="alert alert-warning">
       {% blocktrans count count=timed_out|length %}{{ count }} entry took too long to evaluate and was skipped:{% plural %}{{ count }} entries took too long to evaluate and were skipped:{% endblocktrans %}
