@@ -61,11 +61,16 @@ class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             | Q(community__icontains=value)
             | Q(description__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
 
 @register_filterset
 class CommunityListFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
+    community_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='communitylistentries__community',
+        queryset=Community.objects.all(),
+        label=_('Community (ID)'),
+    )
     route_policy_entry_id = django_filters.ModelMultipleChoiceFilter(
         field_name='route_policy_entries',
         queryset=RoutePolicyEntry.objects.all(),
@@ -88,7 +93,7 @@ class CommunityListFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
         if not value.strip():
             return queryset
         qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
 
 @register_filterset
@@ -134,4 +139,4 @@ class CommunityListEntryFilterSet(PrimaryModelFilterSet):
         qs_filter = Q(community_list__name__icontains=value)
         qs_filter |= Q(community__community__icontains=value)
         qs_filter |= Q(description__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)

@@ -419,6 +419,32 @@ the API and the import all do it; entries of one bulk request get consecutive nu
 community can appear more than once in a list, for example a deny before a permit; when you save
 such an entry the form tells you which entry makes the other unreachable.
 
+### The pages
+
+The page of a **community list** shows its entries with an **Add entry** button (the form opens
+with the list chosen, the next sequence suggested and *permit* preselected) and the route policy
+entries that match it, with a link to the filtered list. **Duplicate** copies a list with all its
+entries under a new name (suggested: `<name> copy`); the copy keeps the type, tenant, tags and
+comments.
+
+The page of a **community** shows where it is used: the community lists that contain it and the
+route policy entries that match it, each with a link to the filtered list. The lists show how many
+entries and route policy entries use each community or list, with the same link.
+
+The tables have the edit, delete and changelog buttons, and can be filtered by name, type, status,
+role, tenant, value, list, community, sequence and action; the description, tags, comments and
+dates can be shown as columns. Bulk edit changes the status, role, tenant and description of
+communities, the tenant and description of lists, and the list, action, community and description
+of entries.
+
+### Import
+
+Lists and communities import by name and value (CSV columns `name`, `type`, `community`, `status`,
+...). Entries are imported with `community_list` (the name), `community` (the value in its normal
+form), `action` and an optional `sequence`: empty takes the next free one of the list, and entries
+of one file get consecutive numbers. When an entry repeats a community that is already in its
+list, the import says which entry makes the other unreachable; the entries are saved anyway.
+
 ### Deleting
 
 A **community** that is in a community list or matched by a route policy entry cannot be deleted:

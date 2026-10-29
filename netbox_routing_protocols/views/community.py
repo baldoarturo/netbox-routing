@@ -1,8 +1,12 @@
 from django.contrib import messages
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
+from django.views.generic import View
 
 from extras.ui.panels import TagsPanel
+from netbox.object_actions import CloneObject, DeleteObject, EditObject
 from netbox.views.generic import (
     ObjectListView,
     ObjectView,
@@ -14,11 +18,20 @@ from netbox.views.generic import (
     BulkImportView,
 )
 from netbox.ui import panels, layout
-from utilities.views import register_model_view, ViewTab
+from netbox.ui.actions import AddObject
+from utilities.query import count_related
+from utilities.views import (
+    ContentTypePermissionRequiredMixin,
+    GetRelatedModelsMixin,
+    ViewTab,
+    register_model_view,
+)
 
 from netbox_routing_protocols.filtersets.community import *
 from netbox_routing_protocols.helpers.prefix_list import community_list_references
+from netbox_routing_protocols.models.objects import RoutePolicyEntry
 from netbox_routing_protocols.views.objects import (
+    DuplicatePrefixList,
     reference_groups,
     references_message,
 )
@@ -28,6 +41,7 @@ from netbox_routing_protocols.tables.community import *
 from netbox_routing_protocols.ui import *
 
 __all__ = (
+    'CommunityListDuplicateView',
     'CommunityListListView',
     'CommunityListDetailView',
     'CommunityListEditView',
@@ -58,15 +72,30 @@ __all__ = (
 #
 @register_model_view(CommunityList, name='list', path='', detail=False)
 class CommunityListListView(ObjectListView):
-    queryset = CommunityList.objects.select_related('tenant')
+    queryset = CommunityList.objects.select_related('tenant').annotate(
+        entry_count=count_related(CommunityListEntry, 'community_list'),
+        route_policy_entry_count=count_related(
+            RoutePolicyEntry, 'match_community_list'
+        ),
+    )
     table = CommunityListTable
     filterset = CommunityListFilterSet
     filterset_form = CommunityListFilterForm
 
 
+class DuplicateCommunityList(DuplicatePrefixList):
+    """A copy of the community list with its entries"""
+
+
 @register_model_view(CommunityList)
-class CommunityListDetailView(ObjectView):
+class CommunityListDetailView(GetRelatedModelsMixin, ObjectView):
     queryset = CommunityList.objects.select_related('tenant')
+    actions = (
+        DuplicateCommunityList,
+        CloneObject,
+        EditObject,
+        DeleteObject,
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -77,7 +106,121 @@ class CommunityListDetailView(ObjectView):
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
+        bottom_panels=[
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.CommunityListEntry',
+                title=_('Entries'),
+                filters={'community_list_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'community_list'],
+                actions=[
+                    AddObject(
+                        'netbox_routing_protocols.CommunityListEntry',
+                        label=_('Add entry'),
+                        url_params={'community_list': lambda ctx: ctx['object'].pk},
+                    ),
+                ],
+            ),
+        ],
     )
+
+    def get_extra_context(self, request, instance):
+        # Where the list is used: the route policy entries that match it (a many to many
+        # relation is not detected by NetBox)
+        return {
+            'related_models': self.get_related_models(
+                request,
+                instance,
+                extra=(
+                    (
+                        RoutePolicyEntry.objects.restrict(request.user, 'view').filter(
+                            match_community_list=instance
+                        ),
+                        'match_community_list_id',
+                    ),
+                ),
+            )
+        }
+
+
+@register_model_view(CommunityList, name='duplicate')
+class CommunityListDuplicateView(ContentTypePermissionRequiredMixin, View):
+    """Copy a community list with its entries, in one transaction"""
+
+    template_name = 'netbox_routing_protocols/communitylist_duplicate.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.add_communitylist'
+
+    def _source(self, request, pk):
+        return get_object_or_404(
+            CommunityList.objects.restrict(request.user, 'view'), pk=pk
+        )
+
+    def _render(self, request, source, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': source,
+                'form': form,
+                'count': source.communitylistentries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        source = self._source(request, pk)
+        form = CommunityListDuplicateForm(
+            initial={
+                'name': _('%(name)s copy') % {'name': source.name},
+                'description': source.description,
+            }
+        )
+        return self._render(request, source, form)
+
+    def post(self, request, pk):
+        source = self._source(request, pk)
+        form = CommunityListDuplicateForm(request.POST)
+        if not request.user.has_perm('netbox_routing_protocols.add_communitylistentry'):
+            messages.error(request, _('You cannot add community list entries.'))
+            return redirect(source.get_absolute_url())
+        if not form.is_valid():
+            return self._render(request, source, form)
+
+        with transaction.atomic():
+            copy = CommunityList(
+                name=form.cleaned_data['name'],
+                type=source.type,
+                tenant=source.tenant,
+                description=form.cleaned_data['description'],
+                comments=source.comments,
+                owner=source.owner,
+            )
+            copy.full_clean()
+            copy.save()
+            copy.tags.set(source.tags.all())
+            for entry in source.communitylistentries.all():
+                new_entry = CommunityListEntry(
+                    community_list=copy,
+                    sequence=entry.sequence,
+                    action=entry.action,
+                    community=entry.community,
+                    description=entry.description,
+                    comments=entry.comments,
+                    owner=entry.owner,
+                )
+                new_entry.full_clean()
+                new_entry.save()
+                new_entry.tags.set(entry.tags.all())
+        messages.success(
+            request,
+            _('Duplicated %(source)s as %(copy)s with %(count)d entries.')
+            % {
+                'source': source,
+                'copy': copy,
+                'count': source.communitylistentries.count(),
+            },
+        )
+        return redirect(copy.get_absolute_url())
 
 
 @register_model_view(CommunityList, name='add', detail=False)
@@ -126,7 +269,9 @@ class CommunityListEntriesView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(community_list=parent)
+        return self.child_model.objects.filter(community_list=parent).select_related(
+            'community_list', 'community'
+        )
 
 
 @register_model_view(CommunityList, name='bulk_edit', detail=False)
@@ -174,14 +319,17 @@ class CommunityListBulkImportView(BulkImportView):
 
 @register_model_view(Community, name='list', path='', detail=False)
 class CommunityListView(ObjectListView):
-    queryset = Community.objects.select_related('role', 'tenant')
+    queryset = Community.objects.select_related('role', 'tenant').annotate(
+        entry_count=count_related(CommunityListEntry, 'community'),
+        route_policy_entry_count=count_related(RoutePolicyEntry, 'match_community'),
+    )
     table = CommunityTable
     filterset = CommunityFilterSet
     filterset_form = CommunityFilterForm
 
 
 @register_model_view(Community)
-class CommunityDetailView(ObjectView):
+class CommunityDetailView(GetRelatedModelsMixin, ObjectView):
     queryset = Community.objects.select_related('role', 'tenant')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
@@ -194,6 +342,31 @@ class CommunityDetailView(ObjectView):
             panels.RelatedObjectsPanel(),
         ],
     )
+
+    def get_extra_context(self, request, instance):
+        # Where the community is used: the lists that contain it and the route policy
+        # entries that match it (the entries of the lists are found by NetBox; a many to
+        # many relation is not)
+        return {
+            'related_models': self.get_related_models(
+                request,
+                instance,
+                extra=(
+                    (
+                        CommunityList.objects.restrict(request.user, 'view')
+                        .filter(communitylistentries__community=instance)
+                        .distinct(),
+                        'community_id',
+                    ),
+                    (
+                        RoutePolicyEntry.objects.restrict(request.user, 'view').filter(
+                            match_community=instance
+                        ),
+                        'match_community_id',
+                    ),
+                ),
+            )
+        }
 
 
 @register_model_view(Community, name='add', detail=False)
