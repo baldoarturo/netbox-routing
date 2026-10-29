@@ -27,6 +27,8 @@ The user is the project manager: they ask, Claude does the work, they approve. T
     - Give the issues a shared area label (e.g. `ospf`, `prefix-list`).
     - Claude keeps the tracking body current: when an issue is resolved, tick its `[x]` (strike through with `~#N~` and add the reason if it is dropped), and add new issues found later. Nothing ticks the checklist or closes the tracking issue automatically; close it by hand when every item is done.
     - Do not start coding until the user approves the tracking.
+12. **Never use subagents** (the `Agent` tool, forks included). Each one starts cold and burns extra tokens: do the work inline with the normal tools.
+13. **Be token-efficient above all.** Read only the part of a file you need, search before reading, do not re-read what is already in the conversation, keep command output short (filter it) and keep replies and plans brief. Pick the cheapest approach that gets the job done right.
 
 ## Documentation
 
