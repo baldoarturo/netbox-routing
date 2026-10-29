@@ -93,6 +93,9 @@ class AutomatedModelCreationMixin:
                     kwargs[field] = (f'{cls.model._meta.verbose_name}: {seq}',)
                 elif field == 'sequence':
                     kwargs[field] = seq
+                elif field == 'pattern':
+                    # a pattern cannot be repeated in an AS-path
+                    kwargs[field] = f'^{seq}$'
                 elif hasattr(cls, field):
                     kwargs[field] = getattr(cls, field)
 
@@ -144,6 +147,8 @@ class AutomatedFormDataCreationMixin:
                 kwargs[field] = f'{cls.model._meta.verbose_name}: {sequence}'
             elif field == 'sequence':
                 kwargs[field] = sequence or 100
+            elif field == 'pattern':
+                kwargs[field] = f'^{sequence or 100}$'
             elif hasattr(cls, field) and isinstance(getattr(cls, field), Model):
                 kwargs[field] = getattr(cls, field).pk
             elif hasattr(cls, field) and type(getattr(cls, field)) in [

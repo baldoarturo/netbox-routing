@@ -57,8 +57,7 @@ class ASPathEntryForm(PrimaryModelForm):
     """
     A new entry permits unless told otherwise, and an empty sequence takes the next one of
     the AS-path (suggested when the AS-path is known, assigned on save otherwise); the
-    sequence of an existing entry stays required. Entries with the same pattern are
-    flashed as warnings after saving.
+    sequence of an existing entry stays required.
     """
 
     class Meta:
@@ -124,16 +123,6 @@ class ASPathEntryForm(PrimaryModelForm):
                 cleaned['sequence'] = aspath_helpers.next_sequence(cleaned['aspath'])
             except ValidationError as e:
                 raise forms.ValidationError({'sequence': e.messages})
-
-    def save(self, commit=True):
-        entry = super().save(commit)
-        if commit:
-            # The entry is saved anyway: the user is just told about duplicates
-            request = current_request.get()
-            if request is not None:
-                for duplicate in aspath_helpers.find_duplicates(entry)[:MAX_WARNINGS]:
-                    messages.warning(request, duplicate.message + '.')
-        return entry
 
 
 class ASPathDuplicateForm(forms.Form):

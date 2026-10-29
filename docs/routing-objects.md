@@ -202,8 +202,9 @@ assign it; entries of one bulk request get consecutive numbers). Any value is st
 sequence of an entry that already exists cannot be emptied, so it never moves by accident.
 
 Entries are evaluated by sequence and the first match wins, so an entry with the **same pattern** as
-another one is never reached. When you save one, the form and the API (`warnings` in the response)
-tell you, and the page of the entry lists the entries with the same pattern. They are saved anyway.
+another one of the same AS-path could never be reached. That is why **a pattern cannot be repeated in
+an AS-path**: saving it from the form, the API, the import or the bulk edit is refused with *This
+AS-Path already has an entry with this pattern*. The same pattern in two different AS-paths is fine.
 Only identical patterns are detected: whether two different regular expressions overlap cannot be
 decided in general.
 
@@ -255,7 +256,7 @@ follows the same rules as the form, and both objects carry `owner`, `tags`, `cus
 `created` and `last_updated` like any other NetBox object.
 
 - **`sequence`** can be left out; the entry gets the next multiple of 10 after the highest one in the AS-path.
-- The response of a create or update of an entry carries a **`warnings`** list with the entries that have the same pattern, so scripts can show them. The entry is saved anyway.
+- A pattern that already exists in the AS-path is answered with an error (HTTP 400), like an invalid pattern.
 
 ### Importing AS paths and entries
 
@@ -276,9 +277,9 @@ CUSTOMERS,deny,.*,100
 
 `aspath` is the name of an existing AS-path, `action` is `permit` or `deny`, and an empty `sequence`
 takes the next free one (steps of 10, consecutive inside one import). The whole import is rolled back
-if one row is wrong, and the rows are checked with the same rules as the form (pattern, sequence). The entries are saved even if some have the same pattern;
-after the import you get **a summary per AS-path** with how many of each kind involve the imported
-entries (each pair counted once, including the entries the AS-path already had) and the first examples.
+if one row is wrong, and the rows are checked with the same rules as the form (pattern, sequence).
+A pattern that is repeated in the file, or that the AS-path already has, is a wrong row and rolls back
+the whole import.
 
 ### Deleting an AS path in use
 

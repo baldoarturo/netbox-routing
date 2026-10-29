@@ -1143,14 +1143,10 @@ class ASPathEntryView(ObjectView):
             TagsPanel(),
         ],
         right_panels=[
-            OverlapsPanel(title=_('Entries with the same pattern')),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
     )
-
-    def get_extra_context(self, request, instance):
-        return {'overlaps': aspath_helpers.find_duplicates(instance)}
 
 
 @register_model_view(ASPathEntry, name='add', detail=False)
@@ -1169,29 +1165,6 @@ class ASPathEntryDeleteView(ObjectDeleteView):
 class ASPathEntryBulkImportView(BulkImportView):
     queryset = ASPathEntry.objects.select_related('aspath')
     model_form = ASPathEntryImportForm
-
-    def create_and_update_objects(self, form, request):
-        saved = super().create_and_update_objects(form, request)
-        # The entries are saved anyway: the user is just told about repeated patterns
-        summaries = aspath_helpers.import_duplicates(saved)
-        for aspath, kinds, examples in summaries[:IMPORT_LISTS_SHOWN]:
-            counts = ', '.join(
-                f'{count} {kind}' for kind, count in sorted(kinds.items())
-            )
-            shown = examples[:IMPORT_EXAMPLES_SHOWN]
-            more = len(examples) - len(shown)
-            text = f'AS-path {aspath}: the import has entries with the same pattern ({counts}). '
-            text += ' '.join(f'{example}.' for example in shown)
-            if more:
-                text += f' And {more} more.'
-            messages.warning(request, text, fail_silently=True)
-        if len(summaries) > IMPORT_LISTS_SHOWN:
-            messages.warning(
-                request,
-                f'{len(summaries) - IMPORT_LISTS_SHOWN} more AS-paths have entries with the same pattern.',
-                fail_silently=True,
-            )
-        return saved
 
 
 @register_model_view(ASPathEntry, name='bulk_edit', detail=False)

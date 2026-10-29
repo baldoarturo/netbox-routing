@@ -21,7 +21,7 @@ __all__ = (
     'PrefixListImportTestCase',
     'PrefixListImportOverlapTestCase',
     'ASPathImportTestCase',
-    'ASPathImportDuplicatesTestCase',
+    'ASPathImportUniquePatternTestCase',
 )
 
 
@@ -210,10 +210,10 @@ class ASPathImportTestCase(TestCase):
 
     def test_an_empty_sequence_takes_the_next_one(self):
         for expected in (10, 20):
-            form = self.entry()
+            form = self.entry(pattern=f'^{expected}_')
             self.assertTrue(form.is_valid(), form.errors)
             self.assertEqual(form.save().sequence, expected)
-        form = self.entry(sequence='7')
+        form = self.entry(sequence='7', pattern='^7_')
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().sequence, 7)
 
@@ -269,39 +269,23 @@ class ASPathImportTestCase(TestCase):
         self.assertFalse(ASPathEntry.objects.exists())
 
 
-class ASPathImportDuplicatesTestCase(TestCase):
-    def test_the_import_summarizes_entries_with_the_same_pattern(self):
+class ASPathImportUniquePatternTestCase(TestCase):
+    def test_a_repeated_pattern_rejects_the_whole_import(self):
         user = User.objects.create_superuser('importer', 'i@example.com', 'x')
         self.client.force_login(user)
         aspath = ASPath.objects.create(name='Path')
         ASPathEntry.objects.create(
             aspath=aspath, sequence=5, action='permit', pattern='^1$'
         )
-        csv = 'aspath,action,pattern\nPath,deny,^1$\nPath,permit,^2$\nPath,permit,^2$\n'
-        response = self.client.post(
+        csv = 'aspath,action,pattern\nPath,permit,^2$\nPath,deny,^1$\n'
+        self.client.post(
             reverse('plugins:netbox_routing_protocols:aspathentry_bulk_import'),
             {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
-            follow=True,
         )
-        texts = [str(message) for message in response.context['messages']]
-        summary = [text for text in texts if 'same pattern' in text]
-        self.assertEqual(len(summary), 1, texts)
-        self.assertIn('AS-path Path', summary[0])
-        self.assertIn('1 shadowed, 1 shadows', summary[0])
-        self.assertEqual(ASPathEntry.objects.count(), 4)
-
-    def test_no_summary_without_duplicates(self):
-        user = User.objects.create_superuser('importer', 'i@example.com', 'x')
-        self.client.force_login(user)
-        ASPath.objects.create(name='Path')
-        response = self.client.post(
+        self.assertEqual(ASPathEntry.objects.count(), 1)
+        csv = 'aspath,action,pattern\nPath,permit,^2$\nPath,deny,^2$\n'
+        self.client.post(
             reverse('plugins:netbox_routing_protocols:aspathentry_bulk_import'),
-            {
-                'data': 'aspath,action,pattern\nPath,permit,^1$\nPath,permit,^2$\n',
-                'format': 'csv',
-                'csv_delimiter': ',',
-            },
-            follow=True,
+            {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
         )
-        texts = [str(message) for message in response.context['messages']]
-        self.assertFalse([text for text in texts if 'same pattern' in text], texts)
+        self.assertEqual(ASPathEntry.objects.count(), 1)
