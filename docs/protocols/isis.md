@@ -204,6 +204,63 @@ field. The value must match the type of the key (yes/no, number or address).
 | Multi-Topology | Separate topologies per address family ([RFC 5120](https://www.rfc-editor.org/rfc/rfc5120)). |
 | Log Adjacency Changes, Advertise Passive Only, Default Route Tag, IGP Shortcut, Hello Padding, RIB Priority | Vendor features without an RFC. |
 
+## Field reference
+
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices.
+
+```text
+IS-IS instance
+├─ Identity: device → Device · vrf → VRF · process_tag · net
+├─ Type: is_type {Level-1 | Level-2 Only | Level-1-2}
+│     · metric_style {Wide | Narrow | Transition}
+├─ Authentication
+│     · area_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · area_auth_key
+│     · domain_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · domain_auth_key
+├─ Timers: spf_initial_wait · spf_max_wait · lsp_initial_wait · lsp_max_wait
+│     · lsp_lifetime · lsp_refresh_interval · lsp_mtu
+├─ Overload: overload_bit? · overload_on_startup? · overload_timeout
+│     · suppress_attached_bit? · ignore_attached_bit?
+├─ Routing: distance · maximum_paths · reference_bandwidth · te_enabled?
+├─ Fast reroute: fast_reroute {LFA | Remote LFA | TI-LFA} · microloop_avoidance?
+├─ Settings (key / value; the key is one of): SPF Second Wait (ms) · SPF Rapid Runs
+│     · LSP-Gen Second Wait (ms) · TE IPv4 Router-ID · TE IPv6 Router-ID · Graceful Restart
+│     · LDP-IGP Sync · Prefix Suppression · Log Adjacency Changes · Advertise Passive Only
+│     · Default Route Tag · Multi-Topology · IGP Shortcut · Hello Padding · RIB Priority
+│
+├─ Level
+│     instance → IS-IS instance · level {Level-1 | Level-2} · disabled?
+│     · default_metric · wide_metrics_only? · preference · labeled_preference
+│     · auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · auth_key
+├─ Segment routing
+│     instance → IS-IS instance · enabled? · srv6_enabled? · prefix_sid_range
+│     · srgb_start · srgb_range · srlb_start · srlb_range · maximum_sid_depth · tunnel_table_pref
+├─ Flex-Algo
+│     instance → IS-IS instance · algo_id · metric_type · priority
+│     · admin_group_exclude · admin_group_include_any · admin_group_include_all
+├─ SRv6 locator
+│     instance → IS-IS instance · name · prefix · algorithm · enabled?
+│     · isis_level {Level-1 | Level-2} · is_anycast? · is_micro_segment? · flavor
+│     · block_length · node_length · function_length · argument_length · vendor_ext
+└─ Interface
+    ├─ instance → IS-IS instance · interface → Interface · address_family {IPv4 | IPv6}
+    ├─ Basics: circuit_type {Level-1 | Level-2 Only | Level-1-2}
+    │     · network_type {Point-to-Point | Broadcast} · metric · passive? · bfd_enabled?
+    ├─ Authentication: hello_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256}
+    │     · hello_auth_key
+    ├─ Fast reroute: frr_enabled? · frr_protection {Link protection | Node protection}
+    ├─ Timers: csnp_interval · retransmit_interval · lsp_interval · mesh_group
+    ├─ Settings (key / value; the key is one of): SPF Second Wait (ms) · SPF Rapid Runs
+    │     · LSP-Gen Second Wait (ms) · TE IPv4 Router-ID · TE IPv6 Router-ID · Graceful Restart
+    │     · LDP-IGP Sync · Prefix Suppression · Log Adjacency Changes · Advertise Passive Only
+    │     · Default Route Tag · Multi-Topology · IGP Shortcut · Hello Padding · RIB Priority
+    ├─ Interface level
+    │     interface → IS-IS interface · level {Level-1 | Level-2} · metric
+    │     · hello_interval · hello_multiplier · priority · passive?
+    └─ Prefix SID
+          interface → IS-IS interface · algorithm · sid_index · sid_label
+          · n_flag? · no_php? · explicit_null? · readvertise?
+```
+
 ## Standards behind IS-IS
 
 | Standard | What it gives the plugin |

@@ -153,3 +153,53 @@ Values are validated by type (yes/no, number or IP address).
 | eBGP / iBGP / MP eBGP / MP iBGP Distance | number | Administrative distance of routes learned from each kind of session (vendor feature). |
 | Maximum Paths, Maximum Paths (secondary) | number | Equal-cost multipath: how many paths are installed (vendor feature). |
 | Auto summary | yes/no | Summarize routes at classful boundaries (legacy; disabled on modern platforms). |
+
+## Field reference
+
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices.
+
+The **Settings** (key / value pairs) can be attached to a router, a scope, an address family, a peer or a peer address family. The key is one of: Router ID · Auto summary · Additional Paths (install) · Additional Paths (receive) · Additional Paths (send) · AS Dot Notation · Graceful Restart · Default Originate · Default Metric · eBGP Distance · iBGP Distance · MP eBGP Distance · MP iBGP Distance · Maximum Paths · Maximum Paths (secondary) · Keep Alive · Hold Time.
+
+```text
+BGP router
+├─ name · asn → ASN · tenant → Tenant
+├─ Assigned to: Region | Site | Site group | Location | Device | Cluster | Virtual machine
+├─ Templates in use: session_templates → Session template (several)
+│     · policy_templates → Policy template (several) · peer_templates → Peer template (several)
+├─ Settings: key · value
+│
+└─ Scope
+    ├─ router → BGP router · vrf → VRF · tenant → Tenant
+    ├─ Settings: key · value
+    ├─ Address family
+    │     scope → Scope · tenant → Tenant
+    │     · address_family {IPv4 | IPv6 | VPNv4 | VPNv6} Unicast / Multicast / Flowspec
+    │                      · NSAP · L2VPN VPLS · L2VPN EVPN · LINK-STATE · RTFILTER
+    │     └─ Settings: key · value
+    └─ Peer
+        ├─ name · scope → Scope · tenant → Tenant
+        ├─ Session: peer → IP address · source → IP address · remote_as → ASN · local_as → ASN
+        │     · enabled? · status {Active | Planned | Offline | Failed} · ttl · password
+        │     · bfd → BFD profile
+        ├─ Templates: peer_group → Peer template · peer_session → Session template
+        ├─ Settings: key · value
+        └─ Peer address family
+              assigned to: Peer or Peer template · address_family → Address family
+              · peer_policy → Policy template · enabled? · tenant → Tenant
+              · prefixlist_in → Prefix list · prefixlist_out → Prefix list
+              · routemap_in → Route map · routemap_out → Route map
+              └─ Settings: key · value
+
+Session template
+└─ name · parent → Session template · enabled? · local_as → ASN · remote_as → ASN · ttl
+   · bfd → BFD profile · password · tenant → Tenant
+
+Policy template
+└─ name · parents → Policy template (several) · enabled? · tenant → Tenant
+   · prefixlist_in → Prefix list · prefixlist_out → Prefix list
+   · routemap_in → Route map · routemap_out → Route map
+
+Peer template
+└─ name · remote_as → ASN · enabled? · tenant → Tenant
+   · address_families → Peer address family (several)
+```

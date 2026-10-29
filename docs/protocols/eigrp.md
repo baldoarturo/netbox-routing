@@ -59,6 +59,23 @@ Per-interface settings.
 | Authentication | **Message Digest**, **Key Chain** or **Null** (none). RFC 7868 defines the packet authentication. |
 | Passphrase | The key, stored as plain text. |
 
+## Field reference
+
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices.
+
+```text
+EIGRP router
+├─ device → Device · mode {Classic Router | Named Router} · name · pid · rid
+└─ Address family
+    ├─ router → EIGRP router · vrf → VRF · family {IPv4 | IPv6} · rid
+    ├─ Network: router → EIGRP router · address_family → Address family · network → Prefix
+    └─ Interface
+        ├─ router → EIGRP router · address_family → Address family · interface → Interface
+        ├─ passive? · bfd?
+        └─ Authentication: authentication {Key Chain | Message Digest | Null Authentication}
+                           · passphrase
+```
+
 ## Standards behind it
 
 | Feature | Standard |

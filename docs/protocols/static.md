@@ -39,3 +39,15 @@ a route with neither.
 
 OSPF can redistribute static routes ([OSPF redistribution](ospf.md#redistribution)); the *Tag* is the
 usual way to pick which ones.
+
+## Field reference
+
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices.
+
+```text
+Static route
+├─ Destination: prefix · vrf → VRF
+├─ Next hop: next_hop · interface_next_hop
+├─ Attributes: name · metric · tag · permanent?
+└─ Applies to: devices → Device (several)
+```

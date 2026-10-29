@@ -30,7 +30,7 @@ The user is the project manager: they ask, Claude does the work, they approve. T
 
 ## Documentation
 
-`docs/` is the documentation for operators and users (MkDocs, see `docs/development.md`), not for developers: it explains what each protocol and feature is for, how to use it from the menu, and which RFC it comes from and why. **Every time you add a user-facing feature, or change how a documented feature behaves, document it in the same PR** (no feature ships undocumented, and no change leaves the docs stale). The PR updates its section in the page of the protocol (and the RFC index in `docs/rfc-index.md`). Check it with `mkdocs build --strict` (`pip install -r docs/requirements.txt`).
+`docs/` is the documentation for operators and users (MkDocs, see `docs/development.md`), not for developers: it explains what each protocol and feature is for, how to use it from the menu, and which RFC it comes from and why. **Every time you add a user-facing feature, or change how a documented feature behaves, document it in the same PR** (no feature ships undocumented, and no change leaves the docs stale). The PR updates its section in the page of the protocol (and the RFC index in `docs/rfc-index.md`). **Every page of a protocol (and BFD, static routes, routing objects) has a "Field reference" section: a tree of every field of each model, with the child models hanging from their parent. When you add, rename or remove a field or a model, update its tree in the same PR** (fields common to several models, such as authentication or timers, are written out in each one). Check it with `mkdocs build --strict` (`pip install -r docs/requirements.txt`).
 
 ## Running the dev server
 
