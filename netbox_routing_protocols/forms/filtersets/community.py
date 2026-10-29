@@ -26,7 +26,7 @@ class CommunityListFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
             'filter_id',
             'tag',
         ),
-        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
+        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
     )
 
     tag = TagFilterField(model)
@@ -37,14 +37,16 @@ class CommunityFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet('name', 'community', 'status', 'role_id', name=_('Community')),
-        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
+        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
     )
     status = forms.ChoiceField(
         required=False,
         choices=add_blank_choice(CommunityStatusChoices),
         label=_('Status'),
     )
-    role = DynamicModelMultipleChoiceField(
+    name = forms.CharField(required=False, label=_('Name'))
+    community = forms.CharField(required=False, label=_('Community'))
+    role_id = DynamicModelMultipleChoiceField(
         queryset=Role.objects.all(),
         required=False,
         selector=True,
@@ -57,20 +59,20 @@ class CommunityListEntryFilterForm(NetBoxModelFilterSetForm):
     model = CommunityListEntry
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
-        FieldSet('community_list', 'action', 'community', name=_('Community')),
+        FieldSet('community_list_id', 'action', 'community_id', name=_('Community')),
     )
     action = forms.ChoiceField(
         required=False,
         choices=add_blank_choice(ActionChoices),
         label=_('Action'),
     )
-    community = DynamicModelMultipleChoiceField(
+    community_id = DynamicModelMultipleChoiceField(
         queryset=Community.objects.all(),
         required=False,
         selector=True,
         label=_('Community'),
     )
-    community_list = DynamicModelMultipleChoiceField(
+    community_list_id = DynamicModelMultipleChoiceField(
         queryset=CommunityList.objects.all(),
         required=False,
         selector=True,

@@ -1,6 +1,7 @@
+from django.urls import reverse
 from ipam.models import Role
 from tenancy.models import Tenant
-from utilities.testing import APIViewTestCases  # , APITestCase, create_test_device
+from utilities.testing import APIViewTestCases, APITestCase
 
 from netbox_routing_protocols.models.community import *
 from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
@@ -156,3 +157,35 @@ class CommunityListEntryTestCase(APIViewTestCases):
         ]
 
         cls.bulk_update_data = {'description': 'Test updated description'}
+
+
+class CommunityApiShapeTestCase(APITestCase):
+    """Foreign keys are nested objects and the choices are {value, label}."""
+
+    user_permissions = (
+        'netbox_routing_protocols.view_communitylistentry',
+        'netbox_routing_protocols.view_community',
+    )
+
+    def test_entry_and_community_shape(self):
+        lst = CommunityList.objects.create(name='L')
+        comm = Community.objects.create(community='65000:1')
+        entry = CommunityListEntry.objects.create(
+            community_list=lst, community=comm, action='permit'
+        )
+        self.add_permissions(*self.user_permissions)
+        base = 'plugins-api:netbox_routing_protocols-api'
+
+        data = self.client.get(
+            reverse(f'{base}:communitylistentry-detail', kwargs={'pk': entry.pk}),
+            **self.header,
+        ).json()
+        self.assertEqual(data['community_list']['id'], lst.pk)
+        self.assertEqual(data['community']['community'], '65000:1')
+        self.assertEqual(data['action']['value'], 'permit')
+
+        data = self.client.get(
+            reverse(f'{base}:community-detail', kwargs={'pk': comm.pk}),
+            **self.header,
+        ).json()
+        self.assertEqual(data['status']['value'], 'active')
