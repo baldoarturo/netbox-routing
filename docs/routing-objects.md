@@ -168,6 +168,8 @@ to match routes (see [Route policies](#route-policies)).
 
 ### AS path and entry
 
+![The list of AS paths, with the number of entries of each one](images/aspath-list.png)
+
 | Field | Meaning |
 | --- | --- |
 | Name | Unique, ignoring case. |
@@ -194,6 +196,8 @@ The usual constructs work: anchors `^` and `$`, groups and alternatives `(65002|
 dot. Examples that are valid: `^65001 `, `(65002|65003)$`, `^[0-9]+$`, `^65001( 65002)*$`,
 `^65001 \d+$` and `.*`. The underscore `_` has no special meaning (it is a plain character), and
 neither has the `AS` prefix: patterns are written over the bare numbers.
+
+![The entries of the AS paths, with their sequence, action and pattern](images/aspath-entries.png)
 
 A pattern is not proved safe: some regular expressions can take very long on some paths (nested
 repetitions such as `(\d+ ?)+`). *Search AS Path Match* gives each entry a fraction of a second, and
@@ -237,6 +241,54 @@ over 4294967294. You need the permission to change AS-path entries.
 Over the API: `PATCH /api/plugins/routing/objects/as-path/<id>/resequence/` with optional `start` and
 `step`; it answers `{"changed": <number of entries renumbered>}`.
 
+### Examples
+
+Four AS paths that show what the patterns are for. The numbers of a path are separated by spaces, so
+`(^| )` means "the start or a space" and `( |$)` "a space or the end", which keeps `174` from
+matching inside `1174` or `1740`.
+
+**`TRANSIT-COGENT`**, IP transit with Cogent (AS174):
+
+| Sequence | Matches |
+| --- | --- |
+| 10 | Learned from Cogent: AS174 is the neighbor AS, the first in the path. |
+| 20 | The origin AS is a transit customer of Cogent: AS174 right before the origin. |
+| 30 | Cogent anywhere in the path. |
+
+```
+10  ^174( |$)
+20  (^| )174 \d+$
+30  (^| )174( |$)
+```
+
+**`GOOGLE-ORIGIN`**, routes originated (last AS of the path) by one of the Google ASNs, one entry
+each (AS15169, AS36040, AS36492 and AS43515):
+
+```
+10  (^| )15169$
+20  (^| )36040$
+30  (^| )36492$
+40  (^| )43515$
+```
+
+**`PRIVATE-ASN-16BIT`**, a 16-bit private AS number, 64512 to 65534
+([RFC 6996](https://www.rfc-editor.org/rfc/rfc6996)), anywhere in the path:
+
+```
+10  (^| )(64(5(1[2-9]|[2-9]\d)|[6-9]\d\d)|65([0-4]\d\d|5([0-2]\d|3[0-4])))( |$)
+```
+
+**`PRIVATE-ASN-32BIT`**, a 32-bit private AS number, 4200000000 to 4294967294, anywhere in the path:
+
+```
+10  (^| )(42([0-8]\d{7}|9([0-3]\d{6}|4([0-8]\d{5}|9([0-5]\d{4}|6([0-6]\d{3}|7([01]\d\d|2([0-8]\d|9[0-4]))))))))( |$)
+```
+
+A number range needs a pattern like the two private ones, because a regular expression compares
+digits, not values. Try them in *Search AS Path Match*, next: `174 3356 64500` matches
+`TRANSIT-COGENT` entries 10 and 30, `3356 15169` matches `GOOGLE-ORIGIN`, `65000 65001` the 16-bit
+private AS path and `4200000001 174` the 32-bit one (and Cogent, entry 30).
+
 ### Search AS Path Match
 
 **Routing → Routing Objects → Search AS Path Match**
@@ -253,6 +305,9 @@ flat list of numbers: an empty path, AS_SET and confederation segments
 are not modelled. No implicit
 deny is assumed when nothing matches, because that is how a platform behaves, not how the plugin
 stores the data. It needs the *view* permission on AS-path entries.
+
+![Search AS Path Match for 174: the entries that match, the first one is effective](images/aspath-match.png)
+
 
 ### Using the API
 
