@@ -176,6 +176,16 @@ must also fit the 32-bit AS_PATH ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6
 [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) notation. The sequence goes from `1` to
 `4294967294`, the same range as a prefix list.
 
+Leave the **sequence** empty and the entry takes the next multiple of 10 above the last one of the
+AS-path (the form suggests it when you add an entry from the AS-path, and the API assigns it; entries
+of one bulk request get consecutive numbers). Any value is still accepted.
+
+Entries are evaluated by sequence and the first match wins, so an entry with the **same pattern** as
+another one is never reached. When you save one, the form and the API (`warnings` in the response)
+tell you, and the page of the entry lists the entries with the same pattern. They are saved anyway.
+Only identical patterns are detected: whether two different regular expressions overlap cannot be
+decided in general.
+
 An AS-path that route map entries use **can be deleted**: the confirmation (single and bulk)
 lists every object that refers to it, and those objects simply stop matching on it.
 

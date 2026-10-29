@@ -1,5 +1,15 @@
 import re
 
+from django.core.exceptions import ValidationError
+from django.db.models import Max
+from django.utils.translation import gettext_lazy as _
+
+from netbox_routing_protocols.helpers.prefix_list import (
+    MAX_SEQUENCE,
+    SEQUENCE_STEP,
+    Overlap,
+)
+
 # AS numbers are 32 bits (RFC 6793); the asdot notation writes them as high.low,
 # two 16 bit halves (RFC 5396).
 MAX_ASN = 4294967295
@@ -142,3 +152,83 @@ def validate_pattern(pattern):
         elif int(value) > MAX_ASN:
             errors.append(f'AS number {value} is above {MAX_ASN} (32 bits, RFC 6793).')
     return errors
+
+
+#
+# Sequence numbers and unreachable entries
+#
+
+
+def next_sequence(aspath, after=0):
+    """
+    The sequence number for a new entry of the AS-path: the next multiple of the step above
+    the last one (10 for an empty list). `after` is the last one assigned in the same
+    request and not saved yet.
+    """
+    last = aspath.aspath_entries.aggregate(last=Max('sequence'))['last'] or 0
+    sequence = (max(last, after) // SEQUENCE_STEP + 1) * SEQUENCE_STEP
+    if sequence > MAX_SEQUENCE:
+        raise ValidationError(_('The AS-path has no sequence number left.'))
+    return sequence
+
+
+def describe_entry(entry):
+    """E.g. `20 permit ^65001_`"""
+    return f'{entry.sequence} {entry.action} {entry.pattern}'
+
+
+_MESSAGES = {
+    'shadowed': 'is never reached: {other} comes first with the same pattern',
+    'shadows': 'comes first and makes {other} unreachable: it has the same pattern',
+}
+
+
+def find_duplicates(entry, others=None):
+    """
+    The other entries of the AS-path of `entry` with the same pattern, as a list of
+    Overlap(kind, entry, message), by sequence. Entries are evaluated by sequence and the
+    first match wins, so of two with the same pattern the later one is never reached
+    ('shadowed') and the earlier one makes the later unreachable ('shadows'). Whether two
+    different regular expressions overlap is not decidable in general, so only identical
+    patterns (ignoring surrounding spaces) are reported. `others` can be given to avoid the query.
+    """
+    if others is None:
+        others = entry.aspath.aspath_entries.exclude(pk=entry.pk).order_by('sequence')
+    pattern = (entry.pattern or '').strip()
+    duplicates = []
+    for other in others:
+        if other.pk == entry.pk and entry.pk is not None:
+            continue
+        if (other.pattern or '').strip() != pattern:
+            continue
+        if other.sequence < entry.sequence:
+            kind = 'shadowed'
+        elif other.sequence > entry.sequence:
+            kind = 'shadows'
+        else:
+            continue
+        duplicates.append(
+            Overlap(
+                kind,
+                other,
+                f'Entry {describe_entry(entry)} '
+                + _MESSAGES[kind].format(other=f'entry {describe_entry(other)}'),
+            )
+        )
+    return duplicates
+
+
+def duplicate_warnings(entry):
+    """The duplicates of an entry as a list of dicts, for the API"""
+    return [
+        {
+            'kind': duplicate.kind,
+            'message': duplicate.message,
+            'entry': {
+                'id': duplicate.entry.pk,
+                'sequence': duplicate.entry.sequence,
+                'url': duplicate.entry.get_absolute_url(),
+            },
+        }
+        for duplicate in find_duplicates(entry)
+    ]

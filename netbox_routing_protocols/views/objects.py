@@ -29,6 +29,7 @@ from utilities.views import (
     ViewTab,
     register_model_view,
 )
+from netbox_routing_protocols.helpers import aspath as aspath_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     describe_entry,
     evaluate_prefix,
@@ -878,10 +879,14 @@ class ASPathEntryView(ObjectView):
             TagsPanel(),
         ],
         right_panels=[
+            OverlapsPanel(title=_('Entries with the same pattern')),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
     )
+
+    def get_extra_context(self, request, instance):
+        return {'overlaps': aspath_helpers.find_duplicates(instance)}
 
 
 @register_model_view(ASPathEntry, name='add', detail=False)
