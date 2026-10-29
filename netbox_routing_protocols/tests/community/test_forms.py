@@ -103,6 +103,7 @@ class CommunityListTestCase(TestCase):
         form = CommunityListForm(
             data={
                 'name': 'Community List 1',
+                'type': 'standard',
                 'tenant': self.tenant.pk,
                 'description': 'Customer communities',
                 'comments': 'Managed by NOC team',

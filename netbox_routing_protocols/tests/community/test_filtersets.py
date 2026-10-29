@@ -190,21 +190,25 @@ class CommunityListEntryTestCase(TestCase):
 
         cls.community_list_entries = [
             CommunityListEntry(
+                sequence=10,
                 community_list=cls.community_lists[0],
                 community=cls.communities[0],
                 action='permit',
             ),
             CommunityListEntry(
+                sequence=20,
                 community_list=cls.community_lists[0],
                 community=cls.communities[1],
                 action='permit',
             ),
             CommunityListEntry(
+                sequence=30,
                 community_list=cls.community_lists[1],
                 community=cls.communities[0],
                 action='permit',
             ),
             CommunityListEntry(
+                sequence=40,
                 community_list=cls.community_lists[1],
                 community=cls.communities[1],
                 action='permit',

@@ -55,9 +55,11 @@ class CommunityListEntryFilterFormTestCase(FilterFormMatchesFilterSetMixin, Test
         lists = [CommunityList.objects.create(name=f'L{i}') for i in (1, 2)]
         comms = [Community.objects.create(community=f'65000:{i}') for i in (1, 2)]
         for lst in lists:
-            for comm, action in zip(comms, ('permit', 'deny')):
+            for sequence, (comm, action) in enumerate(
+                zip(comms, ('permit', 'deny')), start=1
+            ):
                 CommunityListEntry.objects.create(
-                    community_list=lst, community=comm, action=action
+                    community_list=lst, sequence=sequence, community=comm, action=action
                 )
         data = QueryDict(
             f'community_list_id={lists[0].pk}&community_id={comms[1].pk}&action=deny'

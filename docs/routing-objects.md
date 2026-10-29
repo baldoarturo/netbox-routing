@@ -363,22 +363,76 @@ the AS-path are deleted with it.
 
 **Community List**, **Community** and **Community List Entry**
 
-BGP communities ([RFC 1997](https://www.rfc-editor.org/rfc/rfc1997)) are 32-bit tags attached to
-routes so that policies can act on groups of routes. By convention they are written `ASN:value`, for
-example `65000:100`. Keep the list of the communities you use as **Community** objects, so the
-meaning of `65000:100` is documented once:
+BGP communities are tags attached to routes so that policies can act on groups of routes. Keep the
+list of the communities you use as **Community** objects, so the meaning of `65000:100` is
+documented once. Three kinds exist, and the plugin recognises, validates and normalises each one:
+
+| Type | Written as | RFC |
+| --- | --- | --- |
+| Standard | `ASN:value`, two 16-bit numbers (`65000:100`), or a 32-bit number (`4259840100`, stored as `65000:100`), or a well-known name | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) |
+| Extended | `rt:ASN:value` (route target) or `soo:ASN:value` (site of origin). The ASN is 2 bytes with a 32-bit value, or 4 bytes with a 16-bit value ([RFC 5668](https://www.rfc-editor.org/rfc/rfc5668)); an IPv4 or IPv6 address ([RFC 5701](https://www.rfc-editor.org/rfc/rfc5701)) can replace the ASN, with a 16-bit value. `target:` and `origin:` (Junos) are accepted | [RFC 4360](https://www.rfc-editor.org/rfc/rfc4360) |
+| Large | `ASN:value1:value2`, three 32-bit numbers (`65000:1:2`) | [RFC 8092](https://www.rfc-editor.org/rfc/rfc8092) |
+
+The **type** is derived from the value and cannot be edited. The value is stored in its normal form,
+so `65000:0100` and `65000:100`, or `RT:65000:1` and `rt:65000:1`, are the same community and
+cannot be created twice. A value that is not a community (`70000:1`, `1.2.3.4`, `1:2:3:4`) is
+rejected with the reason. Existing values were normalised when upgrading; a value that is not a
+valid community is left as it was and fails validation the next time it is edited.
 
 | Field | Meaning |
 | --- | --- |
-| Community | The community value, for example `65000:100`. |
+| Community | The community value, see above. |
+| Type | **Standard**, **Extended** or **Large**, derived from the value. |
 | Name | Optional human name ("customer routes"). |
 | Status | **Active**, **Reserved** or **Deprecated**, to retire a community without deleting its history. |
 | Role | A NetBox IPAM role that classifies the community (for example *blackhole*, *customer*). |
 | Tenant | Optional owner. |
 
-A **Community List** groups communities under a name, and its **entries** each have an action
-(permit or deny) and a community, evaluated like a prefix list. Route policy entries can match on a
-community or on a whole community list.
+### Well-known communities
+
+The field accepts the name of a well-known community, in upper or lower case with `-` or `_`
+(`no-export`), and stores the number. The table and the page show the name and the RFC.
+
+| Name | Value | RFC |
+| --- | --- | --- |
+| `GRACEFUL_SHUTDOWN` | `65535:0` | [RFC 8326](https://www.rfc-editor.org/rfc/rfc8326) |
+| `ACCEPT_OWN` | `65535:1` | [RFC 7611](https://www.rfc-editor.org/rfc/rfc7611) |
+| `LLGR_STALE`, `NO_LLGR` | `65535:6`, `65535:7` | [RFC 9494](https://www.rfc-editor.org/rfc/rfc9494) |
+| `BLACKHOLE` | `65535:666` | [RFC 7999](https://www.rfc-editor.org/rfc/rfc7999) |
+| `NO_EXPORT` | `65535:65281` | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) |
+| `NO_ADVERTISE` | `65535:65282` | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) |
+| `NO_EXPORT_SUBCONFED` (`local-AS`) | `65535:65283` | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) |
+| `NOPEER` | `65535:65284` | [RFC 3765](https://www.rfc-editor.org/rfc/rfc3765) |
+
+### Community lists
+
+A **Community List** groups communities under a name (unique, ignoring case) and holds one **type**:
+vendors keep a list per kind of community (`ip community-list`, `ip extcommunity-list`,
+`ip large-community-list`), and an entry only accepts communities of the type of its list. The type
+of a list cannot change while it has entries of another type. Only **standard lists** (exact
+communities) are modelled; expanded lists (regular expressions) are not.
+
+Each **entry** has a sequence (`1` to `4294967294`), an action (permit or deny) and a community.
+Entries are evaluated in sequence order and the first match wins, like a prefix list. Leave the
+sequence empty and the entry takes the next multiple of 10 above the last one of the list (the form,
+the API and the import all do it; entries of one bulk request get consecutive numbers). The same
+community can appear more than once in a list, for example a deny before a permit; when you save
+such an entry the form tells you which entry makes the other unreachable.
+
+### Deleting
+
+A **community** that is in a community list or matched by a route policy entry cannot be deleted:
+the error says where it is used. A **community list** can be deleted; the confirmation page, and the
+page of a bulk delete, list every object that refers to it (for example the route policy entries
+that match it), which lose the reference.
+
+### Using the API
+
+The REST API (`/api/plugins/routing/objects/community/`, `community-list/` and
+`community-list-entry/`) follows the same rules as the form. All three objects carry `owner`, `tags`,
+`custom_fields`, `created` and `last_updated`; a community also reports `type` and `well_known`.
+The entry returns its list and community as nested objects, and `status`, `type` and `action` as
+`{value, label}`.
 
 ## Field reference
 
@@ -393,11 +447,11 @@ Prefix list
     └─ Result: sequence · action {Permit | Deny}
 
 Community list
-├─ name · tenant → Tenant
-└─ Entry: community_list → Community list · community → Community · action {Permit | Deny}
+├─ name · type {Standard | Extended | Large} · tenant → Tenant
+└─ Entry: community_list → Community list · sequence · community → Community · action {Permit | Deny}
 
 Community
-└─ name · community · status {Active | Reserved | Deprecated} · role → Role · tenant → Tenant
+└─ name · community · type {Standard | Extended | Large} (derived) · status {Active | Reserved | Deprecated} · role → Role · tenant → Tenant
 
 AS path
 ├─ name

@@ -1,3 +1,7 @@
+from django.contrib import messages
+from django.template.loader import render_to_string
+from django.utils.translation import gettext_lazy as _
+
 from extras.ui.panels import TagsPanel
 from netbox.views.generic import (
     ObjectListView,
@@ -13,6 +17,11 @@ from netbox.ui import panels, layout
 from utilities.views import register_model_view, ViewTab
 
 from netbox_routing_protocols.filtersets.community import *
+from netbox_routing_protocols.helpers.prefix_list import community_list_references
+from netbox_routing_protocols.views.objects import (
+    reference_groups,
+    references_message,
+)
 from netbox_routing_protocols.forms.community import *
 from netbox_routing_protocols.models.community import *
 from netbox_routing_protocols.tables.community import *
@@ -82,6 +91,24 @@ class CommunityListEditView(ObjectEditView):
 class CommunityListDeleteView(ObjectDeleteView):
     queryset = CommunityList.objects.select_related('tenant')
 
+    def get(self, request, *args, **kwargs):
+        # A list in use can be deleted: the confirmation says what stops referencing it
+        response = super().get(request, *args, **kwargs)
+        groups = reference_groups(
+            request, [self.get_object(**kwargs)], references=community_list_references
+        )
+        marker = b'<div class="modal-body">'
+        if groups and getattr(response, 'content', None) and marker in response.content:
+            warning = render_to_string(
+                'netbox_routing_protocols/panels/prefix_list_references.html',
+                {'groups': groups, 'kind': _('community list')},
+                request=request,
+            )
+            response.content = response.content.replace(
+                marker, marker + warning.encode(), 1
+            )
+        return response
+
 
 @register_model_view(CommunityList, name='entries')
 class CommunityListEntriesView(ObjectChildrenView):
@@ -105,7 +132,7 @@ class CommunityListEntriesView(ObjectChildrenView):
 @register_model_view(CommunityList, name='bulk_edit', detail=False)
 class CommunityListBulkEditView(BulkEditView):
     queryset = CommunityList.objects.select_related('tenant')
-    filterset = CommunityListFilterForm
+    filterset = CommunityListFilterSet
     form = CommunityListBulkEditForm
     table = CommunityListTable
 
@@ -113,8 +140,25 @@ class CommunityListBulkEditView(BulkEditView):
 @register_model_view(CommunityList, name='bulk_delete', detail=False)
 class CommunityListBulkDeleteView(BulkDeleteView):
     queryset = CommunityList.objects.select_related('tenant')
-    filterset = CommunityListFilterForm
+    filterset = CommunityListFilterSet
     table = CommunityListTable
+
+    def post(self, request, **kwargs):
+        # The confirmation page of the selection says what stops referencing the lists
+        if '_confirm' not in request.POST:
+            if request.POST.get('_all'):
+                lists = self.filterset(request.GET, CommunityList.objects.all()).qs
+            else:
+                pks = [int(pk) for pk in request.POST.getlist('pk')]
+                lists = CommunityList.objects.filter(pk__in=pks)
+            groups = reference_groups(
+                request, lists, references=community_list_references
+            )
+            if groups:
+                messages.warning(
+                    request, references_message(groups, kind='community lists')
+                )
+        return super().post(request, **kwargs)
 
 
 @register_model_view(CommunityList, name='bulk_import', detail=False)
@@ -167,7 +211,7 @@ class CommunityDeleteView(ObjectDeleteView):
 @register_model_view(Community, name='bulk_edit', detail=False)
 class CommunityBulkEditView(BulkEditView):
     queryset = Community.objects.select_related('role', 'tenant')
-    filterset = CommunityFilterForm
+    filterset = CommunityFilterSet
     form = CommunityBulkEditForm
     table = CommunityTable
 
@@ -175,7 +219,7 @@ class CommunityBulkEditView(BulkEditView):
 @register_model_view(Community, name='bulk_delete', detail=False)
 class CommunityBulkDeleteView(BulkDeleteView):
     queryset = Community.objects.select_related('role', 'tenant')
-    filterset = CommunityFilterForm
+    filterset = CommunityFilterSet
     table = CommunityTable
 
 
@@ -229,7 +273,7 @@ class CommunityListEntryDeleteView(ObjectDeleteView):
 @register_model_view(CommunityListEntry, name='bulk_edit', detail=False)
 class CommunityListEntryBulkEditView(BulkEditView):
     queryset = CommunityListEntry.objects.select_related('community_list', 'community')
-    filterset = CommunityListEntryFilterForm
+    filterset = CommunityListEntryFilterSet
     form = CommunityListEntryBulkEditForm
     table = CommunityListEntryTable
 
@@ -237,7 +281,7 @@ class CommunityListEntryBulkEditView(BulkEditView):
 @register_model_view(CommunityListEntry, name='bulk_delete', detail=False)
 class CommunityListEntryBulkDeleteView(BulkDeleteView):
     queryset = CommunityListEntry.objects.select_related('community_list', 'community')
-    filterset = CommunityListEntryFilterForm
+    filterset = CommunityListEntryFilterSet
     table = CommunityListEntryTable
 
 

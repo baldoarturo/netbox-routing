@@ -22,6 +22,7 @@ __all__ = (
     'object_references',
     'prefix_list_references',
     'aspath_references',
+    'community_list_references',
     'import_overlaps',
     'resequence',
     'resequence_entries',
@@ -255,6 +256,11 @@ def object_references(obj, skip=()):
 def prefix_list_references(prefix_list):
     """The objects that refer to the prefix list, see object_references"""
     return object_references(prefix_list, skip=('prefixlistentry',))
+
+
+def community_list_references(community_list):
+    """The objects that refer to the community list, see object_references"""
+    return object_references(community_list, skip=('communitylistentry',))
 
 
 def aspath_references(aspath):

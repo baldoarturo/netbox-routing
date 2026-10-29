@@ -171,7 +171,7 @@ class CommunityApiShapeTestCase(APITestCase):
         lst = CommunityList.objects.create(name='L')
         comm = Community.objects.create(community='65000:1')
         entry = CommunityListEntry.objects.create(
-            community_list=lst, community=comm, action='permit'
+            community_list=lst, sequence=10, community=comm, action='permit'
         )
         self.add_permissions(*self.user_permissions)
         base = 'plugins-api:netbox_routing_protocols-api'
