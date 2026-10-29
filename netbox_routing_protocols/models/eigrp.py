@@ -105,6 +105,7 @@ class EIGRPAddressFamily(PrimaryModel):
 
     class Meta:
         verbose_name = 'EIGRP Address Family'
+        verbose_name_plural = 'EIGRP Address Families'
         ordering = [
             'router',
             'vrf',

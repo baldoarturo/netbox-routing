@@ -113,6 +113,8 @@ class CommunityListEntry(PrimaryModel):
     )
 
     class Meta:
+        verbose_name = _('Community List Entry')
+        verbose_name_plural = _('Community List Entries')
         ordering = ('community_list', 'community', 'pk')
 
     def __str__(self):

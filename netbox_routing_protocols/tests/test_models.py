@@ -29,6 +29,7 @@ __all__ = (
     'CommunityListTestCase',
     'CommunityListEntryTestCase',
     'ModelOrderingTestCase',
+    'ModelNamesTestCase',
     'AggregateModelTestExportsTestCase',
 )
 
@@ -202,4 +203,38 @@ class AggregateModelTestExportsTestCase(SimpleTestCase):
         ]
         self.assertEqual(
             missing, [], f'IS-IS serializers missing tags in Meta.fields: {missing}'
+        )
+
+
+class ModelNamesTestCase(SimpleTestCase):
+    """NetBox titles its pages with the names of the models: Django would invent
+    "entrys" and "familys" for the ones that do not set them"""
+
+    def models(self):
+        return [
+            model
+            for model in apps.get_app_config('netbox_routing_protocols').get_models()
+            if not model._meta.abstract and not model._meta.auto_created
+        ]
+
+    def test_the_plural_is_not_the_singular_with_an_s(self):
+        wrong = {
+            model._meta.label: str(model._meta.verbose_name_plural)
+            for model in self.models()
+            if str(model._meta.verbose_name_plural).lower().endswith(('ys', 'ss'))
+            and str(model._meta.verbose_name_plural).lower()
+            == str(model._meta.verbose_name).lower() + 's'
+            and str(model._meta.verbose_name).lower().endswith(('y', 's'))
+        }
+        self.assertEqual(wrong, {})
+
+    def test_the_names_the_pages_show(self):
+        from netbox_routing_protocols.models.objects import ASPath, ASPathEntry
+
+        self.assertEqual(
+            (
+                str(ASPath._meta.verbose_name_plural),
+                str(ASPathEntry._meta.verbose_name_plural),
+            ),
+            ('AS Paths', 'AS Path Entries'),
         )
