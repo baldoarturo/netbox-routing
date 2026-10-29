@@ -10,7 +10,7 @@ from netbox_routing_protocols.forms.bulk_import import (
 )
 from netbox_routing_protocols.models.objects import PrefixList, PrefixListEntry
 
-__all__ = ('PrefixListImportTestCase',)
+__all__ = ('PrefixListImportTestCase', 'PrefixListImportOverlapTestCase')
 
 
 class PrefixListImportTestCase(TestCase):
@@ -123,3 +123,58 @@ class PrefixListImportTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(PrefixList.objects.get(name='from-csv').family, 6)
+
+
+class PrefixListImportOverlapTestCase(TestCase):
+    """The import saves overlapping entries and tells the user, once per pair"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.v4 = PrefixList.objects.create(name='v4', family=4)
+        cls.other = PrefixList.objects.create(name='other', family=4)
+        Prefix.objects.create(prefix='10.0.0.0/8')
+        Prefix.objects.create(prefix='10.1.0.0/16')
+        cls.user = User.objects.create_superuser('importer', 'i@example.com', 'x')
+
+    def _import(self, csv):
+        self.client.force_login(self.user)
+        return self.client.post(
+            reverse('plugins:netbox_routing_protocols:prefixlistentry_bulk_import'),
+            {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
+            follow=True,
+        )
+
+    def _warnings(self, response):
+        return [
+            str(m) for m in response.context['messages'] if m.level_tag == 'warning'
+        ]
+
+    def test_overlaps_are_summarized_once_per_pair(self):
+        response = self._import(
+            'prefix_list,action,prefix,sequence\n'
+            'v4,permit,10.0.0.0/8,10\n'
+            'v4,permit,10.0.0.0/8,20\n'
+            'v4,permit,10.1.0.0/16,30\n'
+        )
+        self.assertEqual(PrefixListEntry.objects.count(), 3)
+        warnings = self._warnings(response)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('Prefix list v4', warnings[0])
+        # 10/8 twice: one duplicate; and the /16 is another prefix: no overlap with them
+        self.assertIn('1 duplicate', warnings[0])
+
+    def test_an_import_without_overlaps_has_no_warning(self):
+        response = self._import(
+            'prefix_list,action,prefix,sequence\nv4,permit,10.0.0.0/8,10\nother,permit,10.0.0.0/8,10\n'
+        )
+        self.assertEqual(PrefixListEntry.objects.count(), 2)
+        self.assertEqual(self._warnings(response), [])
+
+    def test_overlaps_with_existing_entries_are_included(self):
+        self._import('prefix_list,action,prefix,sequence\nv4,permit,10.0.0.0/8,10\n')
+        response = self._import(
+            'prefix_list,action,prefix,sequence\nv4,deny,10.0.0.0/8,20\n'
+        )
+        warnings = self._warnings(response)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('1 duplicate', warnings[0])
