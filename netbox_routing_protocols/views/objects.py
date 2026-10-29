@@ -1,6 +1,8 @@
 import netaddr
+from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import View
 
@@ -27,6 +29,7 @@ from netbox_routing_protocols.helpers.prefix_list import (
     describe_entry,
     evaluate_prefix,
     find_overlaps,
+    prefix_list_references,
 )
 from netbox_routing_protocols.filtersets.objects import *
 from netbox_routing_protocols.forms.objects import *
@@ -135,9 +138,74 @@ class PrefixListEditView(ObjectEditView):
     form = PrefixListForm
 
 
+# How many objects of each type are named in the warning of a delete
+REFERENCES_SHOWN = 10
+
+
+def reference_groups(request, prefix_lists):
+    """
+    The objects that refer to the prefix lists, of any model, as a list of dicts (name,
+    count, the objects the user can view up to REFERENCES_SHOWN, and how many more).
+    """
+    pks = {}
+    for prefix_list in prefix_lists:
+        for model, objects in prefix_list_references(prefix_list):
+            pks.setdefault(model, set()).update(objects.values_list('pk', flat=True))
+    groups = []
+    for model, model_pks in pks.items():
+        manager = model._default_manager
+        if hasattr(manager, 'restrict'):
+            manager = manager.restrict(request.user, 'view')
+        shown = list(manager.filter(pk__in=model_pks)[:REFERENCES_SHOWN])
+        meta = model._meta
+        groups.append(
+            {
+                'name': (
+                    meta.verbose_name
+                    if len(model_pks) == 1
+                    else meta.verbose_name_plural
+                ),
+                'count': len(model_pks),
+                'objects': shown,
+                'more': len(model_pks) - len(shown),
+            }
+        )
+    return groups
+
+
+def references_message(groups):
+    """The references of reference_groups as one line of text, for a message"""
+    parts = []
+    for group in groups:
+        names = ', '.join(str(obj) for obj in group['objects'])
+        if group['more']:
+            names += ' and {} more'.format(group['more'])
+        parts.append('{} {} ({})'.format(group['count'], group['name'], names))
+    return (
+        'The selected prefix lists are in use. Deleting them leaves these references '
+        'empty: ' + '; '.join(parts) + '.'
+    )
+
+
 @register_model_view(PrefixList, name='delete')
 class PrefixListDeleteView(ObjectDeleteView):
     queryset = PrefixList.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        # A list in use can be deleted: the confirmation says what stops referencing it
+        response = super().get(request, *args, **kwargs)
+        groups = reference_groups(request, [self.get_object(**kwargs)])
+        marker = b'<div class="modal-body">'
+        if groups and getattr(response, 'content', None) and marker in response.content:
+            warning = render_to_string(
+                'netbox_routing_protocols/panels/prefix_list_references.html',
+                {'groups': groups},
+                request=request,
+            )
+            response.content = response.content.replace(
+                marker, marker + warning.encode(), 1
+            )
+        return response
 
 
 @register_model_view(PrefixList, name='bulk_import', detail=False)
@@ -163,6 +231,19 @@ class PrefixListBulkDeleteView(BulkDeleteView):
     )
     filterset = PrefixListFilterSet
     table = PrefixListTable
+
+    def post(self, request, **kwargs):
+        # The confirmation page of the selection says what stops referencing the lists
+        if '_confirm' not in request.POST:
+            if request.POST.get('_all'):
+                lists = self.filterset(request.GET, PrefixList.objects.all()).qs
+            else:
+                pks = [int(pk) for pk in request.POST.getlist('pk')]
+                lists = PrefixList.objects.filter(pk__in=pks)
+            groups = reference_groups(request, lists)
+            if groups:
+                messages.warning(request, references_message(groups))
+        return super().post(request, **kwargs)
 
 
 #

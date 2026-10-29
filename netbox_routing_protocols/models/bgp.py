@@ -173,7 +173,7 @@ class BGPPolicyTemplate(PrimaryModel):
     prefixlist_out = models.ForeignKey(
         verbose_name=_('Outbound Prefix List'),
         to='netbox_routing_protocols.PrefixList',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         related_name='template_afs_out',
         blank=True,
         null=True,
@@ -181,7 +181,7 @@ class BGPPolicyTemplate(PrimaryModel):
     prefixlist_in = models.ForeignKey(
         verbose_name=_('Inbound Prefix List'),
         to='netbox_routing_protocols.PrefixList',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         related_name='template_afs_in',
         blank=True,
         null=True,
@@ -711,7 +711,7 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
     prefixlist_out = models.ForeignKey(
         verbose_name=_('Outbound Prefix List'),
         to='netbox_routing_protocols.PrefixList',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         related_name='peer_address_families_out',
         blank=True,
         null=True,
@@ -719,7 +719,7 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
     prefixlist_in = models.ForeignKey(
         verbose_name=_('Inbound Prefix List'),
         to='netbox_routing_protocols.PrefixList',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         related_name='peer_address_families_in',
         blank=True,
         null=True,

@@ -1,0 +1,20 @@
+{% load i18n %}
+<div class="alert alert-warning" role="alert">
+  <h5 class="alert-title">{% trans "This prefix list is in use" %}</h5>
+  <p class="mb-2">
+    {% trans "It can be deleted, but the objects below lose their reference to it (the field is left empty), so their filtering stops applying until you choose another list." %}
+  </p>
+  <ul class="mb-0">
+    {% for group in groups %}
+      <li>
+        <strong>{{ group.count }} {{ group.name }}</strong>
+        {% if group.objects %}:
+          {% for object in group.objects %}
+            {% if object.get_absolute_url %}<a href="{{ object.get_absolute_url }}">{{ object }}</a>{% else %}{{ object }}{% endif %}{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+          {% if group.more %}{% blocktrans with more=group.more %}and {{ more }} more{% endblocktrans %}{% endif %}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
