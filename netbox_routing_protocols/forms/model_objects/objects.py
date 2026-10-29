@@ -53,6 +53,13 @@ class ASPathForm(PrimaryModelForm):
 
 
 class ASPathEntryForm(PrimaryModelForm):
+    """
+    A new entry permits unless told otherwise, and an empty sequence takes the next one of
+    the AS-path (suggested when the AS-path is known, assigned on save otherwise); the
+    sequence of an existing entry stays required. Entries with the same pattern are
+    flashed as warnings after saving.
+    """
+
     class Meta:
         model = ASPathEntry
         fields = (

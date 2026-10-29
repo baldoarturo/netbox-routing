@@ -26,6 +26,8 @@ __all__ = (
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
     # Prefix lists
+    'ASPathImportForm',
+    'ASPathEntryImportForm',
     'PrefixListImportForm',
     'PrefixListEntryImportForm',
     # OSPF

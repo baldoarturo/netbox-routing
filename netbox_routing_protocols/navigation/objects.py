@@ -80,6 +80,12 @@ aspath = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_aspath'],
         ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:aspath_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.add_aspath'],
+        ),
     ),
 )
 aspath_entry = PluginMenuItem(
@@ -93,12 +99,12 @@ aspath_entry = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_aspathentry'],
         ),
-        # PluginMenuButton(
-        #     link='plugins:netbox_routing_protocols:aspathentry_bulk_import',
-        #     title='Import',
-        #     icon_class=COL_IMPORT,
-        #     permissions=['netbox_routing_protocols.add_aspathentry'],
-        # ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:aspathentry_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.add_aspathentry'],
+        ),
     ),
 )
 

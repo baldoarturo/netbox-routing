@@ -33,6 +33,11 @@ class PermitDenyChoiceMixin:
 
 
 class ASPath(PrimaryModel):
+    """
+    A named, ordered list of AS_PATH patterns (RFC 4271 section 5.1.2) that route policy
+    entries match routes against. Its entries are evaluated by sequence, first match wins.
+    """
+
     name = models.CharField(max_length=100)
 
     clone_fields = ()
@@ -59,6 +64,12 @@ class ASPath(PrimaryModel):
 
 
 class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
+    """
+    One rule of an AS-path: a permit or deny on a POSIX extended regular expression, in a
+    sequence from 1 to 4294967294. The pattern is validated, not evaluated; see
+    helpers/aspath.validate_pattern.
+    """
+
     aspath = models.ForeignKey(
         to=ASPath,
         on_delete=models.CASCADE,
@@ -93,7 +104,8 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
         )
 
     def __str__(self):
-        # Workaround for bug with nulled aspath entry.
+        # Workaround for bug with nulled aspath entry (the required field is missing
+        # while the form of a new entry is being validated).
         if hasattr(self, 'aspath'):
             return f'{self.aspath.name} {self.action} {self.sequence}'
         return super().__str__()

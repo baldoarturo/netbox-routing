@@ -162,6 +162,33 @@ class ASPathEntryTestCase(TestCase):
         form = ASPathEntryForm()
         self.assertIn('POSIX extended', form.fields['pattern'].help_text)
 
+    def test_name_is_unique_ignoring_case(self):
+        ASPath.objects.create(name='Customers')
+        with self.assertRaises(ValidationError):
+            ASPath(name='CUSTOMERS').full_clean()
+
+    def test_urls_and_cascade_delete(self):
+        entry = ASPathEntry.objects.create(
+            aspath=self.aspath, action='permit', sequence=10, pattern='^1$'
+        )
+        self.assertEqual(
+            self.aspath.get_absolute_url(),
+            reverse('plugins:netbox_routing_protocols:aspath', args=[self.aspath.pk]),
+        )
+        self.assertEqual(
+            entry.get_absolute_url(),
+            reverse('plugins:netbox_routing_protocols:aspathentry', args=[entry.pk]),
+        )
+        self.aspath.delete()
+        self.assertFalse(ASPathEntry.objects.filter(pk=entry.pk).exists())
+
+    def test_clean_without_an_aspath_reports_the_required_field_only(self):
+        entry = ASPathEntry(action='permit', sequence=10, pattern='^1$')
+        with self.assertRaises(ValidationError) as ctx:
+            entry.full_clean()
+        self.assertEqual(set(ctx.exception.message_dict), {'aspath'})
+        self.assertEqual(str(ASPathEntry()), 'ASPathEntry object (None)')
+
     def test_duplicate_sequence_message(self):
         ASPathEntry.objects.create(
             aspath=self.aspath, action='permit', sequence=10, pattern='^1$'

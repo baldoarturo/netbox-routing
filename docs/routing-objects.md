@@ -163,22 +163,32 @@ attributes and *set* others.
 **AS Path** and **AS Path Entries**
 
 An AS-path list filters routes by the sequence of autonomous systems they crossed (the BGP `AS_PATH`
-attribute, [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §5.1.2). Each entry has a **sequence**,
-an **action** (permit or deny) and a **pattern**: a POSIX extended regular expression (the family
-used by Cisco IOS/IOS-XR, Arista EOS and FRR), where `_` is an ordinary character so the usual
-`_65001_` is accepted. The plugin stores and shows the pattern, it does not run it, and it does not
-check any vendor's own dialect (Junos matches whole AS numbers instead of characters, for example).
-It checks that the pattern is valid POSIX: not empty, balanced groups, valid bracket expressions
-(`[0-9]`, `[[:digit:]]`) and repetitions (`*`, `+`, `?`, `{m,n}`), something to repeat, no empty
-alternatives, and no extensions that POSIX lacks (`\d`, `(?:...)`). Every AS number written in it
-must also fit the 32-bit AS_PATH ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)), in plain
-(`0`..`4294967295`) or asdot (`1.10`, each part up to `65535`,
-[RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) notation. The sequence goes from `1` to
-`4294967294`, the same range as a prefix list.
+attribute, [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §5.1.2). Route policy entries use it
+to match routes (see [Route policies](#route-policies)).
+
+### AS path and entry
+
+| Field | Meaning |
+| --- | --- |
+| Name | Unique, ignoring case. |
+| Sequence (entry) | `1` to `4294967294`, the same range as a prefix list. Entries are evaluated in this order. Empty takes the next free one, see below. |
+| Action (entry) | **Permit** or **Deny**. New entries start with *permit*. |
+| Pattern (entry) | The match, see below. |
+
+The **pattern** is a POSIX extended regular expression (the family used by Cisco IOS/IOS-XR, Arista
+EOS and FRR), where `_` is an ordinary character so the usual `_65001_` is accepted. The plugin
+stores and shows the pattern, it does not run it, and it does not check any vendor's own dialect
+(Junos matches whole AS numbers instead of characters, for example). It checks that the pattern is
+valid POSIX: not empty, balanced groups, valid bracket expressions (`[0-9]`, `[[:digit:]]`) and
+repetitions (`*`, `+`, `?`, `{m,n}`), something to repeat, no empty alternatives, and no extensions
+that POSIX lacks (`\d`, `(?:...)`). Every AS number written in it must also fit the 32-bit AS_PATH
+([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)), in plain (`0`..`4294967295`) or asdot (`1.10`,
+each part up to `65535`, [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) notation.
 
 Leave the **sequence** empty and the entry takes the next multiple of 10 above the last one of the
-AS-path (the form suggests it when you add an entry from the AS-path, and the API assigns it; entries
-of one bulk request get consecutive numbers). Any value is still accepted.
+AS-path (the form suggests it when you add an entry from the AS-path, and the API and the import
+assign it; entries of one bulk request get consecutive numbers). Any value is still accepted. The
+sequence of an entry that already exists cannot be emptied, so it never moves by accident.
 
 Entries are evaluated by sequence and the first match wins, so an entry with the **same pattern** as
 another one is never reached. When you save one, the form and the API (`warnings` in the response)
@@ -186,16 +196,53 @@ tell you, and the page of the entry lists the entries with the same pattern. The
 Only identical patterns are detected: whether two different regular expressions overlap cannot be
 decided in general.
 
-The page of an AS-path shows its entries with an **Add entry** button (the form opens with the
-AS-path chosen, the next sequence suggested and *permit* preselected), and where it is used, like a prefix list: the
-route policy entries that match it, their route policies, and the BGP policy templates and peer
-address families that apply those policies (in or out), each with a link to the filtered list. **Duplicate** copies an AS-path with all its entries under a
-new name. The lists and entry tables have the edit, delete and changelog buttons and can be filtered
-by name, description, AS-path, action, sequence and pattern, and the action of several entries can be
-changed at once with bulk edit.
+### The page of an AS path
 
-An AS-path that route map entries use **can be deleted**: the confirmation (single and bulk)
-lists every object that refers to it, and those objects simply stop matching on it.
+It shows the entries with an **Add entry** button (the form opens with the AS-path chosen, the next
+sequence suggested and *permit* preselected), and where the AS-path is used, like a prefix list: the
+route policy entries that match it, their route policies, and the BGP policy templates and peer
+address families that apply those policies (in or out), each with a link to the filtered list.
+**Duplicate** copies an AS-path with all its entries under a new name (suggested: `<name> copy`).
+
+The lists and the entry tables have the edit, delete and changelog buttons, and can be filtered by
+name, description, AS-path, action, sequence and pattern. The description and tags can be shown as
+columns. Bulk edit changes the description, the AS-path or the action of several entries at once.
+
+### Using the API
+
+The REST API (`/api/plugins/routing/objects/aspath/` and `/api/plugins/routing/objects/aspath-entry/`)
+follows the same rules as the form, and both objects carry `owner`, `tags`, `custom_fields`,
+`created` and `last_updated` like any other NetBox object.
+
+- **`sequence`** can be left out; the entry gets the next multiple of 10 after the highest one in the AS-path.
+- The response of a create or update of an entry carries a **`warnings`** list with the entries that have the same pattern, so scripts can show them. The entry is saved anyway.
+
+### Importing AS paths and entries
+
+**AS Path** and **AS Path Entries** have an *Import* button in the menu (CSV, JSON or YAML, like any
+NetBox object). Import the AS-paths first, then their entries.
+
+```
+name,description
+CUSTOMERS,Customer routes
+```
+
+```
+aspath,action,pattern,sequence
+CUSTOMERS,permit,^65001_,
+CUSTOMERS,permit,^65002_,
+CUSTOMERS,deny,.*,100
+```
+
+`aspath` is the name of an existing AS-path, `action` is `permit` or `deny`, and an empty `sequence`
+takes the next free one (steps of 10, consecutive inside one import). The whole import is rolled back
+if one row is wrong, and the rows are checked with the same rules as the form (pattern, sequence).
+
+### Deleting an AS path in use
+
+An AS-path that route policy entries use **can be deleted**: the confirmation (single and bulk)
+lists every object that refers to it, and those objects simply stop matching on it. The entries of
+the AS-path are deleted with it.
 
 ## Communities
 
@@ -239,7 +286,9 @@ Community
 
 AS path
 ├─ name
-└─ Entry: aspath → AS path · sequence · action {Permit | Deny} · pattern
+└─ Entry
+    ├─ aspath → AS path
+    └─ Result: sequence (1..4294967294) · action {Permit | Deny} · pattern
 
 Route policy
 ├─ name

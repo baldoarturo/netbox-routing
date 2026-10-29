@@ -152,3 +152,43 @@ class ASPathEntryPageTestCase(TestCase):
         response = self.client.get(second.get_absolute_url())
         self.assertContains(response, 'Entries with the same pattern')
         self.assertContains(response, 'shadowed')
+
+
+class ASPathAPIFieldsTestCase(APITestCase):
+    """Tags, custom fields, owner and timestamps are read and written over the API"""
+
+    def post(self, name, data):
+        return self.client.post(
+            reverse(f'plugins-api:netbox_routing_protocols-api:{name}-list'),
+            data,
+            format='json',
+            **self.header,
+        )
+
+    def test_fields_of_the_aspath_and_the_entry(self):
+        from extras.models import Tag
+
+        self.add_permissions(
+            'netbox_routing_protocols.add_aspath',
+            'netbox_routing_protocols.add_aspathentry',
+            'extras.view_tag',
+        )
+        tag = Tag.objects.create(name='edge', slug='edge')
+        response = self.post('aspath', {'name': 'API', 'tags': [{'name': 'edge'}]})
+        self.assertHttpStatus(response, 201)
+        for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
+            self.assertIn(field, response.data)
+        self.assertEqual([t['name'] for t in response.data['tags']], ['edge'])
+        response = self.post(
+            'aspathentry',
+            {
+                'aspath': response.data['id'],
+                'action': 'permit',
+                'pattern': '^1$',
+                'tags': [tag.pk],
+            },
+        )
+        self.assertHttpStatus(response, 201)
+        for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
+            self.assertIn(field, response.data)
+        self.assertEqual([t['name'] for t in response.data['tags']], ['edge'])
