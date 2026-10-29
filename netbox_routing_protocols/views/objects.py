@@ -75,6 +75,16 @@ class DuplicatePrefixList(ObjectAction):
     template_name = 'netbox_routing_protocols/buttons/duplicate.html'
 
 
+class ResequenceASPath(ObjectAction):
+    """Renumber the entries of the AS-path"""
+
+    name = 'resequence'
+    label = _('Resequence')
+    permissions_required = {'change'}
+    url_kwargs = ['pk']
+    template_name = 'netbox_routing_protocols/buttons/resequence.html'
+
+
 class DuplicateASPath(DuplicatePrefixList):
     """A copy of the AS-path with its entries"""
 
@@ -580,6 +590,66 @@ class PrefixMatchView(ContentTypePermissionRequiredMixin, View):
 
 
 #
+# AS-path match: which entries of the AS-paths match an AS_PATH
+#
+class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
+    template_name = 'netbox_routing_protocols/aspath_match.html'
+    partial_name = 'netbox_routing_protocols/aspath_match_results.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.view_aspathentry'
+
+    def get(self, request):
+        query = request.GET.get('q', '').strip()
+        show_all = request.GET.get('all') in ('1', 'on', 'true')
+        context = {'q': query, 'show_all': show_all}
+        if query:
+            context.update(self.evaluate(request, query, show_all))
+        # HTMX asks for the results only, a normal request for the whole page
+        template = self.partial_name if request.htmx else self.template_name
+        return render(request, template, context)
+
+    @staticmethod
+    def evaluate(request, query, show_all):
+        try:
+            path = aspath_helpers.parse_as_path(query)
+        except ValidationError as e:
+            return {'error': e.messages[0]}
+
+        aspaths = ASPath.objects.restrict(request.user, 'view')
+        entries = (
+            ASPathEntry.objects.restrict(request.user, 'view')
+            .filter(aspath__in=aspaths)
+            .select_related('aspath')
+        )
+        matched, timed_out, not_evaluated = aspath_helpers.evaluate_path(path, entries)
+        results = [
+            {
+                'aspath': aspath,
+                'rows': [
+                    {
+                        'entry': entry,
+                        'effective': effective,
+                        'text': aspath_helpers.describe_entry(entry),
+                    }
+                    for entry, effective in rows
+                ],
+            }
+            for aspath, rows in matched
+        ]
+        context = {
+            'path': path,
+            'results': results,
+            'timed_out': timed_out,
+            'not_evaluated': not_evaluated,
+        }
+        if show_all:
+            matched = [result['aspath'].pk for result in results]
+            context['unmatched'] = aspaths.exclude(pk__in=matched)
+        return context
+
+
+#
 # Route Policy
 #
 @register_model_view(RoutePolicy, name='list', path='', detail=False)
@@ -769,6 +839,7 @@ class ASPathView(GetRelatedModelsMixin, ObjectView):
     queryset = ASPath.objects.all()
     actions = (
         DuplicateASPath,
+        ResequenceASPath,
         CloneObject,
         EditObject,
         DeleteObject,
@@ -949,6 +1020,53 @@ class ASPathDeleteView(ObjectDeleteView):
         return response
 
 
+@register_model_view(ASPath, name='resequence')
+class ASPathResequenceView(ContentTypePermissionRequiredMixin, View):
+    """Renumber the entries of an AS-path keeping their order"""
+
+    template_name = 'netbox_routing_protocols/aspath_resequence.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.change_aspathentry'
+
+    def _source(self, request, pk):
+        return get_object_or_404(ASPath.objects.restrict(request.user, 'view'), pk=pk)
+
+    def _render(self, request, aspath, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': aspath,
+                'form': form,
+                'count': aspath.aspath_entries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        aspath = self._source(request, pk)
+        return self._render(request, aspath, ASPathResequenceForm())
+
+    def post(self, request, pk):
+        aspath = self._source(request, pk)
+        form = ASPathResequenceForm(request.POST)
+        if form.is_valid():
+            try:
+                changed = aspath_helpers.resequence(
+                    aspath, form.cleaned_data['start'], form.cleaned_data['step']
+                )
+            except ValidationError as e:
+                form.add_error(None, e)
+            else:
+                messages.success(
+                    request,
+                    _('Resequenced %(aspath)s: %(count)d entries renumbered.')
+                    % {'aspath': aspath, 'count': changed},
+                )
+                return redirect(aspath.get_absolute_url())
+        return self._render(request, aspath, form)
+
+
 @register_model_view(ASPath, name='bulk_import', detail=False)
 class ASPathBulkImportView(BulkImportView):
     queryset = ASPath.objects.all()
@@ -1031,14 +1149,10 @@ class ASPathEntryView(ObjectView):
             TagsPanel(),
         ],
         right_panels=[
-            OverlapsPanel(title=_('Entries with the same pattern')),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
     )
-
-    def get_extra_context(self, request, instance):
-        return {'overlaps': aspath_helpers.find_duplicates(instance)}
 
 
 @register_model_view(ASPathEntry, name='add', detail=False)

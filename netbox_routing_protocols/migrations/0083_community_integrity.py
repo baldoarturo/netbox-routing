@@ -68,7 +68,7 @@ def check_list_names(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('netbox_routing_protocols', '0081_aspathentry_sequence_range'),
+        ('netbox_routing_protocols', '0082_aspathentry_unique_pattern'),
     ]
 
     operations = [

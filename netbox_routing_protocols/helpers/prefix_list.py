@@ -25,6 +25,7 @@ __all__ = (
     'community_list_references',
     'import_overlaps',
     'resequence',
+    'resequence_entries',
 )
 
 # Distance between the sequence numbers the module assigns, leaving room to insert
@@ -310,18 +311,22 @@ def import_overlaps(entries):
 
 
 def resequence(prefix_list, start=SEQUENCE_STEP, step=SEQUENCE_STEP):
+    """Renumber the entries of the prefix list, see resequence_entries"""
+    return resequence_entries(prefix_list.prefix_list_entries, start, step)
+
+
+def resequence_entries(entries, start=SEQUENCE_STEP, step=SEQUENCE_STEP):
     """
-    Renumber the entries of the list keeping their order: `start`, then every `step`.
-    Returns how many entries changed. Entries that already have their number are not
-    touched. Done in one transaction: the entries that move go first to numbers above the
-    maximum, so the unique (list, sequence) constraint is never hit half way.
+    Renumber the entries (the related manager of a prefix list or an AS-path) keeping their
+    order: `start`, then every `step`. Returns how many entries changed. Entries that
+    already have their number are not touched. Done in one transaction: the entries that
+    move go first to numbers above the maximum, so the unique (parent, sequence) constraint
+    is never hit half way.
     """
     if start < 1 or step < 1:
         raise ValidationError(_('The first number and the step must be at least 1.'))
     with transaction.atomic():
-        entries = list(
-            prefix_list.prefix_list_entries.select_for_update().order_by('sequence')
-        )
+        entries = list(entries.select_for_update().order_by('sequence'))
         last = start + step * (len(entries) - 1) if entries else start
         if last > MAX_SEQUENCE:
             raise ValidationError(

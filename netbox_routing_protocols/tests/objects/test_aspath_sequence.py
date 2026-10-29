@@ -4,12 +4,11 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from netbox.context import current_request
 from users.models import User
 from utilities.testing import APITestCase
 
 from netbox_routing_protocols.forms.objects import ASPathEntryForm
-from netbox_routing_protocols.helpers.aspath import find_duplicates, next_sequence
+from netbox_routing_protocols.helpers.aspath import next_sequence
 from netbox_routing_protocols.models.objects import *
 
 
@@ -31,21 +30,6 @@ class ASPathHelpersTestCase(TestCase):
         make_entry(self.aspath, 25, '^2$')
         self.assertEqual(next_sequence(self.aspath), 30)
         self.assertEqual(next_sequence(self.aspath, after=40), 50)
-
-    def test_duplicates(self):
-        first = make_entry(self.aspath, 10, '^65001_')
-        second = make_entry(self.aspath, 20, ' ^65001_ ', 'deny')
-        other = make_entry(self.aspath, 30, '^65002_')
-        self.assertEqual(
-            [(d.kind, d.entry) for d in find_duplicates(second)],
-            [('shadowed', first)],
-        )
-        self.assertEqual(
-            [(d.kind, d.entry) for d in find_duplicates(first)],
-            [('shadows', second)],
-        )
-        self.assertIn('never reached', find_duplicates(second)[0].message)
-        self.assertEqual(find_duplicates(other), [])
 
 
 class ASPathEntryFormTestCase(TestCase):
@@ -71,27 +55,29 @@ class ASPathEntryFormTestCase(TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().sequence, 20)
 
-    def test_saving_a_duplicate_warns_but_saves(self):
+    def test_a_repeated_pattern_is_rejected(self):
         make_entry(self.aspath, 10, '^1$')
-        request = self.request()
-        token = current_request.set(request)
-        try:
-            form = ASPathEntryForm(
-                data={
-                    'aspath': self.aspath.pk,
-                    'sequence': 20,
-                    'action': 'deny',
-                    'pattern': '^1$',
-                }
-            )
-            self.assertTrue(form.is_valid(), form.errors)
-            entry = form.save()
-        finally:
-            current_request.reset(token)
-        self.assertTrue(ASPathEntry.objects.filter(pk=entry.pk).exists())
-        texts = [str(message) for message in request._messages]
-        self.assertEqual(len(texts), 1)
-        self.assertIn('never reached', texts[0])
+        form = ASPathEntryForm(
+            data={
+                'aspath': self.aspath.pk,
+                'sequence': 20,
+                'action': 'deny',
+                'pattern': '^1$',
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('already has an entry with this pattern', str(form.errors))
+        # the same pattern in another AS-path is fine
+        other = ASPath.objects.create(name='Other')
+        form = ASPathEntryForm(
+            data={
+                'aspath': other.pk,
+                'sequence': 10,
+                'action': 'permit',
+                'pattern': '^1$',
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
 
 
 class ASPathEntryAPITestCase(APITestCase):
@@ -125,33 +111,28 @@ class ASPathEntryAPITestCase(APITestCase):
         self.assertHttpStatus(response, 201)
         self.assertEqual([row['sequence'] for row in response.data], [10, 20, 30, 10])
 
-    def test_duplicate_is_saved_with_a_warning(self):
+    def test_a_repeated_pattern_is_rejected(self):
         self.add_permissions('netbox_routing_protocols.add_aspathentry')
         make_entry(self.aspath, 10, '^1$')
-        response = self.post(
-            {
-                'aspath': self.aspath.pk,
-                'sequence': 20,
-                'action': 'deny',
-                'pattern': '^1$',
-            }
-        )
+        data = {'aspath': self.aspath.pk, 'action': 'deny', 'pattern': '^1$'}
+        response = self.post({**data, 'sequence': 20})
+        self.assertHttpStatus(response, 400)
+        self.assertIn('already has an entry with this pattern', str(response.data))
+        self.assertEqual(self.aspath.aspath_entries.count(), 1)
+        # the same pattern in another AS-path is fine
+        response = self.post({**data, 'aspath': self.other.pk})
         self.assertHttpStatus(response, 201)
-        warnings = response.data['warnings']
-        self.assertEqual([w['kind'] for w in warnings], ['shadowed'])
-        self.assertEqual(warnings[0]['entry']['sequence'], 10)
+        self.assertNotIn('warnings', response.data)
 
-
-class ASPathEntryPageTestCase(TestCase):
-    def test_the_page_lists_entries_with_the_same_pattern(self):
-        User.objects.create_superuser('page', 'page@example.com', 'x')
-        self.client.login(username='page', password='x')
-        aspath = ASPath.objects.create(name='Path')
-        make_entry(aspath, 10, '^1$')
-        second = make_entry(aspath, 20, '^1$')
-        response = self.client.get(second.get_absolute_url())
-        self.assertContains(response, 'Entries with the same pattern')
-        self.assertContains(response, 'shadowed')
+    def test_a_repeated_pattern_inside_a_bulk_request_is_rejected(self):
+        self.add_permissions('netbox_routing_protocols.add_aspathentry')
+        rows = [
+            {'aspath': self.aspath.pk, 'action': 'permit', 'pattern': '^1$'},
+            {'aspath': self.aspath.pk, 'action': 'deny', 'pattern': '^1$'},
+        ]
+        response = self.post(rows)
+        self.assertHttpStatus(response, 400)
+        self.assertFalse(self.aspath.aspath_entries.exists())
 
 
 class ASPathAPIFieldsTestCase(APITestCase):
@@ -192,3 +173,96 @@ class ASPathAPIFieldsTestCase(APITestCase):
         for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
             self.assertIn(field, response.data)
         self.assertEqual([t['name'] for t in response.data['tags']], ['edge'])
+
+
+class ASPathGraphQLFiltersTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Gql')
+        cls.first = make_entry(cls.aspath, 10, '^1$')
+        cls.second = make_entry(cls.aspath, 20, '^2$', 'deny')
+
+    def query(self, text):
+        response = self.client.post(
+            reverse('graphql'), {'query': text}, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 200)
+        self.assertNotIn('errors', response.json(), response.json())
+        return response.json()['data']
+
+    def test_entries_can_be_filtered(self):
+        self.add_permissions(
+            'netbox_routing_protocols.view_aspath',
+            'netbox_routing_protocols.view_aspathentry',
+        )
+        for filters, expected in (
+            ('sequence: {filter_lookup: {exact: 20}}', [self.second]),
+            ('action: {exact: "deny"}', [self.second]),
+            ('pattern: {exact: "^1$"}', [self.first]),
+        ):
+            with self.subTest(filters):
+                data = self.query(
+                    f'{{ aspath_entry_list(filters: {{{filters}}}) {{ id pattern }} }}'
+                )
+                self.assertEqual(
+                    {int(row['id']) for row in data['aspath_entry_list']},
+                    {entry.pk for entry in expected},
+                )
+        data = self.query('{ aspath_list(filters: {name: {exact: "Gql"}}) { id } }')
+        self.assertEqual(len(data['aspath_list']), 1)
+        data = self.query('{ aspath_list(filters: {name: {exact: "None"}}) { id } }')
+        self.assertEqual(data['aspath_list'], [])
+
+
+class ASPathResequenceAPITestCase(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.aspath = ASPath.objects.create(name='Reseq')
+        make_entry(self.aspath, 3, '^1$')
+        make_entry(self.aspath, 4, '^2$')
+        self.url = reverse(
+            'plugins-api:netbox_routing_protocols-api:aspath-resequence',
+            kwargs={'pk': self.aspath.pk},
+        )
+        self.permissions = (
+            'netbox_routing_protocols.change_aspath',
+            'netbox_routing_protocols.view_aspath',
+        )
+
+    def sequences(self):
+        return list(
+            self.aspath.aspath_entries.order_by('sequence').values_list(
+                'sequence', flat=True
+            )
+        )
+
+    def test_resequence_with_defaults_and_values(self):
+        self.add_permissions(
+            *self.permissions, 'netbox_routing_protocols.change_aspathentry'
+        )
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 200)
+        self.assertEqual(response.data, {'changed': 2})
+        self.assertEqual(self.sequences(), [10, 20])
+        self.client.patch(
+            self.url, {'start': 100, 'step': 50}, format='json', **self.header
+        )
+        self.assertEqual(self.sequences(), [100, 150])
+
+    def test_invalid_values(self):
+        self.add_permissions(
+            *self.permissions, 'netbox_routing_protocols.change_aspathentry'
+        )
+        for data in ({'start': 'x'}, {'step': -1}, {'start': 4294967294, 'step': 10}):
+            with self.subTest(data):
+                response = self.client.patch(
+                    self.url, data, format='json', **self.header
+                )
+                self.assertHttpStatus(response, 400)
+        self.assertEqual(self.sequences(), [3, 4])
+
+    def test_it_needs_the_permission_to_change_entries(self):
+        self.add_permissions(*self.permissions)
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 403)
+        self.assertEqual(self.sequences(), [3, 4])

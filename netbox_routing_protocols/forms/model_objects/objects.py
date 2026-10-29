@@ -37,6 +37,7 @@ __all__ = (
     'ASPathForm',
     'ASPathEntryForm',
     'ASPathDuplicateForm',
+    'ASPathResequenceForm',
 )
 
 
@@ -56,8 +57,7 @@ class ASPathEntryForm(PrimaryModelForm):
     """
     A new entry permits unless told otherwise, and an empty sequence takes the next one of
     the AS-path (suggested when the AS-path is known, assigned on save otherwise); the
-    sequence of an existing entry stays required. Entries with the same pattern are
-    flashed as warnings after saving.
+    sequence of an existing entry stays required.
     """
 
     class Meta:
@@ -79,11 +79,10 @@ class ASPathEntryForm(PrimaryModelForm):
             )
             % {'step': SEQUENCE_STEP},
             'pattern': _(
-                'A POSIX extended regular expression (as used by Cisco IOS/IOS-XR, '
-                'Arista EOS and FRR), where "_" is an ordinary character, for example '
-                '"^65001_" or "_(65002|65003)$". AS numbers must be 0 to 4294967295 '
-                '(asdot such as 1.10 also works). It is stored as written and not '
-                'checked against any vendor dialect (Junos regular expressions differ).'
+                'A regular expression over the AS numbers of the path, '
+                'written as text separated by spaces, for example "^65001 " or '
+                '"(65002|65003)$". AS numbers must be 0 to 4294967295. It is stored as '
+                'written and is not tied to any vendor.'
             ),
         }
 
@@ -125,16 +124,6 @@ class ASPathEntryForm(PrimaryModelForm):
             except ValidationError as e:
                 raise forms.ValidationError({'sequence': e.messages})
 
-    def save(self, commit=True):
-        entry = super().save(commit)
-        if commit:
-            # The entry is saved anyway: the user is just told about duplicates
-            request = current_request.get()
-            if request is not None:
-                for duplicate in aspath_helpers.find_duplicates(entry)[:MAX_WARNINGS]:
-                    messages.warning(request, duplicate.message + '.')
-        return entry
-
 
 class ASPathDuplicateForm(forms.Form):
     """The name and description of the copy of an AS-path"""
@@ -149,6 +138,24 @@ class ASPathDuplicateForm(forms.Form):
         if ASPath.objects.filter(name__iexact=name).exists():
             raise forms.ValidationError(_('An AS-path with this name already exists.'))
         return name
+
+
+class ASPathResequenceForm(forms.Form):
+    """The first number and the step of a resequence"""
+
+    start = forms.IntegerField(
+        min_value=1,
+        max_value=4294967294,
+        initial=SEQUENCE_STEP,
+        label=_('First number'),
+    )
+    step = forms.IntegerField(
+        min_value=1,
+        max_value=4294967294,
+        initial=SEQUENCE_STEP,
+        label=_('Step'),
+        help_text=_('Distance between the numbers, to leave room to insert entries.'),
+    )
 
 
 class PrefixListForm(PrimaryModelForm):

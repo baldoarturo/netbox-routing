@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from netbox.api.viewsets import NetBoxModelViewSet
 from netbox_routing_protocols import filtersets
 from netbox_routing_protocols.api._serializers.objects import *
+from netbox_routing_protocols.helpers import aspath as aspath_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     SEQUENCE_STEP,
     resequence as resequence_entries,
@@ -73,6 +74,29 @@ class ASPathViewSet(NetBoxModelViewSet):
     queryset = ASPath.objects.all()
     serializer_class = ASPathSerializer
     filterset_class = filtersets.ASPathFilterSet
+
+    @action(detail=True, methods=['patch'])
+    def resequence(self, request, pk=None):
+        """
+        Renumber the entries of the AS-path keeping their order: `start` (default 10), then
+        every `step` (default 10). Needs the permission to change AS-path entries.
+        """
+        aspath = self.get_object()
+        if not request.user.has_perm('netbox_routing_protocols.change_aspathentry'):
+            raise PermissionDenied('You cannot change AS-path entries.')
+        values = {}
+        for name in ('start', 'step'):
+            raw = request.data.get(name, SEQUENCE_STEP)
+            if not str(raw).isdigit():
+                return Response(
+                    {name: 'A positive whole number is required.'}, status=400
+                )
+            values[name] = int(raw)
+        try:
+            changed = aspath_helpers.resequence(aspath, **values)
+        except ValidationError as e:
+            return Response({'detail': e.messages}, status=400)
+        return Response({'changed': changed})
 
 
 class ASPathEntryViewSet(NetBoxModelViewSet):

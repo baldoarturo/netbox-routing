@@ -44,6 +44,8 @@ class ASPath(PrimaryModel):
     prerequisite_models = ()
 
     class Meta:
+        verbose_name = _('AS Path')
+        verbose_name_plural = _('AS Paths')
         ordering = [
             'name',
             'pk',
@@ -65,9 +67,10 @@ class ASPath(PrimaryModel):
 
 class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
     """
-    One rule of an AS-path: a permit or deny on a POSIX extended regular expression, in a
+    One rule of an AS-path: a permit or deny on a regular expression, in a
     sequence from 1 to 4294967294. The pattern is validated, not evaluated; see
-    helpers/aspath.validate_pattern.
+    helpers/aspath.validate_pattern. A pattern cannot be repeated in the same AS-path (the
+    second entry would never be reached): the constraint is checked by full_clean() too.
     """
 
     aspath = models.ForeignKey(
@@ -91,6 +94,8 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
     prerequisite_models = ('netbox_routing_protocols.ASPath',)
 
     class Meta:
+        verbose_name = _('AS Path Entry')
+        verbose_name_plural = _('AS Path Entries')
         ordering = ['aspath', 'sequence']
         constraints = (
             models.UniqueConstraint(
@@ -100,6 +105,14 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
                 ),
                 name='%(app_label)s_%(class)s_unique_aspath_sequence',
                 violation_error_message="AS-Path sequence must be unique.",
+            ),
+            models.UniqueConstraint(
+                fields=(
+                    'aspath',
+                    'pattern',
+                ),
+                name='%(app_label)s_%(class)s_unique_aspath_pattern',
+                violation_error_message="This AS-Path already has an entry with this pattern.",
             ),
         )
 
@@ -132,6 +145,8 @@ class PrefixList(PrimaryModel):
     prerequisite_models = ()
 
     class Meta:
+        verbose_name = _('Prefix List')
+        verbose_name_plural = _('Prefix Lists')
         ordering = [
             'name',
             'pk',
@@ -219,6 +234,8 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
     prerequisite_models = ('netbox_routing_protocols.PrefixList',)
 
     class Meta:
+        verbose_name = _('Prefix List Entry')
+        verbose_name_plural = _('Prefix List Entries')
         ordering = ['prefix_list', 'sequence']
         constraints = (
             models.UniqueConstraint(
@@ -309,6 +326,8 @@ class RoutePolicy(PrimaryModel):
     prerequisite_models = ()
 
     class Meta:
+        verbose_name = _('Route Policy')
+        verbose_name_plural = _('Route Policies')
         ordering = [
             'name',
             'pk',
@@ -382,6 +401,8 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
     prerequisite_models = ('netbox_routing_protocols.RoutePolicy',)
 
     class Meta:
+        verbose_name = _('Route Policy Entry')
+        verbose_name_plural = _('Route Policy Entries')
         ordering = ['route_policy', 'sequence']
         constraints = (
             models.UniqueConstraint(

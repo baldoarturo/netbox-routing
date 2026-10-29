@@ -19,12 +19,16 @@ today BGP policy templates and peer address families point at prefix lists and r
 A prefix list is an ordered list of rules; each rule says *permit* or *deny* the prefixes it matches.
 Routers evaluate the entries in sequence order and stop at the first that matches.
 
+For example, a bogon filter has one list per family. Each one denies the special purpose ranges (every entry with *LE* at the longest length, so it also covers the more specific prefixes) and ends with a *permit* of *Any* so that it can be used as an inbound filter:
+
 ### Prefix list
 
 | Field | Meaning |
 | --- | --- |
 | Name | Name of the list, as used in the device configuration. |
 | Family | **IPv4** or **IPv6**. A list holds only one family, and the family **cannot be changed** once the list exists (its entries would stop making sense). |
+
+![The list of prefix lists, with the family and the number of entries of each one](images/prefixlist-list.png)
 
 ### Prefix list entry
 
@@ -37,6 +41,14 @@ Routers evaluate the entries in sequence order and stop at the first that matche
 | Any | Matches the all-zeros prefix of the family (`0.0.0.0/0` or `::/0`). NetBox IPAM cannot hold that prefix, so this checkbox stands for it. With *LE* set to the longest length (32 or 128) it matches *every* prefix. Leave *Prefix* empty when you use it. |
 | GE / LE | The length range of the match, as on routers. *GE* ("greater than or equal") and *LE* ("less than or equal") are lengths, not counts. Both are inclusive. |
 | Exact | Form only: tick it to match the prefix itself, with no length range. GE and LE are disabled while it is ticked and the form refuses them if both come in. It is the same as leaving GE and LE empty. |
+
+#### IPv4 Bogons example
+
+![The page of an IPv4 bogon list, with its entries and their RFC in the description](images/prefixlist-bogons-v4.png)
+
+#### IPv6 Bogons example
+
+![The page of an IPv6 bogon list](images/prefixlist-bogons-v6.png)
 
 How to read GE and LE for a prefix `10.0.0.0/8`:
 
@@ -168,6 +180,8 @@ to match routes (see [Route policies](#route-policies)).
 
 ### AS path and entry
 
+![The list of AS paths, with the number of entries of each one](images/aspath-list.png)
+
 | Field | Meaning |
 | --- | --- |
 | Name | Unique, ignoring case. |
@@ -175,15 +189,33 @@ to match routes (see [Route policies](#route-policies)).
 | Action (entry) | **Permit** or **Deny**. New entries start with *permit*. |
 | Pattern (entry) | The match, see below. |
 
-The **pattern** is a POSIX extended regular expression (the family used by Cisco IOS/IOS-XR, Arista
-EOS and FRR), where `_` is an ordinary character so the usual `_65001_` is accepted. The plugin
-stores and shows the pattern, it does not run it, and it does not check any vendor's own dialect
-(Junos matches whole AS numbers instead of characters, for example). It checks that the pattern is
-valid POSIX: not empty, balanced groups, valid bracket expressions (`[0-9]`, `[[:digit:]]`) and
-repetitions (`*`, `+`, `?`, `{m,n}`), something to repeat, no empty alternatives, and no extensions
-that POSIX lacks (`\d`, `(?:...)`). Every AS number written in it must also fit the 32-bit AS_PATH
-([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)), in plain (`0`..`4294967295`) or asdot (`1.10`,
-each part up to `65535`, [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) notation.
+The **pattern** is a regular expression written over the AS numbers of the path, which are read as
+text separated by single spaces (`65001 65002 65003`). It is evaluated with the Python
+[`regex`](https://pypi.org/project/regex/) module (a superset of the standard `re`), which is also
+what *Search AS Path Match* runs: the plugin stores and shows the pattern as you wrote it, does not
+translate it, and is not tied to any vendor's own dialect. What it checks is that the AS-path you
+enter is valid. A pattern is accepted when:
+
+- it is not empty and has only printable ASCII characters;
+- it compiles as a regular expression;
+- every AS number written in it fits the 32-bit AS_PATH ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)),
+  that is `0` to `4294967295`. Digits in escapes, brackets and repetitions (`\1`, `[0-9]`, `{2,3}`)
+  are not AS numbers. The dot is the wildcard of regular expressions, so an asdot number
+  ([RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) is written with an escaped dot (`1\.10`).
+
+The usual constructs work: anchors `^` and `$`, groups and alternatives `(65002|65003)`, classes
+`[0-9]`, `\d` and the POSIX ones such as `[[:digit:]]`, repetitions `*`, `+`, `?`, `{m,n}`, and the
+dot. Examples that are valid: `^65001 `, `(65002|65003)$`, `^[0-9]+$`, `^65001( 65002)*$`,
+`^65001 \d+$` and `.*`. The underscore `_` has no special meaning (it is a plain character), and
+neither has the `AS` prefix: patterns are written over the bare numbers.
+
+![The entries of the AS paths, with their sequence, action and pattern](images/aspath-entries.png)
+
+A pattern is not proved safe: some regular expressions can take very long on some paths (nested
+repetitions such as `(\d+ ?)+`). *Search AS Path Match* gives each entry a fraction of a second, and
+the entries that take longer are skipped and listed in a warning, instead of hanging the page. The
+whole search also has a limit of a few seconds: if it is reached, the entries not yet evaluated are
+counted in a warning and the results may be incomplete.
 
 Leave the **sequence** empty and the entry takes the next multiple of 10 above the last one of the
 AS-path (the form suggests it when you add an entry from the AS-path, and the API and the import
@@ -191,8 +223,9 @@ assign it; entries of one bulk request get consecutive numbers). Any value is st
 sequence of an entry that already exists cannot be emptied, so it never moves by accident.
 
 Entries are evaluated by sequence and the first match wins, so an entry with the **same pattern** as
-another one is never reached. When you save one, the form and the API (`warnings` in the response)
-tell you, and the page of the entry lists the entries with the same pattern. They are saved anyway.
+another one of the same AS-path could never be reached. That is why **a pattern cannot be repeated in
+an AS-path**: saving it from the form, the API, the import or the bulk edit is refused with *This
+AS-Path already has an entry with this pattern*. The same pattern in two different AS-paths is fine.
 Only identical patterns are detected: whether two different regular expressions overlap cannot be
 decided in general.
 
@@ -208,14 +241,94 @@ The lists and the entry tables have the edit, delete and changelog buttons, and 
 name, description, AS-path, action, sequence and pattern. The description and tags can be shown as
 columns. Bulk edit changes the description, the AS-path or the action of several entries at once.
 
+### Resequencing an AS path
+
+When the gaps between the sequence numbers are used up, the **Resequence** button on the page of the
+AS-path renumbers its entries **keeping their order**: it asks for the first number (10 by default)
+and the step (10 by default), and the entries get the first number and then each next one the step
+above. The order does not change, so neither does what the AS-path does. Entries that already have
+their number are left alone, and it refuses to run, changing nothing, if the last number would go
+over 4294967294. You need the permission to change AS-path entries.
+
+Over the API: `PATCH /api/plugins/routing/objects/as-path/<id>/resequence/` with optional `start` and
+`step`; it answers `{"changed": <number of entries renumbered>}`.
+
+### Examples
+
+Four AS paths that show what the patterns are for. The numbers of a path are separated by spaces, so
+`(^| )` means "the start or a space" and `( |$)` "a space or the end", which keeps `174` from
+matching inside `1174` or `1740`.
+
+**`TRANSIT-COGENT`**, IP transit with Cogent (AS174):
+
+| Sequence | Matches |
+| --- | --- |
+| 10 | Learned from Cogent: AS174 is the neighbor AS, the first in the path. |
+| 20 | The origin AS is a transit customer of Cogent: AS174 right before the origin. |
+| 30 | Cogent anywhere in the path. |
+
+```
+10  ^174( |$)
+20  (^| )174 \d+$
+30  (^| )174( |$)
+```
+
+**`GOOGLE-ORIGIN`**, routes originated (last AS of the path) by one of the Google ASNs, one entry
+each (AS15169, AS36040, AS36492 and AS43515):
+
+```
+10  (^| )15169$
+20  (^| )36040$
+30  (^| )36492$
+40  (^| )43515$
+```
+
+**`PRIVATE-ASN-16BIT`**, a 16-bit private AS number, 64512 to 65534
+([RFC 6996](https://www.rfc-editor.org/rfc/rfc6996)), anywhere in the path:
+
+```
+10  (^| )(64(5(1[2-9]|[2-9]\d)|[6-9]\d\d)|65([0-4]\d\d|5([0-2]\d|3[0-4])))( |$)
+```
+
+**`PRIVATE-ASN-32BIT`**, a 32-bit private AS number, 4200000000 to 4294967294, anywhere in the path:
+
+```
+10  (^| )(42([0-8]\d{7}|9([0-3]\d{6}|4([0-8]\d{5}|9([0-5]\d{4}|6([0-6]\d{3}|7([01]\d\d|2([0-8]\d|9[0-4]))))))))( |$)
+```
+
+A number range needs a pattern like the two private ones, because a regular expression compares
+digits, not values. Try them in *Search AS Path Match*, next: `174 3356 64500` matches
+`TRANSIT-COGENT` entries 10 and 30, `3356 15169` matches `GOOGLE-ORIGIN`, `65000 65001` the 16-bit
+private AS path and `4200000001 174` the 32-bit one (and Cogent, entry 30).
+
+### Search AS Path Match
+
+**Routing → Routing Objects → Search AS Path Match**
+
+Type an AS path, the AS numbers separated by spaces (`65001 65002 4200000000`; asdot such as `1.10`
+also works, and the usual `AS` prefix is accepted: `AS65001 AS65002` is read as `65001 65002`; nothing
+is stored, the patterns stay over the bare numbers), and the page shows, as you type, which AS-path entries match it, **in which sequence**,
+and whether the entry permits or denies it; the first match of each AS-path is the effective one,
+the others are marked as not reached. Tick *Include the AS paths with no match* to list those too.
+The patterns are evaluated as regular expressions over the text of the path (the
+numbers separated by one space), so `^65001 ` matches a path that starts with 65001. The path is the
+flat list of numbers: an empty path, AS_SET and confederation segments
+([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §4.3, [RFC 5065](https://www.rfc-editor.org/rfc/rfc5065))
+are not modelled. No implicit
+deny is assumed when nothing matches, because that is how a platform behaves, not how the plugin
+stores the data. It needs the *view* permission on AS-path entries.
+
+![Search AS Path Match for 174: the entries that match, the first one is effective](images/aspath-match.png)
+
+
 ### Using the API
 
-The REST API (`/api/plugins/routing/objects/aspath/` and `/api/plugins/routing/objects/aspath-entry/`)
+The REST API (`/api/plugins/routing/objects/as-path/` and `/api/plugins/routing/objects/as-path-entry/`)
 follows the same rules as the form, and both objects carry `owner`, `tags`, `custom_fields`,
 `created` and `last_updated` like any other NetBox object.
 
 - **`sequence`** can be left out; the entry gets the next multiple of 10 after the highest one in the AS-path.
-- The response of a create or update of an entry carries a **`warnings`** list with the entries that have the same pattern, so scripts can show them. The entry is saved anyway.
+- A pattern that already exists in the AS-path is answered with an error (HTTP 400), like an invalid pattern.
 
 ### Importing AS paths and entries
 
@@ -237,6 +350,8 @@ CUSTOMERS,deny,.*,100
 `aspath` is the name of an existing AS-path, `action` is `permit` or `deny`, and an empty `sequence`
 takes the next free one (steps of 10, consecutive inside one import). The whole import is rolled back
 if one row is wrong, and the rows are checked with the same rules as the form (pattern, sequence).
+A pattern that is repeated in the file, or that the AS-path already has, is a wrong row and rolls back
+the whole import.
 
 ### Deleting an AS path in use
 

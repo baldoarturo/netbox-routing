@@ -300,3 +300,61 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
         page = self.client.get(self.free.get_absolute_url())
         self.assertNotContains(page, f'{self.policy_list()}?aspath_id={self.free.pk}')
         self.assertNotContains(page, f'match_aspath_id={self.free.pk}')
+
+
+class ASPathResequenceTestCase(SuperuserMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Reseq')
+        for sequence, pattern in ((3, '^1$'), (4, '^2$'), (200, '^3$')):
+            make_entry(cls.aspath, sequence, pattern)
+        cls.url = cls.aspath.get_absolute_url() + 'resequence/'
+
+    def sequences(self):
+        return list(
+            self.aspath.aspath_entries.order_by('sequence').values_list(
+                'sequence', 'pattern'
+            )
+        )
+
+    def test_the_order_is_kept_and_the_numbers_change(self):
+        from netbox_routing_protocols.helpers.aspath import resequence
+
+        before = [pattern for sequence, pattern in self.sequences()]
+        self.assertEqual(resequence(self.aspath), 3)
+        after = self.sequences()
+        self.assertEqual([sequence for sequence, pattern in after], [10, 20, 30])
+        self.assertEqual([pattern for sequence, pattern in after], before)
+        self.assertEqual(resequence(self.aspath), 0)
+        resequence(self.aspath, start=100, step=5)
+        self.assertEqual([s for s, p in self.sequences()], [100, 105, 110])
+
+    def test_the_limit_is_checked_before_changing_anything(self):
+        from django.core.exceptions import ValidationError
+        from netbox_routing_protocols.helpers.aspath import resequence
+
+        for kwargs in ({'start': 4294967290, 'step': 10}, {'start': 0}):
+            with self.assertRaises(ValidationError):
+                resequence(self.aspath, **kwargs)
+        self.assertEqual([s for s, p in self.sequences()], [3, 4, 200])
+
+    def test_the_page_has_the_button_and_the_form_works(self):
+        self.login()
+        self.assertContains(self.client.get(self.aspath.get_absolute_url()), self.url)
+        self.assertContains(self.client.get(self.url), '3 entries')
+        response = self.client.post(self.url, {'start': 10, 'step': 10})
+        self.assertRedirects(response, self.aspath.get_absolute_url())
+        self.assertEqual([s for s, p in self.sequences()], [10, 20, 30])
+
+    def test_an_error_is_shown_in_the_form(self):
+        self.login()
+        response = self.client.post(self.url, {'start': 4294967290, 'step': 10})
+        self.assertContains(response, 'over the maximum')
+        self.assertEqual([s for s, p in self.sequences()], [3, 4, 200])
+
+    def test_it_needs_the_permission_to_change_entries(self):
+        self.client.force_login(User.objects.create_user('plain', 'p@example.com', 'x'))
+        self.assertEqual(
+            self.client.post(self.url, {'start': 10, 'step': 10}).status_code, 403
+        )
+        self.assertEqual([s for s, p in self.sequences()], [3, 4, 200])

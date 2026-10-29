@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase
 from django.urls import reverse
@@ -112,36 +112,35 @@ class ASPathEntryTestCase(TestCase):
     def test_pattern_validation(self):
         for pattern, valid in (
             ('^$', True),
-            ('^65001_', True),
-            ('_(65001|4294967295)$', True),
-            ('^1.10$', True),
+            ('^65001 ', True),
+            ('(65001|4294967295)$', True),
             ('^[0-9]+$', True),
             ('^64512{2,3}$', True),
             ('.*', True),
+            ('^65001( 65002)*$', True),
+            ('^65001 \\d+$', True),
+            ('^(?:65001|65002) ', True),
+            ('^1\\.10$', True),
+            ('^\\(65001\\)$', True),
             ('', False),
             ('   ', False),
-            ('^65001_.*_65002$', True),
-            ('^(65001|65002)+$', True),
-            ('[[:digit:]]+', True),
-            ('^\\(65001\\)$', True),
             ('*65001', False),
-            ('^65001||65002$', False),
-            ('()', False),
-            ('^65001|', False),
-            ('^\\d+$', False),
-            ('^(?:65001)$', False),
-            ('[9-0]', False),
-            ('[[:foo:]]', False),
-            ('^65001{3,2}$', False),
-            ('65001}', False),
-            ('^65001\\', False),
+            ('^65001**', False),
             ('^(65001', False),
             ('65001)', False),
             ('^[65001', False),
-            ('^65001{2', False),
+            ('[9-0]', False),
+            ('^65001{3,2}$', False),
+            ('^65001\\', False),
+            ('[[:digit:]]+', True),
+            ('[[:foo:]]', False),
             ('^4294967296$', False),
-            ('^70000.1$', False),
-            ('^1.70000$', False),
+            ('(65001|99999999999)', False),
+            ('^²$', False),
+            ('^٣$', False),
+            ('^１$', False),
+            ('^1\u00a0$', False),
+            ('^1\t$', False),
         ):
             with self.subTest(pattern):
                 entry = ASPathEntry(
@@ -160,7 +159,10 @@ class ASPathEntryTestCase(TestCase):
         )
 
         form = ASPathEntryForm()
-        self.assertIn('POSIX extended', form.fields['pattern'].help_text)
+        self.assertIn('regular expression', form.fields['pattern'].help_text)
+        self.assertNotIn('POSIX', form.fields['pattern'].help_text)
+        self.assertNotIn("Python", form.fields['pattern'].help_text)
+        self.assertNotIn('Cisco', form.fields['pattern'].help_text)
 
     def test_name_is_unique_ignoring_case(self):
         ASPath.objects.create(name='Customers')
@@ -188,6 +190,26 @@ class ASPathEntryTestCase(TestCase):
             entry.full_clean()
         self.assertEqual(set(ctx.exception.message_dict), {'aspath'})
         self.assertEqual(str(ASPathEntry()), 'ASPathEntry object (None)')
+
+    def test_a_pattern_cannot_be_repeated_in_the_same_aspath(self):
+        ASPathEntry.objects.create(
+            aspath=self.aspath, action='permit', sequence=10, pattern='^1$'
+        )
+        repeated = ASPathEntry(
+            aspath=self.aspath, action='deny', sequence=20, pattern='^1$'
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            repeated.full_clean()
+        self.assertIn('already has an entry with this pattern', str(ctx.exception))
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            repeated.save()
+        # it is fine in another AS-path, and the entry itself can be validated again
+        other = ASPath.objects.create(name='Other AS Path')
+        ASPathEntry(
+            aspath=other, action='permit', sequence=10, pattern='^1$'
+        ).full_clean()
+        saved = ASPathEntry.objects.get(aspath=self.aspath)
+        saved.full_clean()
 
     def test_duplicate_sequence_message(self):
         ASPathEntry.objects.create(
