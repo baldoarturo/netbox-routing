@@ -92,7 +92,7 @@ class PrefixListForm(PrimaryModelForm):
 
 class PrefixListEntryForm(PrimaryModelForm):
     """
-    Empty sequence takes the next one (new entries only), `eq` fills ge and le, Any with no
+    Empty sequence takes the next one (new entries only), Exact leaves ge and le empty, Any with no
     length matches everything, and overlaps with other entries are flashed as warnings.
     """
 
@@ -103,12 +103,10 @@ class PrefixListEntryForm(PrimaryModelForm):
         label=_('Prefix'),
         help_text=_('Declare the prefix in IPAM first, or select Any.'),
     )
-    eq = forms.IntegerField(
+    exact = forms.BooleanField(
         required=False,
-        min_value=0,
-        max_value=128,
-        label=_('Exact length'),
-        help_text=_('Match only prefixes of this length: sets GE and LE to it.'),
+        label=_('Exact'),
+        help_text=_('Match only the prefix itself: GE and LE cannot be set.'),
     )
 
     fieldsets = (
@@ -121,7 +119,7 @@ class PrefixListEntryForm(PrimaryModelForm):
         FieldSet(
             'ge',
             'le',
-            'eq',
+            'exact',
             name=_('Filtering'),
         ),
         FieldSet(
@@ -151,6 +149,18 @@ class PrefixListEntryForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         # A new entry gets the next sequence number of the list, suggested here when
         # the list is known (the add button of the list) and assigned on save otherwise
+        # GE and LE cannot be typed while Exact is ticked (the server checks it too)
+        exact = self.fields['exact'].widget
+        ticked = self.is_bound and exact.value_from_datadict(
+            self.data, self.files, self.add_prefix('exact')
+        )
+        exact.attrs['onchange'] = (
+            "for (const id of ['id_ge', 'id_le']) {"
+            "const input = document.getElementById(id); input.disabled = this.checked;"
+            "if (this.checked) input.value = '';}"
+        )
+        for name in ('ge', 'le'):
+            self.fields[name].widget.attrs['disabled'] = bool(ticked)
         # A new entry permits unless told otherwise
         if not self.instance.pk:
             self.fields['action'].initial = ActionChoices.PERMIT
@@ -178,7 +188,7 @@ class PrefixListEntryForm(PrimaryModelForm):
     def clean(self):
         super().clean()
         cleaned = self.cleaned_data
-        ge, le, eq = (cleaned.get(field) for field in ('ge', 'le', 'eq'))
+        ge, le = cleaned.get('ge'), cleaned.get('le')
 
         if cleaned.get('sequence') is None and cleaned.get('prefix_list'):
             try:
@@ -186,17 +196,22 @@ class PrefixListEntryForm(PrimaryModelForm):
             except ValidationError as e:
                 raise forms.ValidationError({'sequence': e.messages})
 
-        if eq is not None:
-            if ge is not None or le is not None:
-                raise forms.ValidationError(
-                    {'eq': _('Use either the exact length, or GE and LE.')}
-                )
-            cleaned['ge'] = cleaned['le'] = eq
-            ge = le = eq
+        exact = cleaned.get('exact')
+        if exact and (ge is not None or le is not None):
+            raise forms.ValidationError(
+                {'exact': _('Exact matches only the prefix: leave GE and LE empty.')}
+            )
 
         # Any with no length given matches any prefix: LE is the longest length
+        # (unless it is exact: then only the all zeros prefix itself)
         prefix_list = cleaned.get('prefix_list')
-        if cleaned.get('any_prefix') and prefix_list and ge is None and le is None:
+        if (
+            cleaned.get('any_prefix')
+            and not exact
+            and prefix_list
+            and ge is None
+            and le is None
+        ):
             cleaned['le'] = any_le(prefix_list.family)
 
     def _post_clean(self):
