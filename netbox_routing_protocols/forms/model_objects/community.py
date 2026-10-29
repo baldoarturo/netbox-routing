@@ -6,6 +6,7 @@ from netbox.context import current_request
 from django.contrib import messages
 
 from netbox.forms import PrimaryModelForm
+from utilities.forms.fields import DynamicModelChoiceField
 from tenancy.forms import TenancyForm
 from utilities.forms.rendering import FieldSet
 
@@ -75,6 +76,16 @@ class CommunityListEntryForm(PrimaryModelForm):
 
     fieldsets = (
         FieldSet('community_list', 'sequence', 'action', 'community', 'description'),
+    )
+    community_list = DynamicModelChoiceField(
+        queryset=CommunityList.objects.all(), label=_('Community List'), selector=True
+    )
+    # Only the communities of the type of the list are valid: the selector offers those
+    community = DynamicModelChoiceField(
+        queryset=Community.objects.all(),
+        label=_('Community'),
+        selector=True,
+        query_params={'usable_in_list_id': '$community_list'},
     )
 
     class Meta:

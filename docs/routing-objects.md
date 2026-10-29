@@ -373,9 +373,15 @@ documented once. Three kinds exist, and the plugin recognises, validates and nor
 | Extended | `rt:ASN:value` (route target) or `soo:ASN:value` (site of origin). The ASN is 2 bytes with a 32-bit value, or 4 bytes with a 16-bit value ([RFC 5668](https://www.rfc-editor.org/rfc/rfc5668)); an IPv4 or IPv6 address ([RFC 5701](https://www.rfc-editor.org/rfc/rfc5701)) can replace the ASN, with a 16-bit value. `target:` and `origin:` (Junos) are accepted | [RFC 4360](https://www.rfc-editor.org/rfc/rfc4360) |
 | Large | `ASN:value1:value2`, three 32-bit numbers (`65000:1:2`) | [RFC 8092](https://www.rfc-editor.org/rfc/rfc8092) |
 
+Of the extended communities (RFC 4360) the plugin supports the **route target** and the **site of
+origin** only; the other sub-types (color, OSPF domain identifier, origin validation state, link
+bandwidth, or a generic `type:subtype` value) are not recognised and are rejected.
+
 The **type** is derived from the value and cannot be edited. The value is stored in its normal form,
-so `65000:0100` and `65000:100`, or `RT:65000:1` and `rt:65000:1`, are the same community and
-cannot be created twice. A value that is not a community (`70000:1`, `1.2.3.4`, `1:2:3:4`) is
+so `65000:0100` and `65000:100`, or `RT:65000:1` and `rt:65000:1`, are the same community. A value
+is unique **per tenant**: two tenants can each keep their own object for `65000:100`, and without a
+tenant it can exist once. The type of a community in use cannot change to one that the lists using
+it do not accept. A value that is not a community (`70000:1`, `1.2.3.4`, `1:2:3:4`) is
 rejected with the reason. Existing values were normalised when upgrading; a value that is not a
 valid community is left as it was and fails validation the next time it is edited.
 
@@ -383,7 +389,7 @@ valid community is left as it was and fails validation the next time it is edite
 | --- | --- |
 | Community | The community value, see above. |
 | Type | **Standard**, **Extended** or **Large**, derived from the value. |
-| Name | Optional human name ("customer routes"). |
+| Name | Optional human name ("customer routes"). A well-known community without a name takes the one the RFC gives it. |
 | Status | **Active**, **Reserved** or **Deprecated**, to retire a community without deleting its history. |
 | Role | A NetBox IPAM role that classifies the community (for example *blackhole*, *customer*). |
 | Tenant | Optional owner. |
@@ -391,7 +397,7 @@ valid community is left as it was and fails validation the next time it is edite
 ### Well-known communities
 
 The field accepts the name of a well-known community, in upper or lower case with `-` or `_`
-(`no-export`), and stores the number. The table and the page show the name and the RFC.
+(`no-export`), and stores the number; the name is also filled in as the community's name when it is empty, so it shows in the tables and the search. The table and the page show the RFC.
 
 | Name | Value | RFC |
 | --- | --- | --- |
@@ -402,6 +408,7 @@ The field accepts the name of a well-known community, in upper or lower case wit
 | `NO_EXPORT` | `65535:65281` | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) |
 | `NO_ADVERTISE` | `65535:65282` | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) |
 | `NO_EXPORT_SUBCONFED` (`local-AS`) | `65535:65283` | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) |
+| `STANDBY_PE` | `65535:9` | [RFC 9026](https://www.rfc-editor.org/rfc/rfc9026) |
 | `NOPEER` | `65535:65284` | [RFC 3765](https://www.rfc-editor.org/rfc/rfc3765) |
 
 ### Community lists
@@ -431,8 +438,8 @@ The page of a **community** shows where it is used: the community lists that con
 route policy entries that match it, each with a link to the filtered list. The lists show how many
 entries and route policy entries use each community or list, with the same link.
 
-The tables have the edit, delete and changelog buttons, and can be filtered by name, type, status,
-role, tenant, value, list, community, sequence and action; the description, tags, comments and
+The tables have the edit, delete and changelog buttons, and can be filtered (also in GraphQL) by
+name, type, status, role, tenant, value, list, community, sequence and action; the description, tags, comments and
 dates can be shown as columns. Bulk edit changes the status, role, tenant and description of
 communities, the tenant and description of lists, and the list, action, community and description
 of entries.
@@ -440,10 +447,20 @@ of entries.
 ### Import
 
 Lists and communities import by name and value (CSV columns `name`, `type`, `community`, `status`,
-...). Entries are imported with `community_list` (the name), `community` (the value in its normal
-form), `action` and an optional `sequence`: empty takes the next free one of the list, and entries
-of one file get consecutive numbers. When an entry repeats a community that is already in its
-list, the import says which entry makes the other unreachable; the entries are saved anyway.
+...). Entries are imported with `community_list` (the name), `community`, `action` and an optional
+`sequence`: empty takes the next free one of the list, and entries of one file get consecutive
+numbers. When an entry repeats a community that is already in its list, the import says which
+entry makes the other unreachable; the entries are saved anyway.
+
+The `community` column must be written in its **normal form**, the one the page of the community
+shows (`65535:65281`, `rt:65000:1`): a name such as `no-export`, a bare 32-bit number or leading
+zeros are rejected with a message that gives the form to use. A value that is not a community is
+rejected with the reason. When several tenants have the same value, the entry takes the community
+of the tenant of its list, then the one with no tenant; set `community_tenant` (the tenant name) to
+choose another.
+
+The community selector of the entry form and of the bulk edit offers only the communities of the
+type of the chosen list.
 
 ### Search Community Match
 

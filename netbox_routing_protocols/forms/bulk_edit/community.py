@@ -67,6 +67,7 @@ class CommunityListEntryBulkEditForm(PrimaryModelBulkEditForm):
         queryset=Community.objects.all(),
         required=False,
         selector=True,
+        query_params={'usable_in_list_id': '$community_list'},
     )
     model = CommunityListEntry
     fieldsets = (

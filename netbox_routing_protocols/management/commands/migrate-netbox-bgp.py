@@ -204,7 +204,8 @@ class Command(BaseCommand):
                     try:
                         # communities are stored in their normal form
                         entry = Community.objects.get(
-                            community=community_helpers.normalize(item.value)
+                            community=community_helpers.normalize(item.value),
+                            tenant=item.tenant,
                         )
                         if not mapping['community'].get(item.pk):
                             mapping['community'][item.pk] = entry

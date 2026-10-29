@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.apps import apps
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
@@ -170,11 +171,22 @@ class Community(PrimaryModel):
     class Meta:
         verbose_name = _('Community')
         verbose_name_plural = 'Communities'
-        ordering = ['community']
+        ordering = ['community', 'pk']
         constraints = [
+            # unique per tenant, and once among the communities with no tenant (in SQL
+            # two NULL tenants are never equal)
+            models.UniqueConstraint(
+                fields=('tenant', 'community'),
+                name='%(app_label)s_%(class)s_unique_tenant_community',
+                violation_error_message='This tenant already has this community.',
+            ),
             models.UniqueConstraint(
                 fields=('community',),
-                name='%(app_label)s_%(class)s_community',
+                condition=Q(tenant__isnull=True),
+                name='%(app_label)s_%(class)s_unique_community_no_tenant',
+                violation_error_message=(
+                    'A community with this value and no tenant already exists.'
+                ),
             ),
         ]
 
@@ -211,6 +223,30 @@ class Community(PrimaryModel):
             self.type, self.community = community_helpers.parse(self.community)
         except ValidationError as e:
             raise ValidationError({'community': e.messages})
+        self._name_well_known()
+        # A list only holds communities of its type: the type of a community in use
+        # cannot change to one the lists that use it do not accept
+        if self.pk:
+            lists = CommunityList.objects.filter(
+                communitylistentries__community=self
+            ).exclude(type=self.type)
+            names = ', '.join(sorted({str(item) for item in lists.distinct()[:5]}))
+            if names:
+                raise ValidationError(
+                    {
+                        'community': _(
+                            'It would be a %(kind)s community, and it is in lists of '
+                            'another type: %(lists)s.'
+                        )
+                        % {'kind': self.get_type_display().lower(), 'lists': names}
+                    }
+                )
+
+    def _name_well_known(self):
+        """A well-known community without name takes the name the RFC gives it"""
+        if not self.name and self.type == CommunityTypeChoices.TYPE_STANDARD:
+            if found := community_helpers.well_known_name(self.community):
+                self.name = found[0]
 
     def delete(self, *args, **kwargs):
         protect_communities_in_use([self])
@@ -219,6 +255,7 @@ class Community(PrimaryModel):
     def save(self, *args, **kwargs):
         try:
             self.type, self.community = community_helpers.parse(self.community)
+            self._name_well_known()
         except ValidationError:
             pass  # not valid: full_clean reports it, a raw save keeps the text
         super().save(*args, **kwargs)
