@@ -28,6 +28,7 @@ MAX_WARNINGS = 5
 
 __all__ = (
     'PrefixListForm',
+    'PrefixListDuplicateForm',
     'PrefixListEntryForm',
     'RouteMapForm',
     'RouteMapEntryForm',
@@ -88,6 +89,23 @@ class PrefixListForm(PrimaryModelForm):
             self.fields['family'].help_text = _(
                 'The address family cannot be changed once defined.'
             )
+
+
+class PrefixListDuplicateForm(forms.Form):
+    """The name and description of the copy of a prefix list"""
+
+    name = forms.CharField(max_length=100, label=_('Name'))
+    description = forms.CharField(
+        max_length=200, required=False, label=_('Description')
+    )
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        if PrefixList.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError(
+                _('A prefix list with this name already exists.')
+            )
+        return name
 
 
 class PrefixListEntryForm(PrimaryModelForm):

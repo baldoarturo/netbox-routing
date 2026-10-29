@@ -8,6 +8,7 @@ from django.urls import reverse
 from ipam.models import Prefix
 from netbox.context import current_request
 from users.models import User
+from extras.models import Tag
 from utilities.testing import APITestCase
 
 from netbox_routing_protocols.forms.objects import PrefixListEntryForm
@@ -20,6 +21,7 @@ __all__ = (
     'PrefixListOverlapAPITestCase',
     'PrefixListViewsTestCase',
     'PrefixListDeleteWarningTestCase',
+    'PrefixListDuplicateTestCase',
     'PrefixMatchViewTestCase',
 )
 
@@ -406,3 +408,63 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
         self.assertTrue(
             any('are in use' in text and 'Template' in text for text in texts)
         )
+
+
+class PrefixListDuplicateTestCase(SuperuserMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.source = PrefixList.objects.create(
+            name='Source', family=4, description='d', comments='c'
+        )
+        cls.source.tags.add(Tag.objects.create(name='t', slug='t'))
+        make_entry(cls.source, 10, '10.0.0.0/8', ge=16, le=24, description='one')
+        make_entry(cls.source, 20, action='deny', le=32)
+        cls.url = cls.source.get_absolute_url() + 'duplicate/'
+
+    def test_the_page_has_the_button_and_suggests_a_name(self):
+        self.login()
+        self.assertContains(self.client.get(self.source.get_absolute_url()), self.url)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Source copy')
+        self.assertContains(response, '2 entries')
+
+    def test_the_copy_has_the_same_entries(self):
+        self.login()
+        response = self.client.post(self.url, {'name': 'Copy', 'description': 'new'})
+        copy = PrefixList.objects.get(name='Copy')
+        self.assertRedirects(response, copy.get_absolute_url())
+        self.assertEqual(
+            (copy.family, copy.description, copy.comments), (4, 'new', 'c')
+        )
+        self.assertEqual(list(copy.tags.names()), ['t'])
+        fields = (
+            'sequence',
+            'action',
+            'prefix',
+            'any_prefix',
+            'ge',
+            'le',
+            'description',
+        )
+        self.assertEqual(
+            list(copy.prefix_list_entries.order_by('sequence').values_list(*fields)),
+            list(
+                self.source.prefix_list_entries.order_by('sequence').values_list(
+                    *fields
+                )
+            ),
+        )
+        # the source is untouched
+        self.assertEqual(self.source.prefix_list_entries.count(), 2)
+
+    def test_the_name_must_be_new(self):
+        self.login()
+        response = self.client.post(self.url, {'name': 'source'})
+        self.assertContains(response, 'already exists')
+        self.assertEqual(PrefixList.objects.count(), 1)
+
+    def test_it_needs_the_permission_to_add_lists_and_entries(self):
+        user = User.objects.create_user('plain', 'p@example.com', 'x')
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.assertEqual(PrefixList.objects.count(), 1)

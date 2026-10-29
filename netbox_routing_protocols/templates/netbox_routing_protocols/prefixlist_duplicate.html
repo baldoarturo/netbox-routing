@@ -1,0 +1,25 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+{% load form_helpers %}
+
+{% block title %}{% blocktrans %}Duplicate {{ object }}{% endblocktrans %}{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-body">
+      <p class="text-muted">
+        {% blocktrans trimmed with count=count %}
+          Creates a new prefix list of the same family with a copy of its {{ count }} entries, which point to the same prefixes in IPAM.
+        {% endblocktrans %}
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        {% render_form form %}
+        <div class="text-end">
+          <a href="{{ object.get_absolute_url }}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
+          <button type="submit" class="btn btn-primary">{% trans "Duplicate" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

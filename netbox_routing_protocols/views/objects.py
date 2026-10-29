@@ -1,12 +1,14 @@
 import netaddr
 from django.contrib import messages
 from django.db.models import Q
-from django.shortcuts import render
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import View
 
 from extras.ui.panels import TagsPanel
+from netbox.object_actions import CloneObject, DeleteObject, EditObject, ObjectAction
 from netbox.views.generic import (
     ObjectListView,
     ObjectView,
@@ -17,7 +19,8 @@ from netbox.views.generic import (
     BulkEditView,
     BulkImportView,
 )
-from netbox.ui import actions, panels, layout
+from netbox.ui import panels, layout
+from netbox.ui.actions import AddObject
 from utilities.query import count_related
 from utilities.views import (
     ContentTypePermissionRequiredMixin,
@@ -52,9 +55,20 @@ class PrefixListListView(ObjectListView):
     filterset_form = PrefixListFilterForm
 
 
+class DuplicatePrefixList(ObjectAction):
+    """A copy of the prefix list with its entries"""
+
+    name = 'duplicate'
+    label = _('Duplicate')
+    permissions_required = {'add'}
+    url_kwargs = ['pk']
+    template_name = 'netbox_routing_protocols/buttons/duplicate.html'
+
+
 @register_model_view(PrefixList)
 class PrefixListView(GetRelatedModelsMixin, ObjectView):
     queryset = PrefixList.objects.all()
+    actions = (DuplicatePrefixList, CloneObject, EditObject, DeleteObject)
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -72,7 +86,7 @@ class PrefixListView(GetRelatedModelsMixin, ObjectView):
                 filters={'prefix_list_id': lambda ctx: ctx['object'].pk},
                 exclude_columns=['id', 'prefix_list'],
                 actions=[
-                    actions.AddObject(
+                    AddObject(
                         'netbox_routing_protocols.PrefixListEntry',
                         label=_('Add entry'),
                         url_params={'prefix_list': lambda ctx: ctx['object'].pk},
@@ -100,6 +114,89 @@ class PrefixListView(GetRelatedModelsMixin, ObjectView):
                 ),
             )
         }
+
+
+@register_model_view(PrefixList, name='duplicate')
+class PrefixListDuplicateView(ContentTypePermissionRequiredMixin, View):
+    """Copy a prefix list with its entries, in one transaction"""
+
+    template_name = 'netbox_routing_protocols/prefixlist_duplicate.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.add_prefixlist'
+
+    def _source(self, request, pk):
+        return get_object_or_404(
+            PrefixList.objects.restrict(request.user, 'view'), pk=pk
+        )
+
+    def _render(self, request, source, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': source,
+                'form': form,
+                'count': source.prefix_list_entries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        source = self._source(request, pk)
+        form = PrefixListDuplicateForm(
+            initial={
+                'name': _('%(name)s copy') % {'name': source.name},
+                'description': source.description,
+            }
+        )
+        return self._render(request, source, form)
+
+    def post(self, request, pk):
+        source = self._source(request, pk)
+        form = PrefixListDuplicateForm(request.POST)
+        if not request.user.has_perm('netbox_routing_protocols.add_prefixlistentry'):
+            messages.error(request, _('You cannot add prefix list entries.'))
+            return redirect(source.get_absolute_url())
+        if not form.is_valid():
+            return self._render(request, source, form)
+
+        with transaction.atomic():
+            copy = PrefixList(
+                name=form.cleaned_data['name'],
+                family=source.family,
+                description=form.cleaned_data['description'],
+                comments=source.comments,
+                owner=source.owner,
+            )
+            copy.full_clean()
+            copy.save()
+            copy.tags.set(source.tags.all())
+            for entry in source.prefix_list_entries.all():
+                new_entry = PrefixListEntry(
+                    prefix_list=copy,
+                    sequence=entry.sequence,
+                    action=entry.action,
+                    prefix=entry.prefix,
+                    any_prefix=entry.any_prefix,
+                    ge=entry.ge,
+                    le=entry.le,
+                    description=entry.description,
+                    comments=entry.comments,
+                    owner=entry.owner,
+                )
+                new_entry.full_clean()
+                new_entry.save()
+                new_entry.tags.set(entry.tags.all())
+        messages.success(
+            request,
+            _('Duplicated %(source)s as %(copy)s with %(count)d entries.')
+            % {
+                'source': source,
+                'copy': copy,
+                'count': source.prefix_list_entries.count(),
+            },
+        )
+        return redirect(copy.get_absolute_url())
 
 
 @register_model_view(PrefixList, name='entries')

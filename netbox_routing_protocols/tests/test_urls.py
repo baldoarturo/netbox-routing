@@ -412,6 +412,7 @@ class URLTestCase(TestCase):
                 'prefixlist_entries',
                 'prefixlist_edit',
                 'prefixlist_delete',
+                'prefixlist_duplicate',
                 'prefixlist_bulk_edit',
                 'prefixlist_bulk_import',
                 'prefixlist_bulk_delete',
