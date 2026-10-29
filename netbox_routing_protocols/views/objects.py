@@ -75,6 +75,16 @@ class DuplicatePrefixList(ObjectAction):
     template_name = 'netbox_routing_protocols/buttons/duplicate.html'
 
 
+class ResequenceASPath(ObjectAction):
+    """Renumber the entries of the AS-path"""
+
+    name = 'resequence'
+    label = _('Resequence')
+    permissions_required = {'change'}
+    url_kwargs = ['pk']
+    template_name = 'netbox_routing_protocols/buttons/resequence.html'
+
+
 class DuplicateASPath(DuplicatePrefixList):
     """A copy of the AS-path with its entries"""
 
@@ -769,6 +779,7 @@ class ASPathView(GetRelatedModelsMixin, ObjectView):
     queryset = ASPath.objects.all()
     actions = (
         DuplicateASPath,
+        ResequenceASPath,
         CloneObject,
         EditObject,
         DeleteObject,
@@ -949,6 +960,53 @@ class ASPathDeleteView(ObjectDeleteView):
         return response
 
 
+@register_model_view(ASPath, name='resequence')
+class ASPathResequenceView(ContentTypePermissionRequiredMixin, View):
+    """Renumber the entries of an AS-path keeping their order"""
+
+    template_name = 'netbox_routing_protocols/aspath_resequence.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.change_aspathentry'
+
+    def _source(self, request, pk):
+        return get_object_or_404(ASPath.objects.restrict(request.user, 'view'), pk=pk)
+
+    def _render(self, request, aspath, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': aspath,
+                'form': form,
+                'count': aspath.aspath_entries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        aspath = self._source(request, pk)
+        return self._render(request, aspath, ASPathResequenceForm())
+
+    def post(self, request, pk):
+        aspath = self._source(request, pk)
+        form = ASPathResequenceForm(request.POST)
+        if form.is_valid():
+            try:
+                changed = aspath_helpers.resequence(
+                    aspath, form.cleaned_data['start'], form.cleaned_data['step']
+                )
+            except ValidationError as e:
+                form.add_error(None, e)
+            else:
+                messages.success(
+                    request,
+                    _('Resequenced %(aspath)s: %(count)d entries renumbered.')
+                    % {'aspath': aspath, 'count': changed},
+                )
+                return redirect(aspath.get_absolute_url())
+        return self._render(request, aspath, form)
+
+
 @register_model_view(ASPath, name='bulk_import', detail=False)
 class ASPathBulkImportView(BulkImportView):
     queryset = ASPath.objects.all()
@@ -1057,6 +1115,29 @@ class ASPathEntryDeleteView(ObjectDeleteView):
 class ASPathEntryBulkImportView(BulkImportView):
     queryset = ASPathEntry.objects.select_related('aspath')
     model_form = ASPathEntryImportForm
+
+    def create_and_update_objects(self, form, request):
+        saved = super().create_and_update_objects(form, request)
+        # The entries are saved anyway: the user is just told about repeated patterns
+        summaries = aspath_helpers.import_duplicates(saved)
+        for aspath, kinds, examples in summaries[:IMPORT_LISTS_SHOWN]:
+            counts = ', '.join(
+                f'{count} {kind}' for kind, count in sorted(kinds.items())
+            )
+            shown = examples[:IMPORT_EXAMPLES_SHOWN]
+            more = len(examples) - len(shown)
+            text = f'AS-path {aspath}: the import has entries with the same pattern ({counts}). '
+            text += ' '.join(f'{example}.' for example in shown)
+            if more:
+                text += f' And {more} more.'
+            messages.warning(request, text, fail_silently=True)
+        if len(summaries) > IMPORT_LISTS_SHOWN:
+            messages.warning(
+                request,
+                f'{len(summaries) - IMPORT_LISTS_SHOWN} more AS-paths have entries with the same pattern.',
+                fail_silently=True,
+            )
+        return saved
 
 
 @register_model_view(ASPathEntry, name='bulk_edit', detail=False)

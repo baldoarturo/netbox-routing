@@ -223,6 +223,18 @@ The lists and the entry tables have the edit, delete and changelog buttons, and 
 name, description, AS-path, action, sequence and pattern. The description and tags can be shown as
 columns. Bulk edit changes the description, the AS-path or the action of several entries at once.
 
+### Resequencing an AS path
+
+When the gaps between the sequence numbers are used up, the **Resequence** button on the page of the
+AS-path renumbers its entries **keeping their order**: it asks for the first number (10 by default)
+and the step (10 by default), and the entries get the first number and then each next one the step
+above. The order does not change, so neither does what the AS-path does. Entries that already have
+their number are left alone, and it refuses to run, changing nothing, if the last number would go
+over 4294967294. You need the permission to change AS-path entries.
+
+Over the API: `PATCH /api/plugins/routing/objects/as-path/<id>/resequence/` with optional `start` and
+`step`; it answers `{"changed": <number of entries renumbered>}`.
+
 ### Using the API
 
 The REST API (`/api/plugins/routing/objects/as-path/` and `/api/plugins/routing/objects/as-path-entry/`)
@@ -251,7 +263,9 @@ CUSTOMERS,deny,.*,100
 
 `aspath` is the name of an existing AS-path, `action` is `permit` or `deny`, and an empty `sequence`
 takes the next free one (steps of 10, consecutive inside one import). The whole import is rolled back
-if one row is wrong, and the rows are checked with the same rules as the form (pattern, sequence).
+if one row is wrong, and the rows are checked with the same rules as the form (pattern, sequence). The entries are saved even if some have the same pattern;
+after the import you get **a summary per AS-path** with how many of each kind involve the imported
+entries (each pair counted once, including the entries the AS-path already had) and the first examples.
 
 ### Deleting an AS path in use
 

@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 
 from django.core.exceptions import ValidationError
 from django.db.models import Max
@@ -8,6 +9,7 @@ from netbox_routing_protocols.helpers.prefix_list import (
     MAX_SEQUENCE,
     SEQUENCE_STEP,
     Overlap,
+    resequence_entries,
 )
 
 # AS numbers are 32 bits (RFC 6793); the asdot notation writes them as high.low,
@@ -235,3 +237,38 @@ def duplicate_warnings(entry):
         }
         for duplicate in find_duplicates(entry)
     ]
+
+
+def resequence(aspath, start=SEQUENCE_STEP, step=SEQUENCE_STEP):
+    """Renumber the entries of the AS-path keeping their order, see resequence_entries"""
+    return resequence_entries(aspath.aspath_entries, start, step)
+
+
+def import_duplicates(entries):
+    """
+    The entries with the same pattern that involve the entries saved by an import, one
+    summary per AS-path: a list of (aspath, Counter of kinds, [first messages]), ordered by
+    name. Each pair is counted once, from the perspective of the first entry found.
+    """
+    by_aspath = {}
+    for entry in entries:
+        by_aspath.setdefault(entry.aspath_id, []).append(entry)
+
+    summaries = []
+    for imported in by_aspath.values():
+        aspath = imported[0].aspath
+        # one query per AS-path: the entries it has now, imported or not
+        saved = list(aspath.aspath_entries.all())
+        seen = set()
+        kinds, examples = Counter(), []
+        for entry in imported:
+            for duplicate in find_duplicates(entry, others=saved):
+                pair = frozenset((entry.pk, duplicate.entry.pk))
+                if pair in seen:
+                    continue
+                seen.add(pair)
+                kinds[duplicate.kind] += 1
+                examples.append(duplicate.message)
+        if kinds:
+            summaries.append((aspath, kinds, examples))
+    return sorted(summaries, key=lambda summary: summary[0].name.lower())
