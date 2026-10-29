@@ -2,6 +2,12 @@
 {% if error %}
   <div class="alert alert-warning">{{ error }}</div>
 {% elif path %}
+  {% if timed_out %}
+    <div class="alert alert-warning">
+      {% blocktrans count count=timed_out|length %}{{ count }} entry took too long to evaluate and was skipped:{% plural %}{{ count }} entries took too long to evaluate and were skipped:{% endblocktrans %}
+      {% for entry in timed_out %}<a href="{{ entry.get_absolute_url }}">{{ entry.aspath }} {{ entry.sequence }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
+    </div>
+  {% endif %}
   <div class="card">
     <h2 class="card-header">
       {% blocktrans with path=path %}AS paths matching {{ path }}{% endblocktrans %}

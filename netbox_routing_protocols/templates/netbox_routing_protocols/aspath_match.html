@@ -7,7 +7,7 @@
   <div class="card mb-3">
     <div class="card-body">
       <p class="text-muted">
-        {% trans "Type an AS path (the AS numbers separated by spaces, with or without the AS prefix) to see which AS-path entries match it, and in which sequence. The patterns are evaluated as regular expressions (Python's) over the text of the path. The results update as you type." %}
+        {% trans "Type an AS path (the AS numbers separated by spaces, with or without the AS prefix) to see which AS-path entries match it, and in which sequence. The patterns are evaluated as regular expressions over the text of the path. The results update as you type." %}
       </p>
       <form method="get" action="{% url 'plugins:netbox_routing_protocols:aspath_match' %}"
             hx-get="{% url 'plugins:netbox_routing_protocols:aspath_match' %}"

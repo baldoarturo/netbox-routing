@@ -33,7 +33,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5305](https://www.rfc-editor.org/rfc/rfc5305) | IS-IS traffic engineering | [IS-IS](protocols/isis.md) |
 | [RFC 5308](https://www.rfc-editor.org/rfc/rfc5308) | IS-IS for IPv6 | [IS-IS](protocols/isis.md) |
 | [RFC 5310](https://www.rfc-editor.org/rfc/rfc5310) | IS-IS generic cryptographic authentication | [IS-IS](protocols/isis.md#authentication) |
-| [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396) | Textual representation of AS numbers | [BGP settings](protocols/bgp.md#settings) |
+| [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396) | Textual representation of AS numbers | [BGP settings](protocols/bgp.md#settings), [AS paths](routing-objects.md#as-paths) |
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization | [OSPF](protocols/ospf.md#advanced-features), [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 5709](https://www.rfc-editor.org/rfc/rfc5709) | OSPFv2 HMAC-SHA authentication | [OSPF authentication](protocols/ospf.md#authentication) |
 | [RFC 5880](https://www.rfc-editor.org/rfc/rfc5880) | BFD | [BFD](bfd.md) |
@@ -42,7 +42,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 6119](https://www.rfc-editor.org/rfc/rfc6119) | IPv6 traffic engineering in IS-IS | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier | [BGP settings](protocols/bgp.md#settings) |
 | [RFC 6549](https://www.rfc-editor.org/rfc/rfc6549) | OSPFv2 multi-instance | [OSPF instances](protocols/ospf.md#identity) |
-| [RFC 6793](https://www.rfc-editor.org/rfc/rfc6793) | Four-octet AS numbers | [BGP routers](protocols/bgp.md#routers) |
+| [RFC 6793](https://www.rfc-editor.org/rfc/rfc6793) | Four-octet AS numbers | [BGP routers](protocols/bgp.md#routers), [AS paths](routing-objects.md#as-paths) |
 | [RFC 6860](https://www.rfc-editor.org/rfc/rfc6860) | Hiding transit-only networks | [OSPF interfaces](protocols/ospf.md#other-interface-options), [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6987](https://www.rfc-editor.org/rfc/rfc6987) | OSPF stub router advertisement | [OSPF instances](protocols/ospf.md#stability-and-maintenance) |
 | [RFC 7432](https://www.rfc-editor.org/rfc/rfc7432) | BGP MPLS-based Ethernet VPN | [BGP](protocols/bgp.md#address-families) |
