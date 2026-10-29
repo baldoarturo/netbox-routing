@@ -11,6 +11,7 @@ class URLTestCase(TestCase):
             [
                 'aspath',
                 'aspath_add',
+                'aspath_duplicate',
                 'aspath_changelog',
                 'aspath_bulk_delete',
                 'aspath_bulk_edit',

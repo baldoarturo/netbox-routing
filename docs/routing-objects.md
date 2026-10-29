@@ -186,6 +186,13 @@ tell you, and the page of the entry lists the entries with the same pattern. The
 Only identical patterns are detected: whether two different regular expressions overlap cannot be
 decided in general.
 
+The page of an AS-path shows its entries with an **Add entry** button (the form opens with the
+AS-path chosen, the next sequence suggested and *permit* preselected), and where it is used (the
+route policy entries that match it). **Duplicate** copies an AS-path with all its entries under a
+new name. The lists and entry tables have the edit, delete and changelog buttons and can be filtered
+by name, description, AS-path, action, sequence and pattern, and the action of several entries can be
+changed at once with bulk edit.
+
 An AS-path that route map entries use **can be deleted**: the confirmation (single and bulk)
 lists every object that refers to it, and those objects simply stop matching on it.
 

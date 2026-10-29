@@ -29,12 +29,12 @@ class ASPathFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ASPath
-        fields = ()
+        fields = ('name', 'description')
 
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        qs_filter = Q(name__icontains=value)
+        qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
         return queryset.filter(qs_filter).distinct()
 
 
@@ -57,7 +57,10 @@ class ASPathEntryFilterSet(NetBoxModelFilterSet):
         fields = (
             'aspath_id',
             'aspath',
+            'sequence',
             'action',
+            'pattern',
+            'description',
         )
 
     def search(self, queryset, name, value):
@@ -66,6 +69,7 @@ class ASPathEntryFilterSet(NetBoxModelFilterSet):
         qs_filter = (
             Q(aspath__name__icontains=value)
             | Q(pattern__icontains=value)
+            | Q(description__icontains=value)
             | Q(action=value)
         )
         return queryset.filter(qs_filter).distinct()
