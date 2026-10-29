@@ -52,11 +52,6 @@ class ASPathEntrySerializer(PrimaryModelSerializer):
         view_name='plugins-api:netbox_routing_protocols-api:aspathentry-detail'
     )
     aspath = ASPathSerializer(nested=True)
-    warnings = serializers.SerializerMethodField(
-        help_text='Entries of the AS-path with the same pattern as this one, which makes one '
-        'of them unreachable (information, the entry is saved anyway). Present in the '
-        'response of a write and of a single entry.'
-    )
 
     class Meta:
         model = ASPathEntry
@@ -76,7 +71,6 @@ class ASPathEntrySerializer(PrimaryModelSerializer):
             'custom_fields',
             'created',
             'last_updated',
-            'warnings',
         )
         brief_fields = (
             'url',
@@ -87,25 +81,6 @@ class ASPathEntrySerializer(PrimaryModelSerializer):
             'action',
             'pattern',
         )
-
-    def get_warnings(self, obj):
-        computed = getattr(obj, '_duplicate_warnings', None)
-        if computed is not None:
-            return computed
-        # Not computed by a write: only for a single entry, never per row of a list
-        if self.parent is None:
-            return aspath_helpers.duplicate_warnings(obj)
-        return None
-
-    def create(self, validated_data):
-        entry = super().create(validated_data)
-        entry._duplicate_warnings = aspath_helpers.duplicate_warnings(entry)
-        return entry
-
-    def update(self, instance, validated_data):
-        entry = super().update(instance, validated_data)
-        entry._duplicate_warnings = aspath_helpers.duplicate_warnings(entry)
-        return entry
 
     def validate(self, data):
         # A new entry without sequence gets the next one of its AS-path. The serializer of a

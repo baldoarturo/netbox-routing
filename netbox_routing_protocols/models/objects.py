@@ -67,7 +67,8 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
     """
     One rule of an AS-path: a permit or deny on a regular expression (Python's), in a
     sequence from 1 to 4294967294. The pattern is validated, not evaluated; see
-    helpers/aspath.validate_pattern.
+    helpers/aspath.validate_pattern. A pattern cannot be repeated in the same AS-path (the
+    second entry would never be reached): the constraint is checked by full_clean() too.
     """
 
     aspath = models.ForeignKey(
@@ -100,6 +101,14 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
                 ),
                 name='%(app_label)s_%(class)s_unique_aspath_sequence',
                 violation_error_message="AS-Path sequence must be unique.",
+            ),
+            models.UniqueConstraint(
+                fields=(
+                    'aspath',
+                    'pattern',
+                ),
+                name='%(app_label)s_%(class)s_unique_aspath_pattern',
+                violation_error_message="This AS-Path already has an entry with this pattern.",
             ),
         )
 

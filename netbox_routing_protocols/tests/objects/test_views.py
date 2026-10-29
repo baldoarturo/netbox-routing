@@ -128,7 +128,6 @@ class ASPathEntryTestCase(
     model = ASPathEntry
 
     action = 'permit'
-    pattern = '^.*$'
     routing_required_fields = ('aspath', 'pattern', 'sequence', 'action')
 
     def _get_base_url(self):

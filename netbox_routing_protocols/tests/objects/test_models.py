@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase
 from django.urls import reverse
@@ -189,6 +189,26 @@ class ASPathEntryTestCase(TestCase):
             entry.full_clean()
         self.assertEqual(set(ctx.exception.message_dict), {'aspath'})
         self.assertEqual(str(ASPathEntry()), 'ASPathEntry object (None)')
+
+    def test_a_pattern_cannot_be_repeated_in_the_same_aspath(self):
+        ASPathEntry.objects.create(
+            aspath=self.aspath, action='permit', sequence=10, pattern='^1$'
+        )
+        repeated = ASPathEntry(
+            aspath=self.aspath, action='deny', sequence=20, pattern='^1$'
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            repeated.full_clean()
+        self.assertIn('already has an entry with this pattern', str(ctx.exception))
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            repeated.save()
+        # it is fine in another AS-path, and the entry itself can be validated again
+        other = ASPath.objects.create(name='Other AS Path')
+        ASPathEntry(
+            aspath=other, action='permit', sequence=10, pattern='^1$'
+        ).full_clean()
+        saved = ASPathEntry.objects.get(aspath=self.aspath)
+        saved.full_clean()
 
     def test_duplicate_sequence_message(self):
         ASPathEntry.objects.create(
