@@ -15,15 +15,17 @@ instance?"* is one search away, next to the rest of your inventory.
 
 ## What is covered
 
-| Area | What you can describe | Page |
+| Area | What you can describe | Status |
 | --- | --- | --- |
-| Static routes | Prefix, next hop, interface, VRF, metric, tag, the devices that carry the route | [Static routes](protocols/static.md) |
-| BGP | Routers, VRF scopes, address families, peers, session/peer/policy templates, settings | [BGP](protocols/bgp.md) |
-| OSPF (v2, IPv4) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | [OSPF](protocols/ospf.md) |
-| IS-IS | Instances, interfaces, levels, authentication, segment routing, Flex-Algo, SRv6 | [IS-IS](protocols/isis.md) |
-| EIGRP | Routers (classic and named), address families, networks, interfaces | [EIGRP](protocols/eigrp.md) |
-| Routing objects | Prefix lists, route policies, AS paths, communities and community lists | [Routing objects](routing-objects.md) |
-| BFD | Reusable BFD timer profiles | [BFD](bfd.md) |
+| [Static routes](protocols/static.md) | Prefix, next hop, interface, VRF, metric, tag, the devices that carry the route | Available |
+| [BGP](protocols/bgp.md) | Routers, VRF scopes, address families, peers, session/peer/policy templates, settings | Available |
+| [OSPF (v2, IPv4)](protocols/ospf.md) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | In progress: [full OSPFv2 tracking](https://github.com/baldoarturo/netbox-routing-protocols/issues/90) |
+| [IS-IS](protocols/isis.md) | Instances, interfaces, levels, authentication, segment routing, Flex-Algo, SRv6 | Available |
+| [EIGRP](protocols/eigrp.md) | Routers (classic and named), address families, networks, interfaces | Available |
+| [Routing objects](routing-objects.md) | Prefix lists, route policies, AS paths, communities and community lists | In progress: reviews of [route policies](https://github.com/baldoarturo/netbox-routing-protocols/issues/307) and [communities](https://github.com/baldoarturo/netbox-routing-protocols/issues/294); [AS paths](https://github.com/baldoarturo/netbox-routing-protocols/issues/280) is nearly done; prefix lists are reviewed |
+| [BFD](bfd.md) | Reusable BFD timer profiles | Available |
+
+Segment routing shared by all the protocols (SRGB, SRLB and prefix SIDs per device) is also in progress: [tracking](https://github.com/baldoarturo/netbox-routing-protocols/issues/201). "Available" means there is no open tracking issue for the area; it is not a guarantee of completeness. Progress is tracked with the "Tracking:" issues and the GitHub projects of this repository.
 
 ## Where to start
 
