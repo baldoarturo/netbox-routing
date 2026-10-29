@@ -114,6 +114,10 @@ saves) about:
 The entry's detail page lists the overlapping entries, and a prefix list's page shows where the list
 is used.
 
+### Adding entries from the list
+
+The page of a prefix list shows its entries in a table at the bottom, with an **Add entry** button that opens the entry form with the list already chosen and the next sequence number suggested. After saving, you come back to the list's page.
+
 ### Search Prefix Match
 
 **Routing → Routing Objects → Search Prefix Match**

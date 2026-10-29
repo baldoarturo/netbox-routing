@@ -15,7 +15,7 @@ from netbox.views.generic import (
     BulkEditView,
     BulkImportView,
 )
-from netbox.ui import panels, layout
+from netbox.ui import actions, panels, layout
 from utilities.query import count_related
 from utilities.views import (
     ContentTypePermissionRequiredMixin,
@@ -61,6 +61,21 @@ class PrefixListView(GetRelatedModelsMixin, ObjectView):
         right_panels=[
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
+        ],
+        bottom_panels=[
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.PrefixListEntry',
+                title=_('Entries'),
+                filters={'prefix_list_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'prefix_list'],
+                actions=[
+                    actions.AddObject(
+                        'netbox_routing_protocols.PrefixListEntry',
+                        label=_('Add entry'),
+                        url_params={'prefix_list': lambda ctx: ctx['object'].pk},
+                    ),
+                ],
+            ),
         ],
     )
 
