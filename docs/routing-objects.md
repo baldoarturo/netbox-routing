@@ -96,7 +96,7 @@ EDGE-IN,permit,any,,,,,
 | `sequence` | Empty takes the next free one of the list (steps of 10, consecutive inside one import). |
 | `ge`, `le`, `eq` | As in the form. `eq` sets GE and LE to one length, and cannot be combined with them. Leave all three empty to match the prefix itself (with `any`, every prefix). |
 
-The whole import is rolled back if one row is wrong, and the rows are checked with the same rules as the form (family, lengths, sequence). The overlap warnings are shown only when you add entries one by one.
+The whole import is rolled back if one row is wrong, and the rows are checked with the same rules as the form (family, lengths, sequence). The entries are saved even if they overlap (see below); after the import you get **a summary per list** with how many overlaps of each kind involve the imported entries (each pair counted once, including the entries the list already had) and the first examples.
 
 ### Duplicating a prefix list
 

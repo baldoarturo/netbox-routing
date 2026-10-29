@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Max
 from django.utils.translation import gettext_lazy as _
 
-from collections import namedtuple
+from collections import Counter, namedtuple
 
 __all__ = (
     'any_prefix_value',
@@ -19,6 +19,7 @@ __all__ = (
     'overlap_warnings',
     'evaluate_prefix',
     'prefix_list_references',
+    'import_overlaps',
 )
 
 # Distance between the sequence numbers the module assigns, leaving room to insert
@@ -244,3 +245,40 @@ def prefix_list_references(prefix_list):
         if objects.exists():
             references.append((model, objects))
     return references
+
+
+#
+# Overlaps of an import
+#
+
+
+def import_overlaps(entries):
+    """
+    The overlaps that involve the entries saved by an import, one summary per prefix list:
+    a list of (prefix_list, Counter of kinds, [first messages]), ordered by list name. Each
+    overlapping pair is counted once, from the perspective of the first entry found.
+    """
+    by_list = {}
+    for entry in entries:
+        by_list.setdefault(entry.prefix_list_id, []).append(entry)
+
+    summaries = []
+    for imported in by_list.values():
+        prefix_list = imported[0].prefix_list
+        # one query per list: the entries it has now, imported or not
+        saved = list(
+            prefix_list.prefix_list_entries.select_related('prefix_list', 'prefix')
+        )
+        seen = set()
+        kinds, examples = Counter(), []
+        for entry in imported:
+            for overlap in find_overlaps(entry, others=saved):
+                pair = frozenset((entry.pk, overlap.entry.pk))
+                if pair in seen:
+                    continue
+                seen.add(pair)
+                kinds[overlap.kind] += 1
+                examples.append(overlap.message)
+        if kinds:
+            summaries.append((prefix_list, kinds, examples))
+    return sorted(summaries, key=lambda summary: summary[0].name.lower())

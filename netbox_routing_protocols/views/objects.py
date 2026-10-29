@@ -32,6 +32,7 @@ from netbox_routing_protocols.helpers.prefix_list import (
     describe_entry,
     evaluate_prefix,
     find_overlaps,
+    import_overlaps,
     prefix_list_references,
 )
 from netbox_routing_protocols.filtersets.objects import *
@@ -383,10 +384,38 @@ class PrefixListEntryEditView(ObjectEditView):
     form = PrefixListEntryForm
 
 
+# How many lists and examples of each list the summary of an import names
+IMPORT_LISTS_SHOWN = 5
+IMPORT_EXAMPLES_SHOWN = 3
+
+
 @register_model_view(PrefixListEntry, name='bulk_import', detail=False)
 class PrefixListEntryBulkImportView(BulkImportView):
     queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     model_form = PrefixListEntryImportForm
+
+    def create_and_update_objects(self, form, request):
+        saved = super().create_and_update_objects(form, request)
+        # The entries are saved anyway: overlaps are legitimate, the user is just told
+        summaries = import_overlaps(saved)
+        for prefix_list, kinds, examples in summaries[:IMPORT_LISTS_SHOWN]:
+            counts = ', '.join(
+                f'{count} {kind}' for kind, count in sorted(kinds.items())
+            )
+            shown = examples[:IMPORT_EXAMPLES_SHOWN]
+            more = len(examples) - len(shown)
+            text = f'Prefix list {prefix_list}: the import has overlapping entries ({counts}). '
+            text += ' '.join(f'{example}.' for example in shown)
+            if more:
+                text += f' And {more} more.'
+            messages.warning(request, text, fail_silently=True)
+        if len(summaries) > IMPORT_LISTS_SHOWN:
+            messages.warning(
+                request,
+                f'{len(summaries) - IMPORT_LISTS_SHOWN} more prefix lists have overlapping entries.',
+                fail_silently=True,
+            )
+        return saved
 
 
 @register_model_view(PrefixListEntry, name='delete')
