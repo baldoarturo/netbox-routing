@@ -33,6 +33,7 @@ __all__ = (
     'PrefixListDuplicateForm',
     'PrefixListEntryForm',
     'RoutePolicyForm',
+    'RoutePolicyResequenceForm',
     'RoutePolicyEntryForm',
     'ASPathForm',
     'ASPathEntryForm',
@@ -156,6 +157,10 @@ class ASPathResequenceForm(forms.Form):
         label=_('Step'),
         help_text=_('Distance between the numbers, to leave room to insert entries.'),
     )
+
+
+class RoutePolicyResequenceForm(ASPathResequenceForm):
+    """The first number and the step of a resequence"""
 
 
 class PrefixListForm(PrimaryModelForm):
