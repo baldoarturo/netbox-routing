@@ -79,11 +79,10 @@ class ASPathEntryForm(PrimaryModelForm):
             )
             % {'step': SEQUENCE_STEP},
             'pattern': _(
-                'A POSIX extended regular expression (as used by Cisco IOS/IOS-XR, '
-                'Arista EOS and FRR), where "_" is an ordinary character, for example '
-                '"^65001_" or "_(65002|65003)$". AS numbers must be 0 to 4294967295 '
-                '(asdot such as 1.10 also works). It is stored as written and not '
-                'checked against any vendor dialect (Junos regular expressions differ).'
+                'A POSIX extended regular expression over the AS numbers of the path '
+                '(printable ASCII), for example "^65001 " or "(65002|65003)$". AS numbers '
+                'must be 0 to 4294967295 (asdot such as 1.10 also works). It is stored as '
+                'written; the plugin does not run it.'
             ),
         }
 

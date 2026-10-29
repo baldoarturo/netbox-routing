@@ -38,7 +38,7 @@ class ASPathEntryType(PrimaryObjectType):
     ]
     action: str
     sequence: BigInt
-    pattern: str | None
+    pattern: str
 
 
 @strawberry_django.type(models.PrefixList, fields='__all__', filters=PrefixListFilter)

@@ -142,6 +142,11 @@ class ASPathEntryTestCase(TestCase):
             ('^4294967296$', False),
             ('^70000.1$', False),
             ('^1.70000$', False),
+            ('^²$', False),
+            ('^٣$', False),
+            ('^１$', False),
+            ('^1\u00a0$', False),
+            ('^1\t$', False),
         ):
             with self.subTest(pattern):
                 entry = ASPathEntry(
@@ -161,6 +166,7 @@ class ASPathEntryTestCase(TestCase):
 
         form = ASPathEntryForm()
         self.assertIn('POSIX extended', form.fields['pattern'].help_text)
+        self.assertNotIn('Cisco', form.fields['pattern'].help_text)
 
     def test_name_is_unique_ignoring_case(self):
         ASPath.objects.create(name='Customers')

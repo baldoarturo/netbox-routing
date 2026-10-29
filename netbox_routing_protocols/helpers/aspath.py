@@ -25,19 +25,22 @@ _ESCAPABLE = set('.[]\\()*+?{}|^$_-')
 
 def validate_pattern(pattern):
     """
-    Check an AS-path pattern as a POSIX extended regular expression (the ERE of POSIX.1-2017,
-    the family of the Cisco, Arista and FRR AS-path filters) with the ``_`` delimiter those
-    platforms add, which is an ordinary character here. The plugin stores and shows the
-    pattern; it does not run it, so no vendor dialect is checked beyond POSIX.
+    Check an AS-path pattern as a POSIX extended regular expression (the ERE of POSIX.1-2017).
+    The plugin stores and shows the pattern, it does not run it, and it does not support any
+    vendor dialect: ``_`` is an ordinary character.
 
-    Returns a list of error messages (empty when the pattern is valid). Besides the grammar
-    (balanced groups, valid bracket expressions and repetitions, nothing to repeat, empty
-    alternatives), every AS number written in it must fit the 32 bit AS_PATH (RFC 6793), in
-    asplain (``65000``) or asdot (``1.10``, RFC 5396) notation. Digits inside a bracket
-    expression (``[0-9]``) and in a repetition (``{2,3}``) are not AS numbers.
+    Returns a list of error messages (empty when the pattern is valid). Only printable ASCII
+    is accepted (Unicode digits are not AS numbers). Besides the grammar (balanced groups,
+    valid bracket expressions and repetitions, nothing to repeat, empty alternatives), every
+    AS number written in it must fit the 32 bit AS_PATH (RFC 6793), in asplain (``65000``)
+    or asdot (``1.10``, RFC 5396) notation. Digits inside a bracket expression (``[0-9]``)
+    and in a repetition (``{2,3}``) are not AS numbers.
     """
     if not pattern or not pattern.strip():
         return ['The pattern cannot be empty.']
+
+    if any(ord(char) < 32 or ord(char) > 126 for char in pattern):
+        return ['The pattern can only have printable ASCII characters.']
 
     errors = []
     numbers = []
