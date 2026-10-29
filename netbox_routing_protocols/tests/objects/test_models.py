@@ -154,6 +154,14 @@ class ASPathEntryTestCase(TestCase):
                         entry.full_clean()
                     self.assertIn('pattern', ctx.exception.message_dict)
 
+    def test_form_explains_the_pattern(self):
+        from netbox_routing_protocols.forms.model_objects.objects import (
+            ASPathEntryForm,
+        )
+
+        form = ASPathEntryForm()
+        self.assertIn('POSIX extended', form.fields['pattern'].help_text)
+
     def test_duplicate_sequence_message(self):
         ASPathEntry.objects.create(
             aspath=self.aspath, action='permit', sequence=10, pattern='^1$'
