@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from ipam.models import Prefix
 from netbox.context_managers import event_tracking
 from netbox_routing_protocols.models.bgp import *
+from netbox_routing_protocols.helpers import community as community_helpers
 from netbox_routing_protocols.models.community import *
 from netbox_routing_protocols.models.objects import *
 from users.models import User
@@ -201,7 +202,10 @@ class Command(BaseCommand):
 
                 for item in netbox_bgp.Community.objects.all():
                     try:
-                        entry = Community.objects.get(community=item.value)
+                        # communities are stored in their normal form
+                        entry = Community.objects.get(
+                            community=community_helpers.normalize(item.value)
+                        )
                         if not mapping['community'].get(item.pk):
                             mapping['community'][item.pk] = entry
                     except Community.DoesNotExist:
@@ -219,12 +223,18 @@ class Command(BaseCommand):
 
                 for item in netbox_bgp.CommunityList.objects.all():
                     try:
-                        entry = CommunityList.objects.get(name=item.name)
+                        entry = CommunityList.objects.get(name__iexact=item.name)
                         if not mapping['community_list'].get(item.pk):
                             mapping['community_list'][item.pk] = entry
                     except CommunityList.DoesNotExist:
+                        # the list takes the type of its communities
+                        kinds = {
+                            mapping['community'][rule.community.pk].type
+                            for rule in item.commlistrules.all()
+                        }
                         entry = CommunityList(
                             name=item.name,
+                            type=kinds.pop() if len(kinds) == 1 else 'standard',
                             description=item.description,
                             comments=item.comments,
                         )
@@ -251,6 +261,7 @@ class Command(BaseCommand):
                     except CommunityListEntry.DoesNotExist:
                         entry = CommunityListEntry(
                             community_list=community_list,
+                            sequence=community_helpers.next_sequence(community_list),
                             action=item.action,
                             community=community,
                             description=item.description,

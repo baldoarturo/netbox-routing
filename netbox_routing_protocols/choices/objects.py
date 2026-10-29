@@ -20,3 +20,17 @@ class CommunityStatusChoices(ChoiceSet):
         (STATUS_RESERVED, 'Reserved', 'cyan'),
         (STATUS_DEPRECATED, 'Deprecated', 'red'),
     ]
+
+
+class CommunityTypeChoices(ChoiceSet):
+    key = "Community.type"
+
+    TYPE_STANDARD = 'standard'
+    TYPE_EXTENDED = 'extended'
+    TYPE_LARGE = 'large'
+
+    CHOICES = [
+        (TYPE_STANDARD, 'Standard', 'blue'),
+        (TYPE_EXTENDED, 'Extended', 'purple'),
+        (TYPE_LARGE, 'Large', 'teal'),
+    ]

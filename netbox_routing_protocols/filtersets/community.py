@@ -42,7 +42,9 @@ class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
         fields = (
             'name',
             'community',
+            'type',
             'status',
+            'description',
             'role_id',
             'role',
             'tenant_id',
@@ -72,7 +74,15 @@ class CommunityListFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
 
     class Meta:
         model = CommunityList
-        fields = ('name', 'tenant_id', 'tenant', 'tenant_group_id', 'tenant_group')
+        fields = (
+            'name',
+            'type',
+            'description',
+            'tenant_id',
+            'tenant',
+            'tenant_group_id',
+            'tenant_group',
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -109,7 +119,9 @@ class CommunityListEntryFilterSet(PrimaryModelFilterSet):
     class Meta:
         model = CommunityListEntry
         fields = (
+            'sequence',
             'action',
+            'description',
             'community_list_id',
             'community_list',
             'community_id',

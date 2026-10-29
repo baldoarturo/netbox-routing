@@ -52,7 +52,7 @@ class CommunityTestCase(
         Community.objects.bulk_create(cls.communities)
 
         cls.form_data = {
-            'community': '64515',
+            'community': '65000:5',
             'status': 'active',
             'description': 'Test community description',
             'comments': 'Test community comments',
@@ -115,6 +115,7 @@ class CommunityListTestCase(
 
         cls.form_data = {
             'name': 'Community List X',
+            'type': 'standard',
             'description': 'Test community list description',
             'comments': 'Test community list comments',
         }
@@ -197,21 +198,25 @@ class CommunityListEntryTestCase(
 
         cls.community_list_entries = (
             CommunityListEntry(
+                sequence=10,
                 community_list=cls.community_lists[0],
                 community=cls.communities[0],
                 action=ActionChoices.PERMIT,
             ),
             CommunityListEntry(
+                sequence=20,
                 community_list=cls.community_lists[0],
                 community=cls.communities[0],
                 action=ActionChoices.PERMIT,
             ),
             CommunityListEntry(
+                sequence=30,
                 community_list=cls.community_lists[1],
                 community=cls.communities[0],
                 action=ActionChoices.PERMIT,
             ),
             CommunityListEntry(
+                sequence=40,
                 community_list=cls.community_lists[1],
                 community=cls.communities[1],
                 action=ActionChoices.PERMIT,
@@ -222,6 +227,7 @@ class CommunityListEntryTestCase(
 
         cls.form_data = {
             'community_list': cls.community_lists[2].pk,
+            'sequence': 100,
             'community': cls.communities[2].pk,
             'action': ActionChoices.PERMIT,
             'description': 'Test entry description',

@@ -20,16 +20,16 @@ class CommunityTestCase(TestCase):
 
     def test_community(self):
         role = Role.objects.get(name='Test Role')
-        community_value = '64512'
+        # a bare 32-bit number is stored as ASN:value
         community = Community(
-            community=community_value,
+            community='64512',
             status='active',
             role=role,
         )
         community.full_clean()
         community.save()
         self.assertIsInstance(community, Community)
-        self.assertEqual(str(community), community_value)
+        self.assertEqual(str(community), '0:64512')
 
         community_value = '64512:64512'
         community = Community(
@@ -177,9 +177,12 @@ class CommunityListEntryTestCase(TestCase):
         self.cl.save()
 
     def test_community_list_entry(self):
-        for community in self.communities:
+        for sequence, community in enumerate(self.communities, start=1):
             cle = CommunityListEntry(
-                community_list=self.cl, action=ActionChoices.PERMIT, community=community
+                community_list=self.cl,
+                sequence=sequence,
+                action=ActionChoices.PERMIT,
+                community=community,
             )
             cle.full_clean()
             cle.save()
