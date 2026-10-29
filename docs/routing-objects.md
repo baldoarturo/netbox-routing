@@ -98,6 +98,10 @@ EDGE-IN,permit,any,,,,,
 
 The whole import is rolled back if one row is wrong, and the rows are checked with the same rules as the form (family, lengths, sequence). The overlap warnings are shown only when you add entries one by one.
 
+### Deleting a prefix list in use
+
+A prefix list that other objects use can be deleted. Before you confirm, the dialog (and the bulk delete page) lists **every object that refers to it, whatever the protocol**: BGP policy templates and peer address families, route map entries, and anything that points to a prefix list in the future, grouped by type with links. Deleting the list leaves the reference empty in those objects (and removes the list from the route map entries), so their filtering stops applying until you choose another list. The list's own entries are deleted with it.
+
 ### Overlap warnings
 
 When you save an entry the plugin compares it with the other entries of the list and warns (it still

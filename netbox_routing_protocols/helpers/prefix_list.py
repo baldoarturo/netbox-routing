@@ -18,6 +18,7 @@ __all__ = (
     'find_overlaps',
     'overlap_warnings',
     'evaluate_prefix',
+    'prefix_list_references',
 )
 
 # Distance between the sequence numbers the module assigns, leaving room to insert
@@ -220,3 +221,26 @@ def evaluate_prefix(prefix, entries):
         (prefix_list, [(entry, index == 0) for index, entry in enumerate(matches)])
         for prefix_list, matches in results.items()
     ]
+
+
+#
+# Where a prefix list is used
+#
+
+
+def prefix_list_references(prefix_list):
+    """
+    The objects that refer to the prefix list, of any model (BGP, route maps, and whatever
+    protocol points to a prefix list later): a list of (model, queryset). Found from the
+    reverse relations, so a new model is listed without touching this. The entries of the list
+    are not references: they go with it.
+    """
+    references = []
+    for relation in prefix_list._meta.related_objects:
+        model = relation.related_model
+        if model._meta.auto_created or model._meta.model_name == 'prefixlistentry':
+            continue
+        objects = model._default_manager.filter(**{relation.field.name: prefix_list})
+        if objects.exists():
+            references.append((model, objects))
+    return references

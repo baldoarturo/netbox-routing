@@ -11,6 +11,7 @@ from users.models import User
 from utilities.testing import APITestCase
 
 from netbox_routing_protocols.forms.objects import PrefixListEntryForm
+from netbox_routing_protocols.helpers.prefix_list import prefix_list_references
 from netbox_routing_protocols.models import BGPPolicyTemplate
 from netbox_routing_protocols.models.objects import *
 
@@ -18,6 +19,7 @@ __all__ = (
     'PrefixListOverlapFormTestCase',
     'PrefixListOverlapAPITestCase',
     'PrefixListViewsTestCase',
+    'PrefixListDeleteWarningTestCase',
     'PrefixMatchViewTestCase',
 )
 
@@ -343,3 +345,64 @@ class PrefixListTablesTestCase(SuperuserMixin, TestCase):
                 reverse(f'plugins:netbox_routing_protocols:{name}')
             ).context['table']
             self.assertIn('actions', [column.name for column in table.columns])
+
+
+class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
+    """A list in use can be deleted: the user is told what refers to it first"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.used = PrefixList.objects.create(name='Used', family=4)
+        cls.free = PrefixList.objects.create(name='Free', family=4)
+        cls.template = BGPPolicyTemplate.objects.create(
+            name='Template', prefixlist_in=cls.used
+        )
+        route_map = RouteMap.objects.create(name='Map')
+        cls.route_map_entry = RouteMapEntry.objects.create(
+            route_map=route_map, sequence=10, action='permit'
+        )
+        cls.route_map_entry.match_prefix_list.add(cls.used)
+
+    def test_references_of_any_model_are_found(self):
+        models = {model for model, objects in prefix_list_references(self.used)}
+        self.assertEqual(models, {BGPPolicyTemplate, RouteMapEntry})
+        self.assertEqual(prefix_list_references(self.free), [])
+
+    def test_the_delete_dialog_names_what_refers_to_the_list(self):
+        self.login()
+        url = self.used.get_absolute_url() + 'delete/'
+        for headers in ({}, {'HTTP_HX_REQUEST': 'true'}):
+            with self.subTest(headers):
+                response = self.client.get(url, **headers)
+                self.assertContains(response, 'This prefix list is in use')
+                self.assertContains(response, self.template.get_absolute_url())
+                self.assertContains(response, self.route_map_entry.get_absolute_url())
+
+    def test_a_free_list_has_no_warning(self):
+        self.login()
+        response = self.client.get(self.free.get_absolute_url() + 'delete/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'is in use')
+
+    def test_deleting_a_list_in_use_clears_the_references(self):
+        self.login()
+        response = self.client.post(
+            self.used.get_absolute_url() + 'delete/', {'confirm': True}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(PrefixList.objects.filter(pk=self.used.pk).exists())
+        self.template.refresh_from_db()
+        self.assertIsNone(self.template.prefixlist_in)
+        self.assertFalse(RouteMapEntry.objects.get().match_prefix_list.exists())
+
+    def test_the_bulk_delete_confirmation_warns(self):
+        self.login()
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:prefixlist_bulk_delete'),
+            {'pk': [self.used.pk, self.free.pk]},
+            follow=True,
+        )
+        texts = [str(message) for message in response.context['messages']]
+        self.assertTrue(
+            any('are in use' in text and 'Template' in text for text in texts)
+        )
