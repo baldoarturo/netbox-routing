@@ -1,0 +1,35 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "AS Path Match" %}{% endblock %}
+
+{% block content %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <p class="text-muted">
+        {% trans "Type an AS path (the AS numbers separated by spaces) to see which AS-path entries match it, and in which sequence. The patterns are evaluated as POSIX extended regular expressions over the text of the path. The results update as you type." %}
+      </p>
+      <form method="get" action="{% url 'plugins:netbox_routing_protocols:aspath_match' %}"
+            hx-get="{% url 'plugins:netbox_routing_protocols:aspath_match' %}"
+            hx-trigger="input from:#aspath-match-q delay:250ms, change from:#aspath-match-all, submit"
+            hx-target="#aspath-match-results"
+            hx-push-url="true">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-6">
+            <input type="search" id="aspath-match-q" name="q" value="{{ q }}" class="form-control"
+                   placeholder="65001 65002 4200000000" autocomplete="off" autofocus>
+          </div>
+          <div class="col-auto">
+            <label class="form-check">
+              <input type="checkbox" id="aspath-match-all" name="all" value="1" class="form-check-input"{% if show_all %} checked{% endif %}>
+              <span class="form-check-label">{% trans "Include the AS paths with no match" %}</span>
+            </label>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="aspath-match-results">
+    {% include 'netbox_routing_protocols/aspath_match_results.html' %}
+  </div>
+{% endblock content %}

@@ -590,6 +590,60 @@ class PrefixMatchView(ContentTypePermissionRequiredMixin, View):
 
 
 #
+# AS-path match: which entries of the AS-paths match an AS_PATH
+#
+class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
+    template_name = 'netbox_routing_protocols/aspath_match.html'
+    partial_name = 'netbox_routing_protocols/aspath_match_results.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.view_aspathentry'
+
+    def get(self, request):
+        query = request.GET.get('q', '').strip()
+        show_all = request.GET.get('all') in ('1', 'on', 'true')
+        context = {'q': query, 'show_all': show_all}
+        if query:
+            context.update(self.evaluate(request, query, show_all))
+        # HTMX asks for the results only, a normal request for the whole page
+        template = self.partial_name if request.htmx else self.template_name
+        return render(request, template, context)
+
+    @staticmethod
+    def evaluate(request, query, show_all):
+        try:
+            path = aspath_helpers.parse_as_path(query)
+        except ValidationError as e:
+            return {'error': e.messages[0]}
+
+        aspaths = ASPath.objects.restrict(request.user, 'view')
+        entries = (
+            ASPathEntry.objects.restrict(request.user, 'view')
+            .filter(aspath__in=aspaths)
+            .select_related('aspath')
+        )
+        results = [
+            {
+                'aspath': aspath,
+                'rows': [
+                    {
+                        'entry': entry,
+                        'effective': effective,
+                        'text': aspath_helpers.describe_entry(entry),
+                    }
+                    for entry, effective in rows
+                ],
+            }
+            for aspath, rows in aspath_helpers.evaluate_path(path, entries)
+        ]
+        context = {'path': path, 'results': results}
+        if show_all:
+            matched = [result['aspath'].pk for result in results]
+            context['unmatched'] = aspaths.exclude(pk__in=matched)
+        return context
+
+
+#
 # Route Policy
 #
 @register_model_view(RoutePolicy, name='list', path='', detail=False)

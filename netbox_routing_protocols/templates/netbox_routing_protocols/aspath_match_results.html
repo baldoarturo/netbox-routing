@@ -1,0 +1,53 @@
+{% load i18n %}
+{% if error %}
+  <div class="alert alert-warning">{{ error }}</div>
+{% elif path %}
+  <div class="card">
+    <h2 class="card-header">
+      {% blocktrans with path=path %}AS paths matching {{ path }}{% endblocktrans %}
+    </h2>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>{% trans "AS path" %}</th>
+            <th>{% trans "Sequence" %}</th>
+            <th>{% trans "Action" %}</th>
+            <th>{% trans "Entry" %}</th>
+            <th>{% trans "Result" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for result in results %}
+            {% for row in result.rows %}
+              <tr>
+                <td>{% if forloop.first %}<a href="{{ result.aspath.get_absolute_url }}">{{ result.aspath }}</a>{% endif %}</td>
+                <td><a href="{{ row.entry.get_absolute_url }}">{{ row.entry.sequence }}</a></td>
+                <td><span class="badge text-bg-{{ row.entry.get_action_color }}">{{ row.entry.get_action_display }}</span></td>
+                <td><code>{{ row.text }}</code></td>
+                <td>
+                  {% if row.effective %}
+                    <strong>{% blocktrans with action=row.entry.get_action_display %}{{ action }} (first match){% endblocktrans %}</strong>
+                  {% else %}
+                    <span class="text-muted">{% trans "also matches, not reached" %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+          {% for aspath in unmatched %}
+            <tr>
+              <td><a href="{{ aspath.get_absolute_url }}">{{ aspath }}</a></td>
+              <td colspan="4" class="text-muted">{% trans "no entry matches" %}</td>
+            </tr>
+          {% endfor %}
+          {% if not results and not unmatched %}
+            <tr>
+              <td colspan="5" class="text-muted text-center">{% trans "No AS path entry matches this path." %}</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
