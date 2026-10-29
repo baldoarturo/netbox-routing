@@ -149,6 +149,12 @@ class PrefixListEntryFilterSet(NetBoxModelFilterSet):
 
 @register_filterset
 class RoutePolicyFilterSet(NetBoxModelFilterSet):
+    match_aspath_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy_entries__match_aspath',
+        queryset=ASPath.objects.all(),
+        distinct=True,
+        label=_('Matches AS-Path (ID)'),
+    )
 
     class Meta:
         model = RoutePolicy
