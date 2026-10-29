@@ -272,3 +272,115 @@ def import_duplicates(entries):
         if kinds:
             summaries.append((aspath, kinds, examples))
     return sorted(summaries, key=lambda summary: summary[0].name.lower())
+
+
+#
+# Which entries match an AS_PATH
+#
+
+_POSIX_CLASSES = {
+    'alnum': 'a-zA-Z0-9',
+    'alpha': 'a-zA-Z',
+    'blank': ' \\t',
+    'cntrl': '\\x00-\\x1f\\x7f',
+    'digit': '0-9',
+    'graph': '!-~',
+    'lower': 'a-z',
+    'print': ' -~',
+    'punct': '!-/:-@\\[-`{-~',
+    'space': ' \\t\\n\\r\\f\\v',
+    'upper': 'A-Z',
+    'xdigit': '0-9A-Fa-f',
+}
+
+
+def parse_as_path(text):
+    """
+    The AS_PATH a user typed, as the text the patterns are matched against: AS numbers
+    separated by one space. Each one must be a valid AS number (asplain or asdot, see
+    validate_pattern). Raises ValidationError otherwise.
+    """
+    tokens = text.split()
+    if not tokens:
+        raise ValidationError(_('Type an AS path, for example 65001 65002.'))
+    for token in tokens:
+        if not re.fullmatch(r'\d+(?:\.\d+)?', token, re.ASCII):
+            raise ValidationError(
+                _('"%(token)s" is not an AS number: separate the numbers with spaces.')
+                % {'token': token}
+            )
+        if validate_pattern(token) != []:
+            raise ValidationError(
+                _('"%(token)s" is not a valid AS number.') % {'token': token}
+            )
+    return ' '.join(tokens)
+
+
+def posix_to_python(pattern):
+    """
+    The pattern (a POSIX extended regular expression that validate_pattern accepts) as a
+    Python regular expression. Only the bracket expressions differ: a backslash is an
+    ordinary character inside them and the POSIX classes ([:digit:]) are named.
+    """
+    out = []
+    i, n = 0, len(pattern)
+    while i < n:
+        char = pattern[i]
+        if char == '\\':
+            out.append(pattern[i : i + 2])
+            i += 2
+        elif char == '[':
+            i += 1
+            negate = pattern[i : i + 1] == '^'
+            i += negate
+            items = []
+            first = True
+            while i < n and (pattern[i] != ']' or first):
+                first = False
+                if pattern.startswith('[:', i):
+                    end = pattern.index(':]', i)
+                    items.append(_POSIX_CLASSES[pattern[i + 2 : end]])
+                    i = end + 2
+                elif (
+                    pattern[i] == '-'
+                    and items
+                    and pattern[i + 1 : i + 2] not in ('', ']')
+                    and not items[-1].endswith('-')
+                ):
+                    items.append('-')
+                    i += 1
+                else:
+                    items.append(re.escape(pattern[i]))
+                    i += 1
+            i += 1
+            out.append('[' + ('^' if negate else '') + ''.join(items) + ']')
+        else:
+            out.append(char)
+            i += 1
+    return ''.join(out)
+
+
+def entry_matches(entry, path):
+    """Whether the pattern of the entry matches the AS_PATH text (see parse_as_path)"""
+    try:
+        return re.search(posix_to_python(entry.pattern), path) is not None
+    except (re.error, ValueError, KeyError, IndexError):
+        # a pattern saved before it was validated, that the engine does not read
+        return False
+
+
+def evaluate_path(path, entries):
+    """
+    Evaluate an AS_PATH text against entries of any number of AS-paths: a list of
+    (aspath, [(entry, effective)]) by name, with the entries that match it by sequence. The
+    first one of each AS-path is the effective: the action of the AS-path for that path.
+    AS-paths with no matching entry are not returned.
+    """
+    results = {}
+    for entry in sorted(entries, key=lambda e: (e.aspath.name.lower(), e.sequence)):
+        if entry_matches(entry, path):
+            results.setdefault(entry.aspath, []).append(entry)
+    return [
+        (aspath, [(entry, index == 0) for index, entry in enumerate(matches)])
+        for aspath, matches in results.items()
+    ]

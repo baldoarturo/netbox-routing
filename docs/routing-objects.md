@@ -235,6 +235,19 @@ over 4294967294. You need the permission to change AS-path entries.
 Over the API: `PATCH /api/plugins/routing/objects/as-path/<id>/resequence/` with optional `start` and
 `step`; it answers `{"changed": <number of entries renumbered>}`.
 
+### Search AS Path Match
+
+**Routing → Routing Objects → Search AS Path Match**
+
+Type an AS path, the AS numbers separated by spaces (`65001 65002 4200000000`; asdot such as `1.10`
+also works), and the page shows, as you type, which AS-path entries match it, **in which sequence**,
+and whether the entry permits or denies it; the first match of each AS-path is the effective one,
+the others are marked as not reached. Tick *Include the AS paths with no match* to list those too.
+The patterns are evaluated as POSIX extended regular expressions over the text of the path (the
+numbers separated by one space), so `^65001 ` matches a path that starts with 65001. No implicit
+deny is assumed when nothing matches, because that is how a platform behaves, not how the plugin
+stores the data. It needs the *view* permission on AS-path entries.
+
 ### Using the API
 
 The REST API (`/api/plugins/routing/objects/as-path/` and `/api/plugins/routing/objects/as-path-entry/`)

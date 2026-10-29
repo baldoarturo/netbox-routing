@@ -435,6 +435,7 @@ class URLTestCase(TestCase):
                 'prefixlistentry_changelog',
                 'prefixlistentry_journal',
                 'prefix_match',
+                'aspath_match',
                 'routepolicy_list',
                 'routepolicy_add',
                 # 'routepolicy_bulk_import',

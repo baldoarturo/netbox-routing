@@ -114,6 +114,12 @@ prefix_match = PluginMenuItem(
     permissions=['netbox_routing_protocols.view_prefixlistentry'],
 )
 
+aspath_match = PluginMenuItem(
+    link='plugins:netbox_routing_protocols:aspath_match',
+    link_text='Search AS Path Match',
+    permissions=['netbox_routing_protocols.view_aspathentry'],
+)
+
 OBJECT_MENU = (
     prefixlist,
     prefixlist_entry,
@@ -122,4 +128,5 @@ OBJECT_MENU = (
     routepolicy_entry,
     aspath,
     aspath_entry,
+    aspath_match,
 )
