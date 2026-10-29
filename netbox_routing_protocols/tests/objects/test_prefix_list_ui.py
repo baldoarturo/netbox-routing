@@ -221,6 +221,25 @@ class PrefixListViewsTestCase(SuperuserMixin, TestCase):
         ):
             self.assertContains(response, link)
 
+    def test_prefix_list_page_has_the_entries_and_an_add_button(self):
+        self.login()
+        prefix_list = PrefixList.objects.create(name='List', family=4)
+        response = self.client.get(prefix_list.get_absolute_url())
+        self.assertContains(
+            response,
+            f'/plugins/routing/objects/prefix-list-entry/add/?prefix_list={prefix_list.pk}',
+        )
+        # the entries table is loaded for this list only
+        self.assertContains(
+            response,
+            f'/plugins/routing/objects/prefix-list-entry/?embedded=True&prefix_list_id={prefix_list.pk}',
+        )
+        # the form it opens has the list and the next sequence
+        add = self.client.get(
+            f'/plugins/routing/objects/prefix-list-entry/add/?prefix_list={prefix_list.pk}'
+        )
+        self.assertContains(add, 'value="10"')
+
 
 class PrefixMatchViewTestCase(SuperuserMixin, TestCase):
 
