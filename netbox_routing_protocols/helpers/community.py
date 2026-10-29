@@ -32,6 +32,7 @@ WELL_KNOWN = {
     'ACCEPT_OWN': ('65535:1', 'RFC 7611'),
     'LLGR_STALE': ('65535:6', 'RFC 9494'),
     'NO_LLGR': ('65535:7', 'RFC 9494'),
+    'STANDBY_PE': ('65535:9', 'RFC 9026'),
     'BLACKHOLE': ('65535:666', 'RFC 7999'),
     'NO_EXPORT': ('65535:65281', 'RFC 1997'),
     'NO_ADVERTISE': ('65535:65282', 'RFC 1997'),
@@ -53,7 +54,8 @@ FORMATS_HELP = _(
     'number, a well-known name such as no-export, an extended community '
     '"rt:ASN:value" or "soo:ASN:value" (RFC 4360, RFC 5668; with an IPv4 or IPv6 '
     'address instead of the ASN, RFC 4360, RFC 5701) or a large community '
-    '"ASN:value1:value2" (three 32-bit numbers, RFC 8092).'
+    '"ASN:value1:value2" (three 32-bit numbers, RFC 8092). Of the extended '
+    'communities only the route target and the site of origin are supported.'
 )
 
 

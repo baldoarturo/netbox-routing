@@ -163,16 +163,16 @@ class CommunityListEntryTestCase(
 
         cls.communities = (
             Community(
-                community='64512',
+                community='65000:12',
                 status='active',
             ),
             Community(
-                community='64513',
+                community='65000:13',
                 status='active',
                 role=cls.role,
             ),
             Community(
-                community='64514',
+                community='65000:14',
                 status='active',
                 role=cls.role,
                 tenant=cls.tenant,
@@ -236,9 +236,9 @@ class CommunityListEntryTestCase(
 
         cls.csv_data = (
             'community_list,community,action',
-            'Community List 3,64512,permit',
-            'Community List 3,64513,deny',
-            'Community List 3,64514,permit',
+            'Community List 3,65000:12,permit',
+            'Community List 3,65000:13,deny',
+            'Community List 3,65000:14,permit',
         )
 
         cls.csv_update_data = (

@@ -66,6 +66,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 8706](https://www.rfc-editor.org/rfc/rfc8706) | IS-IS restart signaling | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 8955](https://www.rfc-editor.org/rfc/rfc8955), [RFC 8956](https://www.rfc-editor.org/rfc/rfc8956) | BGP Flowspec | [BGP](protocols/bgp.md#address-families) |
 | [RFC 8986](https://www.rfc-editor.org/rfc/rfc8986) | SRv6 network programming | [IS-IS SRv6 locators](protocols/isis.md#srv6-locators) |
+| [RFC 9026](https://www.rfc-editor.org/rfc/rfc9026) | Multicast VPN fast upstream failover (Standby PE community) | [Routing objects](routing-objects.md#well-known-communities) |
 | [RFC 9350](https://www.rfc-editor.org/rfc/rfc9350) | IGP Flexible Algorithm | [IS-IS Flex-Algo](protocols/isis.md#flex-algo) |
 | [RFC 9352](https://www.rfc-editor.org/rfc/rfc9352) | IS-IS SRv6 extensions | [IS-IS SRv6 locators](protocols/isis.md#srv6-locators) |
 | [RFC 9494](https://www.rfc-editor.org/rfc/rfc9494) | Long-lived graceful restart communities | [Routing objects](routing-objects.md#well-known-communities) |

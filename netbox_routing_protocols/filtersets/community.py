@@ -36,6 +36,11 @@ class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
         queryset=RoutePolicyEntry.objects.all(),
         label=_('Route Policy Entry (ID)'),
     )
+    usable_in_list_id = django_filters.ModelChoiceFilter(
+        queryset=CommunityList.objects.all(),
+        method='filter_usable_in_list',
+        label=_('Usable in the community list (ID)'),
+    )
 
     class Meta:
         model = Community
@@ -52,6 +57,10 @@ class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             'tenant_group_id',
             'tenant_group',
         )
+
+    def filter_usable_in_list(self, queryset, name, value):
+        """The communities a list accepts: the ones of its type"""
+        return queryset.filter(type=value.type) if value else queryset
 
     def search(self, queryset, name, value):
         if not value.strip():

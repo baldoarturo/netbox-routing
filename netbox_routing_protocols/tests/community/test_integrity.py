@@ -100,7 +100,7 @@ class CommunityModelTestCase(TestCase):
         Community(community='65000:100').save()
         with self.assertRaises(ValidationError) as caught:
             Community(community='65000:0100').full_clean()
-        self.assertIn('community', caught.exception.message_dict)
+        self.assertIn('already exists', str(caught.exception))
 
     def test_delete_is_blocked_by_a_list_entry(self):
         community = Community.objects.create(community='65000:1')
