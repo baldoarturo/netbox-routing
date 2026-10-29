@@ -17,6 +17,7 @@ from netbox_routing_protocols.models.community import *
 MAX_WARNINGS = 5
 
 __all__ = (
+    'CommunityListDuplicateForm',
     'CommunityListForm',
     'CommunityListEntryForm',
     'CommunityForm',
@@ -137,3 +138,20 @@ class CommunityListEntryForm(PrimaryModelForm):
             for duplicate in community_helpers.find_duplicates(entry)[:MAX_WARNINGS]:
                 messages.warning(request, duplicate.message + '.')
         return entry
+
+
+class CommunityListDuplicateForm(forms.Form):
+    """The name and description of the copy of a community list"""
+
+    name = forms.CharField(max_length=100, label=_('Name'))
+    description = forms.CharField(
+        max_length=200, required=False, label=_('Description')
+    )
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        if CommunityList.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError(
+                _('A community list with this name already exists.')
+            )
+        return name

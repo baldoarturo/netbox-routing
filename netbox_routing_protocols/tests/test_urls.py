@@ -46,6 +46,7 @@ class URLTestCase(TestCase):
                 'communitylist_add',
                 'communitylist_changelog',
                 'communitylist_delete',
+                'communitylist_duplicate',
                 'communitylist_edit',
                 'communitylist_bulk_delete',
                 'communitylist_bulk_edit',

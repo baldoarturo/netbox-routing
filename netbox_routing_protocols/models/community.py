@@ -119,6 +119,12 @@ class CommunityQuerySet(RestrictedQuerySet):
 
 
 class Community(PrimaryModel):
+    """
+    A BGP community: standard (RFC 1997), extended (RFC 4360) or large (RFC 8092). The
+    value is validated and stored in its normal form by `clean` and `save`, and `type` is
+    derived from it; see helpers/community.parse.
+    """
+
     name = models.CharField(
         verbose_name=_('Name'),
         max_length=100,

@@ -22,6 +22,16 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
     )
     role = tables.Column(verbose_name=_('Role'), linkify=True)
     status = columns.ChoiceFieldColumn()
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_protocols:communitylistentry_list',
+        url_params={'community_id': 'pk'},
+        verbose_name=_('List entries'),
+    )
+    route_policy_entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_protocols:routepolicyentry_list',
+        url_params={'match_community_id': 'pk'},
+        verbose_name=_('Route policy entries'),
+    )
     tags = columns.TagColumn(url_name='plugins:netbox_routing_protocols:community_list')
 
     class Meta(NetBoxTable.Meta):
@@ -38,6 +48,8 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
             'description',
             'tenant_group',
             'tenant',
+            'entry_count',
+            'route_policy_entry_count',
             'comments',
             'tags',
             'created',
@@ -60,6 +72,16 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
 class CommunityListTable(TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(verbose_name=_('Name'), linkify=True)
     type = columns.ChoiceFieldColumn()
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_protocols:communitylistentry_list',
+        url_params={'community_list_id': 'pk'},
+        verbose_name=_('Entries'),
+    )
+    route_policy_entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_protocols:routepolicyentry_list',
+        url_params={'match_community_list_id': 'pk'},
+        verbose_name=_('Route policy entries'),
+    )
     tags = columns.TagColumn(
         url_name='plugins:netbox_routing_protocols:communitylist_list'
     )
@@ -74,6 +96,8 @@ class CommunityListTable(TenancyColumnsMixin, NetBoxTable):
             'description',
             'tenant_group',
             'tenant',
+            'entry_count',
+            'route_policy_entry_count',
             'comments',
             'tags',
             'created',
@@ -85,6 +109,7 @@ class CommunityListTable(TenancyColumnsMixin, NetBoxTable):
             'id',
             'name',
             'type',
+            'entry_count',
             'description',
             'actions',
         )
