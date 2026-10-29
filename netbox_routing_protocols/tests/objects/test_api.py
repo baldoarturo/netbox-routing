@@ -386,6 +386,38 @@ class PrefixListFamilyTestCase(APITestCase):
                 self.assertIn('cannot be added to an IPv', str(response.data['prefix']))
         self.assertFalse(PrefixListEntry.objects.exists())
 
+    def test_exact_leaves_ge_and_le_empty(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix=prefix.pk, exact=True, sequence=1
+        )
+        self.assertHttpStatus(response, 201)
+        self.assertEqual((response.data['ge'], response.data['le']), (None, None))
+        self.assertNotIn('exact', response.data)
+        # with any: only the all zeros prefix, no default LE
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix='any', exact=True, sequence=2
+        )
+        self.assertHttpStatus(response, 201)
+        self.assertEqual((response.data['ge'], response.data['le']), (None, None))
+        # exact false changes nothing
+        response = self._post_entry(
+            prefix_list=self.v4.pk, prefix='any', exact=False, sequence=3
+        )
+        self.assertEqual(response.data['le'], 32)
+
+    def test_exact_excludes_ge_le_and_eq(self):
+        self.add_permissions('netbox_routing_protocols.add_prefixlistentry')
+        prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        for extra in ({'ge': 16}, {'le': 24}, {'eq': 16}):
+            with self.subTest(extra):
+                response = self._post_entry(
+                    prefix_list=self.v4.pk, prefix=prefix.pk, exact=True, **extra
+                )
+                self.assertHttpStatus(response, 400)
+                self.assertIn('exact', response.data)
+
     def test_any_on_update_uses_the_list_of_the_entry(self):
         self.add_permissions(
             'netbox_routing_protocols.add_prefixlistentry',
