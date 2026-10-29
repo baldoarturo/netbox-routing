@@ -305,27 +305,32 @@ class PrefixListEntryTestCase(TestCase):
         entry = PrefixListEntry.objects.get()
         self.assertEqual(PrefixListEntryForm(instance=entry).initial['sequence'], 25)
 
-    def test_exact_length(self):
-        form = PrefixListEntryForm(data=self._data(eq=16))
+    def test_exact_keeps_ge_and_le_empty(self):
+        form = PrefixListEntryForm(data=self._data(exact=True))
         self.assertTrue(form.is_valid(), form.errors)
         entry = form.save()
-        self.assertEqual((entry.ge, entry.le), (16, 16))
+        self.assertEqual((entry.ge, entry.le), (None, None))
 
-    def test_exact_length_excludes_ge_le(self):
+    def test_exact_excludes_ge_le(self):
         for extra in ({'ge': 16}, {'le': 24}):
             with self.subTest(extra):
-                form = PrefixListEntryForm(data=self._data(eq=16, **extra))
+                form = PrefixListEntryForm(data=self._data(exact=True, **extra))
                 self.assertFalse(form.is_valid())
-                self.assertIn('eq', form.errors)
+                self.assertIn('exact', form.errors)
 
-    def test_any_and_exact_length(self):
-        # the all zeros prefix matched at an exact length
-        data = self._data(any_prefix=True, eq=24)
+    def test_exact_inputs_are_disabled_in_the_page(self):
+        form = PrefixListEntryForm(data=self._data(exact=True))
+        self.assertIn('disabled', str(form['ge']))
+        self.assertNotIn('disabled', str(PrefixListEntryForm()['le']))
+        self.assertIn('id_ge', form.fields['exact'].widget.attrs['onchange'])
+
+    def test_any_and_exact_is_only_the_all_zeros_prefix(self):
+        data = self._data(any_prefix=True, exact=True)
         del data['prefix']
         form = PrefixListEntryForm(data=data)
         self.assertTrue(form.is_valid(), form.errors)
         entry = form.save()
-        self.assertEqual((entry.ge, entry.le), (24, 24))
+        self.assertEqual((entry.ge, entry.le), (None, None))
 
     def test_form_invalid(self):
         form = PrefixListEntryForm(data={'prefix_list': self.prefix_list})
