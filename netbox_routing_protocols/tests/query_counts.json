@@ -1,7 +1,7 @@
 {
-  "aspath:api_list_objects": 11,
+  "aspath:api_list_objects": 12,
   "aspath:list_objects_with_permission": 16,
-  "aspathentry:api_list_objects": 11,
+  "aspathentry:api_list_objects": 12,
   "aspathentry:list_objects_with_permission": 16,
   "bfdprofile:api_list_objects": 11,
   "bfdprofile:list_objects_with_permission": 16,

@@ -5,12 +5,23 @@ from ipam.models import Prefix, VRF
 from users.models import User
 
 from netbox_routing_protocols.forms.bulk_import import (
+    ASPathEntryImportForm,
+    ASPathImportForm,
     PrefixListEntryImportForm,
     PrefixListImportForm,
 )
-from netbox_routing_protocols.models.objects import PrefixList, PrefixListEntry
+from netbox_routing_protocols.models.objects import (
+    ASPath,
+    ASPathEntry,
+    PrefixList,
+    PrefixListEntry,
+)
 
-__all__ = ('PrefixListImportTestCase', 'PrefixListImportOverlapTestCase')
+__all__ = (
+    'PrefixListImportTestCase',
+    'PrefixListImportOverlapTestCase',
+    'ASPathImportTestCase',
+)
 
 
 class PrefixListImportTestCase(TestCase):
@@ -178,3 +189,80 @@ class PrefixListImportOverlapTestCase(TestCase):
         warnings = self._warnings(response)
         self.assertEqual(len(warnings), 1)
         self.assertIn('1 duplicate', warnings[0])
+
+
+class ASPathImportTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Path')
+        cls.user = User.objects.create_superuser('importer', 'i@example.com', 'x')
+
+    def entry(self, **kwargs):
+        data = {'aspath': 'Path', 'action': 'permit', 'pattern': '^65001_'}
+        data.update(kwargs)
+        return ASPathEntryImportForm(data=data)
+
+    def test_aspath_form(self):
+        form = ASPathImportForm(data={'name': 'new', 'description': 'd'})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().description, 'd')
+
+    def test_an_empty_sequence_takes_the_next_one(self):
+        for expected in (10, 20):
+            form = self.entry()
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertEqual(form.save().sequence, expected)
+        form = self.entry(sequence='7')
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().sequence, 7)
+
+    def test_the_pattern_and_the_sequence_are_validated(self):
+        for data in (
+            {'pattern': '^(65001'},
+            {'pattern': '^4294967296$'},
+            {'sequence': '0'},
+            {'action': 'maybe'},
+            {'aspath': 'Missing'},
+        ):
+            with self.subTest(data):
+                self.assertFalse(self.entry(**data).is_valid())
+
+    def test_import_views_with_csv(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:aspath_bulk_import'),
+            {'data': 'name\nfrom-csv\n', 'format': 'csv', 'csv_delimiter': ','},
+        )
+        self.assertEqual(response.status_code, 302)
+        csv = (
+            'aspath,action,pattern,sequence\n'
+            'from-csv,permit,^65001_,\n'
+            'from-csv,deny,^65002_,\n'
+            'Path,permit,.*,5\n'
+        )
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:aspathentry_bulk_import'),
+            {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
+        )
+        self.assertEqual(response.status_code, 302, getattr(response, 'context', None))
+        self.assertEqual(
+            list(
+                ASPathEntry.objects.order_by('aspath__name', 'sequence').values_list(
+                    'aspath__name', 'sequence', 'action', 'pattern'
+                )
+            ),
+            [
+                ('Path', 5, 'permit', '.*'),
+                ('from-csv', 10, 'permit', '^65001_'),
+                ('from-csv', 20, 'deny', '^65002_'),
+            ],
+        )
+
+    def test_an_invalid_row_imports_nothing(self):
+        self.client.force_login(self.user)
+        csv = 'aspath,action,pattern\nPath,permit,^1$\nPath,permit,^(2\n'
+        self.client.post(
+            reverse('plugins:netbox_routing_protocols:aspathentry_bulk_import'),
+            {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
+        )
+        self.assertFalse(ASPathEntry.objects.exists())

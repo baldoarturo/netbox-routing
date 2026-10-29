@@ -949,6 +949,12 @@ class ASPathDeleteView(ObjectDeleteView):
         return response
 
 
+@register_model_view(ASPath, name='bulk_import', detail=False)
+class ASPathBulkImportView(BulkImportView):
+    queryset = ASPath.objects.all()
+    model_form = ASPathImportForm
+
+
 @register_model_view(ASPath, name='bulk_edit', detail=False)
 class ASPathBulkEditView(BulkEditView):
     queryset = ASPath.objects.all()
@@ -1045,6 +1051,12 @@ class ASPathEntryEditView(ObjectEditView):
 @register_model_view(ASPathEntry, name='delete')
 class ASPathEntryDeleteView(ObjectDeleteView):
     queryset = ASPathEntry.objects.select_related('aspath')
+
+
+@register_model_view(ASPathEntry, name='bulk_import', detail=False)
+class ASPathEntryBulkImportView(BulkImportView):
+    queryset = ASPathEntry.objects.select_related('aspath')
+    model_form = ASPathEntryImportForm
 
 
 @register_model_view(ASPathEntry, name='bulk_edit', detail=False)

@@ -21,6 +21,8 @@ __all__ = (
 
 @register_filterset
 class ASPathFilterSet(NetBoxModelFilterSet):
+    """Filters the AS-paths by name, description and the route policy entries that use them"""
+
     route_policy_entry_id = django_filters.ModelMultipleChoiceFilter(
         field_name='route_policy_entries',
         queryset=RoutePolicyEntry.objects.all(),
@@ -40,6 +42,8 @@ class ASPathFilterSet(NetBoxModelFilterSet):
 
 @register_filterset
 class ASPathEntryFilterSet(NetBoxModelFilterSet):
+    """Filters the entries by AS-path (ID or name), sequence, action, pattern and description"""
+
     aspath_id = django_filters.ModelMultipleChoiceFilter(
         field_name='aspath',
         queryset=ASPath.objects.all(),

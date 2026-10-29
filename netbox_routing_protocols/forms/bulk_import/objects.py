@@ -7,13 +7,71 @@ from netbox.forms import PrimaryModelImportForm
 from utilities.forms.fields import CSVChoiceField, CSVModelChoiceField
 
 from netbox_routing_protocols.choices import ActionChoices
+from netbox_routing_protocols.helpers import aspath as aspath_helpers
 from netbox_routing_protocols.helpers.prefix_list import any_le, next_sequence
-from netbox_routing_protocols.models.objects import PrefixList, PrefixListEntry
+from netbox_routing_protocols.models.objects import (
+    ASPath,
+    ASPathEntry,
+    PrefixList,
+    PrefixListEntry,
+)
 
 __all__ = (
+    'ASPathImportForm',
+    'ASPathEntryImportForm',
     'PrefixListImportForm',
     'PrefixListEntryImportForm',
 )
+
+
+class ASPathImportForm(PrimaryModelImportForm):
+    class Meta:
+        model = ASPath
+        fields = (
+            'name',
+            'description',
+            'owner',
+            'comments',
+            'tags',
+        )
+
+
+class ASPathEntryImportForm(PrimaryModelImportForm):
+    """Same rules as the entry form: an empty `sequence` takes the next free one"""
+
+    aspath = CSVModelChoiceField(
+        queryset=ASPath.objects.all(),
+        to_field_name='name',
+        help_text=_('Name of the AS-path'),
+    )
+    action = CSVChoiceField(choices=ActionChoices, help_text=_('permit or deny'))
+    sequence = forms.IntegerField(
+        required=False,
+        help_text=_('Empty takes the next free one of the AS-path'),
+    )
+
+    class Meta:
+        model = ASPathEntry
+        fields = (
+            'aspath',
+            'sequence',
+            'action',
+            'pattern',
+            'description',
+            'owner',
+            'comments',
+            'tags',
+        )
+
+    def clean(self):
+        super().clean()
+        cleaned = self.cleaned_data
+        if cleaned.get('sequence') is None and cleaned.get('aspath'):
+            try:
+                cleaned['sequence'] = aspath_helpers.next_sequence(cleaned['aspath'])
+            except ValidationError as e:
+                self.add_error('sequence', e)
+        return cleaned
 
 
 class PrefixListImportForm(PrimaryModelImportForm):

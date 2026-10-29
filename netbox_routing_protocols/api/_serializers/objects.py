@@ -24,7 +24,7 @@ __all__ = (
 )
 
 
-class ASPathSerializer(NetBoxModelSerializer):
+class ASPathSerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:aspath-detail'
     )
@@ -37,12 +37,17 @@ class ASPathSerializer(NetBoxModelSerializer):
             'display',
             'name',
             'description',
+            'owner',
             'comments',
+            'tags',
+            'custom_fields',
+            'created',
+            'last_updated',
         )
         brief_fields = ('url', 'id', 'display', 'name')
 
 
-class ASPathEntrySerializer(NetBoxModelSerializer):
+class ASPathEntrySerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:aspathentry-detail'
     )
@@ -65,7 +70,12 @@ class ASPathEntrySerializer(NetBoxModelSerializer):
             'action',
             'pattern',
             'description',
+            'owner',
             'comments',
+            'tags',
+            'custom_fields',
+            'created',
+            'last_updated',
             'warnings',
         )
         brief_fields = (
