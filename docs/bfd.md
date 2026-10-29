@@ -25,3 +25,13 @@ Where it is used:
 
 > **Note.** The plugin does not check the intervals against what your platform supports. Choose values your
 > hardware can sustain: a profile with very small intervals on a busy router causes false failures.
+
+## Field reference
+
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices.
+
+```text
+BFD profile
+├─ name · tenant → Tenant
+└─ Timers: min_tx_int · min_rx_int · multiplier · hold
+```

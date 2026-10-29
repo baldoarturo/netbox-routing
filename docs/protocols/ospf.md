@@ -349,6 +349,78 @@ SRGB below an existing index.
 | A device | Its OSPF interfaces go with it. |
 | An IP address in IPAM | The OSPF network that used it is removed. |
 
+## Field reference
+
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices. The **Authentication** group is the same in the instance, the area, the interface and the virtual link, and is written out in each.
+
+```text
+OSPF instance
+├─ Identity: name · device → Device · vrf → VRF · router_id · ospf_instance_id
+├─ Authentication: authentication {Simple Password | Message Digest | Key Chain | Null Authentication}
+│     · passphrase · authentication_key_id · show_md5?
+│     · message_digest_algorithm {MD5 | HMAC-SHA-1 | HMAC-SHA-256 | HMAC-SHA-384 | HMAC-SHA-512}
+│     · key_chain
+├─ Default route: default_originate? · default_originate_always? · default_originate_metric
+│     · default_originate_metric_type {Type 1 (E1) | Type 2 (E2)}
+├─ Timers: spf_initial_delay · spf_short_delay · spf_long_delay · spf_time_to_learn · spf_holddown
+│     · lsa_min_interval · lsa_min_arrival
+├─ Maintenance: max_metric_router_lsa? · max_metric_on_startup
+│     · graceful_restart {Disabled | Planned restarts only | Planned and unplanned restart}
+│     · graceful_restart_period · graceful_restart_helper?
+│     · graceful_restart_helper_strict_lsa_checking?
+├─ Limits: max_lsa · max_lsa_threshold · max_lsa_warning_only?
+│     · external_lsdb_limit · exit_overflow_interval
+├─ Routing: reference_bandwidth · maximum_paths · default_metric · rfc1583_compatibility?
+│     · distance_intra_area · distance_inter_area · distance_external
+├─ Operation: log_adjacency_changes? · log_adjacency_changes_detail?
+│     · bfd_all_interfaces? · passive_interface_default?
+├─ Extensions: opaque_capability? · te_router_address · segment_routing?
+│     · srgb_start · srgb_size · ldp_sync? · ldp_sync_holddown
+│
+├─ Area
+│   ├─ instance → OSPF instance · area_id
+│   ├─ area_type {Standard Area | Backbone Area | Stub Area | Totally Stubby Area
+│   │             | Not-So-Stubby Area | Totally Not-So-Stubby Area}
+│   ├─ default_cost · traffic_engineering? · fast_reroute?
+│   ├─ NSSA: nssa_translate_always? · nssa_no_redistribution? · nssa_default_originate?
+│   ├─ Authentication: authentication · passphrase · authentication_key_id · show_md5?
+│   │     · message_digest_algorithm · key_chain
+│   ├─ Area range
+│   │     area → Area · prefix · advertise?
+│   │     · range_type {Summary of intra-area routes | NSSA external (type 7 to type 5)}
+│   └─ Interface
+│       ├─ instance → OSPF instance · area → Area · interface → Interface
+│       ├─ Basics: passive? · priority · bfd? · cost
+│       │     · network_type {Broadcast | Non Broadcast | Point to Point | Point to Multipoint
+│       │                     | Point to Multipoint Non Broadcast | Loopback}
+│       ├─ Timers: hello_interval · dead_interval · retransmit_interval · transmit_delay
+│       ├─ Security: ttl_security? · ttl_security_hops
+│       ├─ Authentication: authentication · passphrase · authentication_key_id · show_md5?
+│       │     · message_digest_algorithm · key_chain
+│       ├─ Options: prefix_suppression? · database_filter_all_out? · flood_reduction?
+│       │     · demand_circuit? · unnumbered? · mtu_ignore? · ldp_sync?
+│       ├─ Traffic engineering: te_metric · te_max_reservable_bandwidth · te_admin_group
+│       │     · adjacency_sid
+│       ├─ Fast reroute: fast_reroute {Loop-Free Alternate (RFC 5286) | Remote LFA (RFC 7490)}
+│       ├─ Network: ospf_interface → OSPF interface · ip_address → IP address
+│       └─ Neighbor: ospf_interface → OSPF interface · ip_address · priority · poll_interval
+├─ Redistribution
+│     instance → OSPF instance · protocol {Connected | Static | EIGRP | BGP | OSPF | IS-IS}
+│     · ospf_source → OSPF instance · eigrp_source → EIGRP router · bgp_source → BGP router
+│     · isis_source → IS-IS instance · metric · metric_type {Type 1 (E1) | Type 2 (E2)}
+│     · subnets? · route_tag · route_policy · ospf_match
+├─ Summary address: instance → OSPF instance · prefix · not_advertise? · route_tag
+├─ Virtual link
+│     instance → OSPF instance · transit_area → Area · remote_router_id
+│     ├─ Timers: hello_interval · dead_interval · retransmit_interval · transmit_delay
+│     ├─ Security: ttl_security? · ttl_security_hops
+│     └─ Authentication: authentication · passphrase · authentication_key_id · show_md5?
+│           · message_digest_algorithm · key_chain
+└─ Prefix SID
+      instance → OSPF instance · prefix · sid_type {Index into the SRGB | Absolute label (local)}
+      · sid · algorithm {SPF | Strict SPF} · node_sid? · no_php? · explicit_null?
+```
+
 ## Standards behind OSPF
 
 | RFC | What it gives the plugin |

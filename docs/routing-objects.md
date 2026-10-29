@@ -181,3 +181,36 @@ meaning of `65000:100` is documented once:
 A **Community List** groups communities under a name, and its **entries** each have an action
 (permit or deny) and a community, evaluated like a prefix list. Route map entries can match on a
 community or on a whole community list.
+
+## Field reference
+
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices.
+
+```text
+Prefix list
+├─ name · family {IPv4 | IPv6}
+└─ Entry
+    ├─ prefix_list → Prefix list
+    ├─ Match: prefix → Prefix · any_prefix? · ge · le
+    └─ Result: sequence · action {Permit | Deny}
+
+Community list
+├─ name · tenant → Tenant
+└─ Entry: community_list → Community list · community → Community · action {Permit | Deny}
+
+Community
+└─ name · community · status {Active | Reserved | Deprecated} · role → Role · tenant → Tenant
+
+AS path
+├─ name
+└─ Entry: aspath → AS path · sequence · action {Permit | Deny} · pattern
+
+Route map
+├─ name
+└─ Entry
+    ├─ route_map → Route map
+    ├─ Result: sequence · action {Permit | Deny} · flow_control
+    ├─ Match: match · match_prefix_list → Prefix list · match_community_list → Community list
+    │         · match_community → Community · match_aspath → AS path
+    └─ Set: set
+```
