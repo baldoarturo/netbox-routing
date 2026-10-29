@@ -32,7 +32,7 @@ Routers evaluate the entries in sequence order and stop at the first that matche
 | --- | --- |
 | Prefix list | The list the entry belongs to. |
 | Sequence | Evaluation order, 1 to 4294967294 (the range routers accept). Leave it empty and the form suggests the next free one; the API assigns it automatically. |
-| Action | Permit or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
+| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
 | Prefix | A prefix from NetBox IPAM (**IPAM → Prefixes**). It must be of the family of the list. |
 | Any | Matches the all-zeros prefix of the family (`0.0.0.0/0` or `::/0`). NetBox IPAM cannot hold that prefix, so this checkbox stands for it. With *LE* set to the longest length (32 or 128) it matches *every* prefix. Leave *Prefix* empty when you use it. |
 | GE / LE | The length range of the match, as on routers. *GE* ("greater than or equal") and *LE* ("less than or equal") are lengths, not counts. Both are inclusive. |
@@ -100,7 +100,7 @@ attributes and *set* others.
 | --- | --- |
 | Route map | Name of the map. |
 | Sequence | Evaluation order. |
-| Action | Permit or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
+| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
 | Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`. |
 | Match prefix list / community list / community / AS path | Link the entry to the NetBox objects it matches on. |
 | Match parameters / Set parameters | Free-form **JSON** for everything the links do not cover (for example a local preference to set). The plugin stores it as written; it does not interpret it. |

@@ -12,6 +12,8 @@ from utilities.forms.fields import (
 )
 from utilities.forms.rendering import TabbedGroups, FieldSet
 
+from netbox_routing_protocols.choices import ActionChoices
+from netbox_routing_protocols.forms.widgets import InlineRadioSelect
 from netbox_routing_protocols.helpers.prefix_list import (
     SEQUENCE_STEP,
     any_le,
@@ -76,7 +78,7 @@ class PrefixListForm(PrimaryModelForm):
             'tags',
             'owner',
         )
-        widgets = {'family': forms.RadioSelect}
+        widgets = {'family': InlineRadioSelect}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -149,6 +151,9 @@ class PrefixListEntryForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         # A new entry gets the next sequence number of the list, suggested here when
         # the list is known (the add button of the list) and assigned on save otherwise
+        # A new entry permits unless told otherwise
+        if not self.instance.pk:
+            self.fields['action'].initial = ActionChoices.PERMIT
         # Only for a new entry: emptying it on an existing one would silently move the
         # entry to the end of the list
         if not self.instance.pk:
