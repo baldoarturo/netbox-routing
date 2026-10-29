@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -28,6 +29,7 @@ from utilities.views import (
 )
 
 from netbox_routing_protocols.filtersets.community import *
+from netbox_routing_protocols.helpers import community as community_helpers
 from netbox_routing_protocols.helpers.prefix_list import community_list_references
 from netbox_routing_protocols.models.objects import RoutePolicyEntry
 from netbox_routing_protocols.views.objects import (
@@ -41,6 +43,7 @@ from netbox_routing_protocols.tables.community import *
 from netbox_routing_protocols.ui import *
 
 __all__ = (
+    'CommunityMatchView',
     'CommunityListDuplicateView',
     'CommunityListListView',
     'CommunityListDetailView',
@@ -462,3 +465,55 @@ class CommunityListEntryBulkDeleteView(BulkDeleteView):
 class CommunityListEntryBulkImportView(BulkImportView):
     queryset = CommunityListEntry.objects.select_related('community_list', 'community')
     model_form = CommunityListEntryImportForm
+
+
+#
+# Community match: which entries of the community lists match the communities of a route
+#
+class CommunityMatchView(ContentTypePermissionRequiredMixin, View):
+    template_name = 'netbox_routing_protocols/community_match.html'
+    partial_name = 'netbox_routing_protocols/community_match_results.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.view_communitylistentry'
+
+    def get(self, request):
+        query = request.GET.get('q', '').strip()
+        show_all = request.GET.get('all') in ('1', 'on', 'true')
+        context = {'q': query, 'show_all': show_all}
+        if query:
+            context.update(self.evaluate(request, query, show_all))
+        # HTMX asks for the results only, a normal request for the whole page
+        template = self.partial_name if request.htmx else self.template_name
+        return render(request, template, context)
+
+    @staticmethod
+    def evaluate(request, query, show_all):
+        try:
+            values = community_helpers.parse_communities(query)
+        except ValidationError as e:
+            return {'error': e.messages[0]}
+
+        lists = CommunityList.objects.restrict(request.user, 'view')
+        entries = (
+            CommunityListEntry.objects.restrict(request.user, 'view')
+            .filter(community_list__in=lists, community__community__in=values)
+            .select_related('community_list', 'community')
+        )
+        results = [
+            {
+                'community_list': community_list,
+                'rows': [
+                    {'entry': entry, 'effective': effective}
+                    for entry, effective in rows
+                ],
+            }
+            for community_list, rows in community_helpers.evaluate_communities(
+                values, entries
+            )
+        ]
+        context = {'communities': values, 'results': results}
+        if show_all:
+            matched = [result['community_list'].pk for result in results]
+            context['unmatched'] = lists.exclude(pk__in=matched)
+        return context

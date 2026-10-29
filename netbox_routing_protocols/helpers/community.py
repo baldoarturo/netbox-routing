@@ -19,6 +19,8 @@ __all__ = (
     'well_known_name',
     'next_sequence',
     'find_duplicates',
+    'parse_communities',
+    'evaluate_communities',
 )
 
 MAX_16 = 0xFFFF
@@ -185,3 +187,53 @@ def find_duplicates(entry):
             )
         )
     return duplicates
+
+
+#
+# Which entries of the community lists match the communities of a route
+#
+
+
+def parse_communities(text):
+    """
+    The communities of a route written in `text`, separated by spaces or commas, as a
+    list of normalised values without repeats (ValidationError naming the first one that
+    is not a community).
+    """
+    values = []
+    for token in re.split(r'[\s,]+', text.strip()):
+        if not token:
+            continue
+        try:
+            value = normalize(token)
+        except ValidationError as e:
+            raise ValidationError(
+                _('"%(token)s": %(reason)s') % {'token': token, 'reason': e.messages[0]}
+            )
+        if value not in values:
+            values.append(value)
+    if not values:
+        raise ValidationError(_('Type at least one community.'))
+    return values
+
+
+def evaluate_communities(values, entries):
+    """
+    The entries of any number of community lists that match a route that carries the
+    communities `values` (normalised): a list of (community_list, [(entry, effective)])
+    by list name, with the matching entries by sequence. The first matching entry of each
+    list is the effective one, the action of the list for that route; lists with no
+    matching entry are not returned (a router denies the route). A standard list entry
+    matches when the route carries its community, whatever else it carries.
+    """
+    results = {}
+    carried = set(values)
+    for entry in sorted(
+        entries, key=lambda e: (e.community_list.name.lower(), e.sequence)
+    ):
+        if entry.community.community in carried:
+            results.setdefault(entry.community_list, []).append(entry)
+    return [
+        (community_list, [(entry, index == 0) for index, entry in enumerate(matches)])
+        for community_list, matches in results.items()
+    ]

@@ -445,6 +445,20 @@ form), `action` and an optional `sequence`: empty takes the next free one of the
 of one file get consecutive numbers. When an entry repeats a community that is already in its
 list, the import says which entry makes the other unreachable; the entries are saved anyway.
 
+### Search Community Match
+
+**Routing → Community → Search Community Match**
+
+Type the communities a route carries, separated by spaces or commas (`65000:100 no-export
+rt:65000:1 65000:1:2`; any type, and the well-known names work) and the page shows, as you type,
+which community list entries match them, **in which sequence**, and whether the entry permits or
+denies. Within a list the first matching entry wins: it is marked *first match* and the later ones
+*also matches, not reached*. A standard list entry matches when the route carries its community,
+whatever else it carries. A list with no matching entry is not shown (a router denies the route);
+tick *Include the lists with no match* to see them. It answers "would this route get through that
+list?" without logging in to a router, and needs the *view* permission on community list entries.
+The page is a tool of the web interface, like *Search Prefix Match*; it has no API endpoint.
+
 ### Deleting
 
 A **community** that is in a community list or matched by a route policy entry cannot be deleted:

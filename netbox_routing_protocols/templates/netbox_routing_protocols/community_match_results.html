@@ -1,0 +1,56 @@
+{% load i18n %}
+{% if error %}
+  <div class="alert alert-warning">{{ error }}</div>
+{% elif communities %}
+  <div class="card">
+    <h2 class="card-header">
+      {% blocktrans with communities=communities|join:" " %}Community lists matching {{ communities }}{% endblocktrans %}
+    </h2>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>{% trans "Community list" %}</th>
+            <th>{% trans "Sequence" %}</th>
+            <th>{% trans "Action" %}</th>
+            <th>{% trans "Community" %}</th>
+            <th>{% trans "Result" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for result in results %}
+            {% for row in result.rows %}
+              <tr>
+                <td>{% if forloop.first %}<a href="{{ result.community_list.get_absolute_url }}">{{ result.community_list }}</a>{% endif %}</td>
+                <td><a href="{{ row.entry.get_absolute_url }}">{{ row.entry.sequence }}</a></td>
+                <td><span class="badge text-bg-{{ row.entry.get_action_color }}">{{ row.entry.get_action_display }}</span></td>
+                <td>
+                  <a href="{{ row.entry.community.get_absolute_url }}"><code>{{ row.entry.community.community }}</code></a>
+                  {% if row.entry.community.well_known %}<span class="badge text-bg-info">{{ row.entry.community.well_known }}</span>{% endif %}
+                </td>
+                <td>
+                  {% if row.effective %}
+                    <strong>{% blocktrans with action=row.entry.get_action_display %}{{ action }} (first match){% endblocktrans %}</strong>
+                  {% else %}
+                    <span class="text-muted">{% trans "also matches, not reached" %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+          {% for community_list in unmatched %}
+            <tr>
+              <td><a href="{{ community_list.get_absolute_url }}">{{ community_list }}</a></td>
+              <td colspan="4" class="text-muted">{% trans "no entry matches" %}</td>
+            </tr>
+          {% endfor %}
+          {% if not results and not unmatched %}
+            <tr>
+              <td colspan="5" class="text-muted text-center">{% trans "No community list entry matches these communities." %}</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}

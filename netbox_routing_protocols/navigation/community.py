@@ -35,6 +35,13 @@ def build_menus():
         )
         menus.append(menu)
 
+    menus.append(
+        PluginMenuItem(
+            link='plugins:netbox_routing_protocols:community_match',
+            link_text='Search Community Match',
+            permissions=['netbox_routing_protocols.view_communitylistentry'],
+        )
+    )
     return tuple(menus)
 
 
