@@ -80,10 +80,10 @@ class ASPathEntryForm(PrimaryModelForm):
             )
             % {'step': SEQUENCE_STEP},
             'pattern': _(
-                'A POSIX extended regular expression over the AS numbers of the path '
-                '(printable ASCII), for example "^65001 " or "(65002|65003)$". AS numbers '
-                'must be 0 to 4294967295 (asdot such as 1.10 also works). It is stored as '
-                'written; the plugin does not run it.'
+                'A regular expression (Python\'s) over the AS numbers of the path, '
+                'written as text separated by spaces, for example "^65001 " or '
+                '"(65002|65003)$". AS numbers must be 0 to 4294967295. It is stored as '
+                'written and is not tied to any vendor.'
             ),
         }
 

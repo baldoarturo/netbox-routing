@@ -4,14 +4,8 @@ from django.urls import reverse
 
 from users.models import User
 
-from netbox_routing_protocols.helpers.aspath import (
-    parse_as_path,
-    posix_to_python,
-    validate_pattern,
-)
+from netbox_routing_protocols.helpers.aspath import parse_as_path
 from netbox_routing_protocols.models.objects import *
-
-import re
 
 
 def make_entry(aspath, sequence, pattern, action='permit'):
@@ -47,38 +41,6 @@ class ParseASPathTestCase(SimpleTestCase):
                 parse_as_path(text)
 
 
-class PosixToPythonTestCase(SimpleTestCase):
-    """The translation keeps the meaning of what validate_pattern accepts"""
-
-    def matches(self, pattern, text):
-        self.assertEqual(validate_pattern(pattern), [], pattern)
-        return re.search(posix_to_python(pattern), text) is not None
-
-    def test_matches_like_posix(self):
-        for pattern, text, expected in (
-            ('^65001 ', '65001 65002', True),
-            ('^65001 ', '165001 65002', False),
-            ('[[:digit:]]+$', '65001 65002', True),
-            ('^[[:alpha:]]', '65001', False),
-            ('^[0-9]+ [0-9]+$', '65001 65002', True),
-            ('^65001( 65002)*$', '65001 65002 65002', True),
-            ('(65002|65003)$', '65001 65003', True),
-            ('^$', '65001', False),
-            ('^6500[12]$', '65002', True),
-            ('^6500[^12]$', '65002', False),
-            ('65001{2}', '650011', True),
-            ('^65001\\.', '65001.5', True),
-            # a backslash and a closing bracket are ordinary inside brackets
-            ('[\\d]', '65001', False),
-            ('[\\d]', 'a\\d', True),
-            ('[]a]', 'x]', True),
-            ('[^]a]', 'a]', False),
-            ('[a-]', '-', True),
-        ):
-            with self.subTest((pattern, text)):
-                self.assertEqual(self.matches(pattern, text), expected)
-
-
 class ASPathMatchViewTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -86,7 +48,7 @@ class ASPathMatchViewTestCase(TestCase):
         cls.transit = ASPath.objects.create(name='Transit')
         cls.unused = ASPath.objects.create(name='Unused')
         make_entry(cls.customers, 10, '^65001 65002$', 'deny')
-        make_entry(cls.customers, 20, '^65001 ')
+        make_entry(cls.customers, 20, '^65001 \\d+$')
         make_entry(cls.customers, 30, '^65003 ')
         make_entry(cls.transit, 5, '_')
         make_entry(cls.unused, 5, '^1$')
@@ -106,7 +68,7 @@ class ASPathMatchViewTestCase(TestCase):
         response = self.client.get(self.url, {'q': '65001 65002'})
         self.assertContains(response, 'Customers')
         self.assertContains(response, '10 deny ^65001 65002$')
-        self.assertContains(response, '20 permit ^65001 ')
+        self.assertContains(response, '20 permit ^65001 \\d+$')
         self.assertContains(response, 'first match')
         self.assertContains(response, 'also matches, not reached')
         self.assertNotContains(response, '30 permit')

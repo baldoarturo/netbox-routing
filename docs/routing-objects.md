@@ -176,29 +176,25 @@ to match routes (see [Route policies](#route-policies)).
 | Pattern (entry) | The match, see below. |
 
 The **pattern** is a regular expression written over the AS numbers of the path, which are read as
-text separated by spaces (`65001 65002 65003`). The plugin **stores and shows** the pattern, it does
-not run it, and it has no support for any vendor's own dialect: it checks the pattern as a POSIX
-extended regular expression (ERE), nothing more. A pattern is accepted when:
+text separated by single spaces (`65001 65002 65003`). It is a **Python regular expression** (the
+`re` module, which is also what *Search AS Path Match* runs): the plugin stores and shows the
+pattern as you wrote it, does not translate it, and is not tied to any vendor's own dialect. What it
+checks is that the AS-path you enter is valid. A pattern is accepted when:
 
 - it is not empty and has only printable ASCII characters;
-- the groups `( )` are balanced and have something inside, and there are no empty alternatives
-  (`a||b`, `(a|)`);
-- the bracket expressions are valid: `[0-9]`, `[^5]`, `[[:digit:]]` (the POSIX classes `alnum`,
-  `alpha`, `blank`, `cntrl`, `digit`, `graph`, `lower`, `print`, `punct`, `space`, `upper`, `xdigit`),
-  with ranges in order;
-- the repetitions `*`, `+`, `?`, `{m}`, `{m,}` and `{m,n}` (up to 255, `m` not above `n`) follow
-  something to repeat;
-- the anchors `^` and `$` and the dot `.` are used as in POSIX, and a backslash only escapes a
-  special character (`\(`, `\.`). The extensions POSIX lacks are refused: `\d`, `\w`, `(?:...)`,
-  lookaheads and back-references;
+- it compiles as a Python regular expression, with no warning. In particular the POSIX classes
+  such as `[[:digit:]]` are refused, because Python would read them as something else: write
+  `[0-9]` or `\d`;
 - every AS number written in it fits the 32-bit AS_PATH ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)),
-  in plain notation (`0` to `4294967295`) or asdot (`1.10`, each part up to `65535`,
-  [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)). Digits inside brackets and repetitions are
-  not AS numbers.
+  that is `0` to `4294967295`. Digits in escapes, brackets and repetitions (`\1`, `[0-9]`, `{2,3}`)
+  are not AS numbers. The dot is the wildcard of regular expressions, so an asdot number
+  ([RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) is written with an escaped dot (`1\.10`).
 
-The underscore `_` has no special meaning: it is a plain character. Examples that are valid:
-`^65001 `, `(65002|65003)$`, `^[0-9]+$`, `^65001( 65002)*$`, `.*` and `^$` (an empty path, a route
-originated in the local AS).
+The usual constructs work: anchors `^` and `$`, groups and alternatives `(65002|65003)`, classes
+`[0-9]` and `\d`, repetitions `*`, `+`, `?`, `{m,n}`, and the dot. Examples that are valid:
+`^65001 `, `(65002|65003)$`, `^[0-9]+$`, `^65001( 65002)*$`, `^65001 \d+$` and `.*`. The underscore
+`_` has no special meaning (it is a plain character), and neither has the `AS` prefix: patterns are
+written over the bare numbers.
 
 Leave the **sequence** empty and the entry takes the next multiple of 10 above the last one of the
 AS-path (the form suggests it when you add an entry from the AS-path, and the API and the import
@@ -244,7 +240,7 @@ also works, and the usual `AS` prefix is accepted: `AS65001 AS65002` is read as 
 is stored, the patterns stay over the bare numbers), and the page shows, as you type, which AS-path entries match it, **in which sequence**,
 and whether the entry permits or denies it; the first match of each AS-path is the effective one,
 the others are marked as not reached. Tick *Include the AS paths with no match* to list those too.
-The patterns are evaluated as POSIX extended regular expressions over the text of the path (the
+The patterns are evaluated as Python regular expressions over the text of the path (the
 numbers separated by one space), so `^65001 ` matches a path that starts with 65001. The path is the
 flat list of numbers: an empty path, AS_SET and confederation segments
 ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §4.3, [RFC 5065](https://www.rfc-editor.org/rfc/rfc5065))
