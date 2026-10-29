@@ -112,36 +112,30 @@ class ASPathEntryTestCase(TestCase):
     def test_pattern_validation(self):
         for pattern, valid in (
             ('^$', True),
-            ('^65001_', True),
-            ('_(65001|4294967295)$', True),
-            ('^1.10$', True),
+            ('^65001 ', True),
+            ('(65001|4294967295)$', True),
             ('^[0-9]+$', True),
             ('^64512{2,3}$', True),
             ('.*', True),
+            ('^65001( 65002)*$', True),
+            ('^65001 \\d+$', True),
+            ('^(?:65001|65002) ', True),
+            ('^1\\.10$', True),
+            ('^\\(65001\\)$', True),
             ('', False),
             ('   ', False),
-            ('^65001_.*_65002$', True),
-            ('^(65001|65002)+$', True),
-            ('[[:digit:]]+', True),
-            ('^\\(65001\\)$', True),
             ('*65001', False),
-            ('^65001||65002$', False),
-            ('()', False),
-            ('^65001|', False),
-            ('^\\d+$', False),
-            ('^(?:65001)$', False),
-            ('[9-0]', False),
-            ('[[:foo:]]', False),
-            ('^65001{3,2}$', False),
-            ('65001}', False),
-            ('^65001\\', False),
+            ('^65001**', False),
             ('^(65001', False),
             ('65001)', False),
             ('^[65001', False),
-            ('^65001{2', False),
+            ('[9-0]', False),
+            ('^65001{3,2}$', False),
+            ('^65001\\', False),
+            ('[[:digit:]]+', False),
+            ('[[:foo:]]', False),
             ('^4294967296$', False),
-            ('^70000.1$', False),
-            ('^1.70000$', False),
+            ('(65001|99999999999)', False),
             ('^²$', False),
             ('^٣$', False),
             ('^１$', False),
@@ -165,7 +159,8 @@ class ASPathEntryTestCase(TestCase):
         )
 
         form = ASPathEntryForm()
-        self.assertIn('POSIX extended', form.fields['pattern'].help_text)
+        self.assertIn('regular expression', form.fields['pattern'].help_text)
+        self.assertNotIn('POSIX', form.fields['pattern'].help_text)
         self.assertNotIn('Cisco', form.fields['pattern'].help_text)
 
     def test_name_is_unique_ignoring_case(self):

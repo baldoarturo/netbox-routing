@@ -65,7 +65,7 @@ class ASPath(PrimaryModel):
 
 class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
     """
-    One rule of an AS-path: a permit or deny on a POSIX extended regular expression, in a
+    One rule of an AS-path: a permit or deny on a regular expression (Python's), in a
     sequence from 1 to 4294967294. The pattern is validated, not evaluated; see
     helpers/aspath.validate_pattern.
     """
