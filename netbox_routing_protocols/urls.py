@@ -250,19 +250,22 @@ urlpatterns = [
         'objects/prefix-list-entry/<int:pk>/',
         include(get_model_urls(app_name, 'prefixlistentry')),
     ),
-    # Objects: Route Map
+    # Objects: Route Policy
     path(
-        'objects/route-map/',
-        include(get_model_urls(app_name, 'routemap', detail=False)),
-    ),
-    path('objects/route-map/<int:pk>/', include(get_model_urls(app_name, 'routemap'))),
-    path(
-        'objects/route-map-entry/',
-        include(get_model_urls(app_name, 'routemapentry', detail=False)),
+        'objects/route-policy/',
+        include(get_model_urls(app_name, 'routepolicy', detail=False)),
     ),
     path(
-        'objects/route-map-entry/<int:pk>/',
-        include(get_model_urls(app_name, 'routemapentry')),
+        'objects/route-policy/<int:pk>/',
+        include(get_model_urls(app_name, 'routepolicy')),
+    ),
+    path(
+        'objects/route-policy-entry/',
+        include(get_model_urls(app_name, 'routepolicyentry', detail=False)),
+    ),
+    path(
+        'objects/route-policy-entry/<int:pk>/',
+        include(get_model_urls(app_name, 'routepolicyentry')),
     ),
     # Objects: AS Path
     path(

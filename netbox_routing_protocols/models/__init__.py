@@ -76,9 +76,9 @@ __all__ = (
     # Objects -> Prefix Lists
     'PrefixList',
     'PrefixListEntry',
-    # Objects -> Route Maps
-    'RouteMap',
-    'RouteMapEntry',
+    # Objects -> Route Policies
+    'RoutePolicy',
+    'RoutePolicyEntry',
     # Static Routing
     'StaticRoute',
 )

@@ -6,7 +6,7 @@ Everything lives under **Routing** in the NetBox navigation menu, grouped like t
 
 | Group | Entries |
 | --- | --- |
-| **Routing Objects** | Community List, Community, Community List Entry, Prefix Lists, Prefix List Entries, **Search Prefix Match**, Route Maps, Route Map Entries, AS Path, AS Path Entries |
+| **Routing Objects** | Community List, Community, Community List Entry, Prefix Lists, Prefix List Entries, **Search Prefix Match**, Route Policies, Route Policy Entries, AS Path, AS Path Entries |
 | **BFD** | BFD Profile |
 | **Static** | Static Routes |
 | **BGP** | Settings, Peer Templates, Policy Templates, Session Templates, Routers, Scopes, Address Families, Peers, Peer Address Families |

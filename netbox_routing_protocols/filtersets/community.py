@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from netbox.filtersets import PrimaryModelFilterSet
-from netbox_routing_protocols.models import RouteMapEntry
+from netbox_routing_protocols.models import RoutePolicyEntry
 from tenancy.filtersets import TenancyFilterSet
 from ipam.models import Role
 
@@ -31,10 +31,10 @@ class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
         to_field_name='name',
         label=_('Role (Name)'),
     )
-    route_map_entry_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='route_map_entries',
-        queryset=RouteMapEntry.objects.all(),
-        label=_('Route Map Entry (ID)'),
+    route_policy_entry_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy_entries',
+        queryset=RoutePolicyEntry.objects.all(),
+        label=_('Route Policy Entry (ID)'),
     )
 
     class Meta:
@@ -64,10 +64,10 @@ class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
 
 @register_filterset
 class CommunityListFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
-    route_map_entry_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='route_map_entries',
-        queryset=RouteMapEntry.objects.all(),
-        label=_('Route Map Entry (ID)'),
+    route_policy_entry_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy_entries',
+        queryset=RoutePolicyEntry.objects.all(),
+        label=_('Route Policy Entry (ID)'),
     )
 
     class Meta:

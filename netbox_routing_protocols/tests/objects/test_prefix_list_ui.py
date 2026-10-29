@@ -217,9 +217,9 @@ class PrefixListViewsTestCase(SuperuserMixin, TestCase):
         self.login()
         prefix_list = PrefixList.objects.create(name='List', family=4)
         make_entry(prefix_list, 10, '10.0.0.0/8')
-        route_map = RouteMap.objects.create(name='Map')
-        entry = RouteMapEntry.objects.create(
-            route_map=route_map, sequence=10, action='permit'
+        route_policy = RoutePolicy.objects.create(name='Map')
+        entry = RoutePolicyEntry.objects.create(
+            route_policy=route_policy, sequence=10, action='permit'
         )
         entry.match_prefix_list.add(prefix_list)
         BGPPolicyTemplate.objects.create(name='Template', prefixlist_in=prefix_list)
@@ -227,7 +227,7 @@ class PrefixListViewsTestCase(SuperuserMixin, TestCase):
         self.assertContains(response, f'prefixlist_in_id={prefix_list.pk}')
         pk = prefix_list.pk
         for link in (
-            f'/plugins/routing/objects/route-map-entry/?match_prefix_list_id={pk}',
+            f'/plugins/routing/objects/route-policy-entry/?match_prefix_list_id={pk}',
             f'/plugins/routing/bgp/policy-template/?prefixlist_in_id={pk}',
             f'/plugins/routing/objects/prefix-list-entry/?prefix_list_id={pk}',
         ):
@@ -373,15 +373,15 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
         cls.template = BGPPolicyTemplate.objects.create(
             name='Template', prefixlist_in=cls.used
         )
-        route_map = RouteMap.objects.create(name='Map')
-        cls.route_map_entry = RouteMapEntry.objects.create(
-            route_map=route_map, sequence=10, action='permit'
+        route_policy = RoutePolicy.objects.create(name='Map')
+        cls.route_policy_entry = RoutePolicyEntry.objects.create(
+            route_policy=route_policy, sequence=10, action='permit'
         )
-        cls.route_map_entry.match_prefix_list.add(cls.used)
+        cls.route_policy_entry.match_prefix_list.add(cls.used)
 
     def test_references_of_any_model_are_found(self):
         models = {model for model, objects in prefix_list_references(self.used)}
-        self.assertEqual(models, {BGPPolicyTemplate, RouteMapEntry})
+        self.assertEqual(models, {BGPPolicyTemplate, RoutePolicyEntry})
         self.assertEqual(prefix_list_references(self.free), [])
 
     def test_the_delete_dialog_names_what_refers_to_the_list(self):
@@ -392,7 +392,9 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
                 response = self.client.get(url, **headers)
                 self.assertContains(response, 'This prefix list is in use')
                 self.assertContains(response, self.template.get_absolute_url())
-                self.assertContains(response, self.route_map_entry.get_absolute_url())
+                self.assertContains(
+                    response, self.route_policy_entry.get_absolute_url()
+                )
 
     def test_a_free_list_has_no_warning(self):
         self.login()
@@ -409,7 +411,7 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
         self.assertFalse(PrefixList.objects.filter(pk=self.used.pk).exists())
         self.template.refresh_from_db()
         self.assertIsNone(self.template.prefixlist_in)
-        self.assertFalse(RouteMapEntry.objects.get().match_prefix_list.exists())
+        self.assertFalse(RoutePolicyEntry.objects.get().match_prefix_list.exists())
 
     def test_the_bulk_delete_confirmation_warns(self):
         self.login()

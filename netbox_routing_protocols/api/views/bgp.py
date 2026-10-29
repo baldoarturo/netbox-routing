@@ -67,7 +67,7 @@ class BGPPeerTemplateViewSet(NetBoxModelViewSet):
 
 class BGPPolicyTemplateViewSet(NetBoxModelViewSet):
     queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routemap_out', 'routemap_in', 'tenant'
+        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
     )
     serializer_class = BGPPolicyTemplateSerializer
     filterset_class = filtersets.BGPPolicyTemplateFilterSet
@@ -87,8 +87,8 @@ class BGPPeerAddressFamilyViewSet(NetBoxModelViewSet):
         'peer_policy',
         'prefixlist_out',
         'prefixlist_in',
-        'routemap_out',
-        'routemap_in',
+        'routepolicy_out',
+        'routepolicy_in',
         'tenant',
     )
     serializer_class = BGPPeerAddressFamilySerializer

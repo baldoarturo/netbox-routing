@@ -24,8 +24,8 @@ from .objects.types import (
     ASPathEntryType,
     PrefixListType,
     PrefixListEntryType,
-    RouteMapType,
-    RouteMapEntryType,
+    RoutePolicyType,
+    RoutePolicyEntryType,
 )
 from .isis.types import (
     ISISInstanceType,
@@ -180,15 +180,15 @@ class PrefixListEntryQuery:
 
 
 @strawberry.type(name="Query")
-class RouteMapQuery:
-    route_map: RouteMapType = strawberry_django.field()
-    route_map_list: list[RouteMapType] = strawberry_django.field()
+class RoutePolicyQuery:
+    route_policy: RoutePolicyType = strawberry_django.field()
+    route_policy_list: list[RoutePolicyType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
-class RouteMapEntryQuery:
-    route_map_entry: RouteMapEntryType = strawberry_django.field()
-    route_map_entry_list: list[RouteMapEntryType] = strawberry_django.field()
+class RoutePolicyEntryQuery:
+    route_policy_entry: RoutePolicyEntryType = strawberry_django.field()
+    route_policy_entry_list: list[RoutePolicyEntryType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
@@ -259,8 +259,8 @@ schema = [
     ASPathEntryQuery,
     PrefixListQuery,
     PrefixListEntryQuery,
-    RouteMapQuery,
-    RouteMapEntryQuery,
+    RoutePolicyQuery,
+    RoutePolicyEntryQuery,
     BGPPeerTemplateQuery,
     BGPPolicyTemplateQuery,
     BGPSessionTemplateQuery,

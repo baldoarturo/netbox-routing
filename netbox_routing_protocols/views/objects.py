@@ -116,7 +116,7 @@ class PrefixListView(GetRelatedModelsMixin, ObjectView):
     )
 
     def get_extra_context(self, request, instance):
-        # Where the list is used: its entries, the route map entries that match it and
+        # Where the list is used: its entries, the route policy entries that match it and
         # the BGP policy templates and peer address families that filter with it
         return {
             'related_models': self.get_related_models(
@@ -125,7 +125,7 @@ class PrefixListView(GetRelatedModelsMixin, ObjectView):
                 # a many to many relation is not detected by NetBox
                 extra=(
                     (
-                        RouteMapEntry.objects.restrict(request.user, 'view').filter(
+                        RoutePolicyEntry.objects.restrict(request.user, 'view').filter(
                             match_prefix_list=instance
                         ),
                         'match_prefix_list_id',
@@ -569,23 +569,23 @@ class PrefixMatchView(ContentTypePermissionRequiredMixin, View):
 
 
 #
-# Route Map
+# Route Policy
 #
-@register_model_view(RouteMap, name='list', path='', detail=False)
-class RouteMapListView(ObjectListView):
-    queryset = RouteMap.objects.all()
-    table = RouteMapTable
-    filterset = RouteMapFilterSet
-    filterset_form = RouteMapFilterForm
+@register_model_view(RoutePolicy, name='list', path='', detail=False)
+class RoutePolicyListView(ObjectListView):
+    queryset = RoutePolicy.objects.all()
+    table = RoutePolicyTable
+    filterset = RoutePolicyFilterSet
+    filterset_form = RoutePolicyFilterForm
 
 
-@register_model_view(RouteMap)
-class RouteMapView(ObjectView):
-    queryset = RouteMap.objects.all()
+@register_model_view(RoutePolicy)
+class RoutePolicyView(ObjectView):
+    queryset = RoutePolicy.objects.all()
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
-            RouteMapPanel(),
+            RoutePolicyPanel(),
             TagsPanel(),
         ],
         right_panels=[
@@ -595,81 +595,81 @@ class RouteMapView(ObjectView):
     )
 
 
-@register_model_view(RouteMap, name='entries')
-class RouteMapEntriesView(ObjectChildrenView):
-    queryset = RouteMap.objects.all()
-    child_model = RouteMapEntry
-    table = RouteMapEntryTable
-    filterset = RouteMapEntryFilterSet
+@register_model_view(RoutePolicy, name='entries')
+class RoutePolicyEntriesView(ObjectChildrenView):
+    queryset = RoutePolicy.objects.all()
+    child_model = RoutePolicyEntry
+    table = RoutePolicyEntryTable
+    filterset = RoutePolicyEntryFilterSet
     tab = ViewTab(
         label='Entries',
-        badge=lambda obj: RouteMapEntry.objects.filter(route_map=obj).count(),
+        badge=lambda obj: RoutePolicyEntry.objects.filter(route_policy=obj).count(),
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(route_map=parent)
+        return self.child_model.objects.filter(route_policy=parent)
 
     def get_extra_context(self, request, instance):
         return {
-            'url_parent': 'plugins:netbox_routing_protocols:routemap_entries',
-            'url_add': 'plugins:netbox_routing_protocols:routemapentry_add',
-            'url_bulk_edit': 'plugins:netbox_routing_protocols:routemapentry_bulk_edit',
-            'url_bulk_delete': 'plugins:netbox_routing_protocols:routemapentry_bulk_delete',
-            'parent_name': 'route_map',
-            'parent_view': 'routemap',
+            'url_parent': 'plugins:netbox_routing_protocols:routepolicy_entries',
+            'url_add': 'plugins:netbox_routing_protocols:routepolicyentry_add',
+            'url_bulk_edit': 'plugins:netbox_routing_protocols:routepolicyentry_bulk_edit',
+            'url_bulk_delete': 'plugins:netbox_routing_protocols:routepolicyentry_bulk_delete',
+            'parent_name': 'route_policy',
+            'parent_view': 'routepolicy',
             'parent_view_path': 'entries',
-            'view': 'routemapentry',
+            'view': 'routepolicyentry',
         }
 
 
-@register_model_view(RouteMap, name='add', detail=False)
-@register_model_view(RouteMap, name='edit')
-class RouteMapEditView(ObjectEditView):
-    queryset = RouteMap.objects.all()
-    form = RouteMapForm
+@register_model_view(RoutePolicy, name='add', detail=False)
+@register_model_view(RoutePolicy, name='edit')
+class RoutePolicyEditView(ObjectEditView):
+    queryset = RoutePolicy.objects.all()
+    form = RoutePolicyForm
 
 
-@register_model_view(RouteMap, name='delete')
-class RouteMapDeleteView(ObjectDeleteView):
-    queryset = RouteMap.objects.all()
+@register_model_view(RoutePolicy, name='delete')
+class RoutePolicyDeleteView(ObjectDeleteView):
+    queryset = RoutePolicy.objects.all()
 
 
-@register_model_view(RouteMap, name='bulk_edit', detail=False)
-class RouteMapBulkEditView(BulkEditView):
-    queryset = RouteMap.objects.all()
-    filterset = RouteMapFilterSet
-    form = RouteMapBulkEditForm
-    table = RouteMapTable
+@register_model_view(RoutePolicy, name='bulk_edit', detail=False)
+class RoutePolicyBulkEditView(BulkEditView):
+    queryset = RoutePolicy.objects.all()
+    filterset = RoutePolicyFilterSet
+    form = RoutePolicyBulkEditForm
+    table = RoutePolicyTable
 
 
-@register_model_view(RouteMap, name='bulk_delete', detail=False)
-class RouteMapBulkDeleteView(BulkDeleteView):
-    queryset = RouteMap.objects.all()
-    filterset = RouteMapFilterSet
-    table = RouteMapTable
+@register_model_view(RoutePolicy, name='bulk_delete', detail=False)
+class RoutePolicyBulkDeleteView(BulkDeleteView):
+    queryset = RoutePolicy.objects.all()
+    filterset = RoutePolicyFilterSet
+    table = RoutePolicyTable
 
 
 #
-# Route Map Entry
+# Route Policy Entry
 #
-@register_model_view(RouteMapEntry, name='list', path='', detail=False)
-class RouteMapEntryListView(ObjectListView):
-    queryset = RouteMapEntry.objects.select_related('route_map')
-    table = RouteMapEntryTable
-    filterset = RouteMapEntryFilterSet
-    filterset_form = RouteMapEntryFilterForm
+@register_model_view(RoutePolicyEntry, name='list', path='', detail=False)
+class RoutePolicyEntryListView(ObjectListView):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    table = RoutePolicyEntryTable
+    filterset = RoutePolicyEntryFilterSet
+    filterset_form = RoutePolicyEntryFilterForm
 
 
-@register_model_view(RouteMapEntry)
-class RouteMapEntryView(GetRelatedModelsMixin, ObjectView):
-    queryset = RouteMapEntry.objects.select_related('route_map')
+@register_model_view(RoutePolicyEntry)
+class RoutePolicyEntryView(GetRelatedModelsMixin, ObjectView):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
-            RouteMapEntryPanel(title=_('Route Map Entry')),
-            RouteMapEntryMatchPanel(title=_('Match Actions')),
+            RoutePolicyEntryPanel(title=_('Route Policy Entry')),
+            RoutePolicyEntryMatchPanel(title=_('Match Actions')),
             panels.JSONPanel('match', title=_('Match Parameters'), copy_button=True),
-            RouteMapEntrySetPanel(title=_('Set Actions')),
+            RoutePolicyEntrySetPanel(title=_('Set Actions')),
             panels.JSONPanel('set', title=_('Set Parameters'), copy_button=True),
             TagsPanel(),
         ],
@@ -684,62 +684,62 @@ class RouteMapEntryView(GetRelatedModelsMixin, ObjectView):
             'related_models': self.get_related_models(
                 request,
                 instance,
-                omit='route_map',
+                omit='route_policy',
                 extra=(
                     (
                         PrefixList.objects.restrict(request.user, 'view').filter(
-                            route_map_entries=instance
+                            route_policy_entries=instance
                         ),
-                        'route_map_entry_id',
+                        'route_policy_entry_id',
                     ),
                     (
                         CommunityList.objects.restrict(request.user, 'view').filter(
-                            route_map_entries=instance
+                            route_policy_entries=instance
                         ),
-                        'route_map_entry_id',
+                        'route_policy_entry_id',
                     ),
                     (
                         Community.objects.restrict(request.user, 'view').filter(
-                            route_map_entries=instance
+                            route_policy_entries=instance
                         ),
-                        'route_map_entry_id',
+                        'route_policy_entry_id',
                     ),
                     (
                         ASPath.objects.restrict(request.user, 'view').filter(
-                            route_map_entries=instance
+                            route_policy_entries=instance
                         ),
-                        'route_map_entry_id',
+                        'route_policy_entry_id',
                     ),
                 ),
             ),
         }
 
 
-@register_model_view(RouteMapEntry, name='add', detail=False)
-@register_model_view(RouteMapEntry, name='edit')
-class RouteMapEntryEditView(ObjectEditView):
-    queryset = RouteMapEntry.objects.select_related('route_map')
-    form = RouteMapEntryForm
+@register_model_view(RoutePolicyEntry, name='add', detail=False)
+@register_model_view(RoutePolicyEntry, name='edit')
+class RoutePolicyEntryEditView(ObjectEditView):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    form = RoutePolicyEntryForm
 
 
-@register_model_view(RouteMapEntry, name='delete')
-class RouteMapEntryDeleteView(ObjectDeleteView):
-    queryset = RouteMapEntry.objects.select_related('route_map')
+@register_model_view(RoutePolicyEntry, name='delete')
+class RoutePolicyEntryDeleteView(ObjectDeleteView):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
 
 
-@register_model_view(RouteMapEntry, name='bulk_edit', detail=False)
-class RouteMapEntryBulkEditView(BulkEditView):
-    queryset = RouteMapEntry.objects.select_related('route_map')
-    filterset = RouteMapEntryFilterSet
-    table = RouteMapEntryTable
-    form = RouteMapEntryBulkEditForm
+@register_model_view(RoutePolicyEntry, name='bulk_edit', detail=False)
+class RoutePolicyEntryBulkEditView(BulkEditView):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    filterset = RoutePolicyEntryFilterSet
+    table = RoutePolicyEntryTable
+    form = RoutePolicyEntryBulkEditForm
 
 
-@register_model_view(RouteMapEntry, name='bulk_delete', detail=False)
-class RouteMapEntryBulkDeleteView(BulkDeleteView):
-    queryset = RouteMapEntry.objects.select_related('route_map')
-    filterset = RouteMapEntryFilterSet
-    table = RouteMapEntryTable
+@register_model_view(RoutePolicyEntry, name='bulk_delete', detail=False)
+class RoutePolicyEntryBulkDeleteView(BulkDeleteView):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    filterset = RoutePolicyEntryFilterSet
+    table = RoutePolicyEntryTable
 
 
 #
@@ -826,7 +826,7 @@ class ASPathEntriesView(ObjectChildrenView):
 
 
 #
-# Route Map Entry
+# Route Policy Entry
 #
 @register_model_view(ASPathEntry, name='list', path='', detail=False)
 class ASPathEntryListView(ObjectListView):

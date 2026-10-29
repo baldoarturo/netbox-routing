@@ -8,10 +8,10 @@ __all__ = (
     'PrefixListPanel',
     'PrefixListEntryPanel',
     'OverlapsPanel',
-    'RouteMapPanel',
-    'RouteMapEntryPanel',
-    'RouteMapEntryMatchPanel',
-    'RouteMapEntrySetPanel',
+    'RoutePolicyPanel',
+    'RoutePolicyEntryPanel',
+    'RoutePolicyEntryMatchPanel',
+    'RoutePolicyEntrySetPanel',
 )
 
 
@@ -47,20 +47,22 @@ class PrefixListEntryPanel(panels.ObjectAttributesPanel):
     description = attrs.TextAttr('description', label=_('Description'))
 
 
-class RouteMapPanel(panels.ObjectAttributesPanel):
+class RoutePolicyPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
-class RouteMapEntryPanel(panels.ObjectAttributesPanel):
-    route_map = attrs.RelatedObjectAttr('route_map', linkify=True, label=_('Route Map'))
+class RoutePolicyEntryPanel(panels.ObjectAttributesPanel):
+    route_policy = attrs.RelatedObjectAttr(
+        'route_policy', linkify=True, label=_('Route Policy')
+    )
     sequence = attrs.NumericAttr('sequence', label=_('Sequence'))
     action = attrs.ChoiceAttr('action', label=_('Action'))
     flow_control = attrs.NumericAttr('flow_control', label=_('Flow Control'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
-class RouteMapEntryMatchPanel(panels.ObjectAttributesPanel):
+class RoutePolicyEntryMatchPanel(panels.ObjectAttributesPanel):
     match_prefix_list = attrs.RelatedObjectListAttr(
         'match_prefix_list', linkify=True, label=_('Prefix List')
     )
@@ -75,7 +77,7 @@ class RouteMapEntryMatchPanel(panels.ObjectAttributesPanel):
     )
 
 
-class RouteMapEntrySetPanel(panels.ObjectAttributesPanel):
+class RoutePolicyEntrySetPanel(panels.ObjectAttributesPanel):
     pass
 
 

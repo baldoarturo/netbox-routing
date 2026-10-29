@@ -307,17 +307,17 @@ class BGPPolicyTemplateForm(TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Prefix List (in)'),
     )
-    routemap_out = DynamicModelChoiceField(
-        queryset=RouteMap.objects.all(),
+    routepolicy_out = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Route Map (out)'),
+        label=_('Route Policy (out)'),
     )
-    routemap_in = DynamicModelChoiceField(
-        queryset=RouteMap.objects.all(),
+    routepolicy_in = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Route Map (in)'),
+        label=_('Route Policy (in)'),
     )
 
     fieldsets = (
@@ -330,8 +330,8 @@ class BGPPolicyTemplateForm(TenancyForm, PrimaryModelForm):
         FieldSet(
             'prefixlist_out',
             'prefixlist_in',
-            'routemap_out',
-            'routemap_in',
+            'routepolicy_out',
+            'routepolicy_in',
             name=_('Setings'),
         ),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
@@ -344,8 +344,8 @@ class BGPPolicyTemplateForm(TenancyForm, PrimaryModelForm):
             'parents',
             'prefixlist_out',
             'prefixlist_in',
-            'routemap_out',
-            'routemap_in',
+            'routepolicy_out',
+            'routepolicy_in',
             'tenant_group',
             'tenant',
             'description',
@@ -794,17 +794,17 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Prefix List (out)'),
     )
-    route_map_in = DynamicModelChoiceField(
-        queryset=RouteMap.objects.all(),
+    route_policy_in = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Route Map (in)'),
+        label=_('Route Policy (in)'),
     )
-    route_map_out = DynamicModelChoiceField(
-        queryset=RouteMap.objects.all(),
+    route_policy_out = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Route Map (out)'),
+        label=_('Route Policy (out)'),
     )
 
     fieldsets = (
@@ -817,8 +817,8 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         ),
         FieldSet('address_family', 'enabled', 'description'),
         FieldSet(
-            'route_map_in',
-            'route_map_out',
+            'route_policy_in',
+            'route_policy_out',
             'prefix_list_in',
             'prefix_list_out',
             name=_('Filtering'),
@@ -833,8 +833,8 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'peer_group',
             'address_family',
             'enabled',
-            'route_map_in',
-            'route_map_out',
+            'route_policy_in',
+            'route_policy_out',
             'prefix_list_in',
             'prefix_list_out',
             'tenant_group',

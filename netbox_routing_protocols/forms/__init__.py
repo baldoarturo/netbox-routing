@@ -4,8 +4,8 @@ from .bulk_import import *
 from .objects import (
     PrefixListForm,
     PrefixListEntryForm,
-    RouteMapForm,
-    RouteMapEntryForm,
+    RoutePolicyForm,
+    RoutePolicyEntryForm,
 )
 from netbox_routing_protocols.forms.model_objects.ospf import *
 from netbox_routing_protocols.forms.model_objects.isis import *
@@ -115,10 +115,10 @@ __all__ = (
     # Objects
     'PrefixListForm',
     'PrefixListEntryForm',
-    'RouteMapForm',
-    'RouteMapEntryForm',
+    'RoutePolicyForm',
+    'RoutePolicyEntryForm',
     'PrefixListFilterForm',
     'PrefixListEntryFilterForm',
-    'RouteMapFilterForm',
-    'RouteMapEntryFilterForm',
+    'RoutePolicyFilterForm',
+    'RoutePolicyEntryFilterForm',
 )

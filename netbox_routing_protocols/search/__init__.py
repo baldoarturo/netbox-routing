@@ -72,7 +72,7 @@ __all__ = (
     'OSPFPrefixSIDIndex',
     'PrefixListIndex',
     'PrefixListEntryIndex',
-    'RouteMapIndex',
-    'RouteMapEntryIndex',
+    'RoutePolicyIndex',
+    'RoutePolicyEntryIndex',
     'StaticRouteIndex',
 )

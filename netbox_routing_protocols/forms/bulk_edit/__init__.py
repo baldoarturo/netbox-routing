@@ -30,7 +30,7 @@ __all__ = (
     'EIGRPInterfaceBulkEditForm',
     # Route Objects
     'PrefixListEntryBulkEditForm',
-    'RouteMapEntryBulkEditForm',
+    'RoutePolicyEntryBulkEditForm',
     'ASPathBulkEditForm',
     'ASPathEntryBulkEditForm',
     # BFD

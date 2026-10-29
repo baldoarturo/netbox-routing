@@ -10,8 +10,8 @@ from netbox_routing_protocols import models
 __all__ = (
     'ASPathFilter',
     'ASPathEntryFilter',
-    'RouteMapFilter',
-    'RouteMapEntryFilter',
+    'RoutePolicyFilter',
+    'RoutePolicyEntryFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
 )
@@ -51,18 +51,18 @@ class PrefixListEntryFilter(PrimaryModelFilter):
     prefix_list_id: ID | None = strawberry_django.filter_field()
 
 
-@strawberry_django.filter(models.RouteMap, lookups=True)
-class RouteMapFilter(PrimaryModelFilter):
+@strawberry_django.filter(models.RoutePolicy, lookups=True)
+class RoutePolicyFilter(PrimaryModelFilter):
     pass
 
 
-@strawberry_django.filter(models.RouteMapEntry, lookups=True)
-class RouteMapEntryFilter(PrimaryModelFilter):
-    route_map: (
+@strawberry_django.filter(models.RoutePolicyEntry, lookups=True)
+class RoutePolicyEntryFilter(PrimaryModelFilter):
+    route_policy: (
         Annotated[
-            'RouteMapFilter',
+            'RoutePolicyFilter',
             strawberry.lazy('netbox_routing_protocols.graphql.filters'),
         ]
         | None
     ) = strawberry_django.filter_field()
-    route_map_id: ID | None = strawberry_django.filter_field()
+    route_policy_id: ID | None = strawberry_django.filter_field()

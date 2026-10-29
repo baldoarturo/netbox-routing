@@ -18,7 +18,10 @@ from netbox_routing_protocols.graphql.bgp.filters import (
     BGPPeerAddressFamilyFilter,
     BFDProfileFilter,
 )
-from netbox_routing_protocols.graphql.objects.types import PrefixListType, RouteMapType
+from netbox_routing_protocols.graphql.objects.types import (
+    PrefixListType,
+    RoutePolicyType,
+)
 
 __all__ = (
     'BGPPeerTemplateType',
@@ -117,15 +120,15 @@ class BGPPolicyTemplateType(PrimaryObjectType):
         ]
         | None
     )
-    routemap_in: (
+    routepolicy_in: (
         Annotated[
-            "RouteMapType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
         | None
     )
-    routemap_out: (
+    routepolicy_out: (
         Annotated[
-            "RouteMapType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
         | None
     )
@@ -347,15 +350,15 @@ class BGPPeerAddressFamilyType(BGPSettingsMixin, PrimaryObjectType):
         ]
         | None
     )
-    routemap_in: (
+    routepolicy_in: (
         Annotated[
-            'RouteMapType', strawberry.lazy('netbox_routing_protocols.graphql.types')
+            'RoutePolicyType', strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
         | None
     )
-    routemap_out: (
+    routepolicy_out: (
         Annotated[
-            'RouteMapType', strawberry.lazy('netbox_routing_protocols.graphql.types')
+            'RoutePolicyType', strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
         | None
     )

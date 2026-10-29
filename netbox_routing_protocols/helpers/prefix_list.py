@@ -233,7 +233,7 @@ def evaluate_prefix(prefix, entries):
 
 def prefix_list_references(prefix_list):
     """
-    The objects that refer to the prefix list, of any model (BGP, route maps, and whatever
+    The objects that refer to the prefix list, of any model (BGP, route policies, and whatever
     protocol points to a prefix list later): a list of (model, queryset). Found from the
     reverse relations, so a new model is listed without touching this. The entries of the list
     are not references: they go with it.

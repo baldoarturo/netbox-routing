@@ -13,8 +13,8 @@ from netbox_routing_protocols.models.objects import *
 __all__ = (
     'PrefixListBulkEditForm',
     'PrefixListEntryBulkEditForm',
-    'RouteMapBulkEditForm',
-    'RouteMapEntryBulkEditForm',
+    'RoutePolicyBulkEditForm',
+    'RoutePolicyEntryBulkEditForm',
     'ASPathBulkEditForm',
     'ASPathEntryBulkEditForm',
 )
@@ -58,8 +58,8 @@ class PrefixListEntryBulkEditForm(PrimaryModelBulkEditForm):
     nullable_fields = ('description', 'ge', 'le')
 
 
-class RouteMapBulkEditForm(PrimaryModelBulkEditForm):
-    model = RouteMap
+class RoutePolicyBulkEditForm(PrimaryModelBulkEditForm):
+    model = RoutePolicy
     fieldsets = (
         FieldSet(
             'description',
@@ -68,18 +68,18 @@ class RouteMapBulkEditForm(PrimaryModelBulkEditForm):
     nullable_fields = ('description',)
 
 
-class RouteMapEntryBulkEditForm(PrimaryModelBulkEditForm):
-    route_map = DynamicModelChoiceField(
-        queryset=RouteMap.objects.all(),
-        label=_('Route Map'),
+class RoutePolicyEntryBulkEditForm(PrimaryModelBulkEditForm):
+    route_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        label=_('Route Policy'),
         required=False,
         selector=True,
     )
 
-    model = RouteMapEntry
+    model = RoutePolicyEntry
     fieldsets = (
         FieldSet(
-            'route_map',
+            'route_policy',
             'description',
         ),
     )

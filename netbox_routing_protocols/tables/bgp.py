@@ -75,8 +75,8 @@ class BGPPolicyTemplateTable(TenancyColumnsMixin, NetBoxTable):
             'enabled',
             'prefixlist_out',
             'prefixlist_in',
-            'routemap_out',
-            'routemap_in',
+            'routepolicy_out',
+            'routepolicy_in',
             'tenant',
         )
         default_columns = ('pk', 'id', 'name')
@@ -228,13 +228,13 @@ class BGPPeerAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):
         linkify=True,
         verbose_name=_('Prefix List (out)'),
     )
-    routemap_in = tables.Column(
+    routepolicy_in = tables.Column(
         linkify=True,
-        verbose_name=_('Route Map (in)'),
+        verbose_name=_('Route Policy (in)'),
     )
-    routemap_out = tables.Column(
+    routepolicy_out = tables.Column(
         linkify=True,
-        verbose_name=_('Route Map (out)'),
+        verbose_name=_('Route Policy (out)'),
     )
 
     class Meta(NetBoxTable.Meta):
@@ -249,8 +249,8 @@ class BGPPeerAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):
             'enabled',
             'prefixlist_in',
             'prefixlist_out',
-            'routemap_in',
-            'routemap_out',
+            'routepolicy_in',
+            'routepolicy_out',
         )
         default_columns = (
             'pk',

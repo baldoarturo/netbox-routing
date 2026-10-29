@@ -16,8 +16,8 @@ __all__ = (
     'ASPathEntryTestCase',
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
-    'RouteMapTestCase',
-    'RouteMapEntryTestCase',
+    'RoutePolicyTestCase',
+    'RoutePolicyEntryTestCase',
 )
 
 
@@ -494,31 +494,31 @@ class PrefixListEntryTestCase(TestCase):
         self.prefix_list.full_clean()
 
 
-class RouteMapTestCase(TestCase):
+class RoutePolicyTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
         pass
 
     def test_community(self):
-        name = 'Route Map 1'
-        rm = RouteMap(
+        name = 'Route Policy 1'
+        rm = RoutePolicy(
             name=name,
         )
         rm.full_clean()
         rm.save()
-        self.assertIsInstance(rm, RouteMap)
+        self.assertIsInstance(rm, RoutePolicy)
         self.assertEqual(str(rm), name)
 
     def test_unique_together(self):
-        name = 'Route Map 1'
-        rm = RouteMap(
+        name = 'Route Policy 1'
+        rm = RoutePolicy(
             name=name,
         )
         rm.full_clean()
         rm.save()
 
-        rm = RouteMap(
+        rm = RoutePolicy(
             name=name,
         )
 
@@ -528,33 +528,33 @@ class RouteMapTestCase(TestCase):
             rm.save()
 
 
-class RouteMapEntryTestCase(TestCase):
+class RoutePolicyEntryTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.route_map = RouteMap(
-            name='Route Map',
+        cls.route_policy = RoutePolicy(
+            name='Route Policy',
         )
-        cls.route_map.full_clean()
-        cls.route_map.save()
+        cls.route_policy.full_clean()
+        cls.route_policy.save()
 
-    def test_route_map_entry(self):
+    def test_route_policy_entry(self):
         for seq, pattern in (
             (1, '10.0.1.0/24'),
             (2, '10.0.2.0/24'),
             (3, '10.0.3.0/24'),
             (4, '10.0.4.0/24'),
         ):
-            rme = RouteMapEntry(
-                route_map=self.route_map,
+            rme = RoutePolicyEntry(
+                route_policy=self.route_policy,
                 action='permit',
                 sequence=seq,
                 match={'tags': f'{seq}{seq}{seq}{seq}'},
             )
             rme.full_clean()
             rme.save()
-            self.assertIsInstance(rme, RouteMapEntry)
-            self.assertEqual(str(rme), f'{self.route_map} permit {seq}')
+            self.assertIsInstance(rme, RoutePolicyEntry)
+            self.assertEqual(str(rme), f'{self.route_policy} permit {seq}')
 
 
 class PrefixSignalTestCase(TestCase):

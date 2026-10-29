@@ -43,29 +43,29 @@ prefixlist_entry = PluginMenuItem(
         ),
     ),
 )
-routemap = PluginMenuItem(
-    link='plugins:netbox_routing_protocols:routemap_list',
-    link_text='Route Maps',
-    permissions=['netbox_routing_protocols.view_routemap'],
+routepolicy = PluginMenuItem(
+    link='plugins:netbox_routing_protocols:routepolicy_list',
+    link_text='Route Policies',
+    permissions=['netbox_routing_protocols.view_routepolicy'],
     buttons=(
         PluginMenuButton(
-            link='plugins:netbox_routing_protocols:routemap_add',
+            link='plugins:netbox_routing_protocols:routepolicy_add',
             title='Add',
             icon_class=COL_ADD,
-            permissions=['netbox_routing_protocols.add_routemap'],
+            permissions=['netbox_routing_protocols.add_routepolicy'],
         ),
     ),
 )
-routemap_entry = PluginMenuItem(
-    link='plugins:netbox_routing_protocols:routemapentry_list',
-    link_text='Route Map Entries',
-    permissions=['netbox_routing_protocols.view_routemapentry'],
+routepolicy_entry = PluginMenuItem(
+    link='plugins:netbox_routing_protocols:routepolicyentry_list',
+    link_text='Route Policy Entries',
+    permissions=['netbox_routing_protocols.view_routepolicyentry'],
     buttons=(
         PluginMenuButton(
-            link='plugins:netbox_routing_protocols:routemapentry_add',
+            link='plugins:netbox_routing_protocols:routepolicyentry_add',
             title='Add',
             icon_class=COL_ADD,
-            permissions=['netbox_routing_protocols.add_routemapentry'],
+            permissions=['netbox_routing_protocols.add_routepolicyentry'],
         ),
     ),
 )
@@ -112,8 +112,8 @@ OBJECT_MENU = (
     prefixlist,
     prefixlist_entry,
     prefix_match,
-    routemap,
-    routemap_entry,
+    routepolicy,
+    routepolicy_entry,
     aspath,
     aspath_entry,
 )

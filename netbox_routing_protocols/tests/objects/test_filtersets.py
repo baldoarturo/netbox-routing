@@ -11,8 +11,8 @@ __all__ = (
     'ASPathEntryTestCase',
     'PrefixListTestCase',
     'PrefixListEntryTestCase',
-    'RouteMapTestCase',
-    'RouteMapEntryTestCase',
+    'RoutePolicyTestCase',
+    'RoutePolicyEntryTestCase',
 )
 
 
@@ -275,79 +275,79 @@ class PrefixListEntryTestCase(TestCase):
         )
 
 
-class RouteMapTestCase(TestCase):
-    queryset = RouteMap.objects.all()
-    filterset = RouteMapFilterSet
+class RoutePolicyTestCase(TestCase):
+    queryset = RoutePolicy.objects.all()
+    filterset = RoutePolicyFilterSet
 
     @classmethod
     def setUpTestData(cls):
         cls.prefix_list = [
-            RouteMap(
-                name='Route Map 1-1',
+            RoutePolicy(
+                name='Route Policy 1-1',
             ),
-            RouteMap(
-                name='Route Map 1-2',
+            RoutePolicy(
+                name='Route Policy 1-2',
             ),
-            RouteMap(
-                name='Route Map 2-1',
+            RoutePolicy(
+                name='Route Policy 2-1',
             ),
-            RouteMap(
-                name='Route Map 2-2',
+            RoutePolicy(
+                name='Route Policy 2-2',
             ),
         ]
-        RouteMap.objects.bulk_create(cls.prefix_list)
+        RoutePolicy.objects.bulk_create(cls.prefix_list)
 
     def test_q(self):
-        params = {'q': 'Route Map 1-'}
+        params = {'q': 'Route Policy 1-'}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
 
-class RouteMapEntryTestCase(TestCase):
-    queryset = RouteMapEntry.objects.all()
-    filterset = RouteMapEntryFilterSet
+class RoutePolicyEntryTestCase(TestCase):
+    queryset = RoutePolicyEntry.objects.all()
+    filterset = RoutePolicyEntryFilterSet
 
     @classmethod
     def setUpTestData(cls):
-        cls.route_map = (
-            RouteMap(
-                name='Route Map 1',
+        cls.route_policy = (
+            RoutePolicy(
+                name='Route Policy 1',
             ),
-            RouteMap(
-                name='Route Map 2',
+            RoutePolicy(
+                name='Route Policy 2',
             ),
         )
-        RouteMap.objects.bulk_create(cls.route_map)
+        RoutePolicy.objects.bulk_create(cls.route_policy)
 
-        cls.route_map_entry = [
-            RouteMapEntry(
-                route_map=cls.route_map[0],
+        cls.route_policy_entry = [
+            RoutePolicyEntry(
+                route_policy=cls.route_policy[0],
                 action=ActionChoices.PERMIT,
                 sequence=1,
                 match={'tag': 1234},
             ),
-            RouteMapEntry(
-                route_map=cls.route_map[0],
+            RoutePolicyEntry(
+                route_policy=cls.route_policy[0],
                 action=ActionChoices.PERMIT,
                 sequence=2,
                 match={'tag': 5678},
             ),
-            RouteMapEntry(
-                route_map=cls.route_map[1],
+            RoutePolicyEntry(
+                route_policy=cls.route_policy[1],
                 action=ActionChoices.PERMIT,
                 sequence=1,
                 match={'tag': 9012},
             ),
-            RouteMapEntry(
-                route_map=cls.route_map[1],
+            RoutePolicyEntry(
+                route_policy=cls.route_policy[1],
                 action=ActionChoices.PERMIT,
                 sequence=2,
                 match={'tag': 3456},
             ),
         ]
-        RouteMapEntry.objects.bulk_create(cls.route_map_entry)
+        RoutePolicyEntry.objects.bulk_create(cls.route_policy_entry)
 
     def test_q(self):
-        params = {'q': 'Route Map 1'}
+        params = {'q': 'Route Policy 1'}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_match(self):
@@ -356,15 +356,15 @@ class RouteMapEntryTestCase(TestCase):
 
     def test_prefix_list(self):
         params = {
-            'route_map_id': [
-                self.route_map[1].pk,
+            'route_policy_id': [
+                self.route_policy[1].pk,
             ]
         }
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
         params = {
-            'route_map': [
-                self.route_map[1].name,
+            'route_policy': [
+                self.route_policy[1].name,
             ]
         }
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)

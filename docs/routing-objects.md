@@ -3,9 +3,9 @@
 **Routing → Routing Objects**
 
 Routing objects are the building blocks that policies are made of. They are not tied to one protocol:
-today BGP policy templates and peer address families point at prefix lists and route maps.
+today BGP policy templates and peer address families point at prefix lists and route policies.
 
-> **About the standards.** Prefix lists, route maps and AS-path filters are **vendor features**: no RFC defines them, and
+> **About the standards.** Prefix lists, route policies and AS-path filters are **vendor features**: no RFC defines them, and
 > every vendor spells them a little differently. What the RFCs define is what they act on: IP
 > prefixes ([RFC 4632](https://www.rfc-editor.org/rfc/rfc4632) for IPv4 CIDR,
 > [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291) for IPv6), the BGP `AS_PATH` attribute
@@ -32,7 +32,7 @@ Routers evaluate the entries in sequence order and stop at the first that matche
 | --- | --- |
 | Prefix list | The list the entry belongs to. |
 | Sequence | Evaluation order, 1 to 4294967294 (the range routers accept). Leave it empty and the form suggests the next free one; the API assigns it automatically. |
-| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
+| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route policies and BGP policies that use the list only decide *where* it is applied. |
 | Prefix | A prefix from NetBox IPAM (**IPAM → Prefixes**). It must be of the family of the list. |
 | Any | Matches the all-zeros prefix of the family (`0.0.0.0/0` or `::/0`). NetBox IPAM cannot hold that prefix, so this checkbox stands for it. With *LE* set to the longest length (32 or 128) it matches *every* prefix. Leave *Prefix* empty when you use it. |
 | GE / LE | The length range of the match, as on routers. *GE* ("greater than or equal") and *LE* ("less than or equal") are lengths, not counts. Both are inclusive. |
@@ -110,7 +110,7 @@ The **Duplicate** button on the page of a list makes a copy **with all its entri
 
 ### Deleting a prefix list in use
 
-A prefix list that other objects use can be deleted. Before you confirm, the dialog (and the bulk delete page) lists **every object that refers to it, whatever the protocol**: BGP policy templates and peer address families, route map entries, and anything that points to a prefix list in the future, grouped by type with links. Deleting the list leaves the reference empty in those objects (and removes the list from the route map entries), so their filtering stops applying until you choose another list. The list's own entries are deleted with it.
+A prefix list that other objects use can be deleted. Before you confirm, the dialog (and the bulk delete page) lists **every object that refers to it, whatever the protocol**: BGP policy templates and peer address families, route policy entries, and anything that points to a prefix list in the future, grouped by type with links. Deleting the list leaves the reference empty in those objects (and removes the list from the route policy entries), so their filtering stops applying until you choose another list. The list's own entries are deleted with it.
 
 ### Overlap warnings
 
@@ -142,18 +142,18 @@ or denies it. An address is treated as a host prefix. Tick *Include the lists wi
 the lists that do not match too. It answers "would this prefix get through that filter?" without
 logging in to a router. It needs the *view* permission on prefix list entries.
 
-## Route maps
+## Route policies
 
-**Route Maps** and **Route Map Entries**
+**Route Policies** and **Route Policy Entries**
 
-A route map is an ordered list of rules like a prefix list, but each rule can *match* several
+A route policy is an ordered list of rules like a prefix list, but each rule can *match* several
 attributes and *set* others.
 
 | Field | Meaning |
 | --- | --- |
-| Route map | Name of the map. |
+| Route policy | Name of the map. |
 | Sequence | Evaluation order. |
-| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
+| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route policies and BGP policies that use the list only decide *where* it is applied. |
 | Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`. |
 | Match prefix list / community list / community / AS path | Link the entry to the NetBox objects it matches on. |
 | Match parameters / Set parameters | Free-form **JSON** for everything the links do not cover (for example a local preference to set). The plugin stores it as written; it does not interpret it. |
@@ -185,7 +185,7 @@ meaning of `65000:100` is documented once:
 | Tenant | Optional owner. |
 
 A **Community List** groups communities under a name, and its **entries** each have an action
-(permit or deny) and a community, evaluated like a prefix list. Route map entries can match on a
+(permit or deny) and a community, evaluated like a prefix list. Route policy entries can match on a
 community or on a whole community list.
 
 ## Field reference
@@ -211,10 +211,10 @@ AS path
 ├─ name
 └─ Entry: aspath → AS path · sequence · action {Permit | Deny} · pattern
 
-Route map
+Route policy
 ├─ name
 └─ Entry
-    ├─ route_map → Route map
+    ├─ route_policy → Route policy
     ├─ Result: sequence · action {Permit | Deny} · flow_control
     ├─ Match: match · match_prefix_list → Prefix list · match_community_list → Community list
     │         · match_community → Community · match_aspath → AS path

@@ -257,7 +257,7 @@ router into an ASBR.
 | Metric type | **E1** or **E2**. With **E2** (the default) the metric stays the same across the OSPF domain; with **E1** the internal cost to reach the ASBR is added, which makes routers prefer the closer ASBR ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) §16.4.1). |
 | Subnets | Redistribute subnets, not only classful networks. On by default. |
 | Route tag | A tag set on the routes, to filter them later (RFC 2328 external route tag). |
-| Route policy | Name of a route policy/route map applied to the routes. |
+| Route policy | Name of a route policy/route policy applied to the routes. |
 | OSPF route types | When the source is OSPF, which kinds of routes to redistribute. |
 
 Rules: each protocol (and each source) can be redistributed once per instance; an OSPF instance cannot
