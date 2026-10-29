@@ -44,6 +44,8 @@ class ASPath(PrimaryModel):
     prerequisite_models = ()
 
     class Meta:
+        verbose_name = _('AS Path')
+        verbose_name_plural = _('AS Paths')
         ordering = [
             'name',
             'pk',
@@ -92,6 +94,8 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
     prerequisite_models = ('netbox_routing_protocols.ASPath',)
 
     class Meta:
+        verbose_name = _('AS Path Entry')
+        verbose_name_plural = _('AS Path Entries')
         ordering = ['aspath', 'sequence']
         constraints = (
             models.UniqueConstraint(
@@ -141,6 +145,8 @@ class PrefixList(PrimaryModel):
     prerequisite_models = ()
 
     class Meta:
+        verbose_name = _('Prefix List')
+        verbose_name_plural = _('Prefix Lists')
         ordering = [
             'name',
             'pk',
@@ -228,6 +234,8 @@ class PrefixListEntry(PermitDenyChoiceMixin, PrimaryModel):
     prerequisite_models = ('netbox_routing_protocols.PrefixList',)
 
     class Meta:
+        verbose_name = _('Prefix List Entry')
+        verbose_name_plural = _('Prefix List Entries')
         ordering = ['prefix_list', 'sequence']
         constraints = (
             models.UniqueConstraint(
@@ -318,6 +326,8 @@ class RoutePolicy(PrimaryModel):
     prerequisite_models = ()
 
     class Meta:
+        verbose_name = _('Route Policy')
+        verbose_name_plural = _('Route Policies')
         ordering = [
             'name',
             'pk',
@@ -391,6 +401,8 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
     prerequisite_models = ('netbox_routing_protocols.RoutePolicy',)
 
     class Meta:
+        verbose_name = _('Route Policy Entry')
+        verbose_name_plural = _('Route Policy Entries')
         ordering = ['route_policy', 'sequence']
         constraints = (
             models.UniqueConstraint(
