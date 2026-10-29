@@ -70,6 +70,10 @@ class DuplicatePrefixList(ObjectAction):
     template_name = 'netbox_routing_protocols/buttons/duplicate.html'
 
 
+class DuplicateASPath(DuplicatePrefixList):
+    """A copy of the AS-path with its entries"""
+
+
 class ResequencePrefixList(ObjectAction):
     """Renumber the entries of the list"""
 
@@ -749,15 +753,21 @@ class RoutePolicyEntryBulkDeleteView(BulkDeleteView):
 #
 @register_model_view(ASPath, name='list', path='', detail=False)
 class ASPathListView(ObjectListView):
-    queryset = ASPath.objects.all()
+    queryset = ASPath.objects.annotate(entry_count=count_related(ASPathEntry, 'aspath'))
     filterset = ASPathFilterSet
     filterset_form = ASPathFilterForm
     table = ASPathTable
 
 
 @register_model_view(ASPath)
-class ASPathView(ObjectView):
+class ASPathView(GetRelatedModelsMixin, ObjectView):
     queryset = ASPath.objects.all()
+    actions = (
+        DuplicateASPath,
+        CloneObject,
+        EditObject,
+        DeleteObject,
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -768,7 +778,117 @@ class ASPathView(ObjectView):
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
+        bottom_panels=[
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.ASPathEntry',
+                title=_('Entries'),
+                filters={'aspath_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'aspath'],
+                actions=[
+                    AddObject(
+                        'netbox_routing_protocols.ASPathEntry',
+                        label=_('Add entry'),
+                        url_params={'aspath': lambda ctx: ctx['object'].pk},
+                    ),
+                ],
+            ),
+        ],
     )
+
+    def get_extra_context(self, request, instance):
+        # Where the AS-path is used: the route policy entries that match it (a many to
+        # many relation is not detected by NetBox)
+        return {
+            'related_models': self.get_related_models(
+                request,
+                instance,
+                extra=(
+                    (
+                        RoutePolicyEntry.objects.restrict(request.user, 'view').filter(
+                            match_aspath=instance
+                        ),
+                        'match_aspath_id',
+                    ),
+                ),
+            )
+        }
+
+
+@register_model_view(ASPath, name='duplicate')
+class ASPathDuplicateView(ContentTypePermissionRequiredMixin, View):
+    """Copy an AS-path with its entries, in one transaction"""
+
+    template_name = 'netbox_routing_protocols/aspath_duplicate.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.add_aspath'
+
+    def _source(self, request, pk):
+        return get_object_or_404(ASPath.objects.restrict(request.user, 'view'), pk=pk)
+
+    def _render(self, request, source, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': source,
+                'form': form,
+                'count': source.aspath_entries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        source = self._source(request, pk)
+        form = ASPathDuplicateForm(
+            initial={
+                'name': _('%(name)s copy') % {'name': source.name},
+                'description': source.description,
+            }
+        )
+        return self._render(request, source, form)
+
+    def post(self, request, pk):
+        source = self._source(request, pk)
+        form = ASPathDuplicateForm(request.POST)
+        if not request.user.has_perm('netbox_routing_protocols.add_aspathentry'):
+            messages.error(request, _('You cannot add AS-path entries.'))
+            return redirect(source.get_absolute_url())
+        if not form.is_valid():
+            return self._render(request, source, form)
+
+        with transaction.atomic():
+            copy = ASPath(
+                name=form.cleaned_data['name'],
+                description=form.cleaned_data['description'],
+                comments=source.comments,
+                owner=source.owner,
+            )
+            copy.full_clean()
+            copy.save()
+            copy.tags.set(source.tags.all())
+            for entry in source.aspath_entries.all():
+                new_entry = ASPathEntry(
+                    aspath=copy,
+                    sequence=entry.sequence,
+                    action=entry.action,
+                    pattern=entry.pattern,
+                    description=entry.description,
+                    comments=entry.comments,
+                    owner=entry.owner,
+                )
+                new_entry.full_clean()
+                new_entry.save()
+                new_entry.tags.set(entry.tags.all())
+        messages.success(
+            request,
+            _('Duplicated %(source)s as %(copy)s with %(count)d entries.')
+            % {
+                'source': source,
+                'copy': copy,
+                'count': source.aspath_entries.count(),
+            },
+        )
+        return redirect(copy.get_absolute_url())
 
 
 @register_model_view(ASPath, name='add', detail=False)
@@ -841,11 +961,9 @@ class ASPathEntriesView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(aspath=parent)
+        return self.child_model.objects.filter(aspath=parent).select_related('aspath')
 
     def get_extra_context(self, request, instance):
-        print(self.actions)
-
         return {
             'url_parent': 'plugins:netbox_routing_protocols:aspath_entries',
             'url_add': 'plugins:netbox_routing_protocols:aspathentry_add',

@@ -82,7 +82,28 @@ class RoutePolicyEntryFilterForm(NetBoxModelFilterSetForm):
 
 class ASPathFilterForm(NetBoxModelFilterSetForm):
     model = ASPath
+    fieldsets = (FieldSet('q', 'filter_id', 'tag'),)
+    tag = TagFilterField(model)
 
 
 class ASPathEntryFilterForm(NetBoxModelFilterSetForm):
     model = ASPathEntry
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('aspath_id', 'action', 'sequence', 'pattern', name=_('Entry')),
+    )
+    aspath_id = DynamicModelMultipleChoiceField(
+        queryset=ASPath.objects.all(),
+        required=False,
+        label=_('AS Path'),
+    )
+    action = forms.MultipleChoiceField(
+        label=_('Action'),
+        choices=ActionChoices,
+        required=False,
+    )
+    sequence = forms.IntegerField(
+        label=_('Sequence'), required=False, min_value=1, max_value=4294967294
+    )
+    pattern = forms.CharField(label=_('Pattern'), required=False)
+    tag = TagFilterField(model)

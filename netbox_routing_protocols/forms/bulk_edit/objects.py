@@ -104,10 +104,17 @@ class ASPathEntryBulkEditForm(PrimaryModelBulkEditForm):
         selector=True,
     )
 
+    action = forms.ChoiceField(
+        label=_('Action'),
+        choices=add_blank_choice(ActionChoices),
+        required=False,
+    )
+
     model = ASPathEntry
     fieldsets = (
         FieldSet(
             'aspath',
+            'action',
             'description',
         ),
     )

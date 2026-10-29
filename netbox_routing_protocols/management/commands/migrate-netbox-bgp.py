@@ -328,15 +328,18 @@ class Command(BaseCommand):
                         entry.save()
                         mapping['aspath'][item.pk] = entry
 
+                # The entries that exist, by AS-path and sequence: one query, not one per rule
+                existing_entries = {
+                    (entry.aspath_id, entry.sequence): entry
+                    for entry in ASPathEntry.objects.all()
+                }
                 for item in netbox_bgp.ASPathListRule.objects.all():
-                    aspath = mapping['aspath'][item.aspath_list.pk]
-                    try:
-                        entry = ASPathEntry.objects.get(
-                            aspath=aspath, sequence=item.index
-                        )
+                    aspath = mapping['aspath'][item.aspath_list_id]
+                    entry = existing_entries.get((aspath.pk, item.index))
+                    if entry:
                         if not mapping['aspath_entry'].get(item.pk):
                             mapping['aspath_entry'][item.pk] = entry
-                    except ASPathEntry.DoesNotExist:
+                    else:
                         entry = ASPathEntry(
                             aspath=aspath,
                             sequence=item.index,
@@ -347,6 +350,7 @@ class Command(BaseCommand):
                         )
                         entry.full_clean()
                         entry.save()
+                        existing_entries[(aspath.pk, item.index)] = entry
                         mapping['aspath_entry'][item.pk] = entry
 
                 for item in netbox_bgp.RoutingPolicy.objects.all():

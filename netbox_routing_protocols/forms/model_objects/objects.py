@@ -36,6 +36,7 @@ __all__ = (
     'RoutePolicyEntryForm',
     'ASPathForm',
     'ASPathEntryForm',
+    'ASPathDuplicateForm',
 )
 
 
@@ -83,8 +84,17 @@ class ASPathEntryForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         # A new entry gets the next sequence number of the AS-path, suggested here when
         # it is known (the add button of the AS-path) and assigned on save otherwise
+        # A new entry permits unless told otherwise
+        # (in form.initial: the view builds the form from an instance whose empty action
+        # would override the initial of the field)
+        if not self.instance.pk and not self.initial.get('action'):
+            self.initial['action'] = ActionChoices.PERMIT
+        # Only for a new entry: emptying it on an existing one would silently move the
+        # entry to the end of the AS-path
+        if self.instance.pk:
+            return
         self.fields['sequence'].required = False
-        if not self.instance.pk and not self.initial.get('sequence'):
+        if not self.initial.get('sequence'):
             aspath = str(self.initial.get('aspath') or '')
             aspath = (
                 ASPath.objects.filter(pk=aspath).first() if aspath.isdigit() else None
@@ -98,7 +108,11 @@ class ASPathEntryForm(PrimaryModelForm):
     def clean(self):
         super().clean()
         cleaned = self.cleaned_data
-        if cleaned.get('sequence') is None and cleaned.get('aspath'):
+        if (
+            not self.instance.pk
+            and cleaned.get('sequence') is None
+            and cleaned.get('aspath')
+        ):
             try:
                 cleaned['sequence'] = aspath_helpers.next_sequence(cleaned['aspath'])
             except ValidationError as e:
@@ -113,6 +127,21 @@ class ASPathEntryForm(PrimaryModelForm):
                 for duplicate in aspath_helpers.find_duplicates(entry)[:MAX_WARNINGS]:
                     messages.warning(request, duplicate.message + '.')
         return entry
+
+
+class ASPathDuplicateForm(forms.Form):
+    """The name and description of the copy of an AS-path"""
+
+    name = forms.CharField(max_length=100, label=_('Name'))
+    description = forms.CharField(
+        max_length=200, required=False, label=_('Description')
+    )
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        if ASPath.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError(_('An AS-path with this name already exists.'))
+        return name
 
 
 class PrefixListForm(PrimaryModelForm):

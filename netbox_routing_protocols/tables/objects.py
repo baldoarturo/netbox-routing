@@ -121,17 +121,35 @@ class RoutePolicyEntryTable(NetBoxTable):
 
 class ASPathTable(NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_protocols:aspathentry_list',
+        url_params={'aspath_id': 'pk'},
+        verbose_name=_('Entries'),
+    )
+    tags = columns.TagColumn(url_name='plugins:netbox_routing_protocols:aspath_list')
 
     class Meta(NetBoxTable.Meta):
         model = ASPath
-        fields = ('pk', 'id', 'name')
-        default_columns = ('pk', 'id', 'name')
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'entry_count',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = ('pk', 'name', 'entry_count', 'description', 'actions')
 
 
 class ASPathEntryTable(NetBoxTable):
     aspath = tables.Column(verbose_name=_('AS Path'), linkify=True)
     action = columns.ChoiceFieldColumn()
-    asn = tables.Column(verbose_name=_('ASN'), linkify=True)
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_routing_protocols:aspathentry_list'
+    )
 
     class Meta(NetBoxTable.Meta):
         model = ASPathEntry
@@ -141,7 +159,12 @@ class ASPathEntryTable(NetBoxTable):
             'aspath',
             'sequence',
             'action',
-            'asn',
+            'pattern',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
         )
         default_columns = (
             'pk',
@@ -149,5 +172,7 @@ class ASPathEntryTable(NetBoxTable):
             'aspath',
             'sequence',
             'action',
-            'asn',
+            'pattern',
+            'description',
+            'actions',
         )
