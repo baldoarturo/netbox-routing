@@ -1,0 +1,1 @@
+<div{% include "django/forms/widgets/attrs.html" %}>{% for group, options, index in widget.optgroups %}{% for option in options %}<div class="form-check form-check-inline">{% include option.template_name with widget=option %}</div>{% endfor %}{% endfor %}</div>

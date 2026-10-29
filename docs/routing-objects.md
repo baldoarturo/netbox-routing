@@ -32,11 +32,11 @@ Routers evaluate the entries in sequence order and stop at the first that matche
 | --- | --- |
 | Prefix list | The list the entry belongs to. |
 | Sequence | Evaluation order, 1 to 4294967294 (the range routers accept). Leave it empty and the form suggests the next free one; the API assigns it automatically. |
-| Action | Permit or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
+| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
 | Prefix | A prefix from NetBox IPAM (**IPAM → Prefixes**). It must be of the family of the list. |
 | Any | Matches the all-zeros prefix of the family (`0.0.0.0/0` or `::/0`). NetBox IPAM cannot hold that prefix, so this checkbox stands for it. With *LE* set to the longest length (32 or 128) it matches *every* prefix. Leave *Prefix* empty when you use it. |
 | GE / LE | The length range of the match, as on routers. *GE* ("greater than or equal") and *LE* ("less than or equal") are lengths, not counts. Both are inclusive. |
-| EQ | Shortcut for "exactly this length": it fills GE and LE with the same value. It is only an input aid and is not stored; the entry shows GE and LE. |
+| Exact | Form only: tick it to match the prefix itself, with no length range. GE and LE are disabled while it is ticked and the form refuses them if both come in. It is the same as leaving GE and LE empty. |
 
 How to read GE and LE for a prefix `10.0.0.0/8`:
 
@@ -60,7 +60,7 @@ The REST API (`/api/plugins/routing/objects/prefix-list-entry/`) follows the sam
 
 - **`sequence`** can be left out; the entry gets the next multiple of 10 after the highest one in the list. Any value from 1 to 4294967294 is accepted when you send it.
 - **Any:** send `"any_prefix": true` and no prefix, or send the prefix as `"any"`, `"0.0.0.0/0"` or `"::/0"`; all three store the same entry.
-- **`eq`** (write only) sets GE and LE to the same length.
+- **`eq`** (write only, not in the form) sets GE and LE to the same length.
 - The response of a create or update carries a **`warnings`** list with the overlaps described below, so scripts can show them. The entry is saved anyway.
 
 ### Overlap warnings
@@ -100,7 +100,7 @@ attributes and *set* others.
 | --- | --- |
 | Route map | Name of the map. |
 | Sequence | Evaluation order. |
-| Action | Permit or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
+| Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route maps and BGP policies that use the list only decide *where* it is applied. |
 | Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`. |
 | Match prefix list / community list / community / AS path | Link the entry to the NetBox objects it matches on. |
 | Match parameters / Set parameters | Free-form **JSON** for everything the links do not cover (for example a local preference to set). The plugin stores it as written; it does not interpret it. |

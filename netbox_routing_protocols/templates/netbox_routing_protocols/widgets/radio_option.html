@@ -1,0 +1,2 @@
+<input type="radio" name="{{ widget.name }}" value="{{ widget.value|stringformat:'s' }}"{% include "django/forms/widgets/attrs.html" %} class="form-check-input">
+<label class="form-check-label" for="{{ widget.attrs.id }}">{{ widget.label }}</label>
