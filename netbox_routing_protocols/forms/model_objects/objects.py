@@ -162,8 +162,10 @@ class PrefixListEntryForm(PrimaryModelForm):
         for name in ('ge', 'le'):
             self.fields[name].widget.attrs['disabled'] = bool(ticked)
         # A new entry permits unless told otherwise
-        if not self.instance.pk:
-            self.fields['action'].initial = ActionChoices.PERMIT
+        # (in form.initial: the view builds the form from an instance whose empty action
+        # would override the initial of the field)
+        if not self.instance.pk and not self.initial.get('action'):
+            self.initial['action'] = ActionChoices.PERMIT
         # Only for a new entry: emptying it on an existing one would silently move the
         # entry to the end of the list
         if not self.instance.pk:

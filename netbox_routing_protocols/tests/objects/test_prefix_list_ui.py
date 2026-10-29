@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -239,6 +240,21 @@ class PrefixListViewsTestCase(SuperuserMixin, TestCase):
             f'/plugins/routing/objects/prefix-list-entry/add/?prefix_list={prefix_list.pk}'
         )
         self.assertContains(add, 'value="10"')
+
+    def test_the_add_page_preselects_permit(self):
+        self.login()
+        prefix_list = PrefixList.objects.create(name='List', family=4)
+        base = '/plugins/routing/objects/prefix-list-entry/add/'
+        for query, selected in (
+            ('', 'permit'),
+            (f'?prefix_list={prefix_list.pk}', 'permit'),
+            ('?action=deny', 'deny'),
+        ):
+            with self.subTest(query):
+                html = self.client.get(base + query).content.decode()
+                select = html[html.index('name="action"') :]
+                options = re.findall(r'<option value="(\w*)"(\s+selected)?', select)[:3]
+                self.assertEqual([v for v, chosen in options if chosen], [selected])
 
 
 class PrefixMatchViewTestCase(SuperuserMixin, TestCase):
