@@ -104,7 +104,7 @@ class PrefixListSerializer(PrimaryModelSerializer):
 
 class PrefixListEntrySerializer(PrimaryModelSerializer):
     """
-    Besides the model fields: write-only `eq` (ge = le), `prefix` also accepts "any" or the
+    Besides the model fields: write-only `eq` (ge = le) and `exact` (no ge and le), `prefix` also accepts "any" or the
     all zeros prefix, an empty `sequence` takes the next free one, and `warnings` lists the
     entries that overlap with the one written.
     """
@@ -120,6 +120,12 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
         min_value=0,
         max_value=128,
         help_text='Exact prefix length: shorthand that sets ge and le to this value',
+    )
+    exact = serializers.BooleanField(
+        write_only=True,
+        required=False,
+        help_text='Match only the prefix itself: ge, le and eq must be empty. With "any" it '
+        'is only the all zeros prefix',
     )
     warnings = serializers.SerializerMethodField(
         help_text='Entries of the list that overlap or are nested with this one (information, '
@@ -140,6 +146,7 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
             'le',
             'ge',
             'eq',
+            'exact',
             'warnings',
             'description',
             'owner',
@@ -165,7 +172,7 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
     def to_internal_value(self, data):
         # `prefix` also accepts "any" or the all zeros prefix (0.0.0.0/0, ::/0), which
         # IPAM cannot hold: they set any_prefix, and the length of the entry is LE
-        # (the longest length of the family) unless ge, le or eq are given.
+        # (the longest length of the family) unless ge, le, eq or exact are given.
         prefix = data.get('prefix') if hasattr(data, 'get') else None
         if isinstance(prefix, str) and not prefix.strip().isdigit():
             data = self._expand_any(data.copy(), prefix.strip().lower())
@@ -196,7 +203,9 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
             )
         data['prefix'] = None
         data['any_prefix'] = True
-        if all(data.get(field) in (None, '') for field in ('ge', 'le', 'eq')):
+        if not data.get('exact') and all(
+            data.get(field) in (None, '') for field in ('ge', 'le', 'eq')
+        ):
             data['le'] = any_le(family)
         return data
 
@@ -245,7 +254,14 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
                 except DjangoValidationError as e:
                     raise serializers.ValidationError({'sequence': e.messages})
                 assigned[prefix_list.pk] = data['sequence'] = sequence
+        exact = data.pop('exact', False)
         eq = data.pop('eq', None)
+        if exact and (
+            eq is not None or data.get('ge') is not None or data.get('le') is not None
+        ):
+            raise serializers.ValidationError(
+                {'exact': 'Exact matches only the prefix: leave ge, le and eq empty.'}
+            )
         if eq is not None:
             if data.get('ge') is not None or data.get('le') is not None:
                 raise serializers.ValidationError(

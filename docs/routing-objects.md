@@ -61,6 +61,7 @@ The REST API (`/api/plugins/routing/objects/prefix-list-entry/`) follows the sam
 - **`sequence`** can be left out; the entry gets the next multiple of 10 after the highest one in the list. Any value from 1 to 4294967294 is accepted when you send it.
 - **Any:** send `"any_prefix": true` and no prefix, or send the prefix as `"any"`, `"0.0.0.0/0"` or `"::/0"`; all three store the same entry.
 - **`eq`** (write only, not in the form) sets GE and LE to the same length.
+- **`exact`** (write only) is the *Exact* checkbox of the form: `true` matches the prefix itself, so `ge`, `le` and `eq` must be empty (an error otherwise); with `any` it is only the all-zeros prefix.
 - The response of a create or update carries a **`warnings`** list with the overlaps described below, so scripts can show them. The entry is saved anyway.
 
 ### Importing lists and entries
