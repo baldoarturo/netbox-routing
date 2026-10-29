@@ -19,7 +19,9 @@ __all__ = (
     'find_overlaps',
     'overlap_warnings',
     'evaluate_prefix',
+    'object_references',
     'prefix_list_references',
+    'aspath_references',
     'import_overlaps',
     'resequence',
 )
@@ -231,22 +233,32 @@ def evaluate_prefix(prefix, entries):
 #
 
 
-def prefix_list_references(prefix_list):
+def object_references(obj, skip=()):
     """
-    The objects that refer to the prefix list, of any model (BGP, route policies, and whatever
-    protocol points to a prefix list later): a list of (model, queryset). Found from the
-    reverse relations, so a new model is listed without touching this. The entries of the list
-    are not references: they go with it.
+    The objects that refer to obj, of any model (BGP, route policies, and whatever protocol
+    points to it later): a list of (model, queryset). Found from the reverse relations, so a
+    new model is listed without touching this. The models named in skip (the entries of a
+    list) are not references: they go with it.
     """
     references = []
-    for relation in prefix_list._meta.related_objects:
+    for relation in obj._meta.related_objects:
         model = relation.related_model
-        if model._meta.auto_created or model._meta.model_name == 'prefixlistentry':
+        if model._meta.auto_created or model._meta.model_name in skip:
             continue
-        objects = model._default_manager.filter(**{relation.field.name: prefix_list})
+        objects = model._default_manager.filter(**{relation.field.name: obj})
         if objects.exists():
             references.append((model, objects))
     return references
+
+
+def prefix_list_references(prefix_list):
+    """The objects that refer to the prefix list, see object_references"""
+    return object_references(prefix_list, skip=('prefixlistentry',))
+
+
+def aspath_references(aspath):
+    """The objects that refer to the AS-path, see object_references"""
+    return object_references(aspath, skip=('aspathentry',))
 
 
 #

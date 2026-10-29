@@ -164,8 +164,30 @@ attributes and *set* others.
 
 An AS-path list filters routes by the sequence of autonomous systems they crossed (the BGP `AS_PATH`
 attribute, [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §5.1.2). Each entry has a **sequence**,
-an **action** (permit or deny) and a **pattern**: a regular expression in the syntax of your
-platform. The pattern is not validated, because every vendor's regex dialect differs.
+an **action** (permit or deny) and a **pattern**: a POSIX extended regular expression (the family
+used by Cisco IOS/IOS-XR, Arista EOS and FRR), where `_` is an ordinary character so the usual
+`_65001_` is accepted. The plugin stores and shows the pattern, it does not run it, and it does not
+check any vendor's own dialect (Junos matches whole AS numbers instead of characters, for example).
+It checks that the pattern is valid POSIX: not empty, balanced groups, valid bracket expressions
+(`[0-9]`, `[[:digit:]]`) and repetitions (`*`, `+`, `?`, `{m,n}`), something to repeat, no empty
+alternatives, and no extensions that POSIX lacks (`\d`, `(?:...)`). Every AS number written in it
+must also fit the 32-bit AS_PATH ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)), in plain
+(`0`..`4294967295`) or asdot (`1.10`, each part up to `65535`,
+[RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) notation. The sequence goes from `1` to
+`4294967294`, the same range as a prefix list.
+
+Leave the **sequence** empty and the entry takes the next multiple of 10 above the last one of the
+AS-path (the form suggests it when you add an entry from the AS-path, and the API assigns it; entries
+of one bulk request get consecutive numbers). Any value is still accepted.
+
+Entries are evaluated by sequence and the first match wins, so an entry with the **same pattern** as
+another one is never reached. When you save one, the form and the API (`warnings` in the response)
+tell you, and the page of the entry lists the entries with the same pattern. They are saved anyway.
+Only identical patterns are detected: whether two different regular expressions overlap cannot be
+decided in general.
+
+An AS-path that route map entries use **can be deleted**: the confirmation (single and bulk)
+lists every object that refers to it, and those objects simply stop matching on it.
 
 ## Communities
 

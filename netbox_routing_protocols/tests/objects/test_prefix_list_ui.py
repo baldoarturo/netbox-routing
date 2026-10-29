@@ -15,6 +15,7 @@ from netbox_routing_protocols.forms.objects import PrefixListEntryForm
 from django.core.exceptions import ValidationError
 
 from netbox_routing_protocols.helpers.prefix_list import (
+    aspath_references,
     prefix_list_references,
     resequence,
 )
@@ -424,6 +425,62 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
         self.assertTrue(
             any('are in use' in text and 'Template' in text for text in texts)
         )
+
+
+class ASPathDeleteWarningTestCase(SuperuserMixin, TestCase):
+    """An AS-path in use can be deleted: the user is told what refers to it first"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.used = ASPath.objects.create(name='Used')
+        cls.free = ASPath.objects.create(name='Free')
+        ASPathEntry.objects.create(
+            aspath=cls.used, sequence=10, action='permit', pattern='^1$'
+        )
+        route_policy = RoutePolicy.objects.create(name='Map')
+        cls.entry = RoutePolicyEntry.objects.create(
+            route_policy=route_policy, sequence=10, action='permit'
+        )
+        cls.entry.match_aspath.add(cls.used)
+
+    def test_references_exclude_the_entries_of_the_path(self):
+        models = {model for model, objects in aspath_references(self.used)}
+        self.assertEqual(models, {RoutePolicyEntry})
+        self.assertEqual(aspath_references(self.free), [])
+
+    def test_the_delete_dialog_names_what_refers_to_the_path(self):
+        self.login()
+        url = self.used.get_absolute_url() + 'delete/'
+        for headers in ({}, {'HTTP_HX_REQUEST': 'true'}):
+            with self.subTest(headers):
+                response = self.client.get(url, **headers)
+                self.assertContains(response, 'This AS-path is in use')
+                self.assertContains(response, self.entry.get_absolute_url())
+
+    def test_a_free_path_has_no_warning(self):
+        self.login()
+        response = self.client.get(self.free.get_absolute_url() + 'delete/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'is in use')
+
+    def test_deleting_a_path_in_use_clears_the_references(self):
+        self.login()
+        response = self.client.post(
+            self.used.get_absolute_url() + 'delete/', {'confirm': True}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ASPath.objects.filter(pk=self.used.pk).exists())
+        self.assertFalse(RoutePolicyEntry.objects.get().match_aspath.exists())
+
+    def test_the_bulk_delete_confirmation_warns(self):
+        self.login()
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:aspath_bulk_delete'),
+            {'pk': [self.used.pk, self.free.pk]},
+            follow=True,
+        )
+        texts = [str(message) for message in response.context['messages']]
+        self.assertTrue(any('are in use' in text and 'Map' in text for text in texts))
 
 
 class PrefixListDuplicateTestCase(SuperuserMixin, TestCase):

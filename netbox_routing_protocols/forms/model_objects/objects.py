@@ -14,6 +14,7 @@ from utilities.forms.rendering import TabbedGroups, FieldSet
 
 from netbox_routing_protocols.choices import ActionChoices
 from netbox_routing_protocols.forms.widgets import InlineRadioSelect
+from netbox_routing_protocols.helpers import aspath as aspath_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     SEQUENCE_STEP,
     any_le,
@@ -63,6 +64,55 @@ class ASPathEntryForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+        help_texts = {
+            'sequence': _(
+                'From 1 to 4294967294. Entries are evaluated in this order. Leave '
+                'empty to use the next one of the AS-path (steps of %(step)s).'
+            )
+            % {'step': SEQUENCE_STEP},
+            'pattern': _(
+                'A POSIX extended regular expression (as used by Cisco IOS/IOS-XR, '
+                'Arista EOS and FRR), where "_" is an ordinary character, for example '
+                '"^65001_" or "_(65002|65003)$". AS numbers must be 0 to 4294967295 '
+                '(asdot such as 1.10 also works). It is stored as written and not '
+                'checked against any vendor dialect (Junos regular expressions differ).'
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # A new entry gets the next sequence number of the AS-path, suggested here when
+        # it is known (the add button of the AS-path) and assigned on save otherwise
+        self.fields['sequence'].required = False
+        if not self.instance.pk and not self.initial.get('sequence'):
+            aspath = str(self.initial.get('aspath') or '')
+            aspath = (
+                ASPath.objects.filter(pk=aspath).first() if aspath.isdigit() else None
+            )
+            if aspath:
+                try:
+                    self.initial['sequence'] = aspath_helpers.next_sequence(aspath)
+                except ValidationError:
+                    pass
+
+    def clean(self):
+        super().clean()
+        cleaned = self.cleaned_data
+        if cleaned.get('sequence') is None and cleaned.get('aspath'):
+            try:
+                cleaned['sequence'] = aspath_helpers.next_sequence(cleaned['aspath'])
+            except ValidationError as e:
+                raise forms.ValidationError({'sequence': e.messages})
+
+    def save(self, commit=True):
+        entry = super().save(commit)
+        if commit:
+            # The entry is saved anyway: the user is just told about duplicates
+            request = current_request.get()
+            if request is not None:
+                for duplicate in aspath_helpers.find_duplicates(entry)[:MAX_WARNINGS]:
+                    messages.warning(request, duplicate.message + '.')
+        return entry
 
 
 class PrefixListForm(PrimaryModelForm):

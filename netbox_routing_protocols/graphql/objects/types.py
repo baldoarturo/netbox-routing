@@ -37,7 +37,7 @@ class ASPathEntryType(PrimaryObjectType):
         "ASPathType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     action: str
-    sequence: int
+    sequence: BigInt
     pattern: str | None
 
 

@@ -5,6 +5,7 @@ from ipam.choices import IPAddressFamilyChoices
 from ipam.api.serializers import PrefixSerializer
 from netbox.api.fields import ChoiceField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
+from netbox_routing_protocols.helpers import aspath as aspath_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     any_le,
     next_sequence,
@@ -46,9 +47,15 @@ class ASPathEntrySerializer(NetBoxModelSerializer):
         view_name='plugins-api:netbox_routing_protocols-api:aspathentry-detail'
     )
     aspath = ASPathSerializer(nested=True)
+    warnings = serializers.SerializerMethodField(
+        help_text='Entries of the AS-path with the same pattern as this one, which makes one '
+        'of them unreachable (information, the entry is saved anyway). Present in the '
+        'response of a write and of a single entry.'
+    )
 
     class Meta:
         model = ASPathEntry
+        extra_kwargs = {'sequence': {'required': False, 'allow_null': True}}
         fields = (
             'url',
             'id',
@@ -59,6 +66,7 @@ class ASPathEntrySerializer(NetBoxModelSerializer):
             'pattern',
             'description',
             'comments',
+            'warnings',
         )
         brief_fields = (
             'url',
@@ -69,6 +77,41 @@ class ASPathEntrySerializer(NetBoxModelSerializer):
             'action',
             'pattern',
         )
+
+    def get_warnings(self, obj):
+        computed = getattr(obj, '_duplicate_warnings', None)
+        if computed is not None:
+            return computed
+        # Not computed by a write: only for a single entry, never per row of a list
+        if self.parent is None:
+            return aspath_helpers.duplicate_warnings(obj)
+        return None
+
+    def create(self, validated_data):
+        entry = super().create(validated_data)
+        entry._duplicate_warnings = aspath_helpers.duplicate_warnings(entry)
+        return entry
+
+    def update(self, instance, validated_data):
+        entry = super().update(instance, validated_data)
+        entry._duplicate_warnings = aspath_helpers.duplicate_warnings(entry)
+        return entry
+
+    def validate(self, data):
+        # A new entry without sequence gets the next one of its AS-path. The serializer of a
+        # bulk request is shared by the entries, so they get consecutive numbers.
+        if self.instance is None and data.get('sequence') is None:
+            aspath = data.get('aspath')
+            if aspath is not None:
+                assigned = self.context.setdefault('aspath_sequences', {})
+                try:
+                    sequence = aspath_helpers.next_sequence(
+                        aspath, assigned.get(aspath.pk, 0)
+                    )
+                except DjangoValidationError as e:
+                    raise serializers.ValidationError({'sequence': e.messages})
+                assigned[aspath.pk] = data['sequence'] = sequence
+        return super().validate(data)
 
 
 class PrefixListSerializer(PrimaryModelSerializer):
