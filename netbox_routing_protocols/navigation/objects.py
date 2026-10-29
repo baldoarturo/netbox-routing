@@ -16,12 +16,12 @@ prefixlist = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_prefixlist'],
         ),
-        # PluginMenuButton(
-        #     link='plugins:netbox_routing_protocols:prefixlist_bulk_import',
-        #     title='Import',
-        #     icon_class=COL_IMPORT,
-        #     permissions=['netbox_routing_protocols.add_prefixlist'],
-        # ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:prefixlist_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.add_prefixlist'],
+        ),
     ),
 )
 prefixlist_entry = PluginMenuItem(
@@ -33,6 +33,12 @@ prefixlist_entry = PluginMenuItem(
             link='plugins:netbox_routing_protocols:prefixlistentry_add',
             title='Add',
             icon_class=COL_ADD,
+            permissions=['netbox_routing_protocols.add_prefixlistentry'],
+        ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:prefixlistentry_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
             permissions=['netbox_routing_protocols.add_prefixlistentry'],
         ),
     ),

@@ -13,6 +13,7 @@ from netbox.views.generic import (
     ObjectChildrenView,
     BulkDeleteView,
     BulkEditView,
+    BulkImportView,
 )
 from netbox.ui import panels, layout
 from utilities.query import count_related
@@ -124,6 +125,12 @@ class PrefixListDeleteView(ObjectDeleteView):
     queryset = PrefixList.objects.all()
 
 
+@register_model_view(PrefixList, name='bulk_import', detail=False)
+class PrefixListBulkImportView(BulkImportView):
+    queryset = PrefixList.objects.all()
+    model_form = PrefixListImportForm
+
+
 @register_model_view(PrefixList, name='bulk_edit', detail=False)
 class PrefixListBulkEditView(BulkEditView):
     queryset = PrefixList.objects.annotate(
@@ -181,6 +188,12 @@ class PrefixListEntryView(ObjectView):
 class PrefixListEntryEditView(ObjectEditView):
     queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
     form = PrefixListEntryForm
+
+
+@register_model_view(PrefixListEntry, name='bulk_import', detail=False)
+class PrefixListEntryBulkImportView(BulkImportView):
+    queryset = PrefixListEntry.objects.select_related('prefix_list', 'prefix')
+    model_form = PrefixListEntryImportForm
 
 
 @register_model_view(PrefixListEntry, name='delete')
