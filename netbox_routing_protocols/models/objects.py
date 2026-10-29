@@ -15,6 +15,7 @@ from netbox.models import PrimaryModel
 
 from netbox_routing_protocols.models.community import *
 from netbox_routing_protocols.choices import ActionChoices
+from netbox_routing_protocols.helpers.aspath import validate_pattern
 
 __all__ = (
     'ASPath',
@@ -64,7 +65,9 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
         related_name='aspath_entries',
         verbose_name=_('AS-Path'),
     )
-    sequence = models.PositiveSmallIntegerField()
+    sequence = models.PositiveBigIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(4294967294)],
+    )
     action = models.CharField(max_length=6, choices=ActionChoices)
     pattern = models.CharField(
         max_length=200,
@@ -97,6 +100,12 @@ class ASPathEntry(PermitDenyChoiceMixin, PrimaryModel):
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:aspathentry', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if self.pattern is not None:
+            if errors := validate_pattern(self.pattern):
+                raise ValidationError({'pattern': errors})
 
 
 class PrefixList(PrimaryModel):

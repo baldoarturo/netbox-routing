@@ -1,8 +1,8 @@
 {% load i18n %}
 <div class="alert alert-warning" role="alert">
-  <h5 class="alert-title">{% trans "This prefix list is in use" %}</h5>
+  <h5 class="alert-title">{% blocktrans %}This {{ kind }} is in use{% endblocktrans %}</h5>
   <p class="mb-2">
-    {% trans "It can be deleted, but the objects below lose their reference to it (the field is left empty), so their filtering stops applying until you choose another list." %}
+    {% blocktrans %}It can be deleted, but the objects below lose their reference to it (the field is left empty), so their filtering stops applying until you choose another one.{% endblocktrans %}
   </p>
   <ul class="mb-0">
     {% for group in groups %}

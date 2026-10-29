@@ -83,6 +83,62 @@ class ASPathEntryTestCase(TestCase):
             self.assertIsInstance(aspe, ASPathEntry)
             self.assertEqual(str(aspe), f'{self.aspath} permit {seq}')
 
+    def test_sequence_range(self):
+        for sequence, valid in (
+            (0, False),
+            (1, True),
+            (32768, True),
+            (4294967294, True),
+            (4294967295, False),
+        ):
+            with self.subTest(sequence):
+                entry = ASPathEntry(
+                    aspath=self.aspath,
+                    action='permit',
+                    sequence=sequence,
+                    pattern='^1$',
+                )
+                if valid:
+                    entry.full_clean()
+                    entry.save()
+                    entry.refresh_from_db()
+                    self.assertEqual(entry.sequence, sequence)
+                    entry.delete()
+                else:
+                    with self.assertRaises(ValidationError) as ctx:
+                        entry.full_clean()
+                    self.assertIn('sequence', ctx.exception.message_dict)
+
+    def test_pattern_validation(self):
+        for pattern, valid in (
+            ('^$', True),
+            ('^65001_', True),
+            ('_(65001|4294967295)$', True),
+            ('^1.10$', True),
+            ('^[0-9]+$', True),
+            ('^64512{2,3}$', True),
+            ('.*', True),
+            ('', False),
+            ('   ', False),
+            ('^(65001', False),
+            ('65001)', False),
+            ('^[65001', False),
+            ('^65001{2', False),
+            ('^4294967296$', False),
+            ('^70000.1$', False),
+            ('^1.70000$', False),
+        ):
+            with self.subTest(pattern):
+                entry = ASPathEntry(
+                    aspath=self.aspath, action='permit', sequence=1, pattern=pattern
+                )
+                if valid:
+                    entry.full_clean()
+                else:
+                    with self.assertRaises(ValidationError) as ctx:
+                        entry.full_clean()
+                    self.assertIn('pattern', ctx.exception.message_dict)
+
     def test_duplicate_sequence_message(self):
         ASPathEntry.objects.create(
             aspath=self.aspath, action='permit', sequence=10, pattern='^1$'

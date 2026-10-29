@@ -34,6 +34,7 @@ from netbox_routing_protocols.helpers.prefix_list import (
     evaluate_prefix,
     find_overlaps,
     import_overlaps,
+    aspath_references,
     prefix_list_references,
     resequence,
 )
@@ -307,14 +308,14 @@ class PrefixListEditView(ObjectEditView):
 REFERENCES_SHOWN = 10
 
 
-def reference_groups(request, prefix_lists):
+def reference_groups(request, objs, references=prefix_list_references):
     """
-    The objects that refer to the prefix lists, of any model, as a list of dicts (name,
+    The objects that refer to the prefix lists or AS-paths, of any model, as a list of dicts (name,
     count, the objects the user can view up to REFERENCES_SHOWN, and how many more).
     """
     pks = {}
-    for prefix_list in prefix_lists:
-        for model, objects in prefix_list_references(prefix_list):
+    for obj in objs:
+        for model, objects in references(obj):
             pks.setdefault(model, set()).update(objects.values_list('pk', flat=True))
     groups = []
     for model, model_pks in pks.items():
@@ -338,7 +339,7 @@ def reference_groups(request, prefix_lists):
     return groups
 
 
-def references_message(groups):
+def references_message(groups, kind='prefix lists'):
     """The references of reference_groups as one line of text, for a message"""
     parts = []
     for group in groups:
@@ -347,7 +348,7 @@ def references_message(groups):
             names += ' and {} more'.format(group['more'])
         parts.append('{} {} ({})'.format(group['count'], group['name'], names))
     return (
-        'The selected prefix lists are in use. Deleting them leaves these references '
+        f'The selected {kind} are in use. Deleting them leaves these references '
         'empty: ' + '; '.join(parts) + '.'
     )
 
@@ -364,7 +365,7 @@ class PrefixListDeleteView(ObjectDeleteView):
         if groups and getattr(response, 'content', None) and marker in response.content:
             warning = render_to_string(
                 'netbox_routing_protocols/panels/prefix_list_references.html',
-                {'groups': groups},
+                {'groups': groups, 'kind': _('prefix list')},
                 request=request,
             )
             response.content = response.content.replace(
@@ -780,6 +781,24 @@ class ASPathEditView(ObjectEditView):
 class ASPathDeleteView(ObjectDeleteView):
     queryset = ASPath.objects.all()
 
+    def get(self, request, *args, **kwargs):
+        # An AS-path in use can be deleted: the confirmation says what stops referencing it
+        response = super().get(request, *args, **kwargs)
+        groups = reference_groups(
+            request, [self.get_object(**kwargs)], references=aspath_references
+        )
+        marker = b'<div class="modal-body">'
+        if groups and getattr(response, 'content', None) and marker in response.content:
+            warning = render_to_string(
+                'netbox_routing_protocols/panels/prefix_list_references.html',
+                {'groups': groups, 'kind': _('AS-path')},
+                request=request,
+            )
+            response.content = response.content.replace(
+                marker, marker + warning.encode(), 1
+            )
+        return response
+
 
 @register_model_view(ASPath, name='bulk_edit', detail=False)
 class ASPathBulkEditView(BulkEditView):
@@ -794,6 +813,19 @@ class ASPathBulkDeleteView(BulkDeleteView):
     queryset = ASPath.objects.all()
     filterset = ASPathFilterSet
     table = ASPathTable
+
+    def post(self, request, **kwargs):
+        # The confirmation page of the selection says what stops referencing the AS-paths
+        if '_confirm' not in request.POST:
+            if request.POST.get('_all'):
+                aspaths = self.filterset(request.GET, ASPath.objects.all()).qs
+            else:
+                pks = [int(pk) for pk in request.POST.getlist('pk')]
+                aspaths = ASPath.objects.filter(pk__in=pks)
+            groups = reference_groups(request, aspaths, references=aspath_references)
+            if groups:
+                messages.warning(request, references_message(groups, kind='AS-paths'))
+        return super().post(request, **kwargs)
 
 
 @register_model_view(ASPath, name='entries')

@@ -165,7 +165,15 @@ attributes and *set* others.
 An AS-path list filters routes by the sequence of autonomous systems they crossed (the BGP `AS_PATH`
 attribute, [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) §5.1.2). Each entry has a **sequence**,
 an **action** (permit or deny) and a **pattern**: a regular expression in the syntax of your
-platform. The pattern is not validated, because every vendor's regex dialect differs.
+platform. The plugin does not pick a vendor dialect, so it checks only what does not depend on
+one: the pattern is not empty, its parentheses, brackets and `{}` repetitions are balanced, and
+every AS number written in it fits the 32-bit AS_PATH ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)),
+in plain (`0`..`4294967295`) or asdot (`1.10`, each part up to `65535`,
+[RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)) notation. The sequence goes from `1` to
+`4294967294`, the same range as a prefix list.
+
+An AS-path that route map entries use **can be deleted**: the confirmation (single and bulk)
+lists every object that refers to it, and those objects simply stop matching on it.
 
 ## Communities
 
