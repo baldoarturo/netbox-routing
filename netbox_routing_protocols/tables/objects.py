@@ -94,6 +94,7 @@ class PrefixListEntryTable(NetBoxTable):
             'prefix',
             'ge',
             'le',
+            'description',
             'actions',
         )
 
