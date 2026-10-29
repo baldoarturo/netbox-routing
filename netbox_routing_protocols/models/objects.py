@@ -357,9 +357,14 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
         verbose_name='Route Policy',
     )
     action = models.CharField(max_length=6, choices=ActionChoices)
-    sequence = models.PositiveSmallIntegerField()
-    flow_control = models.PositiveSmallIntegerField(
-        verbose_name=_('Flow Control (Continue)'), null=True, blank=True
+    sequence = models.PositiveBigIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(4294967294)],
+    )
+    flow_control = models.PositiveBigIntegerField(
+        verbose_name=_('Flow Control (Continue)'),
+        null=True,
+        blank=True,
+        validators=[MaxValueValidator(4294967294)],
     )
     match_community_list = models.ManyToManyField(
         to=CommunityList,

@@ -666,6 +666,32 @@ class RoutePolicyEntryTestCase(TestCase):
         cls.route_policy.full_clean()
         cls.route_policy.save()
 
+    def test_sequence_range(self):
+        for sequence, valid in (
+            (0, False),
+            (1, True),
+            (32768, True),
+            (4294967294, True),
+            (4294967295, False),
+        ):
+            with self.subTest(sequence):
+                entry = RoutePolicyEntry(
+                    route_policy=self.route_policy,
+                    action='permit',
+                    sequence=sequence,
+                    flow_control=sequence,
+                )
+                if valid:
+                    entry.full_clean()
+                    entry.save()
+                    entry.refresh_from_db()
+                    self.assertEqual(entry.sequence, sequence)
+                    entry.delete()
+                else:
+                    with self.assertRaises(ValidationError) as ctx:
+                        entry.full_clean()
+                    self.assertIn('sequence', ctx.exception.message_dict)
+
     def test_route_policy_entry(self):
         for seq, pattern in (
             (1, '10.0.1.0/24'),

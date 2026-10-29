@@ -70,6 +70,12 @@ class PrefixListEntryType(PrimaryObjectType):
 @strawberry_django.type(models.RoutePolicy, fields='__all__', filters=RoutePolicyFilter)
 class RoutePolicyType(PrimaryObjectType):
     name: str
+    route_policy_entries: list[
+        Annotated[
+            "RoutePolicyEntryType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
 
 
 @strawberry_django.type(
@@ -79,35 +85,38 @@ class RoutePolicyType(PrimaryObjectType):
     select_related=[
         'route_policy',
     ],
+    prefetch_related=[
+        'match_prefix_list',
+        'match_community_list',
+        'match_community',
+        'match_aspath',
+    ],
 )
 class RoutePolicyEntryType(PrimaryObjectType):
     route_policy: Annotated[
         "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     action: str
-    sequence: int
-    match_prefix_list: (
+    sequence: BigInt
+    flow_control: BigInt | None
+    match_prefix_list: list[
         Annotated[
             "PrefixListType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
-        | None
-    )
-    match_community_list: (
+    ]
+    match_community_list: list[
         Annotated[
             "CommunityListType",
             strawberry.lazy('netbox_routing_protocols.graphql.types'),
         ]
-        | None
-    )
-    match_community: (
+    ]
+    match_community: list[
         Annotated[
             "CommunityType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
-        | None
-    )
-    match_aspath: (
+    ]
+    match_aspath: list[
         Annotated[
             "ASPathType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
-        | None
-    )
+    ]

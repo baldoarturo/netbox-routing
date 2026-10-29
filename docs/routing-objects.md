@@ -164,11 +164,19 @@ attributes and *set* others.
 | Field | Meaning |
 | --- | --- |
 | Route policy | Name of the map. |
-| Sequence | Evaluation order. |
+| Sequence | Evaluation order, 1 to 4294967294 (the range routers accept; 0 is not valid). |
 | Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route policies and BGP policies that use the list only decide *where* it is applied. |
-| Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`. |
+| Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`; 0 means the next entry. It can go up to 4294967294, like the sequence. |
 | Match prefix list / community list / community / AS path | Link the entry to the NetBox objects it matches on. |
 | Match parameters / Set parameters | Free-form **JSON** for everything the links do not cover (for example a local preference to set). The plugin stores it as written; it does not interpret it. |
+
+### Resequencing a route policy
+
+The **Resequence** button on the page of the route policy renumbers its entries **keeping their order**, as it does for prefix lists: first number and step (10 by default), nothing changes if the last number would go over 4294967294, and you need the permission to change route policy entries. In addition, the **continue** of an entry follows the entry it points to: a continue to 30 that becomes 20 is rewritten to 20 (0, "next entry", and a target that does not exist are left alone). Over the API: `PATCH /api/plugins/routing/objects/route-policy/<id>/resequence/` with optional `start` and `step`; it answers `{"changed": <number of entries renumbered>}`.
+
+### Deleting a route policy in use
+
+A route policy that a protocol uses **cannot be deleted**: BGP policy templates and peer address families today, and the import and export policy of every protocol instance later. The delete is refused, in the web interface (single and bulk) and in the API, and the message names the objects that use it. Choose another policy in them, or clear the field, and then delete it. The entries of a policy that is not in use are deleted with it.
 
 ## AS paths
 

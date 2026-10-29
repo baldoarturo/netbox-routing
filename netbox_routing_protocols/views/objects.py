@@ -30,6 +30,7 @@ from utilities.views import (
     register_model_view,
 )
 from netbox_routing_protocols.helpers import aspath as aspath_helpers
+from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     describe_entry,
     evaluate_prefix,
@@ -83,6 +84,10 @@ class ResequenceASPath(ObjectAction):
     permissions_required = {'change'}
     url_kwargs = ['pk']
     template_name = 'netbox_routing_protocols/buttons/resequence.html'
+
+
+class ResequenceRoutePolicy(ResequenceASPath):
+    """Renumber the entries of the route policy"""
 
 
 class DuplicateASPath(DuplicatePrefixList):
@@ -664,6 +669,12 @@ class RoutePolicyListView(ObjectListView):
 class RoutePolicyView(ObjectView):
     queryset = RoutePolicy.objects.all()
     template_name = 'generic/object.html'
+    actions = (
+        ResequenceRoutePolicy,
+        CloneObject,
+        EditObject,
+        DeleteObject,
+    )
     layout = layout.SimpleLayout(
         left_panels=[
             RoutePolicyPanel(),
@@ -688,7 +699,9 @@ class RoutePolicyEntriesView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(route_policy=parent)
+        return self.child_model.objects.filter(route_policy=parent).select_related(
+            'route_policy'
+        )
 
     def get_extra_context(self, request, instance):
         return {
@@ -713,6 +726,55 @@ class RoutePolicyEditView(ObjectEditView):
 @register_model_view(RoutePolicy, name='delete')
 class RoutePolicyDeleteView(ObjectDeleteView):
     queryset = RoutePolicy.objects.all()
+
+
+@register_model_view(RoutePolicy, name='resequence')
+class RoutePolicyResequenceView(ContentTypePermissionRequiredMixin, View):
+    """Renumber the entries of a route policy keeping their order"""
+
+    template_name = 'netbox_routing_protocols/routepolicy_resequence.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.change_routepolicyentry'
+
+    def _source(self, request, pk):
+        return get_object_or_404(
+            RoutePolicy.objects.restrict(request.user, 'view'), pk=pk
+        )
+
+    def _render(self, request, route_policy, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': route_policy,
+                'form': form,
+                'count': route_policy.route_policy_entries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        route_policy = self._source(request, pk)
+        return self._render(request, route_policy, RoutePolicyResequenceForm())
+
+    def post(self, request, pk):
+        route_policy = self._source(request, pk)
+        form = RoutePolicyResequenceForm(request.POST)
+        if form.is_valid():
+            try:
+                changed = route_policy_helpers.resequence(
+                    route_policy, form.cleaned_data['start'], form.cleaned_data['step']
+                )
+            except ValidationError as e:
+                form.add_error(None, e)
+            else:
+                messages.success(
+                    request,
+                    _('Resequenced %(policy)s: %(count)d entries renumbered.')
+                    % {'policy': route_policy, 'count': changed},
+                )
+                return redirect(route_policy.get_absolute_url())
+        return self._render(request, route_policy, form)
 
 
 @register_model_view(RoutePolicy, name='bulk_edit', detail=False)
@@ -743,7 +805,12 @@ class RoutePolicyEntryListView(ObjectListView):
 
 @register_model_view(RoutePolicyEntry)
 class RoutePolicyEntryView(GetRelatedModelsMixin, ObjectView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    queryset = RoutePolicyEntry.objects.select_related('route_policy').prefetch_related(
+        'match_prefix_list',
+        'match_community_list',
+        'match_community',
+        'match_aspath',
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[

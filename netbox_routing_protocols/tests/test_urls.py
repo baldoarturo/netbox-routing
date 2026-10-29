@@ -449,6 +449,7 @@ class URLTestCase(TestCase):
                 'routepolicy_bulk_delete',
                 'routepolicy_changelog',
                 'routepolicy_journal',
+                'routepolicy_resequence',
                 'routepolicyentry_list',
                 'routepolicyentry_add',
                 'routepolicyentry_bulk_edit',
