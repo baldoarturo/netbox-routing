@@ -406,6 +406,7 @@ class URLTestCase(TestCase):
                 'bgpsetting_journal',
                 'bgpsetting_list',
                 'prefixlist_list',
+                'prefixlist_resequence',
                 'prefixlist_add',
                 # 'prefixlist_bulk_import',
                 'prefixlist',

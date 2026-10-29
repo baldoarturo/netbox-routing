@@ -1,5 +1,6 @@
 import netaddr
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Max
 from django.utils.translation import gettext_lazy as _
 
@@ -20,6 +21,7 @@ __all__ = (
     'evaluate_prefix',
     'prefix_list_references',
     'import_overlaps',
+    'resequence',
 )
 
 # Distance between the sequence numbers the module assigns, leaving room to insert
@@ -282,3 +284,45 @@ def import_overlaps(entries):
         if kinds:
             summaries.append((prefix_list, kinds, examples))
     return sorted(summaries, key=lambda summary: summary[0].name.lower())
+
+
+#
+# Resequence
+#
+
+
+def resequence(prefix_list, start=SEQUENCE_STEP, step=SEQUENCE_STEP):
+    """
+    Renumber the entries of the list keeping their order: `start`, then every `step`.
+    Returns how many entries changed. Entries that already have their number are not
+    touched. Done in one transaction: the entries that move go first to numbers above the
+    maximum, so the unique (list, sequence) constraint is never hit half way.
+    """
+    if start < 1 or step < 1:
+        raise ValidationError(_('The first number and the step must be at least 1.'))
+    with transaction.atomic():
+        entries = list(
+            prefix_list.prefix_list_entries.select_for_update().order_by('sequence')
+        )
+        last = start + step * (len(entries) - 1) if entries else start
+        if last > MAX_SEQUENCE:
+            raise ValidationError(
+                _(
+                    'The last number would be %(last)s, over the maximum %(max)s: '
+                    'use a smaller first number or step.'
+                )
+                % {'last': last, 'max': MAX_SEQUENCE}
+            )
+        moves = [
+            (entry, start + step * index)
+            for index, entry in enumerate(entries)
+            if entry.sequence != start + step * index
+        ]
+        # Two steps: out of the way (above the maximum), then to the final number
+        for offset, (entry, _new) in enumerate(moves, start=1):
+            entry.sequence = MAX_SEQUENCE + offset
+            entry.save()
+        for entry, new in moves:
+            entry.sequence = new
+            entry.save()
+    return len(moves)

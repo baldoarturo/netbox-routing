@@ -12,7 +12,12 @@ from extras.models import Tag
 from utilities.testing import APITestCase
 
 from netbox_routing_protocols.forms.objects import PrefixListEntryForm
-from netbox_routing_protocols.helpers.prefix_list import prefix_list_references
+from django.core.exceptions import ValidationError
+
+from netbox_routing_protocols.helpers.prefix_list import (
+    prefix_list_references,
+    resequence,
+)
 from netbox_routing_protocols.models import BGPPolicyTemplate
 from netbox_routing_protocols.models.objects import *
 
@@ -22,6 +27,8 @@ __all__ = (
     'PrefixListViewsTestCase',
     'PrefixListDeleteWarningTestCase',
     'PrefixListDuplicateTestCase',
+    'PrefixListResequenceTestCase',
+    'PrefixListResequenceAPITestCase',
     'PrefixMatchViewTestCase',
 )
 
@@ -475,3 +482,128 @@ class PrefixListDuplicateTestCase(SuperuserMixin, TestCase):
         self.client.force_login(user)
         self.assertEqual(self.client.get(self.url).status_code, 403)
         self.assertEqual(PrefixList.objects.count(), 1)
+
+
+class PrefixListResequenceTestCase(SuperuserMixin, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.prefix_list = PrefixList.objects.create(name='Reseq', family=4)
+        for sequence, prefix in (
+            (3, '10.0.0.0/8'),
+            (4, '172.16.0.0/12'),
+            (200, '192.168.0.0/16'),
+        ):
+            make_entry(cls.prefix_list, sequence, prefix)
+        cls.url = cls.prefix_list.get_absolute_url() + 'resequence/'
+
+    def sequences(self):
+        return list(
+            self.prefix_list.prefix_list_entries.order_by('sequence').values_list(
+                'sequence', 'prefix__prefix'
+            )
+        )
+
+    def test_the_order_is_kept_and_the_numbers_change(self):
+        before = [str(prefix) for sequence, prefix in self.sequences()]
+        self.assertEqual(resequence(self.prefix_list), 3)
+        after = self.sequences()
+        self.assertEqual([sequence for sequence, prefix in after], [10, 20, 30])
+        self.assertEqual([str(prefix) for sequence, prefix in after], before)
+
+    def test_start_and_step(self):
+        resequence(self.prefix_list, start=100, step=5)
+        self.assertEqual([s for s, p in self.sequences()], [100, 105, 110])
+
+    def test_entries_that_have_their_number_are_not_touched(self):
+        resequence(self.prefix_list)
+        self.assertEqual(resequence(self.prefix_list), 0)
+        # moving up over the numbers other entries still have does not collide
+        resequence(self.prefix_list, start=20, step=10)
+        self.assertEqual([s for s, p in self.sequences()], [20, 30, 40])
+
+    def test_the_limit_is_checked_before_changing_anything(self):
+        with self.assertRaises(ValidationError):
+            resequence(self.prefix_list, start=4294967290, step=10)
+        with self.assertRaises(ValidationError):
+            resequence(self.prefix_list, start=0)
+        self.assertEqual([s for s, p in self.sequences()], [3, 4, 200])
+
+    def test_the_page_has_the_button_and_the_form_works(self):
+        self.login()
+        self.assertContains(
+            self.client.get(self.prefix_list.get_absolute_url()), self.url
+        )
+        self.assertContains(self.client.get(self.url), '3 entries')
+        response = self.client.post(self.url, {'start': 10, 'step': 10})
+        self.assertRedirects(response, self.prefix_list.get_absolute_url())
+        self.assertEqual([s for s, p in self.sequences()], [10, 20, 30])
+
+    def test_an_error_is_shown_in_the_form(self):
+        self.login()
+        response = self.client.post(self.url, {'start': 4294967290, 'step': 10})
+        self.assertContains(response, 'over the maximum')
+        self.assertEqual([s for s, p in self.sequences()], [3, 4, 200])
+
+    def test_it_needs_the_permission_to_change_entries(self):
+        self.client.force_login(User.objects.create_user('plain', 'p@example.com', 'x'))
+        self.assertEqual(
+            self.client.post(self.url, {'start': 10, 'step': 10}).status_code, 403
+        )
+        self.assertEqual([s for s, p in self.sequences()], [3, 4, 200])
+
+
+class PrefixListResequenceAPITestCase(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.prefix_list = PrefixList.objects.create(name='Reseq', family=4)
+        make_entry(self.prefix_list, 3, '10.0.0.0/8')
+        make_entry(self.prefix_list, 4, '172.16.0.0/12')
+        self.url = reverse(
+            'plugins-api:netbox_routing_protocols-api:prefixlist-resequence',
+            kwargs={'pk': self.prefix_list.pk},
+        )
+
+    def sequences(self):
+        return list(
+            self.prefix_list.prefix_list_entries.order_by('sequence').values_list(
+                'sequence', flat=True
+            )
+        )
+
+    def test_resequence_with_defaults_and_values(self):
+        self.add_permissions(
+            'netbox_routing_protocols.change_prefixlist',
+            'netbox_routing_protocols.view_prefixlist',
+            'netbox_routing_protocols.change_prefixlistentry',
+        )
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 200)
+        self.assertEqual(response.data, {'changed': 2})
+        self.assertEqual(self.sequences(), [10, 20])
+        response = self.client.patch(
+            self.url, {'start': 100, 'step': 50}, format='json', **self.header
+        )
+        self.assertEqual(self.sequences(), [100, 150])
+
+    def test_invalid_values(self):
+        self.add_permissions(
+            'netbox_routing_protocols.change_prefixlist',
+            'netbox_routing_protocols.view_prefixlist',
+            'netbox_routing_protocols.change_prefixlistentry',
+        )
+        for data in ({'start': 'x'}, {'step': -1}, {'start': 4294967294, 'step': 10}):
+            with self.subTest(data):
+                response = self.client.patch(
+                    self.url, data, format='json', **self.header
+                )
+                self.assertHttpStatus(response, 400)
+        self.assertEqual(self.sequences(), [3, 4])
+
+    def test_it_needs_the_permission_to_change_entries(self):
+        self.add_permissions(
+            'netbox_routing_protocols.change_prefixlist',
+            'netbox_routing_protocols.view_prefixlist',
+        )
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 403)
+        self.assertEqual(self.sequences(), [3, 4])

@@ -98,6 +98,12 @@ EDGE-IN,permit,any,,,,,
 
 The whole import is rolled back if one row is wrong, and the rows are checked with the same rules as the form (family, lengths, sequence). The entries are saved even if they overlap (see below); after the import you get **a summary per list** with how many overlaps of each kind involve the imported entries (each pair counted once, including the entries the list already had) and the first examples.
 
+### Resequencing a list
+
+When the gaps between the sequence numbers are used up, the **Resequence** button on the page of the list renumbers its entries **keeping their order**: it asks for the first number (10 by default) and the step (10 by default), and the entries get the first number and then each next one the step above. The order does not change, so neither does what the list does; the overlap results are the same. Entries that already have their number are left alone, and it refuses to run, changing nothing, if the last number would go over 4294967294. You need the permission to change prefix list entries.
+
+Over the API: `PATCH /api/plugins/routing/objects/prefix-list/<id>/resequence/` with optional `start` and `step`; it answers `{"changed": <number of entries renumbered>}`.
+
 ### Duplicating a prefix list
 
 The **Duplicate** button on the page of a list makes a copy **with all its entries**: a form asks for the name of the copy (it suggests *name copy*) and its description, and the copy keeps the family, comments, tags and owner. Every entry is copied as it is (sequence, action, prefix or Any, GE/LE, description, tags) and keeps pointing to the same IPAM prefixes. The copy has the same address family: the entries of an IPv4 list cannot be copied into an IPv6 one. You need the permission to add prefix lists and prefix list entries.
