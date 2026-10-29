@@ -132,7 +132,7 @@ class ASPathEntryTestCase(TestCase):
             ('[9-0]', False),
             ('^65001{3,2}$', False),
             ('^65001\\', False),
-            ('[[:digit:]]+', False),
+            ('[[:digit:]]+', True),
             ('[[:foo:]]', False),
             ('^4294967296$', False),
             ('(65001|99999999999)', False),
@@ -161,6 +161,7 @@ class ASPathEntryTestCase(TestCase):
         form = ASPathEntryForm()
         self.assertIn('regular expression', form.fields['pattern'].help_text)
         self.assertNotIn('POSIX', form.fields['pattern'].help_text)
+        self.assertNotIn("Python", form.fields['pattern'].help_text)
         self.assertNotIn('Cisco', form.fields['pattern'].help_text)
 
     def test_name_is_unique_ignoring_case(self):

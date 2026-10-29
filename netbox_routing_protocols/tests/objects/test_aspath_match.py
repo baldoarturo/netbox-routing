@@ -4,6 +4,9 @@ from django.urls import reverse
 
 from users.models import User
 
+from unittest import mock
+
+from netbox_routing_protocols.helpers import aspath as aspath_helpers
 from netbox_routing_protocols.helpers.aspath import parse_as_path
 from netbox_routing_protocols.models.objects import *
 
@@ -119,3 +122,42 @@ class ASPathMatchViewTestCase(TestCase):
         )
         response = self.client.get(self.url, {'q': '99'})
         self.assertEqual(response.status_code, 200)
+
+
+class CatastrophicPatternTestCase(TestCase):
+    """A pattern that backtracks without end is cut, it does not hang the page"""
+
+    SLOW = r'(?:\d+ ?)+(?:\d+ ?)+(?:\d+ ?)+(?<=x)'
+    PATH = ' '.join(['65001'] * 300)
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Slow')
+        cls.slow = make_entry(cls.aspath, 10, cls.SLOW)
+        cls.fine = make_entry(cls.aspath, 20, '^65001 ')
+        cls.user = User.objects.create_superuser('root', 'root@example.com', 'x')
+
+    def test_the_slow_entry_is_reported_and_the_others_still_match(self):
+        with mock.patch.object(aspath_helpers, 'MATCH_TIMEOUT', 0.05):
+            results, timed_out = aspath_helpers.evaluate_path(
+                self.PATH, ASPathEntry.objects.select_related('aspath')
+            )
+        self.assertEqual(timed_out, [self.slow])
+        self.assertEqual([entry for entry, effective in results[0][1]], [self.fine])
+
+    def test_the_page_says_which_entries_were_skipped(self):
+        self.client.force_login(self.user)
+        with mock.patch.object(aspath_helpers, 'MATCH_TIMEOUT', 0.05):
+            response = self.client.get(
+                reverse('plugins:netbox_routing_protocols:aspath_match'),
+                {'q': self.PATH},
+            )
+        self.assertContains(response, 'took too long to evaluate')
+        self.assertContains(response, 'Slow 10')
+        self.assertContains(response, '20 permit ^65001 ')
+
+    def test_a_normal_pattern_is_not_reported(self):
+        _results, timed_out = aspath_helpers.evaluate_path(
+            '65001 65002', ASPathEntry.objects.select_related('aspath')
+        )
+        self.assertEqual(timed_out, [])

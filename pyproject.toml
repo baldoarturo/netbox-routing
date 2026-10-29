@@ -45,6 +45,7 @@ classifiers = [
 ]
 dependencies = [
     'django-polymorphic',
+    'regex',
 ]
 
 [project.urls]

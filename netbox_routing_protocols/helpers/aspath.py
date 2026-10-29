@@ -1,6 +1,6 @@
 import re
-import warnings
 
+import regex
 from django.core.exceptions import ValidationError
 from django.db.models import Max
 from django.utils.translation import gettext_lazy as _
@@ -16,6 +16,10 @@ from netbox_routing_protocols.helpers.prefix_list import (
 MAX_ASN = 4294967295
 MAX_ASDOT_PART = 65535
 
+# How long a pattern may take on a path in the match tool, in seconds: a pattern that
+# backtracks without end (catastrophic) is cut instead of hanging the server
+MATCH_TIMEOUT = 0.2
+
 # What is not an AS number inside a pattern: escapes (\\1, \\d), bracket expressions
 # ([0-9]) and repetitions ({2,3})
 _NOT_NUMBERS = re.compile(r'\\.|\[(?:\\.|[^\]\\])*\]|\{\d*,?\d*\}')
@@ -24,13 +28,13 @@ _NUMBER = re.compile(r'\d+')
 
 def validate_pattern(pattern):
     """
-    Check an AS-path pattern: a regular expression of Python (the ``re`` module, the one the
-    match tool runs) over the AS numbers of the path, written as text separated by spaces.
-    The plugin does not support any vendor dialect. It returns a list of error messages
-    (empty when the pattern is valid): the pattern cannot be empty, only printable ASCII is
-    accepted (Unicode digits are not AS numbers), it must compile without warnings (a POSIX
-    class such as ``[[:digit:]]`` would silently mean something else), and every AS number
-    written in it must fit the 32 bit AS_PATH (RFC 6793). Digits in escapes, bracket
+    Check an AS-path pattern: a regular expression of the ``regex`` module (the engine the
+    match tool runs, a superset of the ``re`` of Python that also reads the POSIX classes
+    such as ``[[:digit:]]``) over the AS numbers of the path, written as text separated by
+    spaces. The plugin does not support any vendor dialect. It returns a list of error
+    messages (empty when the pattern is valid): the pattern cannot be empty, only printable
+    ASCII is accepted (Unicode digits are not AS numbers), it must compile, and every AS
+    number written in it must fit the 32 bit AS_PATH (RFC 6793). Digits in escapes, bracket
     expressions and repetitions are not AS numbers; the dot is the regular expression
     wildcard, so an asdot number (RFC 5396) is written with an escaped dot.
     """
@@ -40,13 +44,9 @@ def validate_pattern(pattern):
         return ['The pattern can only have printable ASCII characters.']
 
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter('error')
-            re.compile(pattern)
-    except re.error as e:
+        regex.compile(pattern)
+    except (regex.error, RecursionError, OverflowError) as e:
         return [f'Invalid regular expression: {e}.']
-    except Warning as e:
-        return [f'Ambiguous regular expression: {e}.']
 
     return [
         f'AS number {value} is above {MAX_ASN} (32 bits, RFC 6793).'
@@ -118,26 +118,36 @@ def parse_as_path(text):
 
 
 def entry_matches(entry, path):
-    """Whether the pattern of the entry matches the AS_PATH text (see parse_as_path)"""
+    """
+    Whether the pattern of the entry matches the AS_PATH text (see parse_as_path). Returns
+    None when the pattern takes longer than MATCH_TIMEOUT, and False when the engine does
+    not read it (a pattern saved before it was validated).
+    """
     try:
-        return re.search(entry.pattern, path) is not None
-    except re.error:
-        # a pattern saved before it was validated, that the engine does not read
+        return regex.search(entry.pattern, path, timeout=MATCH_TIMEOUT) is not None
+    except TimeoutError:
+        return None
+    except regex.error:
         return False
 
 
 def evaluate_path(path, entries):
     """
-    Evaluate an AS_PATH text against entries of any number of AS-paths: a list of
-    (aspath, [(entry, effective)]) by name, with the entries that match it by sequence. The
-    first one of each AS-path is the effective: the action of the AS-path for that path.
-    AS-paths with no matching entry are not returned.
+    Evaluate an AS_PATH text against entries of any number of AS-paths: a tuple of the list
+    of (aspath, [(entry, effective)]) by name, with the entries that match it by sequence,
+    and the list of the entries that timed out. The first matching entry of each AS-path is
+    the effective: the action of the AS-path for that path. AS-paths with no matching entry
+    are not returned.
     """
     results = {}
+    timed_out = []
     for entry in sorted(entries, key=lambda e: (e.aspath.name.lower(), e.sequence)):
-        if entry_matches(entry, path):
+        matched = entry_matches(entry, path)
+        if matched is None:
+            timed_out.append(entry)
+        elif matched:
             results.setdefault(entry.aspath, []).append(entry)
     return [
         (aspath, [(entry, index == 0) for index, entry in enumerate(matches)])
         for aspath, matches in results.items()
-    ]
+    ], timed_out
