@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import strawberry
 import strawberry_django
@@ -8,6 +8,12 @@ from strawberry_django import StrFilterLookup
 from netbox.graphql.filter_lookups import BigIntegerLookup
 from netbox.graphql.filters import PrimaryModelFilter
 from netbox_routing_protocols import models
+
+if TYPE_CHECKING:
+    from netbox_routing_protocols.graphql.community.filters import (
+        CommunityFilter,
+        CommunityListFilter,
+    )
 
 __all__ = (
     'ASPathFilter',
@@ -73,3 +79,34 @@ class RoutePolicyEntryFilter(PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     route_policy_id: ID | None = strawberry_django.filter_field()
+    sequence: BigIntegerLookup | None = strawberry_django.filter_field()
+    action: StrFilterLookup | None = strawberry_django.filter_field()
+    flow_control: BigIntegerLookup | None = strawberry_django.filter_field()
+    match_prefix_list: (
+        Annotated[
+            'PrefixListFilter',
+            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    match_community_list: (
+        Annotated[
+            'CommunityListFilter',
+            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    match_community: (
+        Annotated[
+            'CommunityFilter',
+            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    match_aspath: (
+        Annotated[
+            'ASPathFilter',
+            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
+        ]
+        | None
+    ) = strawberry_django.filter_field()

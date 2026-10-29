@@ -14,6 +14,14 @@ from netbox_routing_protocols.helpers.prefix_list import (
 )
 from netbox_routing_protocols.models.objects import *
 
+# the lists an entry matches on, read once for all the entries of a page
+ENTRY_MATCHES = (
+    'match_prefix_list',
+    'match_community_list',
+    'match_community',
+    'match_aspath',
+)
+
 __all__ = (
     'PrefixListViewSet',
     'PrefixListEntryViewSet',
@@ -92,7 +100,9 @@ class RoutePolicyViewSet(NetBoxModelViewSet):
 
 
 class RoutePolicyEntryViewSet(NetBoxModelViewSet):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    queryset = RoutePolicyEntry.objects.select_related('route_policy').prefetch_related(
+        *ENTRY_MATCHES
+    )
     serializer_class = RoutePolicyEntrySerializer
     filterset_class = filtersets.RoutePolicyEntryFilterSet
 

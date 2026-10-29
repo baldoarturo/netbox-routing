@@ -699,7 +699,9 @@ class RoutePolicyEntriesView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(route_policy=parent)
+        return self.child_model.objects.filter(route_policy=parent).select_related(
+            'route_policy'
+        )
 
     def get_extra_context(self, request, instance):
         return {
@@ -803,7 +805,12 @@ class RoutePolicyEntryListView(ObjectListView):
 
 @register_model_view(RoutePolicyEntry)
 class RoutePolicyEntryView(GetRelatedModelsMixin, ObjectView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    queryset = RoutePolicyEntry.objects.select_related('route_policy').prefetch_related(
+        'match_prefix_list',
+        'match_community_list',
+        'match_community',
+        'match_aspath',
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[

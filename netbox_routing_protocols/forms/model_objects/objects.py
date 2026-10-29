@@ -393,11 +393,6 @@ class RoutePolicyForm(PrimaryModelForm):
 
 
 class RoutePolicyEntryForm(PrimaryModelForm):
-    flow_control = forms.IntegerField(
-        required=False,
-        label=_("Continue"),
-        help_text=_("None = Not enabled; 0 = Next Entry; >0 = Sequence Number"),
-    )
     match_community = DynamicModelMultipleChoiceField(
         queryset=Community.objects.all(),
         required=False,
@@ -463,15 +458,10 @@ class RoutePolicyEntryForm(PrimaryModelForm):
             'tags',
             'owner',
         )
-
-    def save(self, commit=True):
-        result = super().save(commit)
-
-        self.instance.match_community.set(self.cleaned_data['match_community'])
-        self.instance.match_community_list.set(
-            self.cleaned_data['match_community_list']
-        )
-        self.instance.match_prefix_list.set(self.cleaned_data['match_prefix_list'])
-        self.instance.match_aspath.set(self.cleaned_data['match_aspath'])
-
-        return result
+        labels = {'flow_control': _('Continue')}
+        help_texts = {
+            'flow_control': _(
+                'Empty = not enabled; 0 = next entry; otherwise the sequence of the '
+                'entry to continue at'
+            )
+        }

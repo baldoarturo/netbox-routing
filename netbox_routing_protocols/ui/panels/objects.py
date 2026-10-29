@@ -67,7 +67,7 @@ class RoutePolicyEntryMatchPanel(panels.ObjectAttributesPanel):
         'match_prefix_list', linkify=True, label=_('Prefix List')
     )
     match_aspath = attrs.RelatedObjectListAttr(
-        'match_as_path_list', linkify=True, label=_('AS Path List')
+        'match_aspath', linkify=True, label=_('AS Path List')
     )
     match_community_list = attrs.RelatedObjectListAttr(
         'match_community_list', linkify=True, label=_('Community List')
