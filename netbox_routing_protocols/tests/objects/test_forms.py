@@ -276,6 +276,16 @@ class PrefixListEntryTestCase(TestCase):
             self.assertTrue(form.is_valid(), form.errors)
             self.assertEqual(form.save().sequence, expected)
 
+    def test_sequence_cannot_be_emptied_when_editing(self):
+        entry = PrefixListEntryForm(data=self._data(sequence=5))
+        entry = entry.save() if entry.is_valid() else None
+        form = PrefixListEntryForm(data=self._data(sequence=''), instance=entry)
+        self.assertTrue(form.fields['sequence'].required)
+        self.assertFalse(form.is_valid())
+        self.assertIn('sequence', form.errors)
+        entry.refresh_from_db()
+        self.assertEqual(entry.sequence, 5)
+
     def test_arbitrary_sequence_is_kept(self):
         form = PrefixListEntryForm(data=self._data(sequence=7))
         self.assertTrue(form.is_valid(), form.errors)

@@ -58,10 +58,6 @@ def next_sequence(prefix_list, after=0):
 #
 
 
-def _max_length(family):
-    return 32 if family == 4 else 128
-
-
 def entry_network(entry):
     """The network of an entry: its IPAM prefix, or the all zeros one for Any"""
     if entry.any_prefix:
@@ -85,7 +81,7 @@ def match_range(entry, network=None):
     if entry.le is not None:
         highest = entry.le
     elif entry.ge is not None:
-        highest = _max_length(network.version)
+        highest = any_le(network.version)
     else:
         highest = network.prefixlen
     return lowest, highest
