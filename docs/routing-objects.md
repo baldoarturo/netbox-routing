@@ -63,6 +63,40 @@ The REST API (`/api/plugins/routing/objects/prefix-list-entry/`) follows the sam
 - **`eq`** (write only, not in the form) sets GE and LE to the same length.
 - The response of a create or update carries a **`warnings`** list with the overlaps described below, so scripts can show them. The entry is saved anyway.
 
+### Importing lists and entries
+
+**Prefix Lists** and **Prefix List Entries** have an *Import* button in the menu (CSV, JSON or YAML, like any NetBox object). Import the lists first, then their entries.
+
+Prefix lists:
+
+```
+name,family,description
+EDGE-IN,4,Routes accepted from the edge
+EDGE-IN-V6,6,
+```
+
+`family` is 4 or 6 (4 when empty).
+
+Entries:
+
+```
+prefix_list,action,prefix,sequence,ge,le,eq,vrf
+EDGE-IN,permit,10.0.0.0/8,,16,24,,
+EDGE-IN,deny,192.0.2.0/24,,,,,
+EDGE-IN,permit,any,,,,,
+```
+
+| Column | Meaning |
+| --- | --- |
+| `prefix_list` | Name of an existing list. |
+| `action` | `permit` or `deny`. |
+| `prefix` | A prefix that **already exists in IPAM**, written as a CIDR, or `any`. Nothing is created in IPAM: a prefix that does not exist is an error. |
+| `vrf` | Name of the VRF of the IPAM prefix. Only needed when the same CIDR exists in several VRFs; without it that is an error. |
+| `sequence` | Empty takes the next free one of the list (steps of 10, consecutive inside one import). |
+| `ge`, `le`, `eq` | As in the form. `eq` sets GE and LE to one length, and cannot be combined with them. Leave all three empty to match the prefix itself (with `any`, every prefix). |
+
+The whole import is rolled back if one row is wrong, and the rows are checked with the same rules as the form (family, lengths, sequence). The overlap warnings are shown only when you add entries one by one.
+
 ### Overlap warnings
 
 When you save an entry the plugin compares it with the other entries of the list and warns (it still

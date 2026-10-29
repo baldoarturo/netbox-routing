@@ -1,6 +1,7 @@
 from .community import *
 from .eigrp import *
 from .isis import *
+from .objects import *
 from .ospf import *
 from .static import *
 
@@ -24,6 +25,9 @@ __all__ = (
     'ISISFlexAlgoImportForm',
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
+    # Prefix lists
+    'PrefixListImportForm',
+    'PrefixListEntryImportForm',
     # OSPF
     'OSPFInstanceImportForm',
     'OSPFAreaImportForm',

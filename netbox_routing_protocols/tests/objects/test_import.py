@@ -1,0 +1,125 @@
+from django.test import TestCase
+from django.urls import reverse
+
+from ipam.models import Prefix, VRF
+from users.models import User
+
+from netbox_routing_protocols.forms.bulk_import import (
+    PrefixListEntryImportForm,
+    PrefixListImportForm,
+)
+from netbox_routing_protocols.models.objects import PrefixList, PrefixListEntry
+
+__all__ = ('PrefixListImportTestCase',)
+
+
+class PrefixListImportTestCase(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.v4 = PrefixList.objects.create(name='v4', family=4)
+        cls.v6 = PrefixList.objects.create(name='v6', family=6)
+        cls.prefix = Prefix.objects.create(prefix='10.0.0.0/8')
+        cls.v6_prefix = Prefix.objects.create(prefix='2001:db8::/32')
+
+    def entry(self, **kwargs):
+        data = {'prefix_list': 'v4', 'action': 'permit', 'prefix': '10.0.0.0/8'}
+        data.update(kwargs)
+        return PrefixListEntryImportForm(data=data)
+
+    def test_list_family_defaults_to_ipv4(self):
+        form = PrefixListImportForm(data={'name': 'new'})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().family, 4)
+        form = PrefixListImportForm(data={'name': 'new6', 'family': '6'})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().family, 6)
+
+    def test_entry_by_cidr_takes_the_next_sequence(self):
+        for expected in (10, 20):
+            form = self.entry()
+            self.assertTrue(form.is_valid(), form.errors)
+            entry = form.save()
+            self.assertEqual((entry.prefix, entry.sequence), (self.prefix, expected))
+
+    def test_explicit_sequence_ge_le_and_eq(self):
+        form = self.entry(sequence='7', ge='16', le='24')
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual((entry.sequence, entry.ge, entry.le), (7, 16, 24))
+        form = self.entry(eq='16')
+        self.assertTrue(form.is_valid(), form.errors)
+        entry = form.save()
+        self.assertEqual((entry.ge, entry.le), (16, 16))
+        self.assertFalse(self.entry(eq='16', ge='9').is_valid())
+
+    def test_any(self):
+        for name, prefix_list, le in (('v4', self.v4, 32), ('v6', self.v6, 128)):
+            form = self.entry(prefix_list=name, prefix='ANY')
+            self.assertTrue(form.is_valid(), form.errors)
+            entry = form.save()
+            self.assertTrue(entry.any_prefix)
+            self.assertIsNone(entry.prefix)
+            self.assertEqual(entry.le, le)
+
+    def test_the_prefix_must_exist_in_ipam(self):
+        form = self.entry(prefix='192.0.2.0/24')
+        self.assertFalse(form.is_valid())
+        self.assertIn('create it first', str(form.errors['prefix']))
+        self.assertFalse(Prefix.objects.filter(prefix='192.0.2.0/24').exists())
+
+    def test_an_invalid_prefix_is_a_form_error(self):
+        form = self.entry(prefix='not-a-prefix')
+        self.assertFalse(form.is_valid())
+        self.assertIn('prefix', form.errors)
+
+    def test_the_family_of_the_list_is_checked(self):
+        form = self.entry(prefix_list='v6')
+        self.assertFalse(form.is_valid())
+
+    def test_the_same_cidr_in_several_vrfs_needs_the_vrf(self):
+        vrf = VRF.objects.create(name='red')
+        other = Prefix.objects.create(prefix='10.0.0.0/8', vrf=vrf)
+        form = self.entry()
+        self.assertFalse(form.is_valid())
+        self.assertIn('vrf', str(form.errors['prefix']))
+        form = self.entry(vrf='red')
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().prefix, other)
+
+    def test_import_view_with_csv(self):
+        user = User.objects.create_superuser('importer', 'i@example.com', 'x')
+        self.client.force_login(user)
+        csv = (
+            'prefix_list,action,prefix,sequence,le\n'
+            'v4,permit,10.0.0.0/8,,24\n'
+            'v4,deny,any,,\n'
+            'v6,permit,2001:db8::/32,5,48\n'
+        )
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:prefixlistentry_bulk_import'),
+            {'data': csv, 'format': 'csv', 'csv_delimiter': ','},
+        )
+        self.assertEqual(response.status_code, 302, getattr(response, 'context', None))
+        self.assertEqual(
+            list(
+                PrefixListEntry.objects.order_by(
+                    'prefix_list__name', 'sequence'
+                ).values_list('prefix_list__name', 'sequence', 'action', 'le')
+            ),
+            [('v4', 10, 'permit', 24), ('v4', 20, 'deny', 32), ('v6', 5, 'permit', 48)],
+        )
+
+    def test_list_import_view(self):
+        user = User.objects.create_superuser('importer', 'i@example.com', 'x')
+        self.client.force_login(user)
+        response = self.client.post(
+            reverse('plugins:netbox_routing_protocols:prefixlist_bulk_import'),
+            {
+                'data': 'name,family\nfrom-csv,6\n',
+                'format': 'csv',
+                'csv_delimiter': ',',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(PrefixList.objects.get(name='from-csv').family, 6)
