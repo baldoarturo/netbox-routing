@@ -19,6 +19,14 @@ today BGP policy templates and peer address families point at prefix lists and r
 A prefix list is an ordered list of rules; each rule says *permit* or *deny* the prefixes it matches.
 Routers evaluate the entries in sequence order and stop at the first that matches.
 
+For example, a bogon filter has one list per family. Each one denies the special purpose ranges (every entry with *LE* at the longest length, so it also covers the more specific prefixes) and ends with a *permit* of *Any* so that it can be used as an inbound filter:
+
+![The list of prefix lists, with the family and the number of entries of each one](images/prefixlist-list.png)
+
+![The page of an IPv4 bogon list, with its entries and their RFC in the description](images/prefixlist-bogons-v4.png)
+
+![The page of an IPv6 bogon list](images/prefixlist-bogons-v6.png)
+
 ### Prefix list
 
 | Field | Meaning |
