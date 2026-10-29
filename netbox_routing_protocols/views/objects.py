@@ -1,5 +1,6 @@
 import netaddr
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
@@ -34,6 +35,7 @@ from netbox_routing_protocols.helpers.prefix_list import (
     find_overlaps,
     import_overlaps,
     prefix_list_references,
+    resequence,
 )
 from netbox_routing_protocols.filtersets.objects import *
 from netbox_routing_protocols.forms.objects import *
@@ -66,10 +68,26 @@ class DuplicatePrefixList(ObjectAction):
     template_name = 'netbox_routing_protocols/buttons/duplicate.html'
 
 
+class ResequencePrefixList(ObjectAction):
+    """Renumber the entries of the list"""
+
+    name = 'resequence'
+    label = _('Resequence')
+    permissions_required = {'change'}
+    url_kwargs = ['pk']
+    template_name = 'netbox_routing_protocols/buttons/resequence.html'
+
+
 @register_model_view(PrefixList)
 class PrefixListView(GetRelatedModelsMixin, ObjectView):
     queryset = PrefixList.objects.all()
-    actions = (DuplicatePrefixList, CloneObject, EditObject, DeleteObject)
+    actions = (
+        DuplicatePrefixList,
+        ResequencePrefixList,
+        CloneObject,
+        EditObject,
+        DeleteObject,
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -198,6 +216,55 @@ class PrefixListDuplicateView(ContentTypePermissionRequiredMixin, View):
             },
         )
         return redirect(copy.get_absolute_url())
+
+
+@register_model_view(PrefixList, name='resequence')
+class PrefixListResequenceView(ContentTypePermissionRequiredMixin, View):
+    """Renumber the entries of a prefix list keeping their order"""
+
+    template_name = 'netbox_routing_protocols/prefixlist_resequence.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.change_prefixlistentry'
+
+    def _source(self, request, pk):
+        return get_object_or_404(
+            PrefixList.objects.restrict(request.user, 'view'), pk=pk
+        )
+
+    def _render(self, request, prefix_list, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': prefix_list,
+                'form': form,
+                'count': prefix_list.prefix_list_entries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        prefix_list = self._source(request, pk)
+        return self._render(request, prefix_list, PrefixListResequenceForm())
+
+    def post(self, request, pk):
+        prefix_list = self._source(request, pk)
+        form = PrefixListResequenceForm(request.POST)
+        if form.is_valid():
+            try:
+                changed = resequence(
+                    prefix_list, form.cleaned_data['start'], form.cleaned_data['step']
+                )
+            except ValidationError as e:
+                form.add_error(None, e)
+            else:
+                messages.success(
+                    request,
+                    _('Resequenced %(list)s: %(count)d entries renumbered.')
+                    % {'list': prefix_list, 'count': changed},
+                )
+                return redirect(prefix_list.get_absolute_url())
+        return self._render(request, prefix_list, form)
 
 
 @register_model_view(PrefixList, name='entries')
