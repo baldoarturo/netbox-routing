@@ -11,6 +11,7 @@ __all__ = (
 
 class CommunityListPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
+    tenant = attrs.RelatedObjectAttr('tenant', linkify=True, label=_('Tenant'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
@@ -18,7 +19,8 @@ class CommunityPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
     community = attrs.TextAttr('community', label=_('Community'))
     status = attrs.ChoiceAttr('status', label=_('Status'))
-    role = attrs.ChoiceAttr('role', label=_('Role'))
+    role = attrs.RelatedObjectAttr('role', linkify=True, label=_('Role'))
+    tenant = attrs.RelatedObjectAttr('tenant', linkify=True, label=_('Tenant'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 

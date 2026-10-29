@@ -109,6 +109,7 @@ class CommunityListEntryFilterSet(PrimaryModelFilterSet):
     class Meta:
         model = CommunityListEntry
         fields = (
+            'action',
             'community_list_id',
             'community_list',
             'community_id',

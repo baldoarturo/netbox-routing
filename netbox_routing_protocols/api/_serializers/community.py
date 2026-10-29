@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
+from netbox.api.fields import ChoiceField
 from ipam.api.serializers_.roles import RoleSerializer
+from netbox_routing_protocols.choices import ActionChoices, CommunityStatusChoices
 from netbox.api.serializers import NetBoxModelSerializer
 from tenancy.api.serializers_.tenants import TenantSerializer
 
@@ -17,6 +19,7 @@ class CommunitySerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:community-detail'
     )
+    status = ChoiceField(choices=CommunityStatusChoices, required=False)
     role = RoleSerializer(nested=True, required=False)
     tenant = TenantSerializer(nested=True, required=False)
 
@@ -61,6 +64,9 @@ class CommunityListEntrySerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:communitylistentry-detail'
     )
+    community_list = CommunityListSerializer(nested=True)
+    community = CommunitySerializer(nested=True)
+    action = ChoiceField(choices=ActionChoices)
 
     class Meta:
         model = CommunityListEntry
