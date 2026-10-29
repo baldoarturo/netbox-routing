@@ -414,3 +414,15 @@ class RouteMapEntryTestCase(TestCase):
         self.assertFalse(form.is_valid())
         with self.assertRaises(ValueError):
             form.save()
+
+
+class PrefixListFormWidgetsTestCase(TestCase):
+    def test_family_radios_are_not_form_controls(self):
+        html = str(PrefixListForm()['family'])
+        self.assertEqual(html.count('type="radio"'), 2)
+        self.assertEqual(html.count('form-check-input'), 2)
+        self.assertNotIn('form-control', html)
+
+    def test_a_new_entry_permits_by_default(self):
+        form = PrefixListEntryForm()
+        self.assertEqual(form['action'].value(), ActionChoices.PERMIT)

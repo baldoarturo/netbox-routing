@@ -297,3 +297,14 @@ class PrefixMatchViewTestCase(SuperuserMixin, TestCase):
         self.assertEqual(
             self.client.get(self.url, {'q': '10.0.0.0/8'}).status_code, 403
         )
+
+
+class PrefixListTablesTestCase(SuperuserMixin, TestCase):
+    def test_the_tables_have_the_row_buttons(self):
+        self.login()
+        PrefixList.objects.create(name='Buttons', family=4)
+        for name in ('prefixlist_list', 'prefixlistentry_list'):
+            table = self.client.get(
+                reverse(f'plugins:netbox_routing_protocols:{name}')
+            ).context['table']
+            self.assertIn('actions', [column.name for column in table.columns])

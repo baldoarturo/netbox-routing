@@ -40,8 +40,16 @@ class PrefixListTable(NetBoxTable):
             'tags',
             'created',
             'last_updated',
+            'actions',
         )
-        default_columns = ('pk', 'name', 'family', 'entry_count', 'description')
+        default_columns = (
+            'pk',
+            'name',
+            'family',
+            'entry_count',
+            'description',
+            'actions',
+        )
 
 
 class PrefixListEntryTable(NetBoxTable):
@@ -75,6 +83,7 @@ class PrefixListEntryTable(NetBoxTable):
             'tags',
             'created',
             'last_updated',
+            'actions',
         )
         default_columns = (
             'pk',
@@ -85,6 +94,7 @@ class PrefixListEntryTable(NetBoxTable):
             'prefix',
             'ge',
             'le',
+            'actions',
         )
 
 
