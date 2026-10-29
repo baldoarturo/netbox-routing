@@ -85,7 +85,7 @@ class RoutePolicyEntryType(PrimaryObjectType):
         "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     action: str
-    sequence: int
+    sequence: BigInt
     match_prefix_list: (
         Annotated[
             "PrefixListType", strawberry.lazy('netbox_routing_protocols.graphql.types')

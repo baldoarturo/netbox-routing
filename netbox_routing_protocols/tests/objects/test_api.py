@@ -647,3 +647,15 @@ class RoutePolicyEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestC
                 'match': {'tags': 5},
             },
         ]
+
+    def test_sequence_range(self):
+        self.add_permissions('netbox_routing_protocols.add_routepolicyentry')
+        data = {'route_policy': self.route_policy[1].pk, 'action': 'permit'}
+        for sequence, status in ((4294967294, 201), (0, 400), (4294967295, 400)):
+            response = self.client.post(
+                self._get_list_url(),
+                {**data, 'sequence': sequence},
+                format='json',
+                **self.header,
+            )
+            self.assertHttpStatus(response, status)
