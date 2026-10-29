@@ -11,6 +11,10 @@ A plugin for tracking all kinds of routing information
 > [!WARNING]
 > **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet.
 
+## About this project
+
+This plugin was created by Daniel Sheppard ([`dansheps`](https://github.com/dansheps/netbox-routing)). This repository is a fork that is developed with the help of AI, using [Claude Code](https://claude.com/claude-code) to speed up development: Claude writes the code, tests and documentation, and the maintainer sets the direction and reviews and approves the changes.
+
 ## Documentation
 
 The documentation for operators and users (every protocol and feature, with the RFC it comes from) is in [`docs/`](docs/index.md).
