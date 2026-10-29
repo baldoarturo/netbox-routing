@@ -341,12 +341,19 @@ class PrefixMatchViewTestCase(SuperuserMixin, TestCase):
 class PrefixListTablesTestCase(SuperuserMixin, TestCase):
     def test_the_tables_have_the_row_buttons(self):
         self.login()
-        PrefixList.objects.create(name='Buttons', family=4)
+        prefix_list = PrefixList.objects.create(name='Buttons', family=4)
         for name in ('prefixlist_list', 'prefixlistentry_list'):
             table = self.client.get(
                 reverse(f'plugins:netbox_routing_protocols:{name}')
             ).context['table']
             self.assertIn('actions', [column.name for column in table.columns])
+        # the description of an entry shows in the entries table without configuring it
+        make_entry(prefix_list, 10, '10.0.0.0/8', description='Private use')
+        for url in (
+            reverse('plugins:netbox_routing_protocols:prefixlistentry_list'),
+            prefix_list.get_absolute_url() + 'entries/',
+        ):
+            self.assertContains(self.client.get(url), 'Private use')
 
 
 class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
