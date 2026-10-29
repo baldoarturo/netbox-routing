@@ -21,18 +21,14 @@ Routers evaluate the entries in sequence order and stop at the first that matche
 
 For example, a bogon filter has one list per family. Each one denies the special purpose ranges (every entry with *LE* at the longest length, so it also covers the more specific prefixes) and ends with a *permit* of *Any* so that it can be used as an inbound filter:
 
-![The list of prefix lists, with the family and the number of entries of each one](images/prefixlist-list.png)
-
-![The page of an IPv4 bogon list, with its entries and their RFC in the description](images/prefixlist-bogons-v4.png)
-
-![The page of an IPv6 bogon list](images/prefixlist-bogons-v6.png)
-
 ### Prefix list
 
 | Field | Meaning |
 | --- | --- |
 | Name | Name of the list, as used in the device configuration. |
 | Family | **IPv4** or **IPv6**. A list holds only one family, and the family **cannot be changed** once the list exists (its entries would stop making sense). |
+
+![The list of prefix lists, with the family and the number of entries of each one](images/prefixlist-list.png)
 
 ### Prefix list entry
 
@@ -45,6 +41,14 @@ For example, a bogon filter has one list per family. Each one denies the special
 | Any | Matches the all-zeros prefix of the family (`0.0.0.0/0` or `::/0`). NetBox IPAM cannot hold that prefix, so this checkbox stands for it. With *LE* set to the longest length (32 or 128) it matches *every* prefix. Leave *Prefix* empty when you use it. |
 | GE / LE | The length range of the match, as on routers. *GE* ("greater than or equal") and *LE* ("less than or equal") are lengths, not counts. Both are inclusive. |
 | Exact | Form only: tick it to match the prefix itself, with no length range. GE and LE are disabled while it is ticked and the form refuses them if both come in. It is the same as leaving GE and LE empty. |
+
+#### IPv4 Bogons example
+
+![The page of an IPv4 bogon list, with its entries and their RFC in the description](images/prefixlist-bogons-v4.png)
+
+#### IPv6 Bogons example
+
+![The page of an IPv6 bogon list](images/prefixlist-bogons-v6.png)
 
 How to read GE and LE for a prefix `10.0.0.0/8`:
 
