@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device
@@ -64,6 +65,15 @@ class StaticRouteForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+
+    def _post_clean(self):
+        super()._post_clean()
+        devices = self.cleaned_data.get('devices')
+        if devices and not self.errors:
+            try:
+                self.instance.validate_devices(devices)
+            except ValidationError as e:
+                self.add_error(None, e)
 
     def __init__(self, data=None, instance=None, *args, **kwargs):
         super().__init__(*args, data=data, instance=instance, **kwargs)
