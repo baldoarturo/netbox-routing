@@ -32,6 +32,8 @@ IS-IS instance (a process on a device, optionally in a VRF)
      └─ Settings
 ```
 
+Every list can be filtered by the attributes of its model (for instances: metric style, fast reroute, overload bit, traffic engineering, authentication type, distance and so on; for interfaces: BFD, FRR, mesh group, timers) and **every object type can be edited in bulk**, not only instances and interfaces.
+
 ## Instances
 
 **IS-IS → Instances**
@@ -213,8 +215,13 @@ field. The value must match the type of the key (yes/no, number or address).
 | --- | --- |
 | SPF Second Wait, SPF Rapid Runs, LSP-Gen Second Wait | Extra SPF and LSP generation back-off controls (vendor-specific). |
 | TE IPv4 / IPv6 Router-ID | Stable address used in traffic-engineering advertisements ([RFC 5305](https://www.rfc-editor.org/rfc/rfc5305), [RFC 6119](https://www.rfc-editor.org/rfc/rfc6119)). |
-| Graceful Restart | Keep forwarding while IS-IS restarts ([RFC 8706](https://www.rfc-editor.org/rfc/rfc8706)). |
-| LDP-IGP Sync | Do not use a link for traffic until LDP is up ([RFC 5443](https://www.rfc-editor.org/rfc/rfc5443)). |
+| Graceful Restart, T3, Helper | Keep forwarding while IS-IS restarts, the overall restart timer T3 (s), and whether this router helps neighbours that restart ([RFC 8706](https://www.rfc-editor.org/rfc/rfc8706)). |
+| LDP-IGP Sync, Hold-down | Do not use a link for traffic until LDP is up, and the longest wait (s) before using it anyway ([RFC 5443](https://www.rfc-editor.org/rfc/rfc5443)). |
+| Overload Until BGP Converges, Overload with High Metrics | Conditions of the overload bit on startup: wait for BGP, or advertise maximum metrics instead of setting the bit. |
+| Maximum Area Addresses | How many area addresses the router accepts (0 to 254, the default is 3, ISO 10589). |
+| Default Route Origination | Originate a default route into IS-IS. |
+| Adjacency Protocol Check | Check that neighbours support the same IP protocols before forming an adjacency ([RFC 1195](https://www.rfc-editor.org/rfc/rfc1195)). |
+| Purge Originator Identification | Add the originator to purged LSPs to find who purged them ([RFC 6232](https://www.rfc-editor.org/rfc/rfc6232)). |
 | Prefix Suppression | Do not advertise transit-only link prefixes ([RFC 6860](https://www.rfc-editor.org/rfc/rfc6860)). |
 | Multi-Topology | Separate topologies per address family ([RFC 5120](https://www.rfc-editor.org/rfc/rfc5120)). |
 | Log Adjacency Changes, Advertise Passive Only, Default Route Tag, IGP Shortcut, Hello Padding, RIB Priority | Vendor features without an RFC. |

@@ -147,6 +147,14 @@ class ISISSetting(PrimaryModel):
                 raise ValidationError(
                     {'value': _('This setting requires a non-negative integer value.')}
                 )
+            if self.key == 'max_area_addresses' and parsed > 254:
+                raise ValidationError(
+                    {
+                        'value': _(
+                            'The maximum area addresses is at most 254 (ISO 10589).'
+                        )
+                    }
+                )
         elif self.key in ('te_ipv4_router_id', 'te_ipv6_router_id'):
             message = router_id_error(self.value, 4 if self.key[6] == '4' else 6)
             if message:

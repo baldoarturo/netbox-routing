@@ -221,6 +221,14 @@ class ISISLevelBulkImportView(BulkImportView):
     model_form = ISISLevelImportForm
 
 
+@register_model_view(ISISLevel, name='bulk_edit', detail=False)
+class ISISLevelBulkEditView(BulkEditView):
+    queryset = ISISLevel.objects.all()
+    filterset = ISISLevelFilterSet
+    table = ISISLevelTable
+    form = ISISLevelBulkEditForm
+
+
 @register_model_view(ISISLevel, name='bulk_delete', detail=False)
 class ISISLevelBulkDeleteView(BulkDeleteView):
     queryset = ISISLevel.objects.all()
@@ -265,6 +273,14 @@ class ISISInterfaceLevelDeleteView(ObjectDeleteView):
 class ISISInterfaceLevelBulkImportView(BulkImportView):
     queryset = ISISInterfaceLevel.objects.all()
     model_form = ISISInterfaceLevelImportForm
+
+
+@register_model_view(ISISInterfaceLevel, name='bulk_edit', detail=False)
+class ISISInterfaceLevelBulkEditView(BulkEditView):
+    queryset = ISISInterfaceLevel.objects.all()
+    filterset = ISISInterfaceLevelFilterSet
+    table = ISISInterfaceLevelTable
+    form = ISISInterfaceLevelBulkEditForm
 
 
 @register_model_view(ISISInterfaceLevel, name='bulk_delete', detail=False)
@@ -313,6 +329,14 @@ class ISISSegmentRoutingBulkImportView(BulkImportView):
     model_form = ISISSegmentRoutingImportForm
 
 
+@register_model_view(ISISSegmentRouting, name='bulk_edit', detail=False)
+class ISISSegmentRoutingBulkEditView(BulkEditView):
+    queryset = ISISSegmentRouting.objects.all()
+    filterset = ISISSegmentRoutingFilterSet
+    table = ISISSegmentRoutingTable
+    form = ISISSegmentRoutingBulkEditForm
+
+
 @register_model_view(ISISSegmentRouting, name='bulk_delete', detail=False)
 class ISISSegmentRoutingBulkDeleteView(BulkDeleteView):
     queryset = ISISSegmentRouting.objects.all()
@@ -357,6 +381,14 @@ class ISISFlexAlgoDeleteView(ObjectDeleteView):
 class ISISFlexAlgoBulkImportView(BulkImportView):
     queryset = ISISFlexAlgo.objects.all()
     model_form = ISISFlexAlgoImportForm
+
+
+@register_model_view(ISISFlexAlgo, name='bulk_edit', detail=False)
+class ISISFlexAlgoBulkEditView(BulkEditView):
+    queryset = ISISFlexAlgo.objects.all()
+    filterset = ISISFlexAlgoFilterSet
+    table = ISISFlexAlgoTable
+    form = ISISFlexAlgoBulkEditForm
 
 
 @register_model_view(ISISFlexAlgo, name='bulk_delete', detail=False)
@@ -405,6 +437,14 @@ class ISISPrefixSIDBulkImportView(BulkImportView):
     model_form = ISISPrefixSIDImportForm
 
 
+@register_model_view(ISISPrefixSID, name='bulk_edit', detail=False)
+class ISISPrefixSIDBulkEditView(BulkEditView):
+    queryset = ISISPrefixSID.objects.all()
+    filterset = ISISPrefixSIDFilterSet
+    table = ISISPrefixSIDTable
+    form = ISISPrefixSIDBulkEditForm
+
+
 @register_model_view(ISISPrefixSID, name='bulk_delete', detail=False)
 class ISISPrefixSIDBulkDeleteView(BulkDeleteView):
     queryset = ISISPrefixSID.objects.all()
@@ -449,6 +489,14 @@ class ISISSRv6LocatorDeleteView(ObjectDeleteView):
 class ISISSRv6LocatorBulkImportView(BulkImportView):
     queryset = ISISSRv6Locator.objects.all()
     model_form = ISISSRv6LocatorImportForm
+
+
+@register_model_view(ISISSRv6Locator, name='bulk_edit', detail=False)
+class ISISSRv6LocatorBulkEditView(BulkEditView):
+    queryset = ISISSRv6Locator.objects.all()
+    filterset = ISISSRv6LocatorFilterSet
+    table = ISISSRv6LocatorTable
+    form = ISISSRv6LocatorBulkEditForm
 
 
 @register_model_view(ISISSRv6Locator, name='bulk_delete', detail=False)

@@ -180,6 +180,18 @@ class ISISSettingChoices(ChoiceSet):
     HELLO_PADDING = 'hello_padding'
     RIB_PRIORITY = 'rib_priority'
 
+    # Graceful restart (RFC 8706), LDP sync (RFC 5443), overload conditions and
+    # protocol limits (ISO 10589, RFC 6232)
+    GRACEFUL_RESTART_T3 = 'graceful_restart_t3'
+    GRACEFUL_RESTART_HELPER = 'graceful_restart_helper'
+    LDP_SYNC_HOLDDOWN = 'ldp_sync_holddown'
+    OVERLOAD_WAIT_FOR_BGP = 'overload_wait_for_bgp'
+    OVERLOAD_HIGH_METRICS = 'overload_high_metrics'
+    MAX_AREA_ADDRESSES = 'max_area_addresses'
+    DEFAULT_ORIGINATE = 'default_originate'
+    ADJACENCY_CHECK = 'adjacency_check'
+    PURGE_ORIGINATOR_ID = 'purge_originator_id'
+
     CHOICES = [
         (SPF_SECOND_WAIT, 'SPF Second Wait (ms)'),
         (SPF_RAPID_RUNS, 'SPF Rapid Runs'),
@@ -196,6 +208,15 @@ class ISISSettingChoices(ChoiceSet):
         (IGP_SHORTCUT, 'IGP Shortcut'),
         (HELLO_PADDING, 'Hello Padding'),
         (RIB_PRIORITY, 'RIB Priority'),
+        (GRACEFUL_RESTART_T3, 'Graceful Restart T3 (s)'),
+        (GRACEFUL_RESTART_HELPER, 'Graceful Restart Helper'),
+        (LDP_SYNC_HOLDDOWN, 'LDP-IGP Sync Hold-down (s)'),
+        (OVERLOAD_WAIT_FOR_BGP, 'Overload Until BGP Converges'),
+        (OVERLOAD_HIGH_METRICS, 'Overload with High Metrics'),
+        (MAX_AREA_ADDRESSES, 'Maximum Area Addresses'),
+        (DEFAULT_ORIGINATE, 'Default Route Origination'),
+        (ADJACENCY_CHECK, 'Adjacency Protocol Check'),
+        (PURGE_ORIGINATOR_ID, 'Purge Originator Identification'),
     ]
 
     FIELD_TYPES = {
@@ -214,4 +235,13 @@ class ISISSettingChoices(ChoiceSet):
         IGP_SHORTCUT: 'boolean',
         HELLO_PADDING: 'boolean',
         RIB_PRIORITY: 'string',
+        GRACEFUL_RESTART_T3: 'integer',
+        GRACEFUL_RESTART_HELPER: 'boolean',
+        LDP_SYNC_HOLDDOWN: 'integer',
+        OVERLOAD_WAIT_FOR_BGP: 'boolean',
+        OVERLOAD_HIGH_METRICS: 'boolean',
+        MAX_AREA_ADDRESSES: 'integer',
+        DEFAULT_ORIGINATE: 'boolean',
+        ADJACENCY_CHECK: 'boolean',
+        PURGE_ORIGINATOR_ID: 'boolean',
     }

@@ -36,6 +36,7 @@ __all__ = (
     'ISISNetTestCase',
     'ISISRangeTestCase',
     'ISISSegmentRoutingRulesTestCase',
+    'ISISLongTailSettingTestCase',
 )
 
 
@@ -960,3 +961,29 @@ class ISISSegmentRoutingRulesTestCase(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             algo.full_clean(exclude=['instance'])
         self.assertIn('metric_type', ctx.exception.message_dict)
+
+
+class ISISLongTailSettingTestCase(TestCase):
+    """The graceful restart, overload and limit settings (#449)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.instance = ISISInstance.objects.create(
+            device=create_test_device(name='Device 1')
+        )
+
+    def _setting(self, key, value):
+        return ISISSetting(assigned_object=self.instance, key=key, value=value)
+
+    def test_new_keys_are_typed(self):
+        self._setting('graceful_restart_t3', '120').clean()
+        self._setting('overload_wait_for_bgp', 'true').clean()
+        with self.assertRaises(ValidationError):
+            self._setting('graceful_restart_t3', 'soon').clean()
+        with self.assertRaises(ValidationError):
+            self._setting('adjacency_check', 'maybe').clean()
+
+    def test_max_area_addresses_limit(self):
+        self._setting('max_area_addresses', '3').clean()
+        with self.assertRaises(ValidationError):
+            self._setting('max_area_addresses', '255').clean()

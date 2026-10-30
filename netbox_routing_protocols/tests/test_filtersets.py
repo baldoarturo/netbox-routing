@@ -9,6 +9,7 @@ __all__ = (
     'OSPFAreaTestCase',
     'OSPFInterfaceTestCase',
     'ISISInstanceFilterSetTestCase',
+    'ISISAttributeFilterSetTestCase',
     'ISISInterfaceFilterSetTestCase',
     'ISISSettingFilterSetTestCase',
     'ISISSRv6LocatorFilterSetTestCase',
