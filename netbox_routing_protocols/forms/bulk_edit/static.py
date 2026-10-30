@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device
 from ipam.models import VRF
 from netbox.forms import NetBoxModelBulkEditForm
-from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
@@ -12,6 +12,7 @@ from utilities.forms.fields import (
 )
 from utilities.forms.rendering import FieldSet
 
+from netbox_routing_protocols.choices import StaticRouteNextHopTypeChoices
 from netbox_routing_protocols.models import StaticRoute
 
 __all__ = ('StaticRouteBulkEditForm',)
@@ -31,8 +32,20 @@ class StaticRouteBulkEditForm(NetBoxModelBulkEditForm):
         selector=True,
     )
     name = forms.CharField(label=_('Name'), max_length=50, required=False)
-    interface_next_hop = forms.CharField(
-        label=_('Interface Next Hop'), max_length=100, required=False
+    next_hop_type = forms.ChoiceField(
+        label=_('Next Hop Type'),
+        choices=add_blank_choice(StaticRouteNextHopTypeChoices),
+        required=False,
+    )
+    next_hop_vrf = DynamicModelChoiceField(
+        label=_('Next Hop VRF'),
+        queryset=VRF.objects.all(),
+        required=False,
+    )
+    next_hop_global = forms.ChoiceField(
+        label=_('Next Hop in the Global Table'),
+        choices=BOOLEAN_WITH_BLANK_CHOICES,
+        required=False,
     )
     distance = forms.IntegerField(
         label=_('Distance'), min_value=1, max_value=255, required=False
@@ -49,7 +62,8 @@ class StaticRouteBulkEditForm(NetBoxModelBulkEditForm):
 
     model = StaticRoute
     fieldsets = (
-        FieldSet('devices', 'vrf', 'interface_next_hop', name='Route'),
+        FieldSet('devices', 'vrf', 'next_hop_type', name='Route'),
+        FieldSet('next_hop_vrf', 'next_hop_global', name='Route leaking'),
         FieldSet('name', 'distance', 'tag', 'permanent', name='Attributes'),
         FieldSet(
             'description',
@@ -59,7 +73,7 @@ class StaticRouteBulkEditForm(NetBoxModelBulkEditForm):
         'devices',
         'vrf',
         'name',
-        'interface_next_hop',
+        'next_hop_vrf',
         'tag',
         'description',
         'comments',

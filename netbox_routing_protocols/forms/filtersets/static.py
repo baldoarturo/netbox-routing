@@ -1,6 +1,7 @@
 from ipam.models import VRF
-from dcim.models import Device
+from dcim.models import Device, Interface
 from netbox.forms import NetBoxModelFilterSetForm
+from netbox_routing_protocols.choices import StaticRouteNextHopTypeChoices
 from netbox_routing_protocols.models import StaticRoute
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import DynamicModelMultipleChoiceField, TagFilterField
@@ -19,7 +20,10 @@ class StaticRouteFilterForm(NetBoxModelFilterSetForm):
             'vrf_id',
             'prefix',
             'next_hop',
-            'interface_next_hop',
+            'interface_id',
+            'next_hop_type',
+            'next_hop_vrf_id',
+            'next_hop_global',
             'name',
             'family',
             'distance',
@@ -55,9 +59,25 @@ class StaticRouteFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('Name'),
     )
-    interface_next_hop = forms.CharField(
+    interface_id = DynamicModelMultipleChoiceField(
+        queryset=Interface.objects.all(),
         required=False,
         label=_('Interface Next Hop'),
+    )
+    next_hop_type = forms.MultipleChoiceField(
+        choices=StaticRouteNextHopTypeChoices,
+        required=False,
+        label=_('Next Hop Type'),
+    )
+    next_hop_vrf_id = DynamicModelMultipleChoiceField(
+        queryset=VRF.objects.all(),
+        required=False,
+        label=_('Next Hop VRF'),
+    )
+    next_hop_global = forms.NullBooleanField(
+        required=False,
+        label=_('Next Hop in the Global Table'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     family = forms.ChoiceField(
         required=False,
