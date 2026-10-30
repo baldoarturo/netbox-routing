@@ -298,6 +298,10 @@ same type to talk. Virtual links must agree with the backbone's type.
 
 **OSPF → Redistribution**
 
+A source must be on the **same device** as the instance, in the **same VRF**, and run the **same IP version** (the
+address family of the instance). A protocol never redistributes into itself on the same device, VRF and address
+family: OSPF cannot take OSPF routes, and IS-IS cannot take IS-IS routes, in that family.
+
 Redistribution imports routes learned some other way into OSPF as **external routes**, turning the
 router into an ASBR.
 

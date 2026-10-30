@@ -292,6 +292,10 @@ Multi-topology ([RFC 5120](https://www.rfc-editor.org/rfc/rfc5120)) stays a [set
 
 **IS-IS → Redistribution**
 
+A source must be on the **same device** as the instance, in the **same VRF**, and run the **same IP version** (the
+address family of the instance). A protocol never redistributes into itself on the same device, VRF and address
+family: OSPF cannot take OSPF routes, and IS-IS cannot take IS-IS routes, in that family.
+
 Routes of another protocol that the instance advertises, for one address family and level ([RFC 1195](https://www.rfc-editor.org/rfc/rfc1195) section 3.3 defines the external routes). It mirrors OSPF redistribution.
 
 | Field | Meaning |
