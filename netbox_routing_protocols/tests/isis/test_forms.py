@@ -173,6 +173,27 @@ class ISISInstanceFormTestCase(TestCase):
         )
         self.assertEqual(setting.value, '99')
 
+    def test_multi_topology_is_a_checkbox_with_help(self):
+        """Multi-Topology is a checkbox (RFC 5120) with an explanation, and an
+        unchecked box is stored as False."""
+        from django import forms as django_forms
+
+        form = ISISInstanceForm()
+        field = form.fields['multi_topology']
+        self.assertIsInstance(field.widget, django_forms.CheckboxInput)
+        self.assertIn('RFC 5120', field.help_text)
+
+        data = {
+            'device': self.device.pk,
+            'net': '49.0001.0000.0000.0020.00',
+            'is_type': 'level-1-2',
+            'multi_topology': 'on',
+        }
+        form = ISISInstanceForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+        instance = form.save()
+        self.assertEqual(instance.settings.get(key='multi_topology').value, 'True')
+
     def test_boolean_setting_initial_normalized_from_text(self):
         """A boolean ISISSetting can be stored as textual yes/no/1/0 (ISISSetting.clean()
         accepts those for booleans via the API/import paths). The edit form's NullBooleanField
