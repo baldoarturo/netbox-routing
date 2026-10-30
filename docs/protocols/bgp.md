@@ -168,6 +168,12 @@ no explicit import and export policy ([RFC 8212](https://www.rfc-editor.org/rfc/
 or a peer group whose remote AS differs from the instance's lists, in a warning, the enabled address families
 with no policy at any level. Nothing is blocked: the plugin only documents.
 
+## Deleting
+
+Deleting an instance deletes everything below it (address families, peer groups, listen ranges, peers and
+their address families). An address family that a peer address family uses, and a peer group that has peers,
+cannot be deleted alone: delete or move what uses them first.
+
 ## Field reference
 
 Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a field that can be left empty (it then inherits, or is not set).

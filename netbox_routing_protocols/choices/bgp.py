@@ -1,42 +1,11 @@
 from utilities.choices import ChoiceSet
 
 __all__ = (
-    'BGPAdditionalPathSelectChoices',
     'BGPAddressFamilyChoices',
-    'BGPBestPathASPathChoices',
     'BGPCommunityTypeChoices',
     'BGPMaximumPrefixActionChoices',
-    'BFDChoices',
     'BGPStatusChoices',
 )
-
-
-class BGPAdditionalPathSelectChoices(ChoiceSet):
-    ALL = 'all'
-    BACKUP = 'backup'
-    BEST_EXTERNAL = 'best-external'
-    GROUP_BEST = 'group-best'
-
-    CHOICES = [
-        (ALL, 'All'),
-        (BACKUP, 'Backup'),
-        (BEST_EXTERNAL, 'Best External'),
-        (GROUP_BEST, 'Group Best'),
-    ]
-
-
-class BFDChoices(ChoiceSet):
-    SINGLEHOP = 'singlehop'
-    MULTIHOP = 'multihop'
-
-    CHOICES = [(SINGLEHOP, 'Single-Hop'), (MULTIHOP, 'Multi-Hop')]
-
-
-class BGPBestPathASPathChoices(ChoiceSet):
-    IGNORE = 'ignore'
-    MULTIPATH = 'multipath-relax'
-
-    CHOICES = [(IGNORE, 'Ignore'), (MULTIPATH, 'Multipath Relax Comparison')]
 
 
 class BGPCommunityTypeChoices(ChoiceSet):

@@ -45,7 +45,10 @@ from netbox_routing_protocols.helpers.prefix_list import (
 from netbox_routing_protocols.filtersets.objects import *
 from netbox_routing_protocols.forms.objects import *
 from netbox_routing_protocols.models import (
+    BGPInstance,
+    BGPPeer,
     BGPPeerAddressFamily,
+    BGPPeerGroup,
     CommunityList,
 )
 from netbox_routing_protocols.models.objects import *
@@ -1206,11 +1209,19 @@ class ASPathView(GetRelatedModelsMixin, ObjectView):
                         .distinct(),
                         'match_aspath_id',
                     ),
-                    (
-                        BGPPeerAddressFamily.objects.restrict(request.user, 'view')
-                        .filter(in_use)
-                        .distinct(),
-                        'aspath_id',
+                    *(
+                        (
+                            model.objects.restrict(request.user, 'view')
+                            .filter(in_use)
+                            .distinct(),
+                            'aspath_id',
+                        )
+                        for model in (
+                            BGPInstance,
+                            BGPPeerGroup,
+                            BGPPeer,
+                            BGPPeerAddressFamily,
+                        )
                     ),
                 ),
             )

@@ -15,7 +15,15 @@ __all__ = (
 
 
 class BGPInstanceViewSet(NetBoxModelViewSet):
-    queryset = BGPInstance.objects.select_related('device', 'vrf', 'asn', 'tenant')
+    queryset = BGPInstance.objects.select_related(
+        'device',
+        'vrf',
+        'asn',
+        'confederation_identifier',
+        'import_policy',
+        'export_policy',
+        'tenant',
+    ).prefetch_related('confederation_peers')
     serializer_class = BGPInstanceSerializer
     filterset_class = filtersets.BGPInstanceFilterSet
 
@@ -36,6 +44,8 @@ class BGPPeerGroupViewSet(NetBoxModelViewSet):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     serializer_class = BGPPeerGroupSerializer
@@ -47,7 +57,7 @@ class BGPListenRangeViewSet(NetBoxModelViewSet):
         'peer_group__instance__device',
         'peer_group__instance__vrf',
         'peer_group__instance__asn',
-        'prefix',
+        'prefix__vrf',
     )
     serializer_class = BGPListenRangeSerializer
     filterset_class = filtersets.BGPListenRangeFilterSet
@@ -59,7 +69,8 @@ class BGPPeerViewSet(NetBoxModelViewSet):
         'instance__vrf',
         'instance__asn',
         'peer',
-        'interface',
+        'interface__device',
+        'interface__cable',
         'source',
         'peer_group__instance__device',
         'peer_group__instance__vrf',
@@ -67,6 +78,8 @@ class BGPPeerViewSet(NetBoxModelViewSet):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     serializer_class = BGPPeerSerializer
