@@ -171,7 +171,7 @@ with no policy at any level. Nothing is blocked: the plugin only documents.
 ## Deleting
 
 Deleting an instance deletes everything below it (address families, peer groups, listen ranges, peers and
-their address families). An address family that a peer address family uses, and a peer group that has peers,
+their address families). The delete page lists every object that goes with it, with the count of each kind, before you confirm. An address family that a peer address family uses, and a peer group that has peers,
 cannot be deleted alone: delete or move what uses them first.
 
 ## Field reference
