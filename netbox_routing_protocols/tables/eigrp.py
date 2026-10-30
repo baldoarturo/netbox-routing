@@ -17,6 +17,42 @@ __all__ = (
 
 
 class EIGRPRouterTable(NetBoxTable):
+    name = tables.Column(verbose_name=_('Name'), linkify=True)
+    device = tables.Column(verbose_name=_('Device'), linkify=True)
+    router_id = tables.Column(accessor='rid', verbose_name=_('Router ID'), linkify=True)
+    vrf = tables.Column(
+        accessor='pk',
+        verbose_name=_('VRF'),
+        linkify=True,
+        orderable=False,
+        empty_values=(),
+    )
+    address_family = tables.Column(
+        accessor='pk',
+        verbose_name=_('Address Family'),
+        linkify=True,
+        orderable=False,
+        empty_values=(),
+    )
+
+    def render_vrf(self, record):
+        names = {
+            af.vrf.name if af.vrf_id else 'Global'
+            for af in record.eigrpaddressfamily_set.all()
+        }
+        return ', '.join(sorted(names)) or 'Global'
+
+    def render_address_family(self, record):
+        names = {
+            (
+                af.get_family_display()
+                if hasattr(af, 'get_family_display')
+                else f'IPv{af.family}'
+            )
+            for af in record.eigrpaddressfamily_set.all()
+        }
+        return ', '.join(sorted(names))
+
     import_policy = tables.Column(verbose_name=_('Import Policy'), linkify=True)
     export_policy = tables.Column(verbose_name=_('Export Policy'), linkify=True)
 
@@ -33,7 +69,13 @@ class EIGRPRouterTable(NetBoxTable):
             'import_policy',
             'export_policy',
         )
-        default_columns = ('pk', 'id', 'name', 'device')
+        default_columns = (
+            'name',
+            'device',
+            'router_id',
+            'vrf',
+            'address_family',
+        )
 
 
 class EIGRPAddressFamilyTable(NetBoxTable):

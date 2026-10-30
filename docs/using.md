@@ -64,10 +64,11 @@ Because they are standard NetBox objects, all of them support:
 
 ### On the device page
 
-The device page gets a **Static Routes** tab with the routes assigned to it (and a counter). OSPF
-instances, IS-IS instances, EIGRP routers and BGP instances each show their children in tabs on their
-own detail page, for example an OSPF instance has an *Interfaces* tab and an OSPF area lists *its*
-interfaces.
+The device page gets one **Routing** tab (and a counter). It has a section per protocol: the static routes
+assigned to the device, and its OSPF instances, IS-IS instances, EIGRP routers and BGP instances. Each section
+shows how many there are and links to the full list filtered on the device. The device is the page, so the device
+column is not repeated. The instances also show their children in tabs on their own detail page, for example an
+OSPF instance has an *Interfaces* tab and an OSPF area lists *its* interfaces.
 
 ## Importing in bulk
 

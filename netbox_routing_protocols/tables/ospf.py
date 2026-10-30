@@ -32,6 +32,9 @@ __all__ = (
 
 
 class OSPFInstanceTable(NetBoxTable):
+    name = tables.Column(verbose_name=_('Name'), linkify=True)
+    router_id = tables.Column(verbose_name=_('Router ID'), linkify=True)
+    address_family = tables.Column(verbose_name=_('Address Family'), linkify=True)
     device = tables.Column(verbose_name=_('Device'), linkify=True)
     vrf = tables.Column(verbose_name=_('VRF'), linkify=True)
     import_policy = tables.Column(verbose_name=_('Import Policy'), linkify=True)
@@ -60,12 +63,11 @@ class OSPFInstanceTable(NetBoxTable):
             'key_chain',
         )
         default_columns = (
-            'pk',
-            'id',
             'name',
-            'router_id',
-            'address_family',
             'device',
+            'router_id',
+            'vrf',
+            'address_family',
         )
 
 
