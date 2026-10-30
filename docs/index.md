@@ -25,7 +25,7 @@ instance?"* is one search away, next to the rest of your inventory.
 | [OSPF (v2, IPv4)](protocols/ospf.md) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | Work in progress ([Tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90)) |
 | [IS-IS](protocols/isis.md) | Instances, area addresses, address families, interfaces, levels, authentication (HMAC-SHA, key chains), redistribution, summary addresses, route leaking, segment routing (prefix-SIDs, adjacency-SIDs, mapping entries), Flex-Algo, SRv6 | Ready |
 | [EIGRP](protocols/eigrp.md) | Routers (classic and named), address families, networks, interfaces | Work in progress ([Tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)) |
-| [Route policies](routing-objects.md) | Route policies, route policy entries | Work in progress ([Tracking #307](https://github.com/baldoarturo/netbox-routing-protocols/issues/307)) |
+| [Route policies](routing-objects.md) | Route policies, route policy entries | Ready |
 | [BFD](bfd.md) | Reusable BFD timer profiles | Work in progress ([Tracking #414](https://github.com/baldoarturo/netbox-routing-protocols/issues/414)) |
 | [Routing objects](routing-objects.md) | [Prefix lists](routing-objects.md#prefix-lists), [AS paths](routing-objects.md#as-paths), [communities](routing-objects.md#communities) and [community lists](routing-objects.md#community-lists) | Ready |
 
