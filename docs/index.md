@@ -1,7 +1,7 @@
 # NetBox Routing Protocols
 
 > [!WARNING]
-> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
+> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **static routes, prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
 
 A NetBox plugin to **document the routing configuration of your network**: static routes, BGP,
 OSPF, IS-IS and EIGRP, together with the objects they use (prefix lists, route policies, AS paths,
@@ -20,7 +20,7 @@ instance?"* is one search away, next to the rest of your inventory.
 
 | Area | What you can describe | Status |
 | --- | --- | --- |
-| [Static routes](protocols/static.md) | Prefix, next hop, interface, VRF, metric, tag, the devices that carry the route | Work in progress ([Tracking #410](https://github.com/baldoarturo/netbox-routing-protocols/issues/410)) |
+| [Static routes](protocols/static.md) | Prefix, next hop or special next hop (blackhole, unreachable, prohibit, receive), interface, VRF and route leaking, distance, tag, the devices that carry the route | Ready |
 | [BGP](protocols/bgp.md) | Routers, VRF scopes, address families, peers, session/peer/policy templates, settings | Work in progress ([Tracking #411](https://github.com/baldoarturo/netbox-routing-protocols/issues/411)) |
 | [OSPF (v2, IPv4)](protocols/ospf.md) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | Work in progress ([Tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90)) |
 | [IS-IS](protocols/isis.md) | Instances, interfaces, levels, authentication, segment routing, Flex-Algo, SRv6 | Work in progress ([Tracking #412](https://github.com/baldoarturo/netbox-routing-protocols/issues/412)) |

@@ -27,12 +27,12 @@ The documentation for operators and users (every protocol and feature, with the 
   * Prefix lists
   * AS paths
   * Communities and community lists
+* Static routes (special next hops, interface, route leaking)
 
 ### Work in progress
 
 Not production ready; the model and the migrations can still change. Each one has a tracking issue.
 
-* [Static routing](https://github.com/baldoarturo/netbox-routing-protocols/issues/410)
 * Dynamic routing
   * [EIGRP](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)
   * [BGP](https://github.com/baldoarturo/netbox-routing-protocols/issues/411) (templates/group inheritance, IPv4/IPv6 AF and VRF, VPNv4)
