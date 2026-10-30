@@ -21,6 +21,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 4136](https://www.rfc-editor.org/rfc/rfc4136) | OSPF refresh and flooding reduction | [OSPF interfaces](protocols/ospf.md#other-interface-options) |
 | [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) | BGP-4 | [BGP](protocols/bgp.md), [AS paths](routing-objects.md#as-paths), [Route policies](routing-objects.md#route-policies) (the path attributes they match and set) |
 | [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291) | IPv6 addressing | [Prefix lists](routing-objects.md#prefix-lists), [Static routes](protocols/static.md#what-the-plugin-checks) |
+| [RFC 2918](https://www.rfc-editor.org/rfc/rfc2918) | Route refresh capability for BGP-4 | [BGP peers](protocols/bgp.md#peers) |
 | [RFC 4360](https://www.rfc-editor.org/rfc/rfc4360) | BGP extended communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 4364](https://www.rfc-editor.org/rfc/rfc4364) | BGP/MPLS VPNs | [BGP](protocols/bgp.md#address-families) |
 | [RFC 4632](https://www.rfc-editor.org/rfc/rfc4632) | CIDR | [Prefix lists](routing-objects.md#prefix-lists) |
@@ -71,7 +72,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 7999](https://www.rfc-editor.org/rfc/rfc7999) | BLACKHOLE community | [Routing objects](routing-objects.md#well-known-communities) |
 | [RFC 8092](https://www.rfc-editor.org/rfc/rfc8092) | BGP large communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 8212](https://www.rfc-editor.org/rfc/rfc8212) | Default eBGP route propagation behavior without policies | [BGP route policy](protocols/bgp.md#route-policy) |
-| [RFC 8326](https://www.rfc-editor.org/rfc/rfc8326) | Graceful BGP session shutdown | [Routing objects](routing-objects.md#well-known-communities) |
+| [RFC 8326](https://www.rfc-editor.org/rfc/rfc8326) | Graceful BGP session shutdown | [Routing objects](routing-objects.md#well-known-communities), [BGP peers](protocols/bgp.md#peers) |
 | [RFC 8333](https://www.rfc-editor.org/rfc/rfc8333) | Micro-loop prevention | [IS-IS](protocols/isis.md#fast-reroute-and-micro-loops) |
 | [RFC 8349](https://www.rfc-editor.org/rfc/rfc8349) | YANG data model for routing management (static routes, special next hops, route preference) | [Static routes](protocols/static.md) |
 | [RFC 8405](https://www.rfc-editor.org/rfc/rfc8405) | SPF back-off delay algorithm | [OSPF](protocols/ospf.md#timers), [IS-IS](protocols/isis.md#timers) |

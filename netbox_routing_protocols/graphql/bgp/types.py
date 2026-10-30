@@ -134,6 +134,9 @@ class BGPPeerGroupType(PrimaryObjectType):
     ebgp_multihop: int | None
     ttl_security_hops: int | None
     passive: bool | None
+    as_override: bool | None
+    soft_reconfiguration_inbound: bool | None
+    graceful_shutdown: bool | None
     import_policy: (
         Annotated[
             "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
@@ -225,6 +228,9 @@ class BGPPeerType(PrimaryObjectType):
     ebgp_multihop: int | None
     ttl_security_hops: int | None
     passive: bool | None
+    as_override: bool | None
+    soft_reconfiguration_inbound: bool | None
+    graceful_shutdown: bool | None
     import_policy: (
         Annotated[
             "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')

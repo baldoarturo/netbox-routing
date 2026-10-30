@@ -99,6 +99,33 @@ class BGPPeerConfigMixin(RoutePolicyMixin, models.Model):
         null=True,
         help_text=_('Wait for the neighbor to open the TCP connection (RFC 4271)'),
     )
+    as_override = models.BooleanField(
+        verbose_name=_('AS Override'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Replace the neighbor\'s ASN with the local one in the AS path of the '
+            'routes sent to it (eBGP only; used in AS migrations and PE-CE)'
+        ),
+    )
+    soft_reconfiguration_inbound = models.BooleanField(
+        verbose_name=_('Soft Reconfiguration Inbound'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Keep the routes received before the policy, so the policy can change '
+            'without a session reset (route refresh, RFC 2918)'
+        ),
+    )
+    graceful_shutdown = models.BooleanField(
+        verbose_name=_('Graceful Shutdown'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Send the GRACEFUL_SHUTDOWN community to the neighbor before the session '
+            'goes down, so it moves the traffic away first (RFC 8326)'
+        ),
+    )
     passphrase = models.CharField(
         verbose_name=_('Passphrase'),
         max_length=255,
@@ -552,6 +579,12 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
         'ebgp_multihop',
         'ttl_security_hops',
         'passive',
+        'as_override',
+        'soft_reconfiguration_inbound',
+        'graceful_shutdown',
+        'as_override',
+        'soft_reconfiguration_inbound',
+        'graceful_shutdown',
         'route_reflector_client',
         'extended_nexthop',
         'keepalive',
@@ -585,15 +618,15 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
 
     def clean(self):
         super().clean()
+        errors = {}
         if self.route_reflector_client and self.is_ibgp is False:
-            raise ValidationError(
-                {
-                    'route_reflector_client': _(
-                        'Only an iBGP neighbor can be a route reflector client '
-                        '(RFC 4456).'
-                    )
-                }
+            errors['route_reflector_client'] = _(
+                'Only an iBGP neighbor can be a route reflector client (RFC 4456).'
             )
+        if self.as_override and self.is_ibgp is True:
+            errors['as_override'] = _('AS override only applies to an eBGP neighbor.')
+        if errors:
+            raise ValidationError(errors)
 
     @property
     def is_ibgp(self):
@@ -938,6 +971,12 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
         'ebgp_multihop',
         'ttl_security_hops',
         'passive',
+        'as_override',
+        'soft_reconfiguration_inbound',
+        'graceful_shutdown',
+        'as_override',
+        'soft_reconfiguration_inbound',
+        'graceful_shutdown',
         'route_reflector_client',
         'extended_nexthop',
         'keepalive',
@@ -1070,6 +1109,8 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
             errors['route_reflector_client'] = _(
                 'Only an iBGP neighbor can be a route reflector client (RFC 4456).'
             )
+        if self.as_override and self.is_ibgp is True:
+            errors['as_override'] = _('AS override only applies to an eBGP neighbor.')
         if self.source_id:
             interface = self.source.assigned_object
             device = getattr(interface, 'device', None)
