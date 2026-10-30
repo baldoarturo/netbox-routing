@@ -28,6 +28,7 @@ The documentation for operators and users (every protocol and feature, with the 
   * AS paths
   * Communities and community lists
 * Static routes (special next hops, interface, route leaking)
+* [IS-IS](docs/protocols/isis.md) (instances, levels, interfaces, authentication, redistribution, route leaking, segment routing, Flex-Algo, SRv6)
 
 ### Work in progress
 
@@ -37,7 +38,6 @@ Not production ready; the model and the migrations can still change. Each one ha
   * [EIGRP](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)
   * [BGP](https://github.com/baldoarturo/netbox-routing-protocols/issues/411) (templates/group inheritance, IPv4/IPv6 AF and VRF, VPNv4)
   * [OSPF](https://github.com/baldoarturo/netbox-routing-protocols/issues/90)
-  * [IS-IS](https://github.com/baldoarturo/netbox-routing-protocols/issues/412)
 * [Route policies](https://github.com/baldoarturo/netbox-routing-protocols/issues/307)
 * [BFD profiles](https://github.com/baldoarturo/netbox-routing-protocols/issues/414)
 * [Segment routing](https://github.com/baldoarturo/netbox-routing-protocols/issues/201)
