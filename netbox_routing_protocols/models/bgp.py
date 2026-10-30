@@ -1,249 +1,43 @@
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-from django.db.models import ManyToManyField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
 from netbox_routing_protocols.choices.bgp import *
-from netbox_routing_protocols.constants.bgp import *
-from netbox_routing_protocols.models.base import SearchAttributeMixin
 
 __all__ = (
-    'BGPSetting',
-    'BGPPeerTemplate',
-    'BGPPolicyTemplate',
-    'BGPSessionTemplate',
-    'BGPRouter',
-    'BGPScope',
+    'BGPInstance',
     'BGPAddressFamily',
+    'BGPPeerGroup',
     'BGPPeer',
     'BGPPeerAddressFamily',
     'BFDProfile',
 )
 
-
-class BGPSetting(SearchAttributeMixin, PrimaryModel):
-    assigned_object_type = models.ForeignKey(
-        verbose_name=_('Assigned Object Type'),
-        to=ContentType,
-        limit_choices_to=BGPSETTING_ASSIGNMENT_MODELS,
-        on_delete=models.PROTECT,
-        related_name='+',
-        blank=True,
-        null=True,
-    )
-    assigned_object_id = models.PositiveBigIntegerField(
-        verbose_name=_('Assigned Object ID'), blank=True, null=True
-    )
-    assigned_object = GenericForeignKey(
-        ct_field='assigned_object_type', fk_field='assigned_object_id'
-    )
-    key = models.CharField(
-        verbose_name=_('Setting Name'),
-        choices=BGPSettingChoices,
-    )
-    value = models.CharField(
-        verbose_name=_('Setting Value'),
-    )
-
-    class Meta:
-        verbose_name = 'BGP Setting'
-        verbose_name_plural = 'BGP Settings'
-        ordering = (
-            'assigned_object_type',
-            'assigned_object_id',
-            'key',
-            'pk',
-        )
-        constraints = [
-            models.UniqueConstraint(
-                fields=('assigned_object_type', 'assigned_object_id', 'key'),
-                name='netbox_routing_protocols_bgpsettings_unique',
-            ),
-        ]
-
-    def __str__(self):
-        return f'{self.assigned_object}: {self.key}'
-
-    def get_absolute_url(self):
-        return reverse('plugins:netbox_routing_protocols:bgpsetting', args=[self.pk])
+# Prefix list family (4 or 6) accepted by each address family. Families that do not
+# carry IP prefixes (EVPN, VPLS, link-state, ...) do not take prefix lists.
+PREFIX_LIST_FAMILY = {
+    BGPAddressFamilyChoices.IPV4_UNICAST: 4,
+    BGPAddressFamilyChoices.IPV4_MULTICAST: 4,
+    BGPAddressFamilyChoices.IPV4_FLOWSPEC: 4,
+    BGPAddressFamilyChoices.VPNV4_UNICAST: 4,
+    BGPAddressFamilyChoices.VPNV4_MULTICAST: 4,
+    BGPAddressFamilyChoices.VPNV4_FLOWSPEC: 4,
+    BGPAddressFamilyChoices.IPV6_UNICAST: 6,
+    BGPAddressFamilyChoices.IPV6_MULTICAST: 6,
+    BGPAddressFamilyChoices.IPV6_FLOWSPEC: 6,
+    BGPAddressFamilyChoices.VPNV6_UNICAST: 6,
+    BGPAddressFamilyChoices.VPNV6_MULTICAST: 6,
+    BGPAddressFamilyChoices.VPNV6_FLOWSPEC: 6,
+}
 
 
-class BGPSessionTemplate(PrimaryModel):
-    name = models.CharField(verbose_name=_('Name'), max_length=100)
-    parent = models.ForeignKey(
-        verbose_name=_('Parent'),
-        to='netbox_routing_protocols.BGPSessionTemplate',
-        on_delete=models.PROTECT,
-        related_name='children',
-        blank=True,
-        null=True,
-    )
-    enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
-    local_as = models.ForeignKey(
-        verbose_name=_('ASN'),
-        to='ipam.ASN',
-        on_delete=models.PROTECT,
-        related_name='session_templates_local_as',
-        blank=True,
-        null=True,
-    )
-    remote_as = models.ForeignKey(
-        verbose_name=_('ASN'),
-        to='ipam.ASN',
-        on_delete=models.PROTECT,
-        related_name='session_templates_remote_as',
-        blank=True,
-        null=True,
-    )
-    ttl = models.PositiveSmallIntegerField(
-        verbose_name=_('TTL'),
-        blank=True,
-        null=True,
-        validators=[MinValueValidator(0), MaxValueValidator(255)],
-    )
-    bfd = models.ForeignKey(
-        verbose_name=_('BFD PRofile'),
-        to='netbox_routing_protocols.BFDProfile',
-        on_delete=models.PROTECT,
-        related_name='bgp_session_templates',
-        blank=True,
-        null=True,
-    )
-    password = models.CharField(
-        verbose_name=_('Password'),
-        max_length=255,
-        blank=True,
-        null=True,
-    )
-    tenant = models.ForeignKey(
-        verbose_name=_('Tenant'),
-        to='tenancy.Tenant',
-        on_delete=models.PROTECT,
-        related_name='bgp_peer_session_templates',
-        blank=True,
-        null=True,
-    )
+class BGPPeerConfigMixin(models.Model):
+    """Session options shared by a peer and a peer group. A peer left empty
+    inherits the value of its group (RFC 4271)."""
 
-    clone_fields = (
-        'name',
-        'parent',
-        'enabled',
-        'remote_as',
-        'local_as',
-        'bfd',
-        'ttl',
-        'password',
-        'tenant',
-    )
-    prerequisite_models = ('netbox_routing_protocols.BGPRouter',)
-
-    class Meta:
-        verbose_name = 'BGP Session Template'
-        verbose_name_plural = 'BGP Session Templates'
-        ordering = ('name',)
-        constraints = [
-            models.UniqueConstraint(
-                fields=('name',),
-                name='%(app_label)s_%(class)s_name',
-            ),
-        ]
-
-    def __str__(self):
-        return f'{self.name}'
-
-    def get_absolute_url(self):
-        return reverse(
-            'plugins:netbox_routing_protocols:bgpsessiontemplate', args=[self.pk]
-        )
-
-
-class BGPPolicyTemplate(PrimaryModel):
-    name = models.CharField(verbose_name=_('Name'), max_length=100)
-    parents = models.ManyToManyField(
-        verbose_name=_('Parent Policies'),
-        blank=True,
-        to='netbox_routing_protocols.BGPPolicyTemplate',
-        related_name='children',
-    )
-    enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
-    prefixlist_out = models.ForeignKey(
-        verbose_name=_('Outbound Prefix List'),
-        to='netbox_routing_protocols.PrefixList',
-        on_delete=models.SET_NULL,
-        related_name='template_afs_out',
-        blank=True,
-        null=True,
-    )
-    prefixlist_in = models.ForeignKey(
-        verbose_name=_('Inbound Prefix List'),
-        to='netbox_routing_protocols.PrefixList',
-        on_delete=models.SET_NULL,
-        related_name='template_afs_in',
-        blank=True,
-        null=True,
-    )
-    routepolicy_out = models.ForeignKey(
-        verbose_name=_('Outbound Route Policy'),
-        to='netbox_routing_protocols.RoutePolicy',
-        on_delete=models.PROTECT,
-        related_name='template_afs_out',
-        blank=True,
-        null=True,
-    )
-    routepolicy_in = models.ForeignKey(
-        verbose_name=_('Inbound Route Policy'),
-        to='netbox_routing_protocols.RoutePolicy',
-        on_delete=models.PROTECT,
-        related_name='template_afs_in',
-        blank=True,
-        null=True,
-    )
-    tenant = models.ForeignKey(
-        verbose_name=_('Tenant'),
-        to='tenancy.Tenant',
-        on_delete=models.PROTECT,
-        related_name='bgp_peer_policy_templates',
-        blank=True,
-        null=True,
-    )
-
-    clone_fields = (
-        'name',
-        'parents',
-        'enabled',
-        'prefixlist_out',
-        'prefixlist_in',
-        'routepolicy_out',
-        'routepolicy_in',
-    )
-    prerequisite_models = ('netbox_routing_protocols.BGPRouter',)
-
-    class Meta:
-        verbose_name = 'BGP Policy Template'
-        verbose_name_plural = 'BGP Policy Templates'
-        ordering = ('name',)
-        constraints = [
-            models.UniqueConstraint(
-                fields=('name',),
-                name='%(app_label)s_%(class)s_name',
-            ),
-        ]
-
-    def __str__(self):
-        return f'{self.name}'
-
-    def get_absolute_url(self):
-        return reverse(
-            'plugins:netbox_routing_protocols:bgppolicytemplate', args=[self.pk]
-        )
-
-
-class BGPPeerTemplate(PrimaryModel):
-    name = models.CharField(verbose_name=_('Name'), max_length=100)
     remote_as = models.ForeignKey(
         verbose_name=_('Remote AS'),
         to='ipam.ASN',
@@ -252,34 +46,140 @@ class BGPPeerTemplate(PrimaryModel):
         blank=True,
         null=True,
     )
+    local_as = models.ForeignKey(
+        verbose_name=_('Local AS'),
+        to='ipam.ASN',
+        on_delete=models.PROTECT,
+        related_name='+',
+        blank=True,
+        null=True,
+    )
     enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
+    bfd = models.ForeignKey(
+        verbose_name=_('BFD Profile'),
+        to='netbox_routing_protocols.BFDProfile',
+        on_delete=models.PROTECT,
+        related_name='%(class)ss',
+        blank=True,
+        null=True,
+    )
+    ttl = models.PositiveSmallIntegerField(
+        verbose_name=_('TTL'),
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
+    )
+    password = models.CharField(
+        verbose_name=_('Password'), max_length=255, blank=True, null=True
+    )
+    keepalive = models.PositiveIntegerField(
+        verbose_name=_('Keepalive Time'),
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(21845)],
+        help_text=_('Seconds. RFC 4271 suggests a third of the hold time'),
+    )
+    hold_time = models.PositiveIntegerField(
+        verbose_name=_('Hold Time'),
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(65535)],
+        help_text=_('Seconds. Zero (no keepalives) or at least 3 (RFC 4271)'),
+    )
+
+    class Meta:
+        abstract = True
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.hold_time is not None and self.hold_time in (1, 2):
+            errors['hold_time'] = _(
+                'The hold time must be zero or at least 3 seconds (RFC 4271).'
+            )
+        if self.keepalive is not None and self.hold_time is not None:
+            if self.hold_time == 0:
+                errors['keepalive'] = _(
+                    'A hold time of zero disables the keepalives: do not set a keepalive time.'
+                )
+            elif self.keepalive * 3 > self.hold_time:
+                errors['keepalive'] = _(
+                    'The keepalive time must not be more than a third of the hold time.'
+                )
+        if errors:
+            raise ValidationError(errors)
+
+
+class BGPInstance(PrimaryModel):
+    name = models.CharField(verbose_name=_('Name'), max_length=100)
+    device = models.ForeignKey(
+        verbose_name=_('Device'),
+        to='dcim.Device',
+        on_delete=models.PROTECT,
+        related_name='bgp_instances',
+    )
+    vrf = models.ForeignKey(
+        verbose_name=_('VRF'),
+        to='ipam.VRF',
+        on_delete=models.PROTECT,
+        related_name='bgp_instances',
+        blank=True,
+        null=True,
+    )
+    asn = models.ForeignKey(
+        verbose_name=_('ASN'),
+        to='ipam.ASN',
+        on_delete=models.PROTECT,
+        related_name='bgp_instances',
+    )
+    router_id = models.GenericIPAddressField(
+        verbose_name=_('Router ID'),
+        protocol='IPv4',
+        blank=True,
+        null=True,
+        help_text=_(
+            'BGP identifier, a 32-bit value written as an IPv4 address (RFC 6286)'
+        ),
+    )
+    asdot = models.BooleanField(
+        verbose_name=_('AS Dot Notation'),
+        blank=True,
+        null=True,
+        help_text=_('Write four-octet ASNs as high.low (RFC 5396)'),
+    )
+    graceful_restart = models.BooleanField(
+        verbose_name=_('Graceful Restart'),
+        blank=True,
+        null=True,
+        help_text=_('RFC 4724'),
+    )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
-        related_name='bgp_peer_templates',
+        related_name='bgp_instances',
         blank=True,
         null=True,
     )
-    address_families = GenericRelation(
-        verbose_name=_('Address Families'),
-        to='netbox_routing_protocols.BGPPeerAddressFamily',
-        related_query_name='peer_group',
-        related_name='peer_group',
-        content_type_field='assigned_object_type',
-        object_id_field='assigned_object_id',
+
+    clone_fields = ('device', 'vrf', 'asn', 'tenant', 'asdot', 'graceful_restart')
+    prerequisite_models = (
+        'dcim.Device',
+        'ipam.ASN',
     )
 
-    clone_fields = ('name', 'remote_as', 'enabled')
-
     class Meta:
-        verbose_name = 'BGP Peer Template'
-        verbose_name_plural = 'BGP Peer Templates'
-        ordering = ('name', 'pk')
+        verbose_name = 'BGP Instance'
+        verbose_name_plural = 'BGP Instances'
+        ordering = ('device', 'vrf', 'name')
         constraints = [
             models.UniqueConstraint(
-                fields=('name', 'remote_as'),
-                name='%(app_label)s_%(class)s_name_remote_as',
+                fields=('device', 'vrf'),
+                name='%(app_label)s_%(class)s_unique_device_vrf',
+                nulls_distinct=False,
+                violation_error_message=_(
+                    'The device already has a BGP instance in this VRF.'
+                ),
             ),
         ]
 
@@ -287,194 +187,20 @@ class BGPPeerTemplate(PrimaryModel):
         return f'{self.name}'
 
     def get_absolute_url(self):
-        return reverse(
-            'plugins:netbox_routing_protocols:bgppeertemplate', args=[self.pk]
-        )
+        return reverse('plugins:netbox_routing_protocols:bgpinstance', args=[self.pk])
 
-
-class BGPRouter(SearchAttributeMixin, PrimaryModel):
-    name = models.CharField(
-        verbose_name=_('Name'), max_length=100, blank=True, null=True
-    )
-    assigned_object_type = models.ForeignKey(
-        verbose_name=_('Assigned Object Type'),
-        to=ContentType,
-        limit_choices_to=BGPROUTER_ASSIGNMENT_MODEL,
-        on_delete=models.PROTECT,
-        related_name='+',
-        blank=True,
-        null=True,
-    )
-    assigned_object_id = models.PositiveBigIntegerField(
-        verbose_name=_('Assigned Object ID'), blank=True, null=True
-    )
-    assigned_object = GenericForeignKey(
-        ct_field='assigned_object_type', fk_field='assigned_object_id'
-    )
-    asn = models.ForeignKey(
-        verbose_name=_('ASN'),
-        to='ipam.ASN',
-        on_delete=models.PROTECT,
-        related_name='router',
-    )
-    settings = GenericRelation(
-        verbose_name=_('Settings'),
-        to='netbox_routing_protocols.BGPSetting',
-        related_name='router',
-        related_query_name='router',
-        content_type_field='assigned_object_type',
-        object_id_field='assigned_object_id',
-    )
-    tenant = models.ForeignKey(
-        verbose_name=_('Tenant'),
-        to='tenancy.Tenant',
-        on_delete=models.PROTECT,
-        related_name='bgp_routers',
-        blank=True,
-        null=True,
-    )
-    policy_templates = ManyToManyField(
-        to='netbox_routing_protocols.BGPPolicyTemplate',
-        related_name='routers',
-        verbose_name=_('Policy Templates'),
-        blank=True,
-    )
-    session_templates = ManyToManyField(
-        to='netbox_routing_protocols.BGPSessionTemplate',
-        related_name='routers',
-        verbose_name=_('Session Templates'),
-        blank=True,
-    )
-    peer_templates = ManyToManyField(
-        to='netbox_routing_protocols.BGPPeerTemplate',
-        related_name='routers',
-        verbose_name=_('Peer Templates'),
-        blank=True,
-    )
-
-    clone_fields = (
-        'asn',
-        'tenant',
-        'policy_templates',
-        'session_templates',
-        'peer_templates',
-    )
-    prerequisite_models = (
-        'dcim.Device',
-        'ipam.ASN',
-    )
-
-    class Meta:
-        verbose_name = 'BGP Router'
-        verbose_name_plural = 'BGP Routers'
-        ordering = (
-            'assigned_object_type',
-            'assigned_object_id',
-            'asn',
-            'name',
-        )
-        constraints = [
-            models.UniqueConstraint(
-                fields=(
-                    'assigned_object_type',
-                    'assigned_object_id',
-                    'asn',
-                ),
-                name='%(app_label)s_%(class)s_assigned_object_asn',
-                nulls_distinct=False,
-            ),
-            models.UniqueConstraint(
-                fields=(
-                    'assigned_object_type',
-                    'assigned_object_id',
-                    'name',
-                ),
-                name='%(app_label)s_%(class)s_assigned_object_name',
-                nulls_distinct=False,
-            ),
-            models.CheckConstraint(
-                name='%(app_label)s_%(class)s_identifier',
-                condition=models.Q(asn__isnull=False) | models.Q(name__isnull=False),
-            ),
-        ]
-
-    def __str__(self):
-        if self.name:
-            if self.assigned_object:
-                return f'{self.name} ({self.assigned_object}:{self.asn})'
-            return f'{self.name} ({self.asn})'
-        elif self.assigned_object:
-            return f'{self.assigned_object}:{self.asn}'
-        return f'{self.asn}'
-
-    def get_absolute_url(self):
-        return reverse('plugins:netbox_routing_protocols:bgprouter', args=[self.pk])
-
-
-class BGPScope(PrimaryModel):
-    router = models.ForeignKey(
-        verbose_name=_('Router'),
-        to=BGPRouter,
-        on_delete=models.PROTECT,
-        related_name='scopes',
-        blank=False,
-        null=False,
-    )
-    vrf = models.ForeignKey(
-        verbose_name=_('VRF'),
-        to='ipam.VRF',
-        on_delete=models.PROTECT,
-        related_name='scopes',
-        blank=True,
-        null=True,
-    )
-    tenant = models.ForeignKey(
-        verbose_name=_('Tenant'),
-        to='tenancy.Tenant',
-        on_delete=models.PROTECT,
-        related_name='bgp_scopes',
-        blank=True,
-        null=True,
-    )
-
-    settings = GenericRelation(
-        verbose_name=_('Settings'),
-        to='netbox_routing_protocols.BGPSetting',
-        related_name='scope',
-        related_query_name='scope',
-        content_type_field='assigned_object_type',
-        object_id_field='assigned_object_id',
-    )
-
-    clone_fields = (
-        'router',
-        'vrf',
-    )
-    prerequisite_models = ('netbox_routing_protocols.BGPRouter',)
-
-    class Meta:
-        verbose_name = 'BGP Scope'
-        verbose_name_plural = 'BGP Scopes'
-        ordering = ('router', 'vrf')
-        constraints = [
-            models.UniqueConstraint(
-                fields=('router', 'vrf'),
-                name='%(app_label)s_%(class)s_router_vrf',
-                nulls_distinct=False,
-            ),
-        ]
-
-    def __str__(self):
-        return f'{self.router}: {self.vrf or "Global VRF"}'
-
-    def get_absolute_url(self):
-        return reverse('plugins:netbox_routing_protocols:bgpscope', args=[self.pk])
+    def clean(self):
+        super().clean()
+        if self.router_id == '0.0.0.0':
+            raise ValidationError(
+                {'router_id': _('The router ID cannot be 0.0.0.0 (RFC 6286).')}
+            )
 
 
 class BGPAddressFamily(PrimaryModel):
-    scope = models.ForeignKey(
-        verbose_name=_('Scope'),
-        to='netbox_routing_protocols.BGPScope',
+    instance = models.ForeignKey(
+        verbose_name=_('Instance'),
+        to='netbox_routing_protocols.BGPInstance',
         on_delete=models.PROTECT,
         related_name='address_families',
     )
@@ -489,34 +215,73 @@ class BGPAddressFamily(PrimaryModel):
         blank=True,
         null=True,
     )
-    settings = GenericRelation(
-        verbose_name=_('Settings'),
-        to='netbox_routing_protocols.BGPSetting',
-        related_name='address_family',
-        related_query_name='address_family',
-        content_type_field='assigned_object_type',
-        object_id_field='assigned_object_id',
+    maximum_paths = models.PositiveSmallIntegerField(
+        verbose_name=_('Maximum Paths'),
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1)],
+        help_text=_('Equal-cost paths installed (multipath)'),
+    )
+    default_metric = models.PositiveBigIntegerField(
+        verbose_name=_('Default Metric'),
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(4294967295)],
+        help_text=_('MED given to redistributed routes (RFC 4271)'),
+    )
+    default_originate = models.BooleanField(
+        verbose_name=_('Default Originate'), blank=True, null=True
+    )
+    auto_summary = models.BooleanField(
+        verbose_name=_('Auto Summary'), blank=True, null=True
+    )
+    distance_ebgp = models.PositiveSmallIntegerField(
+        verbose_name=_('eBGP Distance'),
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
+    )
+    distance_ibgp = models.PositiveSmallIntegerField(
+        verbose_name=_('iBGP Distance'),
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
+    )
+    additional_paths_send = models.BooleanField(
+        verbose_name=_('Additional Paths (send)'),
+        blank=True,
+        null=True,
+        help_text=_('RFC 7911'),
+    )
+    additional_paths_receive = models.BooleanField(
+        verbose_name=_('Additional Paths (receive)'),
+        blank=True,
+        null=True,
+        help_text=_('RFC 7911'),
+    )
+    additional_paths_install = models.BooleanField(
+        verbose_name=_('Additional Paths (install)'), blank=True, null=True
     )
 
-    clone_fields = (
-        'scope',
-        'address_family',
-    )
-    prerequisite_models = ('netbox_routing_protocols.BGPScope',)
+    clone_fields = ('instance', 'address_family')
+    prerequisite_models = ('netbox_routing_protocols.BGPInstance',)
 
     class Meta:
         verbose_name = 'BGP Address Family'
         verbose_name_plural = 'BGP Address Families'
-        ordering = ('scope', 'address_family')
+        ordering = ('instance', 'address_family')
         constraints = [
             models.UniqueConstraint(
-                fields=('scope', 'address_family'),
-                name='%(app_label)s_%(class)s_scope_address_family',
+                fields=('instance', 'address_family'),
+                name='%(app_label)s_%(class)s_instance_address_family',
+                violation_error_message=_(
+                    'The instance already has this address family.'
+                ),
             ),
         ]
 
     def __str__(self):
-        return f'{self.scope} ({self.get_address_family_display()})'
+        return f'{self.instance} ({self.get_address_family_display()})'
 
     def get_absolute_url(self):
         return reverse(
@@ -524,28 +289,74 @@ class BGPAddressFamily(PrimaryModel):
         )
 
 
-class BGPPeer(PrimaryModel):
-    name = models.CharField(
-        verbose_name=_('Name'),
-        max_length=100,
+class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
+    """A group of neighbors that share their configuration (a peer group)."""
+
+    name = models.CharField(verbose_name=_('Name'), max_length=100)
+    instance = models.ForeignKey(
+        verbose_name=_('Instance'),
+        to='netbox_routing_protocols.BGPInstance',
+        on_delete=models.PROTECT,
+        related_name='peer_groups',
+    )
+    tenant = models.ForeignKey(
+        verbose_name=_('Tenant'),
+        to='tenancy.Tenant',
+        on_delete=models.PROTECT,
+        related_name='bgp_peer_groups',
         blank=True,
         null=True,
     )
-    scope = models.ForeignKey(
-        verbose_name=_('Scope'),
-        to='netbox_routing_protocols.BGPScope',
+
+    clone_fields = (
+        'instance',
+        'remote_as',
+        'local_as',
+        'enabled',
+        'bfd',
+        'ttl',
+        'keepalive',
+        'hold_time',
+        'tenant',
+    )
+    prerequisite_models = ('netbox_routing_protocols.BGPInstance',)
+
+    class Meta:
+        verbose_name = 'BGP Peer Group'
+        verbose_name_plural = 'BGP Peer Groups'
+        ordering = ('instance', 'name')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('instance', 'name'),
+                name='%(app_label)s_%(class)s_instance_name',
+                violation_error_message=_(
+                    'The instance already has a peer group with this name.'
+                ),
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.name}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing_protocols:bgppeergroup', args=[self.pk])
+
+
+class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
+    name = models.CharField(
+        verbose_name=_('Name'), max_length=100, blank=True, null=True
+    )
+    instance = models.ForeignKey(
+        verbose_name=_('Instance'),
+        to='netbox_routing_protocols.BGPInstance',
         on_delete=models.PROTECT,
         related_name='peers',
-        blank=True,
-        null=True,
     )
     peer = models.ForeignKey(
         verbose_name=_('Peer Address'),
         to='ipam.IPAddress',
         on_delete=models.PROTECT,
         related_name='remote_peers',
-        blank=False,
-        null=False,
     )
     source = models.ForeignKey(
         verbose_name=_('Source Address'),
@@ -557,60 +368,18 @@ class BGPPeer(PrimaryModel):
     )
     peer_group = models.ForeignKey(
         verbose_name=_('Peer Group'),
-        to='netbox_routing_protocols.BGPPeerTemplate',
+        to='netbox_routing_protocols.BGPPeerGroup',
         on_delete=models.PROTECT,
         related_name='peers',
         blank=True,
         null=True,
     )
-    peer_session = models.ForeignKey(
-        verbose_name=_('Peer Session'),
-        to='netbox_routing_protocols.BGPSessionTemplate',
-        on_delete=models.PROTECT,
-        related_name='peers',
-        blank=True,
-        null=True,
-    )
-    remote_as = models.ForeignKey(
-        verbose_name=_('Remote AS'),
-        to='ipam.ASN',
-        on_delete=models.PROTECT,
-        related_name='+',
-        blank=True,
-        null=True,
-    )
-    enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
     status = models.CharField(
         verbose_name=_('Status'),
         max_length=10,
         choices=BGPStatusChoices,
         null=True,
         blank=True,
-    )
-    local_as = models.ForeignKey(
-        verbose_name=_('Local AS'),
-        to='ipam.ASN',
-        on_delete=models.PROTECT,
-        related_name='+',
-        blank=True,
-        null=True,
-    )
-    bfd = models.ForeignKey(
-        verbose_name=_('BFD PRofile'),
-        to='netbox_routing_protocols.BFDProfile',
-        on_delete=models.PROTECT,
-        related_name='bgp_peers',
-        blank=True,
-        null=True,
-    )
-    ttl = models.PositiveSmallIntegerField(
-        verbose_name=_('TTL'),
-        blank=True,
-        null=True,
-        validators=[MinValueValidator(0), MaxValueValidator(255)],
-    )
-    password = models.CharField(
-        verbose_name=_('Password'), max_length=255, blank=True, null=True
     )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
@@ -620,77 +389,104 @@ class BGPPeer(PrimaryModel):
         blank=True,
         null=True,
     )
-    address_families = GenericRelation(
-        verbose_name=_('Address Families'),
-        to='netbox_routing_protocols.BGPPeerAddressFamily',
-        content_type_field='assigned_object_type',
-        object_id_field='assigned_object_id',
-        related_query_name='peer',
-    )
-    settings = GenericRelation(
-        verbose_name=_('Settings'),
-        to='netbox_routing_protocols.BGPSetting',
-        related_name='peer',
-        related_query_name='peer',
-        content_type_field='assigned_object_type',
-        object_id_field='assigned_object_id',
-    )
 
     clone_fields = (
-        'scope',
+        'instance',
+        'peer_group',
         'remote_as',
         'local_as',
         'enabled',
         'bfd',
-        'password',
+        'ttl',
+        'keepalive',
+        'hold_time',
+        'tenant',
     )
-    prerequisite_models = (
-        'netbox_routing_protocols.BGPRouter',
-        'netbox_routing_protocols.BGPScope',
-    )
+    prerequisite_models = ('netbox_routing_protocols.BGPInstance',)
 
     class Meta:
         verbose_name = 'BGP Peer'
         verbose_name_plural = 'BGP Peers'
-        ordering = (
-            'scope',
-            'peer',
-            'name',
-        )
+        ordering = ('instance', 'peer')
         constraints = [
             models.UniqueConstraint(
-                fields=('scope', 'peer', 'name'),
-                name='%(app_label)s_%(class)s_scope_peer_name',
-                nulls_distinct=False,
+                fields=('instance', 'peer'),
+                name='%(app_label)s_%(class)s_instance_peer',
+                violation_error_message=_(
+                    'The instance already has a peer with this address '
+                    '(RFC 4271: one session per neighbor address).'
+                ),
             ),
         ]
 
     def __str__(self):
-        if self.remote_as:
-            return f'{self.peer} ({self.remote_as})'
+        if self.name:
+            return f'{self.name} ({self.peer})'
         return f'{self.peer}'
 
     def get_absolute_url(self):
-        from django.urls import reverse
-
         return reverse('plugins:netbox_routing_protocols:bgppeer', args=[self.pk])
 
+    def effective(self, field):
+        """The value of a session option: the peer's own, else its group's."""
+        value = getattr(self, field)
+        if value is None and self.peer_group_id:
+            value = getattr(self.peer_group, field)
+        return value
 
-class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
-    assigned_object_type = models.ForeignKey(
-        verbose_name=_('Assigned Object Type'),
-        to=ContentType,
-        limit_choices_to=BGPPEERAF_ASSIGNMENT_MODELS,
-        on_delete=models.PROTECT,
-        related_name='+',
+    @property
+    def is_ibgp(self):
+        """True when the neighbor is in the same AS (iBGP), None when unknown."""
+        remote_as = self.effective('remote_as')
+        if remote_as is None:
+            return None
+        local_as = self.effective('local_as') or self.instance.asn
+        return remote_as.asn == local_as.asn
+
+    def clean(self):
+        super().clean()
+        if not self.instance_id:
+            return
+        errors = {}
+        if self.peer_group_id and self.peer_group.instance_id != self.instance_id:
+            errors['peer_group'] = _('The peer group belongs to another BGP instance.')
+        elif self.effective('remote_as') is None:
+            errors['remote_as'] = _(
+                'A remote AS is required, on the peer or on its peer group.'
+            )
+        for field in ('peer', 'source'):
+            address = getattr(self, f'{field}_id') and getattr(self, field)
+            if address and address.vrf_id != self.instance.vrf_id:
+                errors[field] = _('The address must be in the VRF of the BGP instance.')
+        if self.source_id:
+            interface = self.source.assigned_object
+            device = getattr(interface, 'device', None)
+            if device is not None and device.pk != self.instance.device_id:
+                errors['source'] = _(
+                    'The source address is on another device than the BGP instance.'
+                )
+        if errors:
+            raise ValidationError(errors)
+
+
+class BGPPeerAddressFamily(PrimaryModel):
+    """What a neighbor (or a peer group) exchanges in an address family."""
+
+    peer = models.ForeignKey(
+        verbose_name=_('Peer'),
+        to='netbox_routing_protocols.BGPPeer',
+        on_delete=models.CASCADE,
+        related_name='address_families',
         blank=True,
         null=True,
     )
-    assigned_object_id = models.PositiveBigIntegerField(
-        verbose_name=_('Assigned Object ID'), blank=True, null=True
-    )
-    assigned_object = GenericForeignKey(
-        ct_field='assigned_object_type', fk_field='assigned_object_id'
+    peer_group = models.ForeignKey(
+        verbose_name=_('Peer Group'),
+        to='netbox_routing_protocols.BGPPeerGroup',
+        on_delete=models.CASCADE,
+        related_name='address_families',
+        blank=True,
+        null=True,
     )
     address_family = models.ForeignKey(
         verbose_name=_('Address Family'),
@@ -698,16 +494,7 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
         on_delete=models.PROTECT,
         related_name='peer_address_families',
     )
-    peer_policy = models.ForeignKey(
-        verbose_name=_('Peer Policy'),
-        to='netbox_routing_protocols.BGPPolicyTemplate',
-        on_delete=models.PROTECT,
-        related_name='peer_address_families',
-        blank=True,
-        null=True,
-    )
     enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
-
     prefixlist_out = models.ForeignKey(
         verbose_name=_('Outbound Prefix List'),
         to='netbox_routing_protocols.PrefixList',
@@ -748,18 +535,10 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
         blank=True,
         null=True,
     )
-    settings = GenericRelation(
-        verbose_name=_('Settings'),
-        to='netbox_routing_protocols.BGPSetting',
-        related_name='peer_address_families',
-        related_query_name='peer_address_families',
-        content_type_field='assigned_object_type',
-        object_id_field='assigned_object_id',
-    )
 
     clone_fields = (
-        'address_family',
-        'peer_policy',
+        'peer',
+        'peer_group',
         'enabled',
         'prefixlist_out',
         'prefixlist_in',
@@ -768,33 +547,77 @@ class BGPPeerAddressFamily(SearchAttributeMixin, PrimaryModel):
         'tenant',
     )
     prerequisite_models = (
-        'netbox_routing_protocols.BGPRouter',
-        'netbox_routing_protocols.BGPScope',
+        'netbox_routing_protocols.BGPInstance',
+        'netbox_routing_protocols.BGPAddressFamily',
     )
 
     class Meta:
         verbose_name = 'BGP Peer Address Family'
         verbose_name_plural = 'BGP Peer Address Families'
-        ordering = (
-            'assigned_object_type',
-            'assigned_object_id',
-            'address_family',
-            'pk',
-        )
+        ordering = ('peer', 'peer_group', 'address_family', 'pk')
         constraints = [
+            models.CheckConstraint(
+                name='%(app_label)s_%(class)s_peer_xor_group',
+                condition=(
+                    models.Q(peer__isnull=False, peer_group__isnull=True)
+                    | models.Q(peer__isnull=True, peer_group__isnull=False)
+                ),
+                violation_error_message=_(
+                    'Assign it to a peer or to a peer group, not both.'
+                ),
+            ),
             models.UniqueConstraint(
-                fields=('assigned_object_type', 'assigned_object_id', 'address_family'),
-                name='%(app_label)s_%(class)s_assigned_object_address_family',
+                fields=('peer', 'address_family'),
+                name='%(app_label)s_%(class)s_peer_address_family',
+                violation_error_message=_('The peer already has this address family.'),
+            ),
+            models.UniqueConstraint(
+                fields=('peer_group', 'address_family'),
+                name='%(app_label)s_%(class)s_peer_group_address_family',
+                violation_error_message=_(
+                    'The peer group already has this address family.'
+                ),
             ),
         ]
 
+    @property
+    def assigned_object(self):
+        return self.peer or self.peer_group
+
     def __str__(self):
-        return f'{self.assigned_object} ({self.address_family})'
+        return f'{self.assigned_object} ({self.address_family.get_address_family_display()})'
 
     def get_absolute_url(self):
         return reverse(
             'plugins:netbox_routing_protocols:bgppeeraddressfamily', args=[self.pk]
         )
+
+    def clean(self):
+        super().clean()
+        if not self.address_family_id:
+            return
+        errors = {}
+        owner = self.assigned_object
+        if owner is not None and owner.instance_id != self.address_family.instance_id:
+            errors['address_family'] = _(
+                'The address family belongs to another BGP instance.'
+            )
+        family = PREFIX_LIST_FAMILY.get(self.address_family.address_family)
+        for field in ('prefixlist_in', 'prefixlist_out'):
+            prefix_list = getattr(self, f'{field}_id') and getattr(self, field)
+            if prefix_list is None:
+                continue
+            if family is None:
+                errors[field] = _(
+                    'This address family does not carry IP prefixes: no prefix list.'
+                )
+            elif prefix_list.family != family:
+                errors[field] = _(
+                    'The prefix list is IPv%(list)s and the address family is '
+                    'IPv%(family)s.'
+                ) % {'list': prefix_list.family, 'family': family}
+        if errors:
+            raise ValidationError(errors)
 
 
 class BFDProfile(PrimaryModel):
@@ -827,10 +650,6 @@ class BFDProfile(PrimaryModel):
     )
 
     clone_fields = ('min_tx_int', 'min_rx_int', 'multiplier', 'hold', 'tenant')
-    prerequisite_models = (
-        'netbox_routing_protocols.BGPRouter',
-        'netbox_routing_protocols.BGPScope',
-    )
 
     class Meta:
         verbose_name = 'BFD Profile'

@@ -26,7 +26,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 4632](https://www.rfc-editor.org/rfc/rfc4632) | CIDR | [Prefix lists](routing-objects.md#prefix-lists) |
 | [RFC 4659](https://www.rfc-editor.org/rfc/rfc4659) | BGP-MPLS IPv6 VPN | [BGP](protocols/bgp.md#address-families) |
 | [RFC 4684](https://www.rfc-editor.org/rfc/rfc4684) | Route-target constrained distribution | [BGP](protocols/bgp.md#address-families) |
-| [RFC 4724](https://www.rfc-editor.org/rfc/rfc4724) | BGP graceful restart | [BGP settings](protocols/bgp.md#settings) |
+| [RFC 4724](https://www.rfc-editor.org/rfc/rfc4724) | BGP graceful restart | [BGP instances](protocols/bgp.md#instances) |
 | [RFC 4760](https://www.rfc-editor.org/rfc/rfc4760) | BGP multiprotocol extensions | [BGP address families](protocols/bgp.md#address-families) |
 | [RFC 4761](https://www.rfc-editor.org/rfc/rfc4761) | VPLS using BGP | [BGP](protocols/bgp.md#address-families) |
 | [RFC 4861](https://www.rfc-editor.org/rfc/rfc4861) | IPv6 neighbor discovery (link-local next hops need an interface) | [Static routes](protocols/static.md#what-the-plugin-checks) |
@@ -40,7 +40,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5305](https://www.rfc-editor.org/rfc/rfc5305) | IS-IS traffic engineering | [IS-IS](protocols/isis.md) |
 | [RFC 5308](https://www.rfc-editor.org/rfc/rfc5308) | IS-IS for IPv6 | [IS-IS](protocols/isis.md), [address families](protocols/isis.md#address-families) |
 | [RFC 5310](https://www.rfc-editor.org/rfc/rfc5310) | IS-IS generic cryptographic authentication | [IS-IS](protocols/isis.md#authentication) |
-| [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396) | Textual representation of AS numbers | [BGP settings](protocols/bgp.md#settings), [AS paths](routing-objects.md#as-paths) |
+| [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396) | Textual representation of AS numbers | [BGP instances](protocols/bgp.md#instances), [AS paths](routing-objects.md#as-paths) |
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization | [OSPF](protocols/ospf.md#advanced-features), [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 5668](https://www.rfc-editor.org/rfc/rfc5668) | 4-octet AS extended communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 5701](https://www.rfc-editor.org/rfc/rfc5701) | IPv6 address specific extended communities | [Routing objects](routing-objects.md#communities) |
@@ -51,9 +51,9 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5925](https://www.rfc-editor.org/rfc/rfc5925) | TCP authentication option | [BGP peers](protocols/bgp.md#peers) |
 | [RFC 6119](https://www.rfc-editor.org/rfc/rfc6119) | IPv6 traffic engineering in IS-IS | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6232](https://www.rfc-editor.org/rfc/rfc6232) | IS-IS purge originator identification | [IS-IS settings](protocols/isis.md#settings) |
-| [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier | [BGP settings](protocols/bgp.md#settings) |
+| [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier | [BGP instances](protocols/bgp.md#instances) |
 | [RFC 6549](https://www.rfc-editor.org/rfc/rfc6549) | OSPFv2 multi-instance | [OSPF instances](protocols/ospf.md#identity) |
-| [RFC 6793](https://www.rfc-editor.org/rfc/rfc6793) | Four-octet AS numbers | [BGP routers](protocols/bgp.md#routers), [AS paths](routing-objects.md#as-paths) |
+| [RFC 6793](https://www.rfc-editor.org/rfc/rfc6793) | Four-octet AS numbers | [BGP instances](protocols/bgp.md#instances), [AS paths](routing-objects.md#as-paths) |
 | [RFC 6860](https://www.rfc-editor.org/rfc/rfc6860) | Hiding transit-only networks | [OSPF interfaces](protocols/ospf.md#other-interface-options), [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6987](https://www.rfc-editor.org/rfc/rfc6987) | OSPF stub router advertisement | [OSPF instances](protocols/ospf.md#stability-and-maintenance) |
 | [RFC 7432](https://www.rfc-editor.org/rfc/rfc7432) | BGP MPLS-based Ethernet VPN | [BGP](protocols/bgp.md#address-families) |
@@ -64,7 +64,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 7684](https://www.rfc-editor.org/rfc/rfc7684) | OSPFv2 extended prefix/link LSAs | [OSPF](protocols/ospf.md#prefix-sids) |
 | [RFC 7752](https://www.rfc-editor.org/rfc/rfc7752) | BGP link-state | [BGP](protocols/bgp.md#address-families) |
 | [RFC 7868](https://www.rfc-editor.org/rfc/rfc7868) | EIGRP | [EIGRP](protocols/eigrp.md) |
-| [RFC 7911](https://www.rfc-editor.org/rfc/rfc7911) | BGP additional paths | [BGP settings](protocols/bgp.md#settings) |
+| [RFC 7911](https://www.rfc-editor.org/rfc/rfc7911) | BGP additional paths | [BGP address families](protocols/bgp.md#address-families) |
 | [RFC 7999](https://www.rfc-editor.org/rfc/rfc7999) | BLACKHOLE community | [Routing objects](routing-objects.md#well-known-communities) |
 | [RFC 8092](https://www.rfc-editor.org/rfc/rfc8092) | BGP large communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 8326](https://www.rfc-editor.org/rfc/rfc8326) | Graceful BGP session shutdown | [Routing objects](routing-objects.md#well-known-communities) |

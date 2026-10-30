@@ -3,7 +3,7 @@
 **Routing → Routing Objects**
 
 Routing objects are the building blocks that policies are made of. They are not tied to one protocol:
-today BGP policy templates and peer address families point at prefix lists and route policies.
+today BGP peer address families point at prefix lists and route policies.
 
 > **About the standards.** Prefix lists, route policies and AS-path filters are **vendor features**: no RFC defines them, and
 > every vendor spells them a little differently. What the RFCs define is what they act on: IP
@@ -122,7 +122,7 @@ The **Duplicate** button on the page of a list makes a copy **with all its entri
 
 ### Deleting a prefix list in use
 
-A prefix list that other objects use can be deleted. Before you confirm, the dialog (and the bulk delete page) lists **every object that refers to it, whatever the protocol**: BGP policy templates and peer address families, route policy entries, and anything that points to a prefix list in the future, grouped by type with links. Deleting the list leaves the reference empty in those objects (and removes the list from the route policy entries), so their filtering stops applying until you choose another list. The list's own entries are deleted with it.
+A prefix list that other objects use can be deleted. Before you confirm, the dialog (and the bulk delete page) lists **every object that refers to it, whatever the protocol**: BGP peer address families, route policy entries, and anything that points to a prefix list in the future, grouped by type with links. Deleting the list leaves the reference empty in those objects (and removes the list from the route policy entries), so their filtering stops applying until you choose another list. The list's own entries are deleted with it.
 
 ### Overlap warnings
 
@@ -233,7 +233,7 @@ An entry without conditions decides every route that reaches it, so the entries 
 
 ### Where a route policy is used
 
-The page of a route policy lists, with a link to the filtered list of each, where it is used: the BGP policy templates and peer address families (in and out), the OSPF instances, IS-IS instances and EIGRP routers that take it as their import or export policy, and the entries of other route policies that jump to it. A policy that appears there cannot be deleted.
+The page of a route policy lists, with a link to the filtered list of each, where it is used: the BGP peer address families (in and out), the OSPF instances, IS-IS instances and EIGRP routers that take it as their import or export policy, and the entries of other route policies that jump to it. A policy that appears there cannot be deleted.
 
 When you delete a prefix list, an AS path or a community list that route policy entries match, the confirmation lists those entries and warns that **an entry with no other condition will then match every route**. An entry without conditions is shown as *Matches every route* on its page (and in an optional column of the tables), and saving one shows a warning, besides the alert of the policy page about the entries it leaves unreachable.
 
@@ -263,7 +263,7 @@ The **Resequence** button on the page of the route policy renumbers its entries 
 
 ### Deleting a route policy in use
 
-A route policy that a protocol uses **cannot be deleted**: BGP policy templates and peer address families, the import and export policy of an OSPF instance, an IS-IS instance or an EIGRP router, and the entries of another route policy that jump to it. The delete is refused, in the web interface (single and bulk) and in the API, and the message names the objects that use it. Choose another policy in them, or clear the field, and then delete it. The entries of a policy that is not in use are deleted with it.
+A route policy that a protocol uses **cannot be deleted**: BGP peer address families, the import and export policy of an OSPF instance, an IS-IS instance or an EIGRP router, and the entries of another route policy that jump to it. The delete is refused, in the web interface (single and bulk) and in the API, and the message names the objects that use it. Choose another policy in them, or clear the field, and then delete it. The entries of a policy that is not in use are deleted with it.
 
 ## AS paths
 
@@ -328,7 +328,7 @@ decided in general.
 
 It shows the entries with an **Add entry** button (the form opens with the AS-path chosen, the next
 sequence suggested and *permit* preselected), and where the AS-path is used, like a prefix list: the
-route policy entries that match it, their route policies, and the BGP policy templates and peer
+route policy entries that match it, their route policies, and the BGP peer
 address families that apply those policies (in or out), each with a link to the filtered list.
 **Duplicate** copies an AS-path with all its entries under a new name (suggested: `<name> copy`).
 

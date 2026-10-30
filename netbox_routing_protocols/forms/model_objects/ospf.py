@@ -27,7 +27,7 @@ from netbox_routing_protocols.constants.ospf import (
 )
 from netbox_routing_protocols.models import (
     OSPFAuthenticationMixin,
-    BGPRouter,
+    BGPInstance,
     EIGRPRouter,
     ISISInstance,
     OSPFArea,
@@ -543,11 +543,11 @@ class OSPFRedistributionForm(PrimaryModelForm):
         query_params={'device_id': '$device'},
     )
     bgp_source = DynamicModelChoiceField(
-        queryset=BGPRouter.objects.all(),
+        queryset=BGPInstance.objects.all(),
         required=False,
         selector=True,
         label=_('BGP Source'),
-        help_text=_('A BGP router assigned to the device'),
+        help_text=_('A BGP instance on the device'),
     )
     isis_source = DynamicModelChoiceField(
         queryset=ISISInstance.objects.all(),

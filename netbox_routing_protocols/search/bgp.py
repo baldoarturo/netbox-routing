@@ -3,97 +3,37 @@ from netbox_routing_protocols.models.bgp import *
 
 
 @register_search
-class BGPPeerTemplateIndex(SearchIndex):
-    model = BGPPeerTemplate
+class BGPInstanceIndex(SearchIndex):
+    model = BGPInstance
     fields = (
         ('name', 100),
+        ('router_id', 200),
         ('description', 4000),
         ('comments', 5000),
     )
-    display_attrs = ('name',)
-
-
-@register_search
-class BGPPolicyTemplateIndex(SearchIndex):
-    model = BGPPolicyTemplate
-    fields = (
-        ('name', 100),
-        ('description', 4000),
-        ('comments', 5000),
-    )
-    display_attrs = ('name',)
-
-
-@register_search
-class BGPSessionTemplateIndex(SearchIndex):
-    model = BGPSessionTemplate
-    fields = (
-        ('name', 100),
-        ('parent', 200),
-        ('description', 4000),
-        ('comments', 5000),
-    )
-    display_attrs = ('name',)
-
-
-@register_search
-class BGPSettingIndex(SearchIndex):
-    model = BGPSetting
-    fields = (
-        ('search_display_name', 50),
-        ('key', 100),
-        ('description', 4000),
-        ('comments', 5000),
-    )
-    display_attrs = (
-        'key',
-        'assigned_object',
-    )
-
-
-@register_search
-class BGPRouterIndex(SearchIndex):
-    model = BGPRouter
-    fields = (
-        ('search_display_name', 50),
-        ('name', 100),
-        ('description', 4000),
-        ('comments', 5000),
-    )
-    display_attrs = (
-        'assigned_object',
-        'name',
-    )
-
-
-@register_search
-class BGPScopeIndex(SearchIndex):
-    model = BGPScope
-    fields = (
-        ('router', 100),
-        ('vrf', 200),
-        ('description', 4000),
-        ('comments', 5000),
-    )
-    display_attrs = (
-        'router',
-        'vrf',
-    )
+    display_attrs = ('device', 'vrf', 'asn')
 
 
 @register_search
 class BGPAddressFamilyIndex(SearchIndex):
     model = BGPAddressFamily
     fields = (
-        ('scope', 100),
-        ('address_family', 500),
+        ('address_family', 100),
         ('description', 4000),
         ('comments', 5000),
     )
-    display_attrs = (
-        'scope',
-        'address_family',
+    display_attrs = ('instance', 'address_family')
+
+
+@register_search
+class BGPPeerGroupIndex(SearchIndex):
+    model = BGPPeerGroup
+    fields = (
+        ('name', 100),
+        ('description', 4000),
+        ('comments', 5000),
     )
+    display_attrs = ('instance', 'remote_as')
 
 
 @register_search
@@ -101,32 +41,20 @@ class BGPPeerIndex(SearchIndex):
     model = BGPPeer
     fields = (
         ('name', 100),
-        ('peer', 200),
-        ('remote_as', 210),
-        ('source', 300),
-        ('local_as', 310),
         ('description', 4000),
         ('comments', 5000),
     )
-    display_attrs = (
-        'name',
-        'peer',
-        'remote_as',
-    )
+    display_attrs = ('instance', 'peer', 'peer_group', 'remote_as')
 
 
 @register_search
 class BGPPeerAddressFamilyIndex(SearchIndex):
     model = BGPPeerAddressFamily
     fields = (
-        ('search_display_name', 50),
         ('description', 4000),
         ('comments', 5000),
     )
-    display_attrs = (
-        'assigned_object',
-        'address_family',
-    )
+    display_attrs = ('peer', 'peer_group', 'address_family')
 
 
 @register_search

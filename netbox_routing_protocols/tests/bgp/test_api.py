@@ -1,323 +1,216 @@
-from utilities.testing import APIViewTestCases
+from ipam.models import ASN, IPAddress, RIR, VRF
+from netaddr import IPNetwork
+from utilities.testing import APIViewTestCases, create_test_device
 
 from netbox_routing_protocols.models.bgp import *
-from netbox_routing_protocols.tests.base import *
-from netbox_routing_protocols.tests.bgp.base import *
+from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
-    'BGPPeerTemplateTestCase',
-    'BGPPolicyTemplateTestCase',
-    'BGPSessionTemplateTestCase',
+    'BGPInstanceTestCase',
+    'BGPAddressFamilyTestCase',
+    'BGPPeerGroupTestCase',
+    'BGPPeerTestCase',
+    'BGPPeerAddressFamilyTestCase',
+    'BFDProfileTestCase',
 )
 
+NAMESPACE = 'plugins-api:netbox_routing_protocols'
 
-class BGPPeerTemplateTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
-    model = BGPPeerTemplate
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'display',
-        'id',
-        'name',
-        'remote_as',
-        'url',
-    ]
 
-    bulk_update_data = {'description': 'Description'}
-    routing_required_fields = ('name',)
+def _asns():
+    rir = RIR.objects.create(name='ARIN')
+    return [ASN.objects.create(rir=rir, asn=64512 + i) for i in range(4)]
+
+
+class BGPInstanceTestCase(APIViewTestCases.APIViewTestCase):
+    model = BGPInstance
+    view_namespace = NAMESPACE
+    brief_fields = ['asn', 'device', 'display', 'id', 'name', 'url', 'vrf']
+    user_permissions = ('dcim.view_device', 'ipam.view_asn', 'ipam.view_vrf')
+    bulk_update_data = {'description': 'A test description'}
 
     @classmethod
     def setUpTestData(cls):
-        cls.instances = (
-            cls.model(
-                name=f'{cls.model._meta.verbose_name} {i}',
-            )
-            for i in range(1, 5)
+        asns = _asns()
+        devices = [create_test_device(name=f'Device {i}') for i in range(1, 6)]
+        cls.model.objects.bulk_create(
+            [
+                cls.model(name=f'Instance {i}', device=devices[i], asn=asns[0])
+                for i in range(3)
+            ]
         )
-        cls.model.objects.bulk_create(cls.instances)
+        vrf = VRF.objects.create(name='Test VRF')
         cls.create_data = [
-            {'name': f'{cls.model._meta.verbose_name} {i}'} for i in range(5, 7)
+            {
+                'name': 'Instance X',
+                'device': devices[3].pk,
+                'asn': asns[0].pk,
+                'router_id': '192.0.2.1',
+                'asdot': True,
+                'graceful_restart': True,
+            },
+            {
+                'name': 'Instance Y',
+                'device': devices[3].pk,
+                'vrf': vrf.pk,
+                'asn': asns[1].pk,
+            },
+            {'name': 'Instance Z', 'device': devices[4].pk, 'asn': asns[1].pk},
         ]
 
 
-class BGPPolicyTemplateTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
-    model = BGPPolicyTemplate
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'display',
-        'id',
-        'name',
-        'url',
-    ]
-
-    bulk_update_data = {'description': 'Description'}
-    routing_required_fields = ('name',)
+class _BGPChildAPI:
+    view_namespace = NAMESPACE
+    bulk_update_data = {'description': 'A test description'}
 
     @classmethod
-    def setUpTestData(cls):
-        cls.instances = (
-            cls.model(
-                name=f'{cls.model._meta.verbose_name} {i}',
-            )
-            for i in range(1, 5)
+    def _parents(cls):
+        asns = _asns()
+        instance = BGPInstance.objects.create(
+            name='Instance', device=create_test_device(name='Device'), asn=asns[0]
         )
-        cls.model.objects.bulk_create(cls.instances)
-
-        cls.create_data = [
-            {'name': f'{cls.model._meta.verbose_name} {i}'} for i in range(5, 7)
-        ]
-
-
-class BGPSessionTemplateTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
-    model = BGPSessionTemplate
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'display',
-        'id',
-        'name',
-        'parent',
-        'url',
-    ]
-
-    bulk_update_data = {'description': 'Description'}
-    routing_required_fields = ('name',)
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.instances = (
-            cls.model(
-                name=f'{cls.model._meta.verbose_name} {i}',
-            )
-            for i in range(1, 5)
-        )
-        cls.model.objects.bulk_create(cls.instances)
-
-        cls.create_data = [
-            {'name': f'{cls.model._meta.verbose_name} {i}'} for i in range(5, 7)
-        ]
-
-
-class BGPRouterTestCase(
-    AutomatedModelCreationMixin, ASNMixin, APIViewTestCases.APIViewTestCase
-):
-    model = BGPRouter
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'asn',
-        'assigned_object',
-        'display',
-        'id',
-        'name',
-        'url',
-    ]
-
-    bulk_update_data = {'description': 'Description'}
-    routing_required_fields = (
-        'name',
-        ('asn', 'asns'),
-    )
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-        cls.create_data = [
-            {'name': f'{cls.model._meta.verbose_name}: {i}', 'asn': cls.asns[i].pk}
-            for i in range(5, 7)
-        ]
-
-
-class BGPScopeTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    BGPRouterMixin,
-    VRFMixin,
-    APIViewTestCases.APIViewTestCase,
-):
-    model = BGPScope
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'display',
-        'id',
-        'router',
-        'url',
-        'vrf',
-    ]
-
-    bulk_update_data = {'description': 'Description'}
-    routing_required_fields = (
-        'router',
-        ('vrf', 'vrfs'),
-    )
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-        cls.create_data = [
-            {'router': cls.router.pk, 'vrf': cls.vrfs[i].pk} for i in range(5, 7)
-        ]
+        return asns, instance
 
 
 class BGPAddressFamilyTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    BGPScopeMixin,
-    APIViewTestCases.APIViewTestCase,
+    LeanCoreTestsMixin, _BGPChildAPI, APIViewTestCases.APIViewTestCase
 ):
     model = BGPAddressFamily
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'address_family',
-        'display',
-        'id',
-        'scope',
-        'url',
-    ]
-
-    bulk_update_data = {'description': 'Description'}
-    routing_required_fields = (
-        'scope',
-        ('address_family', 'afs'),
-    )
-    afs = (
-        'ipv4-unicast',
-        'ipv6-unicast',
-        'vpnv4-unicast',
-        'vpnv6-unicast',
-        'l2vpn-vpls',
-        'l2vpn-evpn',
-        'ipv4-multicast',
-        'ipv6-multicast',
-    )
+    brief_fields = ['address_family', 'display', 'id', 'instance', 'url']
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-
+        _asns, instance = cls._parents()
+        cls.model.objects.bulk_create(
+            [
+                cls.model(instance=instance, address_family=af)
+                for af in ('ipv4-unicast', 'ipv6-unicast', 'vpnv4-unicast')
+            ]
+        )
         cls.create_data = [
-            {'scope': cls.scope.pk, 'address_family': cls.afs[i]} for i in range(5, 7)
+            {
+                'instance': instance.pk,
+                'address_family': 'ipv4-multicast',
+                'maximum_paths': 4,
+                'default_metric': 4294967295,
+                'additional_paths_send': True,
+            },
+            {'instance': instance.pk, 'address_family': 'l2vpn-evpn'},
+        ]
+
+
+class BGPPeerGroupTestCase(
+    LeanCoreTestsMixin, _BGPChildAPI, APIViewTestCases.APIViewTestCase
+):
+    model = BGPPeerGroup
+    brief_fields = ['display', 'id', 'instance', 'name', 'url']
+
+    @classmethod
+    def setUpTestData(cls):
+        asns, instance = cls._parents()
+        cls.model.objects.bulk_create(
+            [cls.model(name=f'Group {i}', instance=instance) for i in range(3)]
+        )
+        cls.create_data = [
+            {
+                'name': f'Group {i}',
+                'instance': instance.pk,
+                'remote_as': asns[1].pk,
+                'hold_time': 90,
+                'keepalive': 30,
+            }
+            for i in range(4, 6)
         ]
 
 
 class BGPPeerTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    AddressesMixin,
-    BGPScopeMixin,
-    APIViewTestCases.APIViewTestCase,
+    LeanCoreTestsMixin, _BGPChildAPI, APIViewTestCases.APIViewTestCase
 ):
     model = BGPPeer
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'display',
-        'enabled',
-        'id',
-        'name',
-        'peer',
-        'remote_as',
-        'scope',
-        'status',
-        'url',
-    ]
-
-    bulk_update_data = {'description': 'Description'}
-    enabled = True
-    routing_required_fields = (
-        'name',
-        'scope',
-        'enabled',
-        ('remote_as', 'asn'),
-        ('peer', 'ip_addresses'),
-    )
+    brief_fields = ['display', 'id', 'instance', 'name', 'peer', 'url']
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-
+        asns, instance = cls._parents()
+        addresses = [
+            IPAddress.objects.create(address=IPNetwork(f'10.0.0.{i}/24'))
+            for i in range(1, 7)
+        ]
+        group = BGPPeerGroup.objects.create(
+            name='Group', instance=instance, remote_as=asns[1]
+        )
+        cls.model.objects.bulk_create(
+            [
+                cls.model(instance=instance, peer=addresses[i], remote_as=asns[1])
+                for i in range(3)
+            ]
+        )
         cls.create_data = [
             {
-                'name': f'{cls.model._meta.verbose_name}: {i}',
-                'scope': cls.scope.pk,
-                'enabled': cls.enabled,
-                'remote_as': cls.asn.pk,
-                'peer': cls.ip_addresses[i].pk,
-            }
-            for i in range(5, 7)
+                'instance': instance.pk,
+                'peer': addresses[3].pk,
+                'peer_group': group.pk,
+                'status': 'planned',
+            },
+            {
+                'instance': instance.pk,
+                'peer': addresses[4].pk,
+                'source': addresses[5].pk,
+                'remote_as': asns[2].pk,
+                'ttl': 255,
+            },
         ]
 
 
 class BGPPeerAddressFamilyTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    BGPPeerMixin,
-    BGPAddressFamilyMixin,
-    APIViewTestCases.APIViewTestCase,
+    LeanCoreTestsMixin, _BGPChildAPI, APIViewTestCases.APIViewTestCase
 ):
     model = BGPPeerAddressFamily
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'address_family',
-        'assigned_object',
-        'display',
-        'enabled',
-        'id',
-        'url',
-    ]
-
-    bulk_update_data = {'description': 'Description'}
-    enabled = True
-    routing_required_fields = (
-        ('assigned_object', 'peer'),
-        ('address_family', 'address_families'),
-        'enabled',
-    )
+    brief_fields = ['address_family', 'display', 'id', 'peer', 'peer_group', 'url']
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-
-        ctype = f'{cls.peer._meta.app_label}.{cls.peer._meta.model_name}'
+        asns, instance = cls._parents()
+        afs = [
+            BGPAddressFamily.objects.create(instance=instance, address_family=af)
+            for af in ('ipv4-unicast', 'ipv6-unicast', 'vpnv4-unicast', 'l2vpn-evpn')
+        ]
+        peer = BGPPeer.objects.create(
+            instance=instance,
+            peer=IPAddress.objects.create(address=IPNetwork('10.0.0.1/24')),
+            remote_as=asns[1],
+        )
+        group = BGPPeerGroup.objects.create(
+            name='Group', instance=instance, remote_as=asns[1]
+        )
+        cls.model.objects.bulk_create(
+            [cls.model(peer=peer, address_family=afs[i]) for i in range(3)]
+        )
         cls.create_data = [
-            {
-                'assigned_object_type': ctype,
-                'assigned_object_id': cls.peer.pk,
-                'enabled': cls.enabled,
-                'address_family': cls.address_families[i].pk,
-            }
-            for i in range(5, 7)
+            {'peer': peer.pk, 'address_family': afs[3].pk, 'enabled': True},
+            {'peer_group': group.pk, 'address_family': afs[0].pk},
         ]
 
 
-class BFDProfileTestCase(
-    LeanCoreTestsMixin,
-    APIViewTestCases.APIViewTestCase,
-):
+class BFDProfileTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
     model = BFDProfile
-    view_namespace = "plugins-api:netbox_routing_protocols"
-    brief_fields = [
-        'display',
-        'id',
-        'name',
-        'url',
-    ]
-
+    view_namespace = NAMESPACE
+    brief_fields = ['display', 'id', 'name', 'url']
     bulk_update_data = {'description': 'Description'}
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-        profiles = []
-        for i in range(1, 4):
-            profiles.append(
-                BFDProfile(
+        cls.model.objects.bulk_create(
+            [
+                cls.model(
                     name=f'Test BFD Profile {i}',
                     min_rx_int=60,
                     min_tx_int=60,
                     multiplier=3,
                 )
-            )
-        BFDProfile.objects.bulk_create(profiles)
-
+                for i in range(1, 4)
+            ]
+        )
         cls.create_data = [
             {
                 'name': f'Test BFD Profile {i}',

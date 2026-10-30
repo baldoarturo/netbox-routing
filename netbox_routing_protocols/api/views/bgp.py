@@ -4,52 +4,53 @@ from netbox_routing_protocols.api._serializers.bgp import *
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
-    'BGPRouterViewSet',
-    'BGPScopeViewSet',
+    'BGPInstanceViewSet',
     'BGPAddressFamilyViewSet',
-    'BGPSettingViewSet',
+    'BGPPeerGroupViewSet',
     'BGPPeerViewSet',
     'BGPPeerAddressFamilyViewSet',
-    'BGPPeerTemplateViewSet',
-    'BGPPolicyTemplateViewSet',
-    'BGPSessionTemplateViewSet',
     'BFDProfileViewSet',
 )
 
 
-class BGPSettingViewSet(NetBoxModelViewSet):
-    queryset = BGPSetting.objects.all()
-    serializer_class = BGPSettingSerializer
-    filterset_class = filtersets.BGPSettingFilterSet
-
-
-class BGPRouterViewSet(NetBoxModelViewSet):
-    queryset = BGPRouter.objects.select_related('asn', 'tenant')
-    serializer_class = BGPRouterSerializer
-    filterset_class = filtersets.BGPRouterFilterSet
-
-
-class BGPScopeViewSet(NetBoxModelViewSet):
-    queryset = BGPScope.objects.select_related('router__asn', 'vrf', 'tenant')
-    serializer_class = BGPScopeSerializer
-    filterset_class = filtersets.BGPScopeFilterSet
+class BGPInstanceViewSet(NetBoxModelViewSet):
+    queryset = BGPInstance.objects.select_related('device', 'vrf', 'asn', 'tenant')
+    serializer_class = BGPInstanceSerializer
+    filterset_class = filtersets.BGPInstanceFilterSet
 
 
 class BGPAddressFamilyViewSet(NetBoxModelViewSet):
     queryset = BGPAddressFamily.objects.select_related(
-        'scope__router__asn', 'scope__vrf', 'tenant'
+        'instance__device', 'instance__vrf', 'instance__asn', 'tenant'
     )
     serializer_class = BGPAddressFamilySerializer
     filterset_class = filtersets.BGPAddressFamilyFilterSet
 
 
+class BGPPeerGroupViewSet(NetBoxModelViewSet):
+    queryset = BGPPeerGroup.objects.select_related(
+        'instance__device',
+        'instance__vrf',
+        'instance__asn',
+        'remote_as',
+        'local_as',
+        'bfd',
+        'tenant',
+    )
+    serializer_class = BGPPeerGroupSerializer
+    filterset_class = filtersets.BGPPeerGroupFilterSet
+
+
 class BGPPeerViewSet(NetBoxModelViewSet):
     queryset = BGPPeer.objects.select_related(
-        'scope__router__asn',
+        'instance__device',
+        'instance__vrf',
+        'instance__asn',
         'peer',
         'source',
-        'peer_group',
-        'peer_session',
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
         'remote_as',
         'local_as',
         'bfd',
@@ -59,36 +60,22 @@ class BGPPeerViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.BGPPeerFilterSet
 
 
-class BGPPeerTemplateViewSet(NetBoxModelViewSet):
-    queryset = BGPPeerTemplate.objects.select_related('remote_as', 'tenant')
-    serializer_class = BGPPeerTemplateSerializer
-    filterset_class = filtersets.BGPPeerTemplateFilterSet
-
-
-class BGPPolicyTemplateViewSet(NetBoxModelViewSet):
-    queryset = BGPPolicyTemplate.objects.select_related(
-        'prefixlist_out', 'prefixlist_in', 'routepolicy_out', 'routepolicy_in', 'tenant'
-    )
-    serializer_class = BGPPolicyTemplateSerializer
-    filterset_class = filtersets.BGPPolicyTemplateFilterSet
-
-
-class BGPSessionTemplateViewSet(NetBoxModelViewSet):
-    queryset = BGPSessionTemplate.objects.select_related(
-        'parent', 'local_as', 'remote_as', 'bfd', 'tenant'
-    )
-    serializer_class = BGPSessionTemplateSerializer
-    filterset_class = filtersets.BGPSessionTemplateFilterSet
-
-
 class BGPPeerAddressFamilyViewSet(NetBoxModelViewSet):
     queryset = BGPPeerAddressFamily.objects.select_related(
-        'address_family__scope__router__asn',
-        'peer_policy',
-        'prefixlist_out',
+        'peer__instance__device',
+        'peer__instance__vrf',
+        'peer__instance__asn',
+        'peer__peer',
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
         'prefixlist_in',
-        'routepolicy_out',
+        'prefixlist_out',
         'routepolicy_in',
+        'routepolicy_out',
         'tenant',
     )
     serializer_class = BGPPeerAddressFamilySerializer

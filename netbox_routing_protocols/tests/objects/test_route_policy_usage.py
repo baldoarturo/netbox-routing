@@ -8,8 +8,8 @@ from netbox_routing_protocols.filtersets import (
     RoutePolicyEntryFilterSet,
     RoutePolicyFilterSet,
 )
+from netbox_routing_protocols.tests.bgp.base import create_peer_address_family
 from netbox_routing_protocols.models import (
-    BGPPolicyTemplate,
     EIGRPRouter,
     ISISInstance,
     OSPFInstance,
@@ -49,7 +49,7 @@ class RoutePolicyUsedByTestCase(TestCase):
             rid='1.1.1.1',
             import_policy=self.policy,
         )
-        BGPPolicyTemplate.objects.create(name='Template', routepolicy_in=self.policy)
+        create_peer_address_family(routepolicy_in=self.policy)
         RoutePolicyEntry.objects.create(
             route_policy=self.other,
             sequence=10,

@@ -42,14 +42,10 @@ from .eigrp import (
 
 __all__ = (
     'StaticRouteViewSet',
-    'BGPSettingViewSet',
-    'BGPRouterViewSet',
-    'BGPScopeViewSet',
+    'BGPInstanceViewSet',
     'BGPAddressFamilyViewSet',
+    'BGPPeerGroupViewSet',
     'BGPPeerViewSet',
-    'BGPPeerTemplateViewSet',
-    'BGPPolicyTemplateViewSet',
-    'BGPSessionTemplateViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',
     'EIGRPRouterViewSet',

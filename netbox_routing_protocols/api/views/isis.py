@@ -147,9 +147,11 @@ class ISISRedistributionViewSet(NetBoxModelViewSet):
         'instance__vrf',
         'ospf_source__device',
         'eigrp_source__device',
+        'bgp_source__device',
+        'bgp_source__vrf',
         'bgp_source__asn',
         'isis_source__device',
-    ).prefetch_related('bgp_source__assigned_object')
+    )
     serializer_class = ISISRedistributionSerializer
     filterset_class = filtersets.ISISRedistributionFilterSet
 

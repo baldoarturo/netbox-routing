@@ -82,10 +82,12 @@ class OSPFRedistributionViewSet(NetBoxModelViewSet):
         'instance__vrf',
         'ospf_source__device',
         'eigrp_source__device',
+        'bgp_source__device',
+        'bgp_source__vrf',
         'bgp_source__asn',
         'route_policy',
         'isis_source__device',
-    ).prefetch_related('bgp_source__assigned_object')
+    )
     serializer_class = OSPFRedistributionSerializer
     filterset_class = filtersets.OSPFRedistributionFilterSet
 

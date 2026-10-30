@@ -197,7 +197,7 @@ class OSPFRedistributionType(PrimaryObjectType):
     )
     bgp_source: (
         Annotated[
-            "BGPRouterType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+            "BGPInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
         | None
     )

@@ -23,7 +23,7 @@ from netbox_routing_protocols.choices.ospf import (
 )
 
 from netbox_routing_protocols.models import (
-    BGPRouter,
+    BGPInstance,
     EIGRPRouter,
     ISISInstance,
     OSPFAreaRange,
@@ -392,10 +392,10 @@ class OSPFRedistributionImportForm(_DefaultsMixin, NetBoxModelImportForm):
         help_text=_("Name of the EIGRP router, for protocol eigrp"),
     )
     bgp_source = CSVModelChoiceField(
-        queryset=BGPRouter.objects.all(),
+        queryset=BGPInstance.objects.all(),
         required=False,
         to_field_name="name",
-        help_text=_("Name of the BGP router, for protocol bgp"),
+        help_text=_("Name of the BGP instance, for protocol bgp"),
     )
     isis_source = CSVModelChoiceField(
         queryset=ISISInstance.objects.all(),

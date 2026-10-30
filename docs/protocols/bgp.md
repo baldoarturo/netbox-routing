@@ -4,55 +4,46 @@
 
 BGP-4 ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271)) is the protocol that carries routes between
 autonomous systems and, inside a network, between routers (iBGP). The plugin models a BGP
-configuration with the same layers a router has: the **router** (your AS), the **scopes** (global
-table or a VRF), the **address families** negotiated in each scope, and the **peers**, plus
-**templates** so you do not repeat yourself.
+configuration with the same layers a router has, and the same shape as [OSPF](ospf.md): an
+**instance** per device and VRF, the **address families** it negotiates, the **peers** (neighbors)
+and **peer groups** that share their configuration.
 
 ## How it is organized
 
 ```
-BGP router (ASN, assigned to a device / site / region / cluster / VM)
- ├─ Settings (router-wide options)
- ├─ Templates available to its peers: session, peer, policy
- └─ Scope (global table, or one VRF)
-     ├─ Settings
-     ├─ Address family (IPv4 unicast, VPNv4, EVPN, ...)
-     │   └─ Peer address family ── policy (prefix lists, route policies)
-     └─ Peer (neighbor IP address)
-         ├─ Settings
-         └─ Peer address families
+BGP instance (device, VRF or global table, ASN)
+ ├─ Address family (IPv4 unicast, VPNv4, EVPN, ...)
+ ├─ Peer group ── session options · Peer address family (policy)
+ └─ Peer (neighbor IP address) ── session options · Peer address family (policy)
 ```
 
-Build it in this order: **ASN** (NetBox IPAM) → **Router** → **Scope** → **Address family** →
-**Peer** → **Peer address family**. Templates can be created at any time and attached later.
+Build it in this order: **ASN** (NetBox IPAM) → **Instance** → **Address family** → **Peer group**
+(optional) → **Peer** → **Peer address family**.
 
-## Routers
+## Instances
 
-**BGP → Routers**
+**BGP → Instances**
 
-A router is "this AS, on this device (or site, region, cluster...)".
+An instance is "this AS, on this device, in this routing table". A device has **one instance per VRF**
+(one for the global table and one for each VRF that runs BGP, as used by VPN services,
+[RFC 4364](https://www.rfc-editor.org/rfc/rfc4364)).
 
 | Field | Meaning |
 | --- | --- |
+| Name | A label of the instance. |
+| Device | The device the BGP process runs on. |
+| VRF | Empty for the global routing table. |
 | ASN | A NetBox ASN (**IPAM → ASNs**). Four-octet ASNs are fine ([RFC 6793](https://www.rfc-editor.org/rfc/rfc6793)). |
-| Name | Optional label. |
-| Assigned to | What the BGP process runs on: a device, virtual machine, site, location, region, site group, cluster or cluster group. Assign it to a *site* or *region* when the same BGP configuration applies to all the devices there. |
+| Router ID | The BGP identifier, a 32-bit value written as an IPv4 address and never `0.0.0.0` ([RFC 6286](https://www.rfc-editor.org/rfc/rfc6286)). |
+| AS dot notation | Write four-octet ASNs as `high.low` ([RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)). |
+| Graceful restart | Keep forwarding while the neighbor's BGP restarts ([RFC 4724](https://www.rfc-editor.org/rfc/rfc4724)). |
 | Tenant | Optional owner. |
-| Session / Peer / Policy templates | The templates peers of this router may use. |
-
-## Scopes
-
-**BGP → Scopes**
-
-A scope selects **where** the BGP configuration applies: the **global routing table** (no VRF) or a
-single **VRF**. Per-VRF BGP, as used by VPN services ([RFC 4364](https://www.rfc-editor.org/rfc/rfc4364)),
-has one scope per VRF.
 
 ## Address families
 
 **BGP → Address Families**
 
-The kinds of routes the router exchanges in a scope. BGP carries more than IPv4 thanks to the
+The kinds of routes the instance exchanges. BGP carries more than IPv4 thanks to the
 multiprotocol extensions ([RFC 4760](https://www.rfc-editor.org/rfc/rfc4760)); each *address family*
 is negotiated separately between the peers. The plugin offers:
 
@@ -68,138 +59,111 @@ is negotiated separately between the peers. The plugin offers:
 | LINK-STATE | Topology information for controllers | [RFC 7752](https://www.rfc-editor.org/rfc/rfc7752) |
 | NSAP | Legacy OSI addresses | RFC 4760 (address family registry) |
 
-A scope can have each family once.
+An instance can have each family once. Options of the family:
+
+| Field | Meaning |
+| --- | --- |
+| Maximum paths | Equal-cost multipath: how many paths are installed (vendor feature). |
+| Default metric | The metric (MED, [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271)) given to redistributed routes. |
+| Default originate | Advertise a default route to the neighbors (vendor feature). |
+| Auto summary | Summarize routes at classful boundaries (legacy; disabled on modern platforms). |
+| eBGP / iBGP distance | Administrative distance of the routes learned from each kind of session (vendor feature). |
+| Additional paths (send / receive / install) | Advertise or accept more than one path per prefix ([RFC 7911](https://www.rfc-editor.org/rfc/rfc7911)). |
+
+## Peer groups
+
+**BGP → Peer Groups**
+
+A peer group is a **group of neighbors that share their configuration** (the same as the *peer
+group* of FRR, Junos, Arista or IOS). It belongs to one instance and has the same session options as a
+peer (below) plus its own [peer address families](#peer-address-families) with the filtering of the group.
+A peer that points at a group takes its options from it; whatever the peer sets itself wins.
+
+> **Note.** The plugin records which group each peer uses and what each group contains; a peer shows its
+> own values. `BGPPeer.effective(field)` (used by the validation) gives the value the peer ends up
+> with. Your configuration templates or automation combine them.
 
 ## Peers
 
 **BGP → Peers**
 
-A peer is one BGP neighbor.
+A peer is one BGP neighbor. A neighbor address can be used once per instance
+([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271): one session per neighbor).
 
 | Field | Meaning |
 | --- | --- |
-| Scope | The router scope the session belongs to (global or a VRF). |
-| Peer | The neighbor's IP address (a NetBox IP address). |
-| Source | The local address to open the session from, usually a loopback. |
-| Remote AS | The neighbor's ASN. Same as the router's ASN means iBGP, different means eBGP. |
+| Instance | The instance (device and VRF) the session belongs to. |
+| Peer | The neighbor's IP address (a NetBox IP address in the VRF of the instance). |
+| Source | The local address to open the session from, usually a loopback of the device. |
+| Peer group | Inherit the options of a [peer group](#peer-groups) of the same instance. |
+| Status | **Active**, **Planned**, **Offline** or **Failed**: the lifecycle of the session in your documentation (it is not read from the network). |
+| Tenant | Optional owner. |
+
+Session options, on a peer and on a peer group (the peer needs a remote AS, its own or its group's):
+
+| Field | Meaning |
+| --- | --- |
+| Remote AS | The neighbor's ASN. Same as the instance's ASN means iBGP, different means eBGP. |
 | Local AS | Optional, a different ASN to present to this neighbor (used in AS migrations; a vendor feature). |
 | Enabled | Administratively enable or disable the session. |
-| Status | **Active**, **Planned**, **Offline** or **Failed**: the lifecycle of the session in your documentation (it is not read from the network). |
 | BFD profile | Detect failure fast, see [BFD](../bfd.md). |
-| TTL | The TTL of the session's packets. For directly connected eBGP set **255** and the expected hop count so the router drops spoofed packets: this is the *Generalized TTL Security Mechanism*, [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082). |
-| Password | The shared secret of the TCP session, stored as plain text. BGP session protection with a password is the TCP MD5 option, [RFC 2385](https://www.rfc-editor.org/rfc/rfc2385) (superseded in the standards by TCP-AO, [RFC 5925](https://www.rfc-editor.org/rfc/rfc5925)). |
-| Peer template / Session template | Inherit settings, see [Templates](#templates). |
-| Tenant | Optional owner. |
+| TTL | The TTL of the session's packets. For directly connected eBGP set **255** to apply the *Generalized TTL Security Mechanism*, [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082). |
+| Password | The shared secret of the TCP session, stored as plain text. The TCP MD5 option, [RFC 2385](https://www.rfc-editor.org/rfc/rfc2385), is superseded by TCP-AO ([RFC 5925](https://www.rfc-editor.org/rfc/rfc5925)). |
+| Keepalive time, Hold time | Seconds. The hold time is negotiated in the OPEN message: zero (no keepalives) or at least 3; keepalives are sent about every third of it ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271)). |
 
 ## Peer address families
 
 **BGP → Peer Address Families**
 
-What a neighbor exchanges in each address family and under which **policy**: an address family of the
-scope (for example IPv4 unicast) plus the filters applied to that peer in that family.
+What a neighbor (or a peer group) exchanges in each address family and under which **policy**: an
+address family of the instance (for example IPv4 unicast) plus the filters applied in that family.
 
 | Field | Meaning |
 | --- | --- |
-| Assigned to | A peer or a peer template. |
-| Address family | One of the scope's address families. |
+| Peer / Peer group | The peer or the peer group it applies to (one of the two). |
+| Address family | One of the instance's address families. |
 | Enabled | Activate the family for the neighbor. |
-| Prefix list in / out | Prefix lists ([routing objects](../routing-objects.md#prefix-lists)) that filter what is received from and sent to the neighbor. |
+| Prefix list in / out | Prefix lists ([routing objects](../routing-objects.md#prefix-lists)) that filter what is received from and sent to the neighbor. Their family (IPv4 or IPv6) must match the address family; families that carry no IP prefixes (EVPN, VPLS, link-state...) take none. |
 | Route policy in / out | Route policies that filter or modify routes in each direction. |
-| Policy template | Apply a [policy template](#policy-templates). |
 
-## Templates
+## Migrating from netbox-bgp
 
-Templates remove repetition: define the shared part once and make peers point at it. There are three
-kinds because they inherit different things.
-
-### Session templates
-
-**BGP → Session Templates**: the properties of the **TCP session**. They can inherit from a *parent*
-session template, so you can build a base "all eBGP peers" template and refine it per customer type.
-
-Fields: parent, enabled, local AS, remote AS, TTL, BFD profile, password, tenant.
-
-### Policy templates
-
-**BGP → Policy Templates**: the **filters** (prefix lists in/out, route policies in/out). A policy template
-can have several *parents*; a peer address family points at one.
-
-### Peer templates
-
-**BGP → Peer Templates**: a **group of neighbors** that share a remote AS and per-address-family
-settings (the equivalent of a *peer group*). A peer points at one with *Peer template*.
-
-> **Note.** The plugin records which template each peer uses and what each template contains. It does not
-> compute the final effective configuration of a peer; your configuration templates or automation
-> combine them.
-
-## Settings
-
-**BGP → Settings**
-
-Option-by-option settings that do not need their own field. A setting is a **key and a value** assigned
-to a router, a scope, an address family or a peer, so you can set an option at the level it applies to.
-Values are validated by type (yes/no, number or IP address).
-
-| Key | Type | Meaning |
-| --- | --- | --- |
-| Router ID | IP address | The BGP identifier, unique in the AS ([RFC 6286](https://www.rfc-editor.org/rfc/rfc6286)). |
-| AS Dot Notation | yes/no | Write four-octet ASNs as `high.low` ([RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)). |
-| Graceful Restart | yes/no | Keep forwarding while the neighbor's BGP restarts ([RFC 4724](https://www.rfc-editor.org/rfc/rfc4724)). |
-| Additional Paths (send / receive / install) | number | Advertise or accept more than one path per prefix ([RFC 7911](https://www.rfc-editor.org/rfc/rfc7911)). |
-| Keep Alive, Hold Time | seconds | Session timers: the hold time is negotiated in the OPEN message and keepalives are sent about every third of it ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271)). |
-| Default Metric | number | The metric (MED, [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271)) given to redistributed routes. |
-| Default Originate | yes/no | Advertise a default route to the neighbor (vendor feature). |
-| eBGP / iBGP / MP eBGP / MP iBGP Distance | number | Administrative distance of routes learned from each kind of session (vendor feature). |
-| Maximum Paths, Maximum Paths (secondary) | number | Equal-cost multipath: how many paths are installed (vendor feature). |
-| Auto summary | yes/no | Summarize routes at classful boundaries (legacy; disabled on modern platforms). |
+`manage.py migrate-netbox-bgp` creates one instance per device (every session needs a device and a
+local ASN), its IPv4 and IPv6 unicast families, the peers and, where a session used a peer group, a copy
+of that group in the instance of the device.
 
 ## Field reference
 
-Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a yes/no field, `→` a link to another object and `{a | b}` the allowed choices.
-
-The **Settings** (key / value pairs) can be attached to a router, a scope, an address family, a peer or a peer address family. The key is one of: Router ID · Auto summary · Additional Paths (install) · Additional Paths (receive) · Additional Paths (send) · AS Dot Notation · Graceful Restart · Default Originate · Default Metric · eBGP Distance · iBGP Distance · MP eBGP Distance · MP iBGP Distance · Maximum Paths · Maximum Paths (secondary) · Keep Alive · Hold Time.
+Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a field that can be left empty (it then inherits, or is not set).
 
 ```text
-BGP router
-├─ name · asn → ASN · tenant → Tenant
-├─ Assigned to: Region | Site | Site group | Location | Device | Cluster | Virtual machine
-├─ Templates in use: session_templates → Session template (several)
-│     · policy_templates → Policy template (several) · peer_templates → Peer template (several)
-├─ Settings: key · value
+BGP instance
+├─ name · device → Device · vrf → VRF · asn → ASN · tenant → Tenant
+├─ router_id · asdot? · graceful_restart?
 │
-└─ Scope
-    ├─ router → BGP router · vrf → VRF · tenant → Tenant
-    ├─ Settings: key · value
-    ├─ Address family
-    │     scope → Scope · tenant → Tenant
-    │     · address_family {IPv4 | IPv6 | VPNv4 | VPNv6} Unicast / Multicast / Flowspec
-    │                      · NSAP · L2VPN VPLS · L2VPN EVPN · LINK-STATE · RTFILTER
-    │     └─ Settings: key · value
-    └─ Peer
-        ├─ name · scope → Scope · tenant → Tenant
-        ├─ Session: peer → IP address · source → IP address · remote_as → ASN · local_as → ASN
-        │     · enabled? · status {Active | Planned | Offline | Failed} · ttl · password
-        │     · bfd → BFD profile
-        ├─ Templates: peer_group → Peer template · peer_session → Session template
-        ├─ Settings: key · value
-        └─ Peer address family
-              assigned to: Peer or Peer template · address_family → Address family
-              · peer_policy → Policy template · enabled? · tenant → Tenant
-              · prefixlist_in → Prefix list · prefixlist_out → Prefix list
-              · routepolicy_in → Route policy · routepolicy_out → Route policy
-              └─ Settings: key · value
-
-Session template
-└─ name · parent → Session template · enabled? · local_as → ASN · remote_as → ASN · ttl
-   · bfd → BFD profile · password · tenant → Tenant
-
-Policy template
-└─ name · parents → Policy template (several) · enabled? · tenant → Tenant
-   · prefixlist_in → Prefix list · prefixlist_out → Prefix list
-   · routepolicy_in → Route policy · routepolicy_out → Route policy
-
-Peer template
-└─ name · remote_as → ASN · enabled? · tenant → Tenant
-   · address_families → Peer address family (several)
+├─ Address family
+│     instance → BGP instance · tenant → Tenant
+│     · address_family {IPv4 | IPv6 | VPNv4 | VPNv6} Unicast / Multicast / Flowspec
+│                      · NSAP · L2VPN VPLS · L2VPN EVPN · LINK-STATE · RTFILTER
+│     · maximum_paths · default_metric · default_originate? · auto_summary?
+│     · distance_ebgp · distance_ibgp
+│     · additional_paths_send? · additional_paths_receive? · additional_paths_install?
+│
+├─ Peer group
+│     name · instance → BGP instance · tenant → Tenant
+│     · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · ttl · password
+│     · keepalive · hold_time
+│     └─ Peer address family (see below)
+│
+└─ Peer
+      name · instance → BGP instance · tenant → Tenant
+      · peer → IP address · source → IP address · peer_group → Peer group
+      · status {Active | Planned | Offline | Failed}
+      · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · ttl · password
+      · keepalive · hold_time
+      └─ Peer address family
+            peer → Peer, or peer_group → Peer group · address_family → Address family
+            · enabled? · tenant → Tenant
+            · prefixlist_in → Prefix list · prefixlist_out → Prefix list
+            · routepolicy_in → Route policy · routepolicy_out → Route policy
 ```

@@ -3,42 +3,209 @@ from django.utils.translation import gettext_lazy as _
 
 from ipam.models import ASN, IPAddress, VRF
 from netbox.forms import PrimaryModelBulkEditForm
-from netbox_routing_protocols.forms.bulk_edit.base import (
-    EnableMixin,
-    TenantBulkEditMixin,
-)
+from netbox_routing_protocols.forms.bulk_edit.base import TenantBulkEditMixin
 from netbox_routing_protocols.models import RoutePolicy, PrefixList
-from utilities.forms.fields import (
-    DynamicModelChoiceField,
-    DynamicModelMultipleChoiceField,
-)
+from utilities.forms import add_blank_choice
+from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
+from utilities.forms.widgets import BulkEditNullBooleanSelect
 
 from netbox_routing_protocols.choices.bgp import *
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
-    'BGPSettingBulkEditForm',
-    'BGPRouterBulkEditForm',
-    'BGPScopeBulkEditForm',
+    'BGPInstanceBulkEditForm',
     'BGPAddressFamilyBulkEditForm',
-    'BGPPeerTemplateBulkEditForm',
-    'BGPPolicyTemplateBulkEditForm',
-    'BGPSessionTemplateBulkEditForm',
+    'BGPPeerGroupBulkEditForm',
     'BGPPeerBulkEditForm',
     'BGPPeerAddressFamilyBulkEditForm',
     'BFDProfileBulkEditForm',
 )
 
 
-class BGPPolicyMixin:
-    prefix_list_in = DynamicModelChoiceField(
+def _tristate(label):
+    return forms.NullBooleanField(
+        label=label, required=False, widget=BulkEditNullBooleanSelect()
+    )
+
+
+class BGPPeerConfigBulkEditMixin(forms.Form):
+    remote_as = DynamicModelChoiceField(
+        label=_('Remote AS'), queryset=ASN.objects.all(), required=False, selector=True
+    )
+    local_as = DynamicModelChoiceField(
+        label=_('Local AS'), queryset=ASN.objects.all(), required=False, selector=True
+    )
+    enabled = _tristate(_('Enabled'))
+    bfd = DynamicModelChoiceField(
+        label=_('BFD Profile'),
+        queryset=BFDProfile.objects.all(),
+        required=False,
+        selector=True,
+    )
+    ttl = forms.IntegerField(label=_('TTL'), required=False, min_value=1, max_value=255)
+    keepalive = forms.IntegerField(
+        label=_('Keepalive Time'), required=False, min_value=0, max_value=21845
+    )
+    hold_time = forms.IntegerField(
+        label=_('Hold Time'), required=False, min_value=0, max_value=65535
+    )
+
+
+_CONFIG_NULLABLE = (
+    'remote_as',
+    'local_as',
+    'enabled',
+    'bfd',
+    'ttl',
+    'keepalive',
+    'hold_time',
+    'description',
+    'tenant',
+)
+
+
+class BGPInstanceBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
+    model = BGPInstance
+    vrf = DynamicModelChoiceField(
+        label=_('VRF'), queryset=VRF.objects.all(), required=False, selector=True
+    )
+    asn = DynamicModelChoiceField(
+        label=_('ASN'), queryset=ASN.objects.all(), required=False, selector=True
+    )
+    asdot = _tristate(_('AS Dot Notation'))
+    graceful_restart = _tristate(_('Graceful Restart'))
+
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('vrf', 'asn', 'asdot', 'graceful_restart', name=_('BGP')),
+        FieldSet('tenant', name=_('Tenancy')),
+    )
+    nullable_fields = ('vrf', 'asdot', 'graceful_restart', 'description', 'tenant')
+
+
+class BGPAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
+    model = BGPAddressFamily
+    maximum_paths = forms.IntegerField(
+        label=_('Maximum Paths'), required=False, min_value=1
+    )
+    default_metric = forms.IntegerField(
+        label=_('Default Metric'), required=False, min_value=0, max_value=4294967295
+    )
+    default_originate = _tristate(_('Default Originate'))
+    auto_summary = _tristate(_('Auto Summary'))
+    distance_ebgp = forms.IntegerField(
+        label=_('eBGP Distance'), required=False, min_value=1, max_value=255
+    )
+    distance_ibgp = forms.IntegerField(
+        label=_('iBGP Distance'), required=False, min_value=1, max_value=255
+    )
+    additional_paths_send = _tristate(_('Additional Paths (send)'))
+    additional_paths_receive = _tristate(_('Additional Paths (receive)'))
+    additional_paths_install = _tristate(_('Additional Paths (install)'))
+
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet(
+            'maximum_paths',
+            'default_metric',
+            'default_originate',
+            'auto_summary',
+            'distance_ebgp',
+            'distance_ibgp',
+            name=_('Options'),
+        ),
+        FieldSet(
+            'additional_paths_send',
+            'additional_paths_receive',
+            'additional_paths_install',
+            name=_('Additional paths'),
+        ),
+        FieldSet('tenant', name=_('Tenancy')),
+    )
+    nullable_fields = (
+        'maximum_paths',
+        'default_metric',
+        'default_originate',
+        'auto_summary',
+        'distance_ebgp',
+        'distance_ibgp',
+        'additional_paths_send',
+        'additional_paths_receive',
+        'additional_paths_install',
+        'description',
+        'tenant',
+    )
+
+
+class BGPPeerGroupBulkEditForm(
+    BGPPeerConfigBulkEditMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
+):
+    model = BGPPeerGroup
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet(
+            'remote_as',
+            'local_as',
+            'enabled',
+            'bfd',
+            'ttl',
+            'keepalive',
+            'hold_time',
+            name=_('Session'),
+        ),
+        FieldSet('tenant', name=_('Tenancy')),
+    )
+    nullable_fields = _CONFIG_NULLABLE
+
+
+class BGPPeerBulkEditForm(
+    BGPPeerConfigBulkEditMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
+):
+    model = BGPPeer
+    peer_group = DynamicModelChoiceField(
+        label=_('Peer Group'),
+        queryset=BGPPeerGroup.objects.all(),
+        required=False,
+        selector=True,
+    )
+    source = DynamicModelChoiceField(
+        label=_('Source'),
+        queryset=IPAddress.objects.all(),
+        required=False,
+        selector=True,
+    )
+    status = forms.ChoiceField(
+        label=_('Status'), choices=add_blank_choice(BGPStatusChoices), required=False
+    )
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('peer_group', 'source', 'status', name=_('Peer')),
+        FieldSet(
+            'remote_as',
+            'local_as',
+            'enabled',
+            'bfd',
+            'ttl',
+            'keepalive',
+            'hold_time',
+            name=_('Session'),
+        ),
+        FieldSet('tenant', name=_('Tenancy')),
+    )
+    nullable_fields = _CONFIG_NULLABLE + ('peer_group', 'source', 'status')
+
+
+class BGPPeerAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
+    model = BGPPeerAddressFamily
+    enabled = _tristate(_('Enabled'))
+    prefixlist_in = DynamicModelChoiceField(
         label=_('Prefix List (in)'),
         queryset=PrefixList.objects.all(),
         required=False,
         selector=True,
     )
-    prefix_list_out = DynamicModelChoiceField(
+    prefixlist_out = DynamicModelChoiceField(
         label=_('Prefix List (out)'),
         queryset=PrefixList.objects.all(),
         required=False,
@@ -56,305 +223,24 @@ class BGPPolicyMixin:
         required=False,
         selector=True,
     )
-
-
-class BGPSessionMixin:
-    remote_as = DynamicModelChoiceField(
-        label=_('Remote AS'), queryset=ASN.objects.all(), required=False, selector=True
-    )
-    local_as = DynamicModelChoiceField(
-        label=_('Local AS'), queryset=ASN.objects.all(), required=False, selector=True
-    )
-
-
-class BGPSettingBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
-    model = BGPSetting
     fieldsets = (
-        FieldSet(
-            'description',
-        ),
-    )
-    nullable_fields = ('description',)
-
-
-class BGPRouterBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
-    asn = DynamicModelChoiceField(
-        label=_('ASN'), queryset=ASN.objects.all(), required=False, selector=True
-    )
-    peer_templates = DynamicModelMultipleChoiceField(
-        label=_('Assigned Peer Template'),
-        queryset=BGPPeerTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    policy_templates = DynamicModelMultipleChoiceField(
-        label=_('Assigned Policy Template'),
-        queryset=BGPPolicyTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    session_templates = DynamicModelMultipleChoiceField(
-        label=_('Assigned Session Template'),
-        queryset=BGPSessionTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    model = BGPRouter
-    fieldsets = (
-        FieldSet(
-            'asn',
-            'policy_templates',
-            'session_templates',
-            'peer_templates',
-            'description',
-        ),
-        FieldSet('tenant', name=_('Tenancy')),
-    )
-    nullable_fields = (
-        'policy_templates',
-        'session_templates',
-        'peer_templates',
-        'description',
-        'tenant',
-    )
-
-
-class BGPScopeBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
-    router = DynamicModelChoiceField(
-        label=_('Router'),
-        queryset=BGPRouter.objects.all(),
-        required=False,
-        selector=True,
-    )
-    vrf = DynamicModelChoiceField(
-        label=_('VRF'), queryset=VRF.objects.all(), required=False, selector=True
-    )
-    model = BGPScope
-    fieldsets = (
-        FieldSet(
-            'router',
-            'vrf',
-            'description',
-        ),
-        FieldSet('tenant', name=_('Tenancy')),
-    )
-    nullable_fields = (
-        'router',
-        'vrf',
-        'description',
-        'tenant',
-    )
-
-
-class BGPAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
-    scope = DynamicModelChoiceField(
-        label=_('Scope'), queryset=BGPScope.objects.all(), required=False, selector=True
-    )
-    address_family = forms.ChoiceField(
-        label=_('Status'),
-        choices=BGPAddressFamilyChoices,
-        required=False,
-    )
-    model = BGPAddressFamily
-    fieldsets = (
-        FieldSet(
-            'scope',
-            'address_family',
-            'description',
-        ),
-        FieldSet('tenant', name=_('Tenancy')),
-    )
-    nullable_fields = (
-        'scope',
-        'description',
-        'tenant',
-    )
-
-
-class BGPPeerTemplateBulkEditForm(
-    EnableMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
-):
-    asn = DynamicModelChoiceField(
-        label=_('ASN'), queryset=ASN.objects.all(), required=False, selector=True
-    )
-
-    model = BGPPeerTemplate
-    fieldsets = (
-        FieldSet(
-            'enabled',
-            'remote_as',
-        ),
-        FieldSet('tenant', name=_('Tenancy')),
-    )
-    nullable_fields = (
-        'remote_as',
-        'enabled',
-        'tenant',
-    )
-
-
-class BGPPolicyTemplateBulkEditForm(
-    EnableMixin, BGPPolicyMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
-):
-    parents = DynamicModelMultipleChoiceField(
-        label=_('Parent Policy Templates'),
-        queryset=BGPPolicyTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    model = BGPPolicyTemplate
-    fieldsets = (
-        FieldSet(
-            'enabled',
-            'parents',
-        ),
+        FieldSet('description', 'enabled'),
         FieldSet(
             'prefixlist_in',
             'prefixlist_out',
             'routepolicy_in',
             'routepolicy_out',
+            name=_('Filtering'),
         ),
         FieldSet('tenant', name=_('Tenancy')),
     )
     nullable_fields = (
         'enabled',
-        'parents',
         'prefixlist_in',
         'prefixlist_out',
         'routepolicy_in',
         'routepolicy_out',
-        'tenant',
-    )
-
-
-class BGPSessionTemplateBulkEditForm(
-    EnableMixin, BGPSessionMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
-):
-    parent = DynamicModelChoiceField(
-        label=_('Parent'),
-        queryset=BGPSessionTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    bfd = forms.BooleanField(label=_('BFD Enabled'), required=False)
-    password = forms.CharField(label=_('Password'), required=False)
-
-    model = BGPSessionTemplate
-    fieldsets = (
-        FieldSet(
-            'parent',
-            'enabled',
-            'remote_as',
-            'local_as',
-            'bfd',
-            'ttl',
-            'password',
-        ),
-        FieldSet('tenant', name=_('Tenancy')),
-    )
-    nullable_fields = (
-        'parent',
-        'enabled',
-        'remote_as',
-        'local_as',
-        'bfd',
-        'ttl',
-        'password',
-        'tenant',
-    )
-
-
-class BGPPeerBulkEditForm(
-    EnableMixin, BGPSessionMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
-):
-    scope = DynamicModelChoiceField(
-        label=_('Scope'), queryset=BGPScope.objects.all(), required=False, selector=True
-    )
-    peer = DynamicModelChoiceField(
-        label=_('Peer'), queryset=IPAddress.objects.all(), required=False, selector=True
-    )
-    source = DynamicModelChoiceField(
-        label=_('Source'),
-        queryset=IPAddress.objects.all(),
-        required=False,
-        selector=True,
-    )
-    peer_group = DynamicModelChoiceField(
-        label=_('Peer Group'),
-        queryset=BGPPeerTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    peer_session = DynamicModelChoiceField(
-        label=_('Peer Session'),
-        queryset=BGPSessionTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    bfd = forms.BooleanField(label=_('BFD Enabled'), required=False)
-    password = forms.CharField(label=_('Password'), required=False)
-    model = BGPPeer
-    fieldsets = (
-        FieldSet(
-            'scope',
-            'peer',
-            'status',
-            'enabled',
-            'source',
-            'remote_as',
-            'local_as',
-        ),
-        FieldSet(
-            'peer_group',
-            'peer_session',
-            'bfd',
-            'ttl',
-            'password',
-        ),
-        FieldSet('tenant', name=_('Tenancy')),
-    )
-    nullable_fields = (
-        'source',
-        'peer_group',
-        'peer_session',
-        'local_as',
-        'status',
-        'ttl',
-        'enabled',
-        'password',
-        'tenant',
-    )
-
-
-class BGPPeerAddressFamilyBulkEditForm(
-    EnableMixin, BGPPolicyMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
-):
-    peer_policy = DynamicModelChoiceField(
-        label=_('Peer Policy'),
-        queryset=BGPPolicyTemplate.objects.all(),
-        required=False,
-        selector=True,
-    )
-    model = BGPPeerAddressFamily
-    fieldsets = (
-        FieldSet(
-            'enabled',
-            'peer_policy',
-        ),
-        FieldSet(
-            'prefixlist_out',
-            'prefixlist_in',
-            'routepolicy_out',
-            'routepolicy_in',
-        ),
-        FieldSet('tenant', name=_('Tenancy')),
-    )
-    nullable_fields = (
-        'peer_policy',
-        'prefixlist_out',
-        'prefixlist_in',
-        'routepolicy_out',
-        'routepolicy_in',
+        'description',
         'tenant',
     )
 

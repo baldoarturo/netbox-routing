@@ -1,324 +1,184 @@
-import netaddr
-from utilities.testing import ViewTestCases
-from ipam.models import IPAddress, VRF, ASN
+from ipam.models import ASN, IPAddress, RIR, VRF
+from netaddr import IPNetwork
+from utilities.testing import ViewTestCases, create_test_device
 
 from netbox_routing_protocols.models.bgp import *
-from netbox_routing_protocols.tests.base import *
-from netbox_routing_protocols.tests.bgp.base import *
+from netbox_routing_protocols.tests.base import (
+    BulkEditMixin,
+    LeanCoreTestsMixin,
+    PluginBaseURLMixin,
+)
 
 __all__ = (
-    'BGPRouterTestCase',
-    'BGPScopeTestCase',
+    'BGPInstanceTestCase',
+    'BGPAddressFamilyTestCase',
+    'BGPPeerGroupTestCase',
+    'BGPPeerTestCase',
+    'BGPPeerAddressFamilyTestCase',
+    'BFDProfileTestCase',
 )
 
 
-class BGPAutomatedFormDataCreationMixin(AutomatedModelCreationMixin):
+VIEW_CASES = (
+    BulkEditMixin,
+    PluginBaseURLMixin,
+    ViewTestCases.GetObjectViewTestCase,
+    ViewTestCases.GetObjectChangelogViewTestCase,
+    ViewTestCases.CreateObjectViewTestCase,
+    ViewTestCases.EditObjectViewTestCase,
+    ViewTestCases.DeleteObjectViewTestCase,
+    ViewTestCases.ListObjectsViewTestCase,
+    ViewTestCases.BulkEditObjectsViewTestCase,
+    ViewTestCases.BulkDeleteObjectsViewTestCase,
+)
+
+
+class _ViewHelpers:
+    @classmethod
+    def _parents(cls):
+        rir = RIR.objects.create(name='ARIN')
+        asns = [ASN.objects.create(rir=rir, asn=64512 + i) for i in range(4)]
+        instance = BGPInstance.objects.create(
+            name='Instance', device=create_test_device(name='Device'), asn=asns[0]
+        )
+        cls.asns = asns
+        return asns, instance
+
+
+class BGPInstanceTestCase(_ViewHelpers, *VIEW_CASES):
+    model = BGPInstance
+
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
+        rir = RIR.objects.create(name='ARIN')
+        asn = ASN.objects.create(rir=rir, asn=64512)
+        devices = [create_test_device(name=f'Device {i}') for i in range(1, 5)]
+        vrf = VRF.objects.create(name='Test VRF')
+        cls.model.objects.bulk_create(
+            [
+                cls.model(name=f'Instance {i}', device=devices[i], asn=asn)
+                for i in range(3)
+            ]
+        )
         cls.form_data = {
-            'name': '{cls.model._meta.verbose_name}: 4',
+            'name': 'Instance X',
+            'device': devices[3].pk,
+            'vrf': vrf.pk,
+            'asn': asn.pk,
+            'router_id': '192.0.2.1',
+            'asdot': True,
+            'graceful_restart': False,
         }
 
 
-class BGPRouterTestCase(
-    ASNMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
-    model = BGPRouter
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-        items = []
-        name = 'BGP Router'
-        for seq in range(1, 4):
-            asn = ASN.objects.all()[seq - 1]
-            items.append(
-                cls.model(
-                    name=f'{name} {seq}',
-                    asn=asn,
-                ),
-            )
-        cls.model.objects.bulk_create(items)
-
-        cls.form_data = {'name': f'{name} 4', 'asn': ASN.objects.last().pk}
-
-
-class BGPScopeTestCase(
-    LeanCoreTestsMixin,
-    BGPRouterMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
-    model = BGPScope
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-        items = []
-        for seq in range(1, 4):
-            vrf = VRF.objects.create(name=f'VRF {seq}', rd=f'64512:{seq}')
-            items.append(
-                cls.model(
-                    router=cls.router,
-                    vrf=vrf,
-                ),
-            )
-        cls.model.objects.bulk_create(items)
-
-        cls.form_data = {
-            'router': cls.router.pk,
-        }
-
-
-class BGPAddressFamilyTestCase(
-    LeanCoreTestsMixin,
-    BGPScopeMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
+class BGPAddressFamilyTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
     model = BGPAddressFamily
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-        items = []
-        for seq in ('ipv4-unicast', 'ipv6-unicast', 'vpnv4-unicast', 'vpnv6-unicast'):
-            items.append(
-                cls.model(
-                    scope=cls.scope,
-                    address_family=seq,
-                ),
-            )
-        cls.model.objects.bulk_create(items)
-
+        _asns, instance = cls._parents()
+        cls.model.objects.bulk_create(
+            [
+                cls.model(instance=instance, address_family=af)
+                for af in ('ipv4-unicast', 'ipv6-unicast', 'vpnv4-unicast')
+            ]
+        )
         cls.form_data = {
-            'scope': cls.scope.pk,
+            'instance': instance.pk,
             'address_family': 'l2vpn-evpn',
+            'maximum_paths': 4,
+            'distance_ebgp': 20,
+            'additional_paths_send': True,
         }
 
 
-class BGPPeerTestCase(
-    LeanCoreTestsMixin,
-    BGPScopeMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
+class BGPPeerGroupTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
+    model = BGPPeerGroup
+
+    @classmethod
+    def setUpTestData(cls):
+        asns, instance = cls._parents()
+        cls.model.objects.bulk_create(
+            [cls.model(name=f'Group {i}', instance=instance) for i in range(3)]
+        )
+        cls.form_data = {
+            'name': 'Group X',
+            'instance': instance.pk,
+            'remote_as': asns[1].pk,
+            'hold_time': 90,
+            'keepalive': 30,
+        }
+
+
+class BGPPeerTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
     model = BGPPeer
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-        items = []
-        for seq in (
-            '10.0.0.1/24',
-            '10.0.0.2/24',
-            '10.0.0.3/24',
-            '10.0.0.4/24',
-            '10.0.0.5/24',
-            '10.0.0.6/24',
-        ):
-            peer = IPAddress.objects.create(address=netaddr.IPNetwork(seq))
-            items.append(
-                cls.model(
-                    name=f'BGP Peer: {seq}',
-                    scope=cls.scope,
-                    peer=peer,
-                ),
-            )
-        cls.model.objects.bulk_create(items)
-
-        peer = IPAddress.objects.create(address=netaddr.IPNetwork('10.0.0.7/24'))
+        asns, instance = cls._parents()
+        addresses = [
+            IPAddress.objects.create(address=IPNetwork(f'10.0.0.{i}/24'))
+            for i in range(1, 6)
+        ]
+        group = BGPPeerGroup.objects.create(
+            name='Group', instance=instance, remote_as=asns[1]
+        )
+        cls.model.objects.bulk_create(
+            [
+                cls.model(instance=instance, peer=addresses[i], remote_as=asns[1])
+                for i in range(3)
+            ]
+        )
         cls.form_data = {
-            'name': 'BGP Peer: 10.0.0.7/24',
-            'scope': cls.scope.pk,
-            'peer': peer.pk,
+            'instance': instance.pk,
+            'peer': addresses[3].pk,
+            'peer_group': group.pk,
+            'status': 'planned',
+            'enabled': True,
         }
 
 
-class BGPPeerAddressFamilyTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    BGPPeerMixin,
-    BGPAddressFamilyMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
+class BGPPeerAddressFamilyTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
     model = BGPPeerAddressFamily
-    validation_excluded_fields = ('peer',)
-    routing_required_fields = (
-        ('assigned_object', 'peer'),
-        ('address_family', 'address_families'),
-        'enabled',
-    )
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-
-        af = BGPAddressFamily.objects.last()
+        asns, instance = cls._parents()
+        afs = [
+            BGPAddressFamily.objects.create(instance=instance, address_family=af)
+            for af in ('ipv4-unicast', 'ipv6-unicast', 'vpnv4-unicast', 'l2vpn-evpn')
+        ]
+        peer = BGPPeer.objects.create(
+            instance=instance,
+            peer=IPAddress.objects.create(address=IPNetwork('10.0.0.1/24')),
+            remote_as=asns[1],
+        )
+        cls.model.objects.bulk_create(
+            [cls.model(peer=peer, address_family=afs[i]) for i in range(3)]
+        )
         cls.form_data = {
-            'peer': cls.peer.pk,
-            'address_family': af.pk,
+            'peer': peer.pk,
+            'address_family': afs[3].pk,
+            'enabled': True,
         }
 
 
-class BGPPeerTemplateTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    BGPAddressFamilyMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
-    model = BGPPeerTemplate
-    routing_required_fields = ('name',)
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-        cls.form_data = {'name': f'{cls.model._meta.verbose_name} 5'}
-
-
-class BGPPolicyTemplateTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    BGPAddressFamilyMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
-    model = BGPPolicyTemplate
-    routing_required_fields = ('name',)
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-        cls.form_data = {'name': f'{cls.model._meta.verbose_name} 5'}
-
-
-class BGPSessionTemplateTestCase(
-    LeanCoreTestsMixin,
-    AutomatedModelCreationMixin,
-    BGPAddressFamilyMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
-    model = BGPSessionTemplate
-    routing_required_fields = ('name',)
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-        cls.form_data = {'name': f'{cls.model._meta.verbose_name} 5'}
-
-
-class BFDProfileTestCase(
-    LeanCoreTestsMixin,
-    BulkEditMixin,
-    PluginBaseURLMixin,
-    ViewTestCases.GetObjectViewTestCase,
-    ViewTestCases.GetObjectChangelogViewTestCase,
-    ViewTestCases.CreateObjectViewTestCase,
-    ViewTestCases.EditObjectViewTestCase,
-    ViewTestCases.DeleteObjectViewTestCase,
-    ViewTestCases.ListObjectsViewTestCase,
-    ViewTestCases.BulkEditObjectsViewTestCase,
-    ViewTestCases.BulkDeleteObjectsViewTestCase,
-):
-    # ViewTestCases.BulkImportObjectsViewTestCase,
+class BFDProfileTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
     model = BFDProfile
 
     @classmethod
     def setUpTestData(cls):
-        super().setUpTestData()
-        profiles = []
-        for i in range(1, 4):
-            profiles.append(
-                BFDProfile(
+        cls.model.objects.bulk_create(
+            [
+                cls.model(
                     name=f'Test BFD Profile {i}',
                     min_rx_int=60,
                     min_tx_int=60,
                     multiplier=3,
                 )
-            )
-        BFDProfile.objects.bulk_create(profiles)
-
+                for i in range(1, 4)
+            ]
+        )
         cls.form_data = {
             'name': f'{cls.model._meta.verbose_name} 5',
             'min_rx_int': 60,

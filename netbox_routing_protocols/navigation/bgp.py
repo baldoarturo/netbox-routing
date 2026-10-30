@@ -9,13 +9,9 @@ COL_IMPORT = 'mdi mdi-upload'
 def build_menus():
     menus = []
     menu_items = (
-        ('bgpsetting', 'Settings'),
-        ('bgppeertemplate', 'Peer Templates'),
-        ('bgppolicytemplate', 'Policy Templates'),
-        ('bgpsessiontemplate', 'Session Templates'),
-        ('bgprouter', 'Routers'),
-        ('bgpscope', 'Scopes'),
+        ('bgpinstance', 'Instances'),
         ('bgpaddressfamily', 'Address Families'),
+        ('bgppeergroup', 'Peer Groups'),
         ('bgppeer', 'Peers'),
         ('bgppeeraddressfamily', 'Peer Address Families'),
     )
@@ -31,7 +27,6 @@ def build_menus():
                     icon_class=COL_ADD,
                     permissions=[f'netbox_routing_protocols.add_{model}'],
                 ),
-                # PluginMenuButton('plugins:netbox_routing_protocols:bgprouter_bulk_import', 'Import', COL_IMPORT),
             ),
         )
         menus.append(menu)

@@ -4,46 +4,27 @@ from netbox.graphql.filters import PrimaryModelFilter
 from netbox_routing_protocols import models
 
 __all__ = (
-    'BGPSettingFilter',
-    'BGPPeerTemplateFilter',
-    'BGPPolicyTemplateFilter',
-    'BGPSessionTemplateFilter',
-    'BGPRouterFilter',
-    'BGPScopeFilter',
+    'BGPInstanceFilter',
     'BGPAddressFamilyFilter',
+    'BGPPeerGroupFilter',
     'BGPPeerFilter',
     'BGPPeerAddressFamilyFilter',
     'BFDProfileFilter',
 )
 
 
-@strawberry_django.filter(models.BGPPeerTemplate, lookups=True)
-class BGPPeerTemplateFilter(PrimaryModelFilter):
-    pass
-
-
-@strawberry_django.filter(models.BGPPolicyTemplate, lookups=True)
-class BGPPolicyTemplateFilter(PrimaryModelFilter):
-    pass
-
-
-@strawberry_django.filter(models.BGPSessionTemplate, lookups=True)
-class BGPSessionTemplateFilter(PrimaryModelFilter):
-    pass
-
-
-@strawberry_django.filter(models.BGPRouter, lookups=True)
-class BGPRouterFilter(PrimaryModelFilter):
-    pass
-
-
-@strawberry_django.filter(models.BGPScope, lookups=True)
-class BGPScopeFilter(PrimaryModelFilter):
+@strawberry_django.filter(models.BGPInstance, lookups=True)
+class BGPInstanceFilter(PrimaryModelFilter):
     pass
 
 
 @strawberry_django.filter(models.BGPAddressFamily, lookups=True)
 class BGPAddressFamilyFilter(PrimaryModelFilter):
+    pass
+
+
+@strawberry_django.filter(models.BGPPeerGroup, lookups=True)
+class BGPPeerGroupFilter(PrimaryModelFilter):
     pass
 
 
@@ -54,11 +35,6 @@ class BGPPeerFilter(PrimaryModelFilter):
 
 @strawberry_django.filter(models.BGPPeerAddressFamily, lookups=True)
 class BGPPeerAddressFamilyFilter(PrimaryModelFilter):
-    pass
-
-
-@strawberry_django.filter(models.BGPSetting, lookups=True)
-class BGPSettingFilter(PrimaryModelFilter):
     pass
 
 

@@ -1,768 +1,223 @@
 from django import forms
-from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
-from django.forms import fields
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, Region, SiteGroup, Site, Location
+from dcim.models import Device
 from ipam.models import ASN, VRF, IPAddress
 from netbox.forms import PrimaryModelForm
 from tenancy.forms import TenancyForm
-from utilities.forms.fields import (
-    DynamicModelChoiceField,
-    DynamicModelMultipleChoiceField,
-)
+from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet, TabbedGroups
-from virtualization.models import Cluster, VirtualMachine, ClusterGroup
 
-from netbox_routing_protocols.choices.bgp import *
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
-    'BGPSettingForm',
-    'BGPRouterForm',
-    'BGPScopeForm',
+    'BGPInstanceForm',
     'BGPAddressFamilyForm',
+    'BGPPeerGroupForm',
     'BGPPeerForm',
     'BGPPeerAddressFamilyForm',
-    'BGPPeerTemplateForm',
-    'BGPPolicyTemplateForm',
-    'BGPSessionTemplateForm',
     'BFDProfileForm',
 )
 
-
-class BGPSettingMixin:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._append_settings_fields()
-
-    def _append_settings_fields(self):
-        fieldsets = list(self.fieldsets)
-        assigned_fields = []
-        setting_fields = [
-            'router_id',
-            'asdot',
-            'timers_keepalive',
-            'timers_hold',
-            'auto_summary',
-            'default_metric',
-            'default_information_originate',
-            'distance_ebgp',
-            'distance_ibgp',
-            'distance_embgp',
-            'distance_imbgp',
-            'paths_maximum',
-            'paths_maximum_secondary',
-            'graceful_restart',
-            'additional_paths_receive',
-            'additional_paths_send',
-            'additional_paths_install',
-            'test',
-        ]
-        for key, label in BGPSettingChoices.CHOICES:
-            initial = None
-            if hasattr(self, 'instance'):
-                setting = BGPSetting.objects.filter(
-                    assigned_object_type=ContentType.objects.get_for_model(
-                        self.Meta.model
-                    ),
-                    assigned_object_id=self.instance.pk,
-                    key=key,
-                ).first()
-                if setting:
-                    initial = setting.value
-            if BGPSettingChoices.FIELD_TYPES[key] == 'ipaddr':
-                self.fields[key] = fields.CharField(
-                    label=label, required=False, initial=initial, max_length=128
-                )
-                css = self.fields[key].widget.attrs.get('class', '')
-                self.fields[key].widget.attrs['class'] = f'{css} form-control'
-            elif BGPSettingChoices.FIELD_TYPES[key] == 'integer':
-                self.fields[key] = fields.IntegerField(
-                    label=label,
-                    required=False,
-                    initial=initial,
-                    min_value=0,
-                    max_value=65535,
-                )
-                css = self.fields[key].widget.attrs.get('class', '')
-                self.fields[key].widget.attrs['class'] = f'{css} form-control'
-            elif BGPSettingChoices.FIELD_TYPES[key] == 'boolean':
-                choices = (
-                    (None, '---------'),
-                    (True, _('True')),
-                    (False, _('False')),
-                )
-                self.fields[key] = fields.NullBooleanField(
-                    label=label,
-                    required=False,
-                    initial=initial,
-                    widget=forms.Select(choices=choices),
-                )
-                css = self.fields[key].widget.attrs.get('class', '')
-                self.fields[key].widget.attrs['class'] = f'{css} form-control'
-            assigned_fields.append(key)
-            if key not in setting_fields:
-                setting_fields.append(key)
-
-        fieldset = FieldSet(
-            *setting_fields,
-            name=_('Settings'),
-        )
-        fieldsets.append(fieldset)
-        if fieldset not in self.fieldsets:
-            self.fieldsets = fieldsets
-
-    def _clean_fieldset(self):
-        pass
-
-    def _get_settings_field_type(self, key):
-        return BGPSettingChoices.FIELD_TYPES.get(key, 'string')
-
-    def _field_unset(self, key, value):
-        field_type = self._get_settings_field_type(key)
-        if field_type == 'integer' or field_type == 'boolean':
-            return value is None
-        else:
-            return value is None or value == ''
-
-    def save(self, *args, **kwargs):
-        settings = {}
-        for key, name in BGPSettingChoices.CHOICES:
-            if key in self.cleaned_data:
-                settings[key] = self.cleaned_data.pop(key)
-        obj = super().save(*args, **kwargs)
-
-        for key, name in BGPSettingChoices.CHOICES:
-            value = settings.get(key, None)
-            setting = BGPSetting.objects.filter(
-                assigned_object_type=self.get_assigned_object_type(),
-                assigned_object_id=self.get_assigned_object_id(),
-                key=key,
-            ).first()
-            if setting is not None and not self._field_unset(key, value):
-                setting.value = value
-                setting.clean()
-                setting.save()
-            elif setting is None and not self._field_unset(key, value):
-                setting = BGPSetting(
-                    assigned_object=self.instance,
-                    key=key,
-                    value=value,
-                )
-                setting.clean()
-                setting.save()
-            elif setting is not None and self._field_unset(key, value):
-                setting.delete()
-
-        return obj
-
-    def get_assigned_object_type(self):
-        return ContentType.objects.get_for_model(self.instance).pk
-
-    def get_assigned_object_id(self):
-        return self.instance.pk
+_CONFIG_FIELDS = (
+    'remote_as',
+    'local_as',
+    'enabled',
+    'bfd',
+    'ttl',
+    'keepalive',
+    'hold_time',
+    'password',
+)
+_COMMON_FIELDS = ('description', 'comments', 'tags', 'owner')
 
 
-class BGPSettingForm(PrimaryModelForm):
-    router = DynamicModelChoiceField(
-        queryset=BGPRouter.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Router'),
-    )
-    scope = DynamicModelChoiceField(
-        queryset=BGPScope.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Scope'),
-    )
-    addressfamily = DynamicModelChoiceField(
-        queryset=BGPAddressFamily.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Address Family'),
-    )
-    key = forms.ChoiceField(
-        choices=BGPSettingChoices,
-        required=True,
-        label=_('Setting Name'),
-    )
-    value = forms.CharField(
-        required=True,
-        label=_('Setting Value'),
-    )
-
-    fieldsets = (
-        FieldSet(
-            TabbedGroups(
-                FieldSet('router', name=_('Router')),
-                FieldSet('scope', name=_('Scope')),
-                FieldSet('addressfamily', name=_('Address Family')),
-            ),
-            name='Assigned Object',
-        ),
-        FieldSet('key', 'value', name=_('Settings')),
-    )
-
-    class Meta:
-        model = BGPSetting
-        fields = [
-            'router',
-            'scope',
-            'addressfamily',
-            'key',
-            'value',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-    def __init__(self, *args, **kwargs):
-
-        # Initialize helper selectors
-        instance = kwargs.get('instance')
-        initial = kwargs.get('initial', {}).copy()
-        if instance:
-            if type(instance.assigned_object) is BGPRouter:
-                initial['router'] = instance.assigned_object
-            elif type(instance.assigned_object) is BGPScope:
-                initial['scope'] = instance.assigned_object
-            elif type(instance.assigned_object) is BGPAddressFamily:
-                initial['addressfamily'] = instance.assigned_object
-        kwargs['initial'] = initial
-        super().__init__(*args, **kwargs)
-
-    def clean(self):
-        super().clean()
-
-        # A selector that failed its own validation is missing from cleaned_data and
-        # already has its error: do not add a misleading one on top of it
-        fields = ('router', 'scope', 'addressfamily')
-        if any(field in self.errors for field in fields):
-            return
-
-        # Handle object assignment
-        selected_objects = [field for field in fields if self.cleaned_data.get(field)]
-        if len(selected_objects) > 1:
-            raise forms.ValidationError(
-                {
-                    selected_objects[1]: _(
-                        'A BGP Setting can only be assigned to a single object.'
-                    )
-                }
-            )
-        elif selected_objects:
-            self.instance.assigned_object = self.cleaned_data[selected_objects[0]]
-        else:
-            raise ValidationError(_('A BGP Setting must be assigned to an object.'))
-
-
-class BGPPeerTemplateForm(TenancyForm, PrimaryModelForm):
-    remote_as = DynamicModelChoiceField(
-        queryset=ASN.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Remote ASN'),
-    )
-
-    fieldsets = (
-        FieldSet('name', 'remote_as', 'enabled', 'description'),
-        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
-    )
-
-    class Meta:
-        model = BGPPeerTemplate
-        fields = [
-            'name',
-            'remote_as',
-            'tenant_group',
-            'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-
-class BGPPolicyTemplateForm(TenancyForm, PrimaryModelForm):
-    parents = DynamicModelMultipleChoiceField(
-        queryset=BGPPolicyTemplate.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Parent Policy Templates'),
-    )
-    prefixlist_out = DynamicModelChoiceField(
-        queryset=PrefixList.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Prefix List (out)'),
-    )
-    prefixlist_in = DynamicModelChoiceField(
-        queryset=PrefixList.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Prefix List (in)'),
-    )
-    routepolicy_out = DynamicModelChoiceField(
-        queryset=RoutePolicy.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Route Policy (out)'),
-    )
-    routepolicy_in = DynamicModelChoiceField(
-        queryset=RoutePolicy.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Route Policy (in)'),
-    )
-
-    fieldsets = (
-        FieldSet(
-            'name',
-            'parents',
-            'description',
-            'tags',
-        ),
-        FieldSet(
-            'prefixlist_out',
-            'prefixlist_in',
-            'routepolicy_out',
-            'routepolicy_in',
-            name=_('Setings'),
-        ),
-        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
-    )
-
-    class Meta:
-        model = BGPPolicyTemplate
-        fields = [
-            'name',
-            'parents',
-            'prefixlist_out',
-            'prefixlist_in',
-            'routepolicy_out',
-            'routepolicy_in',
-            'tenant_group',
-            'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-
-class BGPSessionTemplateForm(TenancyForm, PrimaryModelForm):
-    parent = DynamicModelChoiceField(
-        queryset=BGPSessionTemplate.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Parent Peer Template'),
-    )
-    remote_as = DynamicModelChoiceField(
-        queryset=ASN.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Remote ASN'),
-    )
-    local_as = DynamicModelChoiceField(
-        queryset=ASN.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Local ASN'),
-    )
-
-    fieldsets = (
-        FieldSet(
-            'name',
-            'parent',
-            'remote_as',
-            'local_as',
-            'description',
-        ),
-        FieldSet('pasword', 'bfd', 'ttl', 'enabled', name=_('Setings')),
-        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
-    )
-
-    class Meta:
-        model = BGPSessionTemplate
-        fields = [
-            'name',
-            'parent',
-            'enabled',
-            'remote_as',
-            'local_as',
-            'bfd',
-            'ttl',
-            'password',
-            'tenant_group',
-            'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-
-class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
-    region = DynamicModelChoiceField(
-        queryset=Region.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Region'),
-    )
-    site_group = DynamicModelChoiceField(
-        queryset=SiteGroup.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Site Group'),
-    )
-    site = DynamicModelChoiceField(
-        queryset=Site.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Site'),
-    )
-    location = DynamicModelChoiceField(
-        queryset=Location.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Location'),
-    )
+class BGPInstanceForm(TenancyForm, PrimaryModelForm):
     device = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Device'),
-    )
-    cluster_group = DynamicModelChoiceField(
-        queryset=ClusterGroup.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Cluster Group'),
-    )
-    cluster = DynamicModelChoiceField(
-        queryset=Cluster.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Cluster'),
-    )
-    virtual_machine = DynamicModelChoiceField(
-        queryset=VirtualMachine.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Virtual Machine'),
-    )
-    asn = DynamicModelChoiceField(
-        queryset=ASN.objects.all(),
-        required=True,
-        selector=True,
-        label=_('ASN'),
-    )
-    policy_templates = DynamicModelMultipleChoiceField(
-        queryset=BGPPolicyTemplate.objects.all(),
-        required=False,
-        selector=False,
-        label=_('Policy Templates'),
-    )
-    session_templates = DynamicModelMultipleChoiceField(
-        queryset=BGPSessionTemplate.objects.all(),
-        required=False,
-        selector=False,
-        label=_('Session Templates'),
-    )
-    peer_templates = DynamicModelMultipleChoiceField(
-        queryset=BGPPeerTemplate.objects.all(),
-        required=False,
-        selector=False,
-        label=_('Peer Templates'),
-    )
-
-    location_selected = forms.HiddenInput()
-    vm_selected = forms.HiddenInput()
-
-    fieldsets = [
-        FieldSet(
-            'name',
-            'description',
-        ),
-        FieldSet(
-            TabbedGroups(
-                FieldSet(
-                    'location_selected',
-                    'region',
-                    'site_group',
-                    'site',
-                    'location',
-                    name=_('Locations'),
-                ),
-                FieldSet('device', name=_('Device')),
-                FieldSet(
-                    'vm_selected',
-                    'cluster_group',
-                    'cluster',
-                    'virtual_machine',
-                    name=_('Virtualization'),
-                ),
-            ),
-            name=_('Assigned Object'),
-        ),
-        FieldSet('asn', name=_('Router')),
-        FieldSet(
-            'peer_templates',
-            'policy_templates',
-            'session_templates',
-            name=_('Templates'),
-        ),
-        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
-    ]
-
-    class Meta:
-        model = BGPRouter
-        fields = [
-            'name',
-            'region',
-            'site_group',
-            'site',
-            'location',
-            'device',
-            'cluster_group',
-            'cluster',
-            'virtual_machine',
-            'asn',
-            'policy_templates',
-            'session_templates',
-            'peer_templates',
-            'tenant_group',
-            'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-    def __init__(self, *args, **kwargs):
-
-        # Initialize helper selectors
-        instance = kwargs.get('instance')
-        initial = kwargs.get('initial', {}).copy()
-        if instance:
-            if type(instance.assigned_object) is Region:
-                initial['location_selected'] = True
-                initial['region'] = instance.assigned_object
-            elif type(instance.assigned_object) is SiteGroup:
-                initial['location_selected'] = True
-                initial['site_group'] = instance.assigned_object
-            elif type(instance.assigned_object) is Site:
-                initial['location_selected'] = True
-                initial['site'] = instance.assigned_object
-            elif type(instance.assigned_object) is Location:
-                initial['location_selected'] = True
-                initial['location'] = instance.assigned_object
-            elif type(instance.assigned_object) is Device:
-                initial['device'] = instance.assigned_object
-            elif type(instance.assigned_object) is ClusterGroup:
-                initial['vm_selected'] = True
-                initial['cluster_group'] = instance.assigned_object
-            elif type(instance.assigned_object) is Cluster:
-                initial['vm_selected'] = True
-                initial['cluster'] = instance.assigned_object
-            elif type(instance.assigned_object) is VirtualMachine:
-                initial['vm_selected'] = True
-                initial['virtual_machine'] = instance.assigned_object
-        kwargs['initial'] = initial
-        super().__init__(*args, **kwargs)
-
-    def clean(self):
-        super().clean()
-
-        # A selector that failed its own validation is missing from cleaned_data and
-        # already has its error: do not add a misleading one on top of it
-        fields = (
-            'region',
-            'site_group',
-            'site',
-            'location',
-            'device',
-            'cluster_group',
-            'cluster',
-            'virtual_machine',
-        )
-        if any(field in self.errors for field in fields):
-            return
-
-        # Handle object assignment
-        selected_objects = [field for field in fields if self.cleaned_data.get(field)]
-        if len(selected_objects) > 1:
-            raise forms.ValidationError(
-                {
-                    selected_objects[1]: _(
-                        'A BGP Router can only be assigned to a single object.'
-                    )
-                }
-            )
-        elif selected_objects:
-            self.instance.assigned_object = self.cleaned_data[selected_objects[0]]
-        else:
-            self.instance.assigned_object = None
-
-        if self.instance.assigned_object:
-            filter = {selected_objects[0]: self.instance.assigned_object}
-            if (
-                self.Meta.model.objects.filter(**filter)
-                .exclude(pk=self.instance.pk)
-                .exists()
-            ):
-                raise forms.ValidationError(
-                    {
-                        selected_objects[0]: _(
-                            'A BGP Router with this object already exists.'
-                        )
-                    }
-                )
-
-    def save(self, *args, **kwargs):
-        return super().save(*args, **kwargs)
-
-
-class BGPScopeForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
-    router = DynamicModelChoiceField(
-        queryset=BGPRouter.objects.all(),
-        required=True,
-        selector=True,
-        label=_('Router'),
+        queryset=Device.objects.all(), required=True, selector=True, label=_('Device')
     )
     vrf = DynamicModelChoiceField(
         queryset=VRF.objects.all(),
         required=False,
         selector=True,
         label=_('VRF'),
+        help_text=_('Leave empty for the global routing table'),
+    )
+    asn = DynamicModelChoiceField(
+        queryset=ASN.objects.all(), required=True, selector=True, label=_('ASN')
     )
 
     fieldsets = (
-        FieldSet('router', 'vrf', 'description', name=_('Scope')),
+        FieldSet('name', 'device', 'vrf', 'asn', 'description', name=_('Instance')),
+        FieldSet('router_id', 'asdot', 'graceful_restart', name=_('Options')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
     class Meta:
-        model = BGPScope
-        fields = [
-            'router',
+        model = BGPInstance
+        fields = (
+            'name',
+            'device',
             'vrf',
+            'asn',
+            'router_id',
+            'asdot',
+            'graceful_restart',
             'tenant_group',
             'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-    def save(self, *args, **kwargs):
-        return super().save(*args, **kwargs)
+            *_COMMON_FIELDS,
+        )
 
 
-class BGPAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
-    scope = DynamicModelChoiceField(
-        queryset=BGPScope.objects.all(),
+class BGPAddressFamilyForm(TenancyForm, PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=BGPInstance.objects.all(),
         required=True,
         selector=True,
-        label=_('Scope'),
-    )
-    address_family = forms.ChoiceField(
-        choices=BGPAddressFamilyChoices,
-        required=True,
-        label=_('Address Family'),
+        label=_('Instance'),
     )
 
     fieldsets = (
-        FieldSet('scope', 'address_family', 'description', name=_('Address Family')),
+        FieldSet('instance', 'address_family', 'description', name=_('Address family')),
+        FieldSet(
+            'maximum_paths',
+            'default_metric',
+            'default_originate',
+            'auto_summary',
+            'distance_ebgp',
+            'distance_ibgp',
+            name=_('Options'),
+        ),
+        FieldSet(
+            'additional_paths_send',
+            'additional_paths_receive',
+            'additional_paths_install',
+            name=_('Additional paths'),
+        ),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
     class Meta:
         model = BGPAddressFamily
-        fields = [
-            'scope',
+        fields = (
+            'instance',
             'address_family',
+            'maximum_paths',
+            'default_metric',
+            'default_originate',
+            'auto_summary',
+            'distance_ebgp',
+            'distance_ibgp',
+            'additional_paths_send',
+            'additional_paths_receive',
+            'additional_paths_install',
             'tenant_group',
             'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-    def save(self, *args, **kwargs):
-        return super().save(*args, **kwargs)
+            *_COMMON_FIELDS,
+        )
 
 
-class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
-    scope = DynamicModelChoiceField(
-        queryset=BGPScope.objects.all(),
+class BGPPeerConfigFormMixin(forms.Form):
+    remote_as = DynamicModelChoiceField(
+        queryset=ASN.objects.all(), required=False, selector=True, label=_('Remote AS')
+    )
+    local_as = DynamicModelChoiceField(
+        queryset=ASN.objects.all(), required=False, selector=True, label=_('Local AS')
+    )
+    bfd = DynamicModelChoiceField(
+        queryset=BFDProfile.objects.all(),
+        required=False,
+        selector=True,
+        label=_('BFD Profile'),
+    )
+
+
+class BGPPeerGroupForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=BGPInstance.objects.all(),
         required=True,
         selector=True,
-        label=_('Scope'),
+        label=_('Instance'),
+    )
+
+    fieldsets = (
+        FieldSet('instance', 'name', 'description', name=_('Peer group')),
+        FieldSet(*_CONFIG_FIELDS, name=_('Session')),
+        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
+    )
+
+    class Meta:
+        model = BGPPeerGroup
+        fields = (
+            'instance',
+            'name',
+            *_CONFIG_FIELDS,
+            'tenant_group',
+            'tenant',
+            *_COMMON_FIELDS,
+        )
+
+
+class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=BGPInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
     )
     peer = DynamicModelChoiceField(
         queryset=IPAddress.objects.all(),
         required=True,
         selector=True,
-        label=_('Peer'),
+        label=_('Peer Address'),
     )
-    remote_as = DynamicModelChoiceField(
-        queryset=ASN.objects.all(),
+    source = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
         required=False,
         selector=True,
-        label=_('Remote AS'),
+        label=_('Source Address'),
     )
-    local_as = DynamicModelChoiceField(
-        queryset=ASN.objects.all(),
+    peer_group = DynamicModelChoiceField(
+        queryset=BGPPeerGroup.objects.all(),
         required=False,
         selector=True,
-        label=_('Local AS'),
+        query_params={'instance_id': '$instance'},
+        label=_('Peer Group'),
     )
 
     fieldsets = (
         FieldSet(
+            'instance',
             'name',
+            'peer',
+            'source',
+            'peer_group',
+            'status',
             'description',
+            name=_('Peer'),
         ),
-        FieldSet('scope', 'peer', 'status', name=_('Peer')),
-        FieldSet('remote_as', 'local_as', name=_('ASNs')),
-        FieldSet('enabled', 'bfd', 'password', 'ttl', name=_('Peer Settings')),
+        FieldSet(*_CONFIG_FIELDS, name=_('Session')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
     class Meta:
         model = BGPPeer
-        fields = [
+        fields = (
+            'instance',
             'name',
-            'scope',
             'peer',
-            'remote_as',
-            'local_as',
-            'tenant',
-            'enabled',
+            'source',
+            'peer_group',
             'status',
-            'ttl',
-            'bfd',
-            'password',
+            *_CONFIG_FIELDS,
             'tenant_group',
             'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-    def save(self, *args, **kwargs):
-        return super().save(*args, **kwargs)
+            *_COMMON_FIELDS,
+        )
 
 
-class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
+class BGPPeerAddressFamilyForm(TenancyForm, PrimaryModelForm):
     peer = DynamicModelChoiceField(
         queryset=BGPPeer.objects.all(),
         required=False,
@@ -770,7 +225,7 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         label=_('Peer'),
     )
     peer_group = DynamicModelChoiceField(
-        queryset=BGPPeerTemplate.objects.all(),
+        queryset=BGPPeerGroup.objects.all(),
         required=False,
         selector=True,
         label=_('Peer Group'),
@@ -781,30 +236,29 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Address Family'),
     )
-
-    prefix_list_in = DynamicModelChoiceField(
+    prefixlist_in = DynamicModelChoiceField(
         queryset=PrefixList.objects.all(),
         required=False,
         selector=True,
-        label=_('Prefix List (in)'),
+        label=_('Inbound Prefix List'),
     )
-    prefix_list_out = DynamicModelChoiceField(
+    prefixlist_out = DynamicModelChoiceField(
         queryset=PrefixList.objects.all(),
         required=False,
         selector=True,
-        label=_('Prefix List (out)'),
+        label=_('Outbound Prefix List'),
     )
-    route_policy_in = DynamicModelChoiceField(
+    routepolicy_in = DynamicModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Route Policy (in)'),
+        label=_('Inbound Route Policy'),
     )
-    route_policy_out = DynamicModelChoiceField(
+    routepolicy_out = DynamicModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Route Policy (out)'),
+        label=_('Outbound Route Policy'),
     )
 
     fieldsets = (
@@ -813,14 +267,16 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
                 FieldSet('peer', name=_('Peer')),
                 FieldSet('peer_group', name=_('Peer Group')),
             ),
-            name=_('Assigned Object'),
+            'address_family',
+            'enabled',
+            'description',
+            name=_('Peer address family'),
         ),
-        FieldSet('address_family', 'enabled', 'description'),
         FieldSet(
-            'route_policy_in',
-            'route_policy_out',
-            'prefix_list_in',
-            'prefix_list_out',
+            'prefixlist_in',
+            'prefixlist_out',
+            'routepolicy_in',
+            'routepolicy_out',
             name=_('Filtering'),
         ),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
@@ -828,81 +284,19 @@ class BGPPeerAddressFamilyForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
 
     class Meta:
         model = BGPPeerAddressFamily
-        fields = [
+        fields = (
             'peer',
             'peer_group',
             'address_family',
             'enabled',
-            'route_policy_in',
-            'route_policy_out',
-            'prefix_list_in',
-            'prefix_list_out',
+            'prefixlist_in',
+            'prefixlist_out',
+            'routepolicy_in',
+            'routepolicy_out',
             'tenant_group',
             'tenant',
-            'description',
-            'comments',
-            'tags',
-            'owner',
-        ]
-
-    def __init__(self, *args, **kwargs):
-
-        # Initialize helper selectors
-        instance = kwargs.get('instance')
-        initial = kwargs.get('initial', {}).copy()
-        if instance:
-            if type(instance.assigned_object) is BGPPeer:
-                initial['peer'] = instance.assigned_object
-            elif type(instance.assigned_object) is BGPPeerTemplate:
-                initial['peer_group'] = instance.assigned_object
-        kwargs['initial'] = initial
-        super().__init__(*args, **kwargs)
-
-    def clean(self):
-        super().clean()
-
-        # A selector that failed its own validation is missing from cleaned_data and
-        # already has its error: do not add a misleading one on top of it
-        fields = ('peer', 'peer_group')
-        if any(field in self.errors for field in fields):
-            return
-
-        # Handle object assignment
-        selected_objects = [field for field in fields if self.cleaned_data.get(field)]
-        if len(selected_objects) > 1:
-            raise forms.ValidationError(
-                {
-                    selected_objects[1]: _(
-                        'A BGP Peer Address Family can only be assigned to a single object.'
-                    )
-                }
-            )
-        elif selected_objects:
-            self.instance.assigned_object = self.cleaned_data[selected_objects[0]]
-        else:
-            raise ValidationError(
-                _('A BGP Peer Address Family must specify an Peer or Peer Group.')
-            )
-
-        filter = {
-            selected_objects[0]: self.instance.assigned_object,
-            'address_family': self.cleaned_data.get('address_family'),
-        }
-        if (
-            self.Meta.model.objects.filter(**filter)
-            .exclude(pk=self.instance.pk)
-            .exists()
-        ):
-            raise forms.ValidationError(
-                {
-                    selected_objects[0]: _(
-                        'A BGP Peer Address Family with this object already exists.'
-                    )
-                }
-            )
-
-    def save(self, *args, **kwargs):
-        return super().save(*args, **kwargs)
+            *_COMMON_FIELDS,
+        )
 
 
 class BFDProfileForm(TenancyForm, PrimaryModelForm):

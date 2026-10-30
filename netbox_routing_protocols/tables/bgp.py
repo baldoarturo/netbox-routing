@@ -1,178 +1,122 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable, columns, ManyToManyColumn
+from netbox.tables import NetBoxTable
+from tenancy.tables import TenancyColumnsMixin
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
-    'BGPSettingTable',
-    'BGPRouterTable',
-    'BGPScopeTable',
+    'BGPInstanceTable',
     'BGPAddressFamilyTable',
+    'BGPPeerGroupTable',
     'BGPPeerTable',
     'BGPPeerAddressFamilyTable',
-    'BGPPeerTemplateTable',
-    'BGPPolicyTemplateTable',
-    'BGPSessionTemplateTable',
     'BFDProfileTable',
 )
 
-from tenancy.tables import TenancyColumnsMixin
 
-
-class BGPSettingTable(NetBoxTable):
-    assigned_object_type = columns.ContentTypeColumn(verbose_name=_('Object Type'))
-    assigned_object = tables.Column(
-        linkify=True, orderable=False, verbose_name=_('Object')
-    )
-
-    class Meta(NetBoxTable.Meta):
-        model = BGPSetting
-        fields = ('pk', 'id', 'assigned_object_type', 'assigned_object', 'key', 'value')
-        default_columns = (
-            'pk',
-            'id',
-            'assigned_object_type',
-            'assigned_object',
-            'key',
-            'value',
-        )
-
-
-class BGPPeerTemplateTable(TenancyColumnsMixin, NetBoxTable):
-    name = tables.Column(
-        verbose_name=_('Name'),
-        linkify=True,
-    )
-
-    class Meta(NetBoxTable.Meta):
-        model = BGPPeerTemplate
-        fields = (
-            'pk',
-            'id',
-            'name',
-        )
-        default_columns = ('pk', 'id', 'name')
-
-
-class BGPPolicyTemplateTable(TenancyColumnsMixin, NetBoxTable):
-    name = tables.Column(
-        verbose_name=_('Name'),
-        linkify=True,
-    )
-    parents = ManyToManyColumn(
-        verbose_name=_('Parents'),
-        linkify_item=True,
-    )
-
-    class Meta(NetBoxTable.Meta):
-        model = BGPPolicyTemplate
-        fields = (
-            'pk',
-            'id',
-            'name',
-            'parents',
-            'enabled',
-            'prefixlist_out',
-            'prefixlist_in',
-            'routepolicy_out',
-            'routepolicy_in',
-            'tenant',
-        )
-        default_columns = ('pk', 'id', 'name')
-
-
-class BGPSessionTemplateTable(TenancyColumnsMixin, NetBoxTable):
-    name = tables.Column(
-        verbose_name=_('Name'),
-        linkify=True,
-    )
-    parent = tables.Column(
-        verbose_name=_('Parent'),
-        linkify=True,
-    )
-    asn = tables.Column(
-        verbose_name=_('Parent'),
-        linkify=True,
-    )
-
-    class Meta(NetBoxTable.Meta):
-        model = BGPSessionTemplate
-        fields = (
-            'pk',
-            'id',
-            'name',
-            'parent',
-            'enabled',
-            'local_as',
-            'remote_as',
-            'bfd',
-            'ttl',
-            'password',
-            'tenant',
-        )
-        default_columns = ('pk', 'id', 'name')
-
-
-class BGPRouterTable(TenancyColumnsMixin, NetBoxTable):
+class BGPInstanceTable(TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
-    assigned_object_type = columns.ContentTypeColumn(verbose_name=_('Object Type'))
-    assigned_object = tables.Column(
-        linkify=True, orderable=False, verbose_name=_('Object')
-    )
+    device = tables.Column(linkify=True, verbose_name=_('Device'))
+    vrf = tables.Column(linkify=True, verbose_name=_('VRF'))
+    asn = tables.Column(linkify=True, verbose_name=_('ASN'))
 
     class Meta(NetBoxTable.Meta):
-        model = BGPRouter
+        model = BGPInstance
         fields = (
             'pk',
             'id',
             'name',
-            'assigned_object_type',
-            'assigned_object',
-            'asn',
-            'tenant_group',
-            'tenant',
-        )
-        default_columns = ('pk', 'id', 'name', 'assigned_object', 'asn')
-
-
-class BGPScopeTable(TenancyColumnsMixin, NetBoxTable):
-    class Meta(NetBoxTable.Meta):
-        model = BGPScope
-        fields = (
-            'pk',
-            'id',
-            'router',
+            'device',
             'vrf',
+            'asn',
+            'router_id',
+            'asdot',
+            'graceful_restart',
             'tenant_group',
             'tenant',
+            'description',
+            'comments',
         )
-        default_columns = ('pk', 'id', 'router', 'vrf')
+        default_columns = ('pk', 'name', 'device', 'vrf', 'asn', 'router_id')
 
 
 class BGPAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):
+    instance = tables.Column(linkify=True, verbose_name=_('Instance'))
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+    device = tables.Column(
+        linkify=True, accessor='instance__device', verbose_name=_('Device')
+    )
+    vrf = tables.Column(linkify=True, accessor='instance__vrf', verbose_name=_('VRF'))
+
     class Meta(NetBoxTable.Meta):
         model = BGPAddressFamily
         fields = (
             'pk',
             'id',
-            'scope',
+            'instance',
+            'device',
+            'vrf',
             'address_family',
+            'maximum_paths',
+            'default_metric',
+            'default_originate',
+            'auto_summary',
+            'distance_ebgp',
+            'distance_ibgp',
+            'additional_paths_send',
+            'additional_paths_receive',
+            'additional_paths_install',
             'tenant_group',
             'tenant',
+            'description',
         )
-        default_columns = ('pk', 'id', 'scope', 'address_family')
+        default_columns = ('pk', 'id', 'instance', 'address_family', 'maximum_paths')
 
 
-class BGPPeerTable(TenancyColumnsMixin, NetBoxTable):
+class _BGPPeerConfigColumns(tables.Table):
+    remote_as = tables.Column(linkify=True, verbose_name=_('Remote AS'))
+    local_as = tables.Column(linkify=True, verbose_name=_('Local AS'))
+    bfd = tables.Column(linkify=True, verbose_name=_('BFD Profile'))
+
+
+_CONFIG_FIELDS = (
+    'remote_as',
+    'local_as',
+    'enabled',
+    'bfd',
+    'ttl',
+    'password',
+    'keepalive',
+    'hold_time',
+)
+
+
+class BGPPeerGroupTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
-    scope = tables.Column(linkify=True, verbose_name=_('Scope'))
+    instance = tables.Column(linkify=True, verbose_name=_('Instance'))
+
+    class Meta(NetBoxTable.Meta):
+        model = BGPPeerGroup
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'instance',
+            *_CONFIG_FIELDS,
+            'tenant_group',
+            'tenant',
+            'description',
+        )
+        default_columns = ('pk', 'id', 'name', 'instance', 'remote_as', 'enabled')
+
+
+class BGPPeerTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable):
+    name = tables.Column(linkify=True, verbose_name=_('Name'))
+    instance = tables.Column(linkify=True, verbose_name=_('Instance'))
     peer = tables.Column(linkify=True, verbose_name=_('Peer Address'))
     source = tables.Column(linkify=True, verbose_name=_('Source Address'))
     peer_group = tables.Column(linkify=True, verbose_name=_('Peer Group'))
-    peer_session = tables.Column(linkify=True, verbose_name=_('Peer Session'))
-    remote_as = tables.Column(linkify=True, verbose_name=_('Remote AS'))
-    local_as = tables.Column(linkify=True, verbose_name=_('Local AS'))
 
     class Meta(NetBoxTable.Meta):
         model = BGPPeer
@@ -180,27 +124,23 @@ class BGPPeerTable(TenancyColumnsMixin, NetBoxTable):
             'pk',
             'id',
             'name',
-            'scope',
+            'instance',
             'peer',
             'source',
             'peer_group',
-            'peer_session',
-            'remote_as',
+            *_CONFIG_FIELDS,
             'status',
-            'local_as',
-            'bfd',
-            'password',
             'tenant_group',
             'tenant',
-            'ttl',
-            'address_families',
+            'description',
         )
         default_columns = (
             'pk',
             'id',
             'name',
-            'scope',
+            'instance',
             'peer',
+            'peer_group',
             'remote_as',
             'enabled',
             'status',
@@ -208,55 +148,36 @@ class BGPPeerTable(TenancyColumnsMixin, NetBoxTable):
 
 
 class BGPPeerAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):
-    assigned_object_type = columns.ContentTypeColumn(verbose_name=_('Object Type'))
-    assigned_object = tables.Column(
-        linkify=True, orderable=False, verbose_name=_('Object')
-    )
-    address_family = tables.Column(
-        linkify=True,
-        verbose_name=_('Address Family'),
-    )
-    peer_policy = tables.Column(
-        linkify=True,
-        verbose_name=_('Peer Policy'),
-    )
-    prefixlist_in = tables.Column(
-        linkify=True,
-        verbose_name=_('Prefix List (in)'),
-    )
-    prefixlist_out = tables.Column(
-        linkify=True,
-        verbose_name=_('Prefix List (out)'),
-    )
-    routepolicy_in = tables.Column(
-        linkify=True,
-        verbose_name=_('Route Policy (in)'),
-    )
-    routepolicy_out = tables.Column(
-        linkify=True,
-        verbose_name=_('Route Policy (out)'),
-    )
+    peer = tables.Column(linkify=True, verbose_name=_('Peer'))
+    peer_group = tables.Column(linkify=True, verbose_name=_('Peer Group'))
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+    prefixlist_in = tables.Column(linkify=True, verbose_name=_('Prefix List In'))
+    prefixlist_out = tables.Column(linkify=True, verbose_name=_('Prefix List Out'))
+    routepolicy_in = tables.Column(linkify=True, verbose_name=_('Route Policy In'))
+    routepolicy_out = tables.Column(linkify=True, verbose_name=_('Route Policy Out'))
 
     class Meta(NetBoxTable.Meta):
         model = BGPPeerAddressFamily
         fields = (
             'pk',
             'id',
-            'assigned_object_type',
-            'assigned_object',
+            'peer',
+            'peer_group',
             'address_family',
-            'peer_policy',
             'enabled',
             'prefixlist_in',
             'prefixlist_out',
             'routepolicy_in',
             'routepolicy_out',
+            'tenant_group',
+            'tenant',
+            'description',
         )
         default_columns = (
             'pk',
             'id',
-            'assigned_object_type',
-            'assigned_object',
+            'peer',
+            'peer_group',
             'address_family',
             'enabled',
         )

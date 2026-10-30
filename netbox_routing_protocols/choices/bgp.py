@@ -4,71 +4,9 @@ __all__ = (
     'BGPAdditionalPathSelectChoices',
     'BGPAddressFamilyChoices',
     'BGPBestPathASPathChoices',
-    'BGPSettingChoices',
     'BFDChoices',
     'BGPStatusChoices',
 )
-
-
-class BGPSettingChoices(ChoiceSet):
-    SUMMARY = 'auto_summary'
-
-    RID = 'router_id'
-    ADDPATH_INSTALL = 'additional_paths_install'
-    ADDPATH_RECEIVE = 'additional_paths_receive'
-    ADDPATH_SEND = 'additional_paths_send'
-    ASDOT = 'asdot'
-    GR = 'graceful_restart'
-    DEFAULT_ORIGINATE = 'default_information_originate'
-    DEFAULT_METRIC = 'default_metric'
-    DISTANCE_EBGP = 'distance_ebgp'
-    DISTANCE_IBGP = 'distance_ibgp'
-    DISTANCE_EMBGP = 'distance_embgp'
-    DISTANCE_IMBGP = 'distance_imbgp'
-    MAX_PATHS = 'paths_maximum'
-    MAX_PATHS_SECONDARY = 'paths_maximum_secondary'
-    KEEPALIVE = 'timers_keepalive'
-    HOLD = 'timers_hold'
-
-    CHOICES = [
-        (RID, 'Router ID'),
-        (SUMMARY, 'Auto summary'),
-        (ADDPATH_INSTALL, 'Additional Paths (install)'),
-        (ADDPATH_RECEIVE, 'Additional Paths (receive)'),
-        (ADDPATH_SEND, 'Additional Paths (send)'),
-        (ASDOT, 'AS Dot Notation'),
-        (GR, 'Graceful Restart'),
-        (DEFAULT_ORIGINATE, 'Default Originate'),
-        (DEFAULT_METRIC, 'Default Metric'),
-        (DISTANCE_EBGP, 'eBGP Distance'),
-        (DISTANCE_IBGP, 'iBGP Distance'),
-        (DISTANCE_EMBGP, 'MP eBGP Distance'),
-        (DISTANCE_IMBGP, 'MP iBGP Distance'),
-        (MAX_PATHS, 'Maximum Paths'),
-        (MAX_PATHS_SECONDARY, 'Maximum Paths (secondary)'),
-        (KEEPALIVE, 'Keep Alive'),
-        (HOLD, 'Hold Time'),
-    ]
-
-    FIELD_TYPES = {
-        RID: 'ipaddr',
-        SUMMARY: 'boolean',
-        ADDPATH_INSTALL: 'integer',
-        ADDPATH_RECEIVE: 'integer',
-        ADDPATH_SEND: 'integer',
-        ASDOT: 'boolean',
-        GR: 'boolean',
-        DEFAULT_ORIGINATE: 'boolean',
-        DEFAULT_METRIC: 'integer',
-        DISTANCE_EBGP: 'integer',
-        DISTANCE_IBGP: 'integer',
-        DISTANCE_EMBGP: 'integer',
-        DISTANCE_IMBGP: 'integer',
-        MAX_PATHS: 'integer',
-        MAX_PATHS_SECONDARY: 'integer',
-        KEEPALIVE: 'integer',
-        HOLD: 'integer',
-    }
 
 
 class BGPAdditionalPathSelectChoices(ChoiceSet):
@@ -114,7 +52,7 @@ class BGPAddressFamilyChoices(ChoiceSet):
     VPNV6_FLOWSPEC = 'vpnv6-flowspec'
     NSAP = 'nsap'
     L2VPNVPLS = 'l2vpn-vpls'
-    L2VPSEVPN = 'l2vpn-evpn'
+    L2VPNEVPN = 'l2vpn-evpn'
     LINKSTATE = 'link-state'
     RTFILTER_UNICAST = 'rtfilter-unicast'
 
@@ -125,7 +63,7 @@ class BGPAddressFamilyChoices(ChoiceSet):
         (VPNV6_UNICAST, 'VPNv6 Unicast'),
         (IPV4_MULTICAST, 'IPv4 Multicast'),
         (IPV6_MULTICAST, 'IPv6 Multicast'),
-        (VPNV4_UNICAST, 'VPNv4 Multicast'),
+        (VPNV4_MULTICAST, 'VPNv4 Multicast'),
         (VPNV6_MULTICAST, 'VPNv6 Multicast'),
         (IPV4_FLOWSPEC, 'IPv4 Flowspec'),
         (IPV6_FLOWSPEC, 'IPv6 Flowspec'),
@@ -133,7 +71,7 @@ class BGPAddressFamilyChoices(ChoiceSet):
         (VPNV6_FLOWSPEC, 'VPNv6 Flowspec'),
         (NSAP, 'NSAP'),
         (L2VPNVPLS, 'L2VPN VPLS'),
-        (L2VPSEVPN, 'L2VPN EVPN'),
+        (L2VPNEVPN, 'L2VPN EVPN'),
         (LINKSTATE, 'LINK-STATE'),
         (RTFILTER_UNICAST, 'RTFILTER'),
     ]

@@ -16,7 +16,7 @@ Everything lives under **Routing** in the NetBox navigation menu, grouped like t
 | **Routing Objects** | Community List, Community, Community List Entry, Prefix Lists, Prefix List Entries, **Search Prefix Match**, Route Policies, Route Policy Entries, AS Path, AS Path Entries |
 | **BFD** | BFD Profile |
 | **Static** | Static Routes |
-| **BGP** | Settings, Peer Templates, Policy Templates, Session Templates, Routers, Scopes, Address Families, Peers, Peer Address Families |
+| **BGP** | Instances, Address Families, Peer Groups, Peers, Peer Address Families |
 | **OSPF** (v2 and v3) | Instances, Areas, Interfaces, Networks, Redistribution, Virtual Links, Summary Addresses, Neighbors, Area Ranges, Prefix SIDs, Authentication Keys |
 | **IS-IS** | Instances, Interfaces, Settings, Levels, Segment Routing, Flex-Algos, Prefix-SIDs, SRv6 Locators |
 | **EIGRP** | Routers, Address Families, Networks, Interfaces |
@@ -37,7 +37,7 @@ Device ── protocol process (instance / router) ── area / address family 
 | Protocol | Top | Then | Down to |
 | --- | --- | --- | --- |
 | Static | Static route | (assigned to) Devices | |
-| BGP | Router (ASN, assigned to a device, site, region...) | Scope (global or one VRF) → Address family → Peer address family | Peers |
+| BGP | Instance (on a device, optionally in a VRF) | Address families, Peer groups → Peer address families | Peers → Peer address families |
 | OSPF | Instance (on a device, optionally in a VRF) | Areas → Interfaces → Networks, Neighbors | Redistribution, Virtual links, Summary addresses and Prefix SIDs hang from the instance; Area ranges from the area |
 | IS-IS | Instance (on a device, optionally in a VRF) | Levels, Segment routing, Flex-Algos, SRv6 locators | Interfaces → Interface levels, Prefix-SIDs |
 | EIGRP | Router (on a device) | Address families | Networks and Interfaces |
@@ -49,7 +49,7 @@ not exist, go back one level.
 > **Use what NetBox already has.** Devices, interfaces, IP addresses, prefixes, VRFs, ASNs, tenants and roles are standard NetBox
 > objects. The plugin never copies them; it links to them. A prefix list entry points at a NetBox
 > prefix, an OSPF network points at an IP address assigned to an interface, a BGP peer points at
-> an IP address, a BGP router points at an ASN.
+> an IP address, a BGP instance points at an ASN.
 
 ## What every object has
 
@@ -65,7 +65,7 @@ Because they are standard NetBox objects, all of them support:
 ### On the device page
 
 The device page gets a **Static Routes** tab with the routes assigned to it (and a counter). OSPF
-instances, IS-IS instances, EIGRP routers and BGP routers each show their children in tabs on their
+instances, IS-IS instances, EIGRP routers and BGP instances each show their children in tabs on their
 own detail page, for example an OSPF instance has an *Interfaces* tab and an OSPF area lists *its*
 interfaces.
 

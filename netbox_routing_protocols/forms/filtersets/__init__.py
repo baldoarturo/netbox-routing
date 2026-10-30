@@ -1,9 +1,10 @@
 from .static import StaticRouteFilterForm
 from .bgp import (
-    BGPRouterFilterForm,
-    BGPScopeFilterForm,
+    BGPInstanceFilterForm,
     BGPAddressFamilyFilterForm,
-    BGPSettingFilterForm,
+    BGPPeerGroupFilterForm,
+    BGPPeerFilterForm,
+    BGPPeerAddressFamilyFilterForm,
     BFDProfileFilterForm,
 )
 from .ospf import (
@@ -49,10 +50,11 @@ __all__ = (
     # Static
     'StaticRouteFilterForm',
     # BGP
-    'BGPRouterFilterForm',
-    'BGPScopeFilterForm',
+    'BGPInstanceFilterForm',
     'BGPAddressFamilyFilterForm',
-    'BGPSettingFilterForm',
+    'BGPPeerGroupFilterForm',
+    'BGPPeerFilterForm',
+    'BGPPeerAddressFamilyFilterForm',
     # BFD
     'BFDProfileFilterForm',
     # EIGRP

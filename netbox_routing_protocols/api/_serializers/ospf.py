@@ -5,7 +5,7 @@ from dcim.api.serializers_.devices import DeviceSerializer
 from ipam.api.serializers_.ip import IPAddressSerializer
 from ipam.api.serializers_.vrfs import VRFSerializer
 from netbox.api.serializers import NetBoxModelSerializer
-from netbox_routing_protocols.api._serializers.bgp import BGPRouterSerializer
+from netbox_routing_protocols.api._serializers.bgp import BGPInstanceSerializer
 from netbox_routing_protocols.api._serializers.eigrp import EIGRPRouterSerializer
 from netbox_routing_protocols.api._serializers.isis import ISISInstanceSerializer
 from netbox_routing_protocols.models import (
@@ -237,7 +237,7 @@ class OSPFRedistributionSerializer(NetBoxModelSerializer):
     instance = OSPFInstanceSerializer(nested=True)
     ospf_source = OSPFInstanceSerializer(nested=True, required=False, allow_null=True)
     eigrp_source = EIGRPRouterSerializer(nested=True, required=False, allow_null=True)
-    bgp_source = BGPRouterSerializer(nested=True, required=False, allow_null=True)
+    bgp_source = BGPInstanceSerializer(nested=True, required=False, allow_null=True)
     isis_source = ISISInstanceSerializer(nested=True, required=False, allow_null=True)
     route_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
 

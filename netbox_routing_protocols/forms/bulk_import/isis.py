@@ -8,7 +8,7 @@ from netbox.forms import NetBoxModelImportForm
 from utilities.forms.fields import CSVModelChoiceField
 
 from netbox_routing_protocols.models import (
-    BGPRouter,
+    BGPInstance,
     EIGRPRouter,
     OSPFInstance,
     ISISInstance,
@@ -381,9 +381,9 @@ class ISISRedistributionImportForm(NetBoxModelImportForm):
         help_text=_('Primary key of EIGRP Router'),
     )
     bgp_source = CSVModelChoiceField(
-        queryset=BGPRouter.objects.all(),
+        queryset=BGPInstance.objects.all(),
         required=False,
-        help_text=_('Primary key of BGP Router'),
+        help_text=_('Primary key of BGP instance'),
     )
     isis_source = CSVModelChoiceField(
         queryset=ISISInstance.objects.all(),

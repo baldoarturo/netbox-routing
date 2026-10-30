@@ -47,9 +47,9 @@ __all__ = (
     'PrefixListEntrySerializer',
     'RoutePolicySerializer',
     'RoutePolicyEntrySerializer',
-    'BGPSettingSerializer',
-    'BGPRouterSerializer',
-    'BGPScopeSerializer',
+    'BGPInstanceSerializer',
     'BGPAddressFamilySerializer',
+    'BGPPeerGroupSerializer',
     'BGPPeerSerializer',
+    'BGPPeerAddressFamilySerializer',
 )

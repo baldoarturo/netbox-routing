@@ -1,364 +1,271 @@
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 
+from ipam.models import IPAddress
+from netaddr import IPNetwork
+
+from netbox_routing_protocols.choices.bgp import BGPAddressFamilyChoices
+from netbox_routing_protocols.models import PrefixList
 from netbox_routing_protocols.models.bgp import *
 from netbox_routing_protocols.tests.base import *
 from netbox_routing_protocols.tests.bgp.base import *
+from utilities.testing import create_test_device
 
-__all__ = ('BGPRouterTestCase',)
-
-
-class BGPRouterTestCase(ASNMixin, TestCase):
-    model = BGPRouter
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-    def test_model(self):
-        name = 'BGP Router 1'
-        instance = self.model(
-            name=name,
-            asn=self.asn,
-        )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(str(instance), f'{name} ({self.asn})')
-        self.assertEqual(instance.asn, self.asn)
+__all__ = (
+    'BGPInstanceTestCase',
+    'BGPAddressFamilyTestCase',
+    'BGPPeerGroupTestCase',
+    'BGPPeerTestCase',
+    'BGPPeerAddressFamilyTestCase',
+    'BFDProfileTestCase',
+    'BGPChoicesTestCase',
+)
 
 
-class BGPScopeTestCase(BGPRouterMixin, VRFMixin, TestCase):
-    model = BGPScope
+class BGPChoicesTestCase(TestCase):
+    def test_address_families_are_listed_once(self):
+        values = [value for value, _label in BGPAddressFamilyChoices.CHOICES]
+        self.assertEqual(len(values), len(set(values)))
+        for constant in (
+            'VPNV4_UNICAST',
+            'VPNV4_MULTICAST',
+            'L2VPNEVPN',
+        ):
+            self.assertIn(getattr(BGPAddressFamilyChoices, constant), values)
 
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
 
-    def test_model(self):
-        instance = self.model(
-            router=self.router,
-        )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(str(instance), f'{self.router}: Global VRF')
-        self.assertEqual(instance.router, self.router)
+class BGPInstanceTestCase(BGPInstanceMixin, VRFMixin, TestCase):
+    model = BGPInstance
 
-    def test_model_with_vrf(self):
-        instance = self.model(
-            router=self.router,
-            vrf=self.vrf,
-        )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(str(instance), f'{self.router}: {self.vrf}')
-        self.assertEqual(instance.router, self.router)
-        self.assertEqual(instance.vrf, self.vrf)
-
-    def test_unique_together(self):
-        instance = self.model(
-            router=self.router,
-        )
-        instance.full_clean()
-        instance.save()
-
-        instance = self.model(
-            router=self.router,
-            vrf=self.vrf,
-        )
-        instance.full_clean()
-        instance.save()
-
-        instance = self.model(
-            router=self.router,
-        )
-
+    def test_one_instance_per_device_and_vrf(self):
+        duplicate = self.model(name='Other', device=self.device, asn=self.asn)
         with self.assertRaises(ValidationError):
+            duplicate.full_clean()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            duplicate.save()
+
+        # another VRF, or another device, is fine
+        self.model(
+            name='In a VRF', device=self.device, vrf=self.vrf, asn=self.asn
+        ).full_clean()
+        self.model(
+            name='Other device', device=create_test_device(name='D2'), asn=self.asn
+        ).full_clean()
+
+    def test_router_id_cannot_be_zero(self):
+        instance = self.model(
+            name='X',
+            device=create_test_device(name='D3'),
+            asn=self.asn,
+            router_id='0.0.0.0',
+        )
+        with self.assertRaises(ValidationError) as cm:
             instance.full_clean()
-        with self.assertRaises(IntegrityError):
-            instance.save()
+        self.assertIn('router_id', cm.exception.error_dict)
+        instance.router_id = '192.0.2.1'
+        instance.full_clean()
 
 
-class BGPAddressFamilyTestCase(BGPScopeMixin, TestCase):
+class BGPAddressFamilyTestCase(BGPInstanceMixin, TestCase):
     model = BGPAddressFamily
 
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-    def test_model(self):
-        instance = self.model(scope=self.scope, address_family='ipv4-unicast')
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(instance.scope, self.scope)
-        self.assertEqual(instance.address_family, 'ipv4-unicast')
-
-    def test_model_invalid_af(self):
-        instance = self.model(
-            scope=self.scope,
-            address_family='invalid',
+    def test_unique_per_instance(self):
+        self.model.objects.create(
+            instance=self.bgp_instance, address_family='ipv4-unicast'
+        )
+        duplicate = self.model(
+            instance=self.bgp_instance, address_family='ipv4-unicast'
         )
         with self.assertRaises(ValidationError):
-            instance.full_clean()
+            duplicate.full_clean()
 
-    def test_unique_together(self):
-        instance = self.model(
-            scope=self.scope,
-            address_family='ipv4-unicast',
+    def test_distance_limits(self):
+        af = self.model(
+            instance=self.bgp_instance, address_family='ipv4-unicast', distance_ebgp=0
         )
-        instance.full_clean()
-        instance.save()
+        with self.assertRaises(ValidationError) as cm:
+            af.full_clean()
+        self.assertIn('distance_ebgp', cm.exception.error_dict)
 
-        instance = self.model(
-            scope=self.scope,
-            address_family='ipv6-unicast',
-        )
-        instance.full_clean()
-        instance.save()
 
-        instance = self.model(
-            scope=self.scope,
-            address_family='ipv4-unicast',
-        )
+class BGPPeerGroupTestCase(BGPInstanceMixin, TestCase):
+    model = BGPPeerGroup
 
+    def test_unique_name_per_instance(self):
+        self.model.objects.create(name='G', instance=self.bgp_instance)
         with self.assertRaises(ValidationError):
-            instance.full_clean()
-        with self.assertRaises(IntegrityError):
-            instance.save()
+            self.model(name='G', instance=self.bgp_instance).full_clean()
+
+    def test_timers(self):
+        group = self.model(name='G', instance=self.bgp_instance)
+        for hold in (1, 2):
+            group.hold_time = hold
+            with self.assertRaises(ValidationError) as cm:
+                group.full_clean()
+            self.assertIn('hold_time', cm.exception.error_dict)
+        # zero or at least 3 seconds
+        for hold in (0, 3, 90):
+            group.hold_time = hold
+            group.full_clean()
+        # keepalive: at most a third of the hold time
+        group.hold_time, group.keepalive = 90, 30
+        group.full_clean()
+        group.keepalive = 31
+        with self.assertRaises(ValidationError) as cm:
+            group.full_clean()
+        self.assertIn('keepalive', cm.exception.error_dict)
+        group.hold_time = 0
+        group.keepalive = 1
+        with self.assertRaises(ValidationError):
+            group.full_clean()
 
 
-class BGPPeerTestCase(
-    BGPScopeMixin,
-    AddressesMixin,
-    TestCase,
-):
+class BGPPeerTestCase(BGPInstanceMixin, AddressesMixin, VRFMixin, TestCase):
     model = BGPPeer
 
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
+    def _peer(self, **kwargs):
+        kwargs.setdefault('instance', self.bgp_instance)
+        kwargs.setdefault('peer', self.peer_address)
+        return self.model(**kwargs)
 
-    def test_model(self):
-        instance = self.model(
-            name='Test Peer', scope=self.scope, peer=self.peer_address
+    def test_needs_a_remote_as(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._peer().full_clean()
+        self.assertIn('remote_as', cm.exception.error_dict)
+        self._peer(remote_as=self.asns[1]).full_clean()
+
+    def test_remote_as_from_the_group(self):
+        group = BGPPeerGroup.objects.create(
+            name='G', instance=self.bgp_instance, remote_as=self.asns[1], hold_time=90
         )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(instance.scope, self.scope)
-        self.assertEqual(instance.peer, self.peer_address)
+        peer = self._peer(peer_group=group)
+        peer.full_clean()
+        self.assertEqual(peer.effective('remote_as'), self.asns[1])
+        self.assertEqual(peer.effective('hold_time'), 90)
+        peer.hold_time = 30
+        self.assertEqual(peer.effective('hold_time'), 30)
 
-    def test_unique_together(self):
-        instance = self.model(
-            name='Test Peer', scope=self.scope, peer=self.peer_address
+    def test_group_of_another_instance(self):
+        other = BGPInstance.objects.create(
+            name='Other', device=create_test_device(name='D2'), asn=self.asn
         )
-        instance.full_clean()
-        instance.save()
-
-        instance = self.model(
-            name='Test Peer', scope=self.scope, peer=self.peer_address
+        group = BGPPeerGroup.objects.create(
+            name='G', instance=other, remote_as=self.asns[1]
         )
+        with self.assertRaises(ValidationError) as cm:
+            self._peer(peer_group=group).full_clean()
+        self.assertIn('peer_group', cm.exception.error_dict)
 
+    def test_ibgp_or_ebgp(self):
+        self.assertTrue(self._peer(remote_as=self.asn).is_ibgp)
+        self.assertFalse(self._peer(remote_as=self.asns[1]).is_ibgp)
+        self.assertIsNone(self._peer().is_ibgp)
+
+    def test_one_session_per_address(self):
+        self._peer(remote_as=self.asns[1]).save()
+        duplicate = self._peer(remote_as=self.asns[1], name='Another name')
         with self.assertRaises(ValidationError):
-            instance.full_clean()
+            duplicate.full_clean()
         with self.assertRaises(IntegrityError):
-            instance.save()
+            duplicate.save()
+
+    def test_addresses_in_the_vrf_of_the_instance(self):
+        in_vrf = IPAddress.objects.create(
+            address=IPNetwork('10.9.9.9/24'), vrf=self.vrf
+        )
+        with self.assertRaises(ValidationError) as cm:
+            self._peer(peer=in_vrf, remote_as=self.asns[1]).full_clean()
+        self.assertIn('peer', cm.exception.error_dict)
+        with self.assertRaises(ValidationError) as cm:
+            self._peer(source=in_vrf, remote_as=self.asns[1]).full_clean()
+        self.assertIn('source', cm.exception.error_dict)
 
 
-class BGPPeerAddressFamilyTestCase(
-    BGPPeerMixin,
-    BGPAddressFamilyMixin,
-    TestCase,
-):
+class BGPPeerAddressFamilyTestCase(BGPPeerMixin, TestCase):
     model = BGPPeerAddressFamily
 
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-
-    def test_model(self):
-        instance = self.model(
-            assigned_object=self.peer,
-            address_family=self.af,
+        cls.ipv4 = BGPAddressFamily.objects.create(
+            instance=cls.bgp_instance, address_family='ipv4-unicast'
         )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(instance.assigned_object, self.peer)
-        self.assertEqual(instance.address_family, self.af)
-
-    def test_unique_together(self):
-        instance = self.model(
-            assigned_object=self.peer,
-            address_family=self.af,
-        )
-        instance.full_clean()
-        instance.save()
-
-        instance = self.model(
-            assigned_object=self.peer,
-            address_family=self.af,
+        cls.evpn = BGPAddressFamily.objects.create(
+            instance=cls.bgp_instance, address_family='l2vpn-evpn'
         )
 
+    def test_peer_or_peer_group(self):
+        for kwargs in (
+            {},
+            {'peer': self.peer, 'peer_group': self.peer_group},
+        ):
+            with self.assertRaises(ValidationError):
+                self.model(address_family=self.ipv4, **kwargs).full_clean()
+        self.model(address_family=self.ipv4, peer=self.peer).full_clean()
+        self.model(address_family=self.ipv4, peer_group=self.peer_group).full_clean()
+
+    def test_unique(self):
+        self.model.objects.create(address_family=self.ipv4, peer=self.peer)
         with self.assertRaises(ValidationError):
-            instance.full_clean()
-        with self.assertRaises(IntegrityError):
-            instance.save()
-
-
-class BGPPeerTemplateTestCase(
-    BGPAddressFamilyMixin,
-    TestCase,
-):
-    model = BGPPeerTemplate
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-    def test_model(self):
-        instance = self.model(
-            name='Peer Template',
-        )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(str(instance), instance.name)
-
-    def test_unique_together(self):
-        instance = self.model(
-            name='Peer Template',
-            remote_as=self.asn,
-        )
-        instance.full_clean()
-        instance.save()
-
-        instance = self.model(
-            name='Peer Template',
-            remote_as=self.asn,
-        )
-
+            self.model(address_family=self.ipv4, peer=self.peer).full_clean()
+        self.model.objects.create(address_family=self.ipv4, peer_group=self.peer_group)
         with self.assertRaises(ValidationError):
-            instance.full_clean()
-        with self.assertRaises(IntegrityError):
-            instance.save()
+            self.model(
+                address_family=self.ipv4, peer_group=self.peer_group
+            ).full_clean()
 
-
-class BGPPolicyTemplateTestCase(
-    BGPAddressFamilyMixin,
-    TestCase,
-):
-    model = BGPPolicyTemplate
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-    def test_model(self):
-        instance = self.model(
-            name='Policy Template',
+    def test_address_family_of_another_instance(self):
+        other = BGPInstance.objects.create(
+            name='Other', device=create_test_device(name='D2'), asn=self.asn
         )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(str(instance), instance.name)
-
-    def test_unique_together(self):
-        instance = self.model(
-            name='Policy Template',
+        af = BGPAddressFamily.objects.create(
+            instance=other, address_family='ipv4-unicast'
         )
-        instance.full_clean()
-        instance.save()
+        with self.assertRaises(ValidationError) as cm:
+            self.model(address_family=af, peer=self.peer).full_clean()
+        self.assertIn('address_family', cm.exception.error_dict)
 
-        instance = self.model(
-            name='Policy Template',
-        )
-
-        with self.assertRaises(ValidationError):
-            instance.full_clean()
-        with self.assertRaises(IntegrityError):
-            instance.save()
-
-
-class BGPSessionTemplateTestCase(
-    BGPAddressFamilyMixin,
-    TestCase,
-):
-    model = BGPSessionTemplate
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
-    def test_model(self):
-        instance = self.model(
-            name='Session Template',
-        )
-        instance.full_clean()
-        instance.save()
-        self.assertIsInstance(instance, self.model)
-        self.assertEqual(str(instance), instance.name)
-
-    def test_unique_together(self):
-        instance = self.model(
-            name='Session Template',
-        )
-        instance.full_clean()
-        instance.save()
-
-        instance = self.model(
-            name='Session Template',
-        )
-
-        with self.assertRaises(ValidationError):
-            instance.full_clean()
-        with self.assertRaises(IntegrityError):
-            instance.save()
+    def test_prefix_list_family(self):
+        v4 = PrefixList.objects.create(name='v4', family=4)
+        v6 = PrefixList.objects.create(name='v6', family=6)
+        self.model(
+            address_family=self.ipv4, peer=self.peer, prefixlist_in=v4
+        ).full_clean()
+        for field in ('prefixlist_in', 'prefixlist_out'):
+            with self.assertRaises(ValidationError) as cm:
+                self.model(
+                    address_family=self.ipv4, peer=self.peer, **{field: v6}
+                ).full_clean()
+            self.assertIn(field, cm.exception.error_dict)
+        # EVPN does not carry IP prefixes
+        with self.assertRaises(ValidationError) as cm:
+            self.model(
+                address_family=self.evpn, peer=self.peer, prefixlist_in=v4
+            ).full_clean()
+        self.assertIn('prefixlist_in', cm.exception.error_dict)
 
 
-class BFDProfileTestCase(
-    TestCase,
-):
+class BFDProfileTestCase(TestCase):
     model = BFDProfile
 
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-
     def test_model(self):
         instance = self.model(
-            name='Test BFD Profile X',
-            min_rx_int=60,
-            min_tx_int=60,
-            multiplier=3,
+            name='Test BFD Profile X', min_rx_int=60, min_tx_int=60, multiplier=3
         )
         instance.full_clean()
         instance.save()
-        self.assertIsInstance(instance, self.model)
         self.assertEqual(str(instance), instance.name)
 
-    def test_unique_together(self):
-        instance = self.model(
-            name='Test BFD Profile X',
-            min_rx_int=60,
-            min_tx_int=60,
-            multiplier=3,
-        )
-        instance.full_clean()
-        instance.save()
-
-        instance = self.model(
-            name='Test BFD Profile X',
-            min_rx_int=60,
-            min_tx_int=60,
-            multiplier=3,
-        )
-
+    def test_unique_name(self):
+        data = {
+            'name': 'Test BFD Profile X',
+            'min_rx_int': 60,
+            'min_tx_int': 60,
+            'multiplier': 3,
+        }
+        self.model.objects.create(**data)
         with self.assertRaises(ValidationError):
-            instance.full_clean()
-        with self.assertRaises(IntegrityError):
-            instance.save()
+            self.model(**data).full_clean()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            self.model(**data).save()

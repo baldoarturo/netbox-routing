@@ -18,7 +18,7 @@ detect failures in the same time points at the same profile.
 
 Where it is used:
 
-* A [BGP session template](protocols/bgp.md#session-templates) or a [BGP peer](protocols/bgp.md#peers)
+* A [BGP peer or peer group](protocols/bgp.md#peers)
   can point at a BFD profile.
 * OSPF, IS-IS and EIGRP interfaces only have a **BFD on/off** switch; they do not use profiles, because
   the timers of those protocols come from the interface configuration of the device.
