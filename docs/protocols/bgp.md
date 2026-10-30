@@ -148,6 +148,9 @@ Session options, on a peer and on a peer group (the peer needs a remote AS, its 
 | eBGP multihop | Maximum hops to a neighbor that is not directly connected (an eBGP neighbor is expected one hop away). |
 | TTL security hops | *Generalized TTL Security Mechanism*, [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082): the neighbor is at most this many hops away and packets with a lower TTL are dropped. It cannot be used together with *eBGP multihop*. |
 | Passive | Wait for the neighbor to open the TCP connection instead of opening it ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) section 8). |
+| AS override | Replace the neighbor's ASN with the local one in the AS path of the routes sent to it. Only for an eBGP neighbor (AS migrations, PE-CE). |
+| Soft reconfiguration inbound | Keep the routes received before the policy, so a change of the policy applies without resetting the session (route refresh, [RFC 2918](https://www.rfc-editor.org/rfc/rfc2918)). |
+| Graceful shutdown | Send the `GRACEFUL_SHUTDOWN` community ([RFC 8326](https://www.rfc-editor.org/rfc/rfc8326)) before the session goes down, so the neighbor moves the traffic away first. |
 | Import policy, Export policy | See [Route policy](#route-policy). |
 | Passphrase | The shared secret of the TCP session ([RFC 2385](https://www.rfc-editor.org/rfc/rfc2385), TCP MD5), stored as **plain text**, up to 80 characters. *MD5 digest* also shows the MD5 digest of the key, like the OSPF keys. TCP-AO ([RFC 5925](https://www.rfc-editor.org/rfc/rfc5925)) is not supported. |
 | Route reflector client | The neighbor is a client of this route reflector ([RFC 4456](https://www.rfc-editor.org/rfc/rfc4456)). Only an iBGP neighbor (remote AS equal to the instance's) can be one. |
@@ -169,7 +172,7 @@ address family of the instance (for example IPv4 unicast) plus the filters appli
 | Prefix list in / out | Prefix lists ([routing objects](../routing-objects.md#prefix-lists)) that filter what is received from and sent to the neighbor. Their family (IPv4 or IPv6) must match the address family; families that carry no IP prefixes (EVPN, VPLS, link-state...) take none. |
 | Import policy, Export policy | Route policies that filter or modify the routes received from and sent to the neighbor, see [Route policy](#route-policy). |
 | Send community | Which communities are sent to the neighbor: standard ([RFC 1997](https://www.rfc-editor.org/rfc/rfc1997)), extended ([RFC 4360](https://www.rfc-editor.org/rfc/rfc4360)) and/or large ([RFC 8092](https://www.rfc-editor.org/rfc/rfc8092)). Cisco, Arista and FRR send none unless it is configured; Juniper sends them all. Empty uses the one of the peer group, else the platform default. |
-| Next hop self, Remove private AS, Allow AS in | Advertise this router as the next hop; remove private ASNs from the AS path; accept routes with the local AS in the AS path up to that many times (vendor features). |
+| Next hop self, Remove private AS, Allow AS in | Advertise this router as the next hop (per address family, the most specific level, like the policies); remove private ASNs from the AS path; accept routes with the local AS in the AS path up to that many times (vendor features). |
 | Maximum prefixes | The number of prefixes accepted from the neighbor in this family. When exceeded the session is ceased ([RFC 4486](https://www.rfc-editor.org/rfc/rfc4486), subcode *Maximum Number of Prefixes Reached*). *Warning* is the percentage of the limit that logs a warning; *Action* is **Cease, restart after a time** (with the minutes to wait), **Cease, until cleared** or **Warning only**. |
 ## Route policy
 

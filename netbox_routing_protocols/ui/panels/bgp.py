@@ -142,6 +142,13 @@ class BGPPeerSessionPanel(panels.ObjectAttributesPanel):
         'ttl_security_hops', label=_('TTL Security Hops')
     )
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
+    as_override = attrs.BooleanAttr('as_override', label=_('AS Override'))
+    soft_reconfiguration_inbound = attrs.BooleanAttr(
+        'soft_reconfiguration_inbound', label=_('Soft Reconfiguration Inbound')
+    )
+    graceful_shutdown = attrs.BooleanAttr(
+        'graceful_shutdown', label=_('Graceful Shutdown')
+    )
     route_reflector_client = attrs.BooleanAttr(
         'route_reflector_client', label=_('Route Reflector Client')
     )

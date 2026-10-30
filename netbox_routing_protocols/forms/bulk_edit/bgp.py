@@ -53,6 +53,9 @@ class BGPPeerConfigBulkEditMixin(forms.Form):
         label=_('TTL Security Hops'), required=False, min_value=1, max_value=254
     )
     passive = _tristate(_('Passive'))
+    as_override = _tristate(_('AS Override'))
+    soft_reconfiguration_inbound = _tristate(_('Soft Reconfiguration Inbound'))
+    graceful_shutdown = _tristate(_('Graceful Shutdown'))
     route_reflector_client = _tristate(_('Route Reflector Client'))
     extended_nexthop = _tristate(_('Extended Next Hop'))
     show_md5 = _tristate(_('MD5 Digest'))
@@ -84,6 +87,9 @@ _CONFIG_NULLABLE = (
     'ebgp_multihop',
     'ttl_security_hops',
     'passive',
+    'as_override',
+    'soft_reconfiguration_inbound',
+    'graceful_shutdown',
     'route_reflector_client',
     'extended_nexthop',
     'import_policy',
@@ -218,6 +224,9 @@ class BGPPeerGroupBulkEditForm(
             'ebgp_multihop',
             'ttl_security_hops',
             'passive',
+            'as_override',
+            'soft_reconfiguration_inbound',
+            'graceful_shutdown',
             'route_reflector_client',
             'extended_nexthop',
             'keepalive',
@@ -290,6 +299,9 @@ class BGPPeerBulkEditForm(
             'ebgp_multihop',
             'ttl_security_hops',
             'passive',
+            'as_override',
+            'soft_reconfiguration_inbound',
+            'graceful_shutdown',
             'route_reflector_client',
             'extended_nexthop',
             'keepalive',
