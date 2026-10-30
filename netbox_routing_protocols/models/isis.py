@@ -19,8 +19,11 @@ from netbox_routing_protocols.constants.isis import (
     ISISSETTING_ASSIGNMENT_MODELS,
 )
 from netbox_routing_protocols.helpers.isis import (
-    NET_RE,
     auth_pair_errors,
+    metric_errors,
+    net_error,
+    range_errors,
+    router_id_error,
     type_levels,
 )
 from netbox_routing_protocols.models.policy import RoutePolicyMixin
@@ -140,6 +143,10 @@ class ISISSetting(PrimaryModel):
                 raise ValidationError(
                     {'value': _('This setting requires a non-negative integer value.')}
                 )
+        elif self.key in ('te_ipv4_router_id', 'te_ipv6_router_id'):
+            message = router_id_error(self.value, 4 if self.key[6] == '4' else 6)
+            if message:
+                raise ValidationError({'value': message})
         elif field_type == 'boolean':
             if str(self.value).strip().lower() not in (
                 'true',
@@ -436,11 +443,49 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
             )
         # Reject a malformed NET at the model layer (form/API/import all run full_clean)
         # rather than letting it fail downstream when pushed to the device.
-        if self.net and not NET_RE.match(self.net):
-            errors['net'] = _('Enter a valid NET, e.g. 49.0001.0000.0000.0001.00.')
+        if self.net and (message := net_error(self.net)):
+            errors['net'] = message
+        errors.update(self._range_errors())
         if errors:
             raise ValidationError(errors)
         self._clean_children()
+
+    def _range_errors(self):
+        """Limits of the timers and counters (ISO 10589 7.3, vendor documentation) and
+        the pairs that must stay in order."""
+        errors = range_errors(
+            self,
+            (
+                ('lsp_lifetime', 1, 65535),
+                ('lsp_refresh_interval', 1, 65535),
+                ('lsp_mtu', 512, None),
+                ('distance', 1, 255),
+                ('maximum_paths', 1, None),
+                ('reference_bandwidth', 1, None),
+            ),
+        )
+        for low, high in (
+            ('spf_initial_wait', 'spf_max_wait'),
+            ('lsp_initial_wait', 'lsp_max_wait'),
+        ):
+            first, last = getattr(self, low), getattr(self, high)
+            if first is not None and last is not None and first > last:
+                errors[high] = _(
+                    'The maximum wait cannot be less than the initial wait.'
+                )
+        if (
+            self.lsp_refresh_interval is not None
+            and self.lsp_lifetime is not None
+            and self.lsp_refresh_interval >= self.lsp_lifetime
+        ):
+            errors['lsp_refresh_interval'] = _(
+                'The refresh interval must be less than the LSP lifetime.'
+            )
+        if self.overload_timeout is not None and not self.overload_on_startup:
+            errors['overload_timeout'] = _(
+                'The overload timeout needs overload on startup.'
+            )
+        return errors
 
     def _clean_children(self):
         """A change of device, VRF, IS type or metric style must not leave interfaces
@@ -650,6 +695,18 @@ class ISISInterface(PrimaryModel):
                 interface_vrf=self.interface.vrf or _('the global routing table'),
                 instance_vrf=self.instance.vrf or _('the global routing table'),
             )
+        errors.update(
+            range_errors(
+                self,
+                (
+                    ('csnp_interval', 1, 65535),
+                    ('retransmit_interval', 1, 65535),
+                    ('lsp_interval', 1, None),
+                ),
+            )
+        )
+        if self.instance_id:
+            errors.update(metric_errors(self, ('metric',), self.instance.metric_style))
         # The circuit type must share a level with the IS type of the instance.
         if (
             self.instance_id
@@ -793,6 +850,9 @@ class ISISLevel(PrimaryModel):
                 errors['level'] = _(
                     'The instance IS type does not run this level; mark it disabled.'
                 )
+            errors.update(
+                metric_errors(self, ('default_metric',), self.instance.metric_style)
+            )
             if self.wide_metrics_only and self.instance.metric_style == 'narrow':
                 errors['wide_metrics_only'] = _(
                     'Wide metrics only conflicts with the narrow metric style of the instance.'
@@ -861,18 +921,26 @@ class ISISInterfaceLevel(PrimaryModel):
 
     def clean(self):
         super().clean()
+        errors = range_errors(
+            self,
+            (
+                ('hello_interval', 1, 65535),
+                ('hello_multiplier', 2, 1000),
+                ('priority', 0, 127),
+            ),
+        )
         if self.interface_id:
+            instance = self.interface.instance
+            errors.update(metric_errors(self, ('metric',), instance.metric_style))
             allowed = type_levels(self.interface.circuit_type) & type_levels(
-                self.interface.instance.is_type
+                instance.is_type
             )
             if self.level not in allowed:
-                raise ValidationError(
-                    {
-                        'level': _(
-                            'The circuit of this interface does not run this level.'
-                        )
-                    }
+                errors['level'] = _(
+                    'The circuit of this interface does not run this level.'
                 )
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         return f'{self.interface} L{self.level}'

@@ -3,13 +3,14 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from dcim.models import Interface
 from ipam.models import VRF
 from utilities.exceptions import AbortRequest
 from utilities.testing import create_test_device
 
+from netbox_routing_protocols.helpers.isis import net_error
 from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISInstance,
@@ -32,6 +33,8 @@ __all__ = (
     'ISISSRv6LocatorModelTestCase',
     'ISISMigrationStateTestCase',
     'ISISConsistencyTestCase',
+    'ISISNetTestCase',
+    'ISISRangeTestCase',
 )
 
 
@@ -727,3 +730,120 @@ class ISISConsistencyTestCase(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             level.clean()
         self.assertIn('wide_metrics_only', ctx.exception.message_dict)
+
+
+class ISISNetTestCase(SimpleTestCase):
+    """NET format (ISO 10589, RFC 1195) (#422)."""
+
+    def test_valid_nets(self):
+        for net in (
+            '49.0001.1921.6800.1001.00',
+            '49.01.1921.6800.1001.00',  # one-byte area
+            '47.0005.80ff.f800.0000.0001.0000.0000.0001.00',  # long area
+            '490001192168001001.00',
+        ):
+            with self.subTest(net=net):
+                self.assertIsNone(net_error(net))
+
+    def test_invalid_nets(self):
+        for net in (
+            '49.0001.1921.6800.1001.01',  # selector
+            '49.0001.1921.6800.1001.0',  # odd digits
+            '49.0001.zzzz.6800.1001.00',
+            '1921.6800.1001.00',  # no area
+            '49.' + '0001.' * 10 + '00',  # more than 20 bytes
+        ):
+            with self.subTest(net=net):
+                self.assertIsNotNone(net_error(net))
+
+
+class ISISRangeTestCase(TestCase):
+    """Limits and ordering of the timers, counters and metrics (#425)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(device=cls.device)
+
+    def _errors(self, obj):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.clean()
+        return ctx.exception.message_dict
+
+    def test_instance_refresh_must_be_below_lifetime(self):
+        self.instance.lsp_lifetime = 1200
+        self.instance.lsp_refresh_interval = 1200
+        self.assertIn('lsp_refresh_interval', self._errors(self.instance))
+        self.instance.lsp_refresh_interval = 900
+        self.instance.clean()
+
+    def test_instance_max_wait_not_below_initial_wait(self):
+        self.instance.spf_initial_wait = 500
+        self.instance.spf_max_wait = 100
+        self.assertIn('spf_max_wait', self._errors(self.instance))
+
+    def test_instance_ranges(self):
+        for field, value in (
+            ('distance', 0),
+            ('distance', 256),
+            ('maximum_paths', 0),
+            ('lsp_mtu', 100),
+            ('lsp_lifetime', 70000),
+        ):
+            with self.subTest(field=field, value=value):
+                instance = ISISInstance(device=self.device, process_tag='X')
+                setattr(instance, field, value)
+                self.assertIn(field, self._errors(instance))
+
+    def test_overload_timeout_needs_overload_on_startup(self):
+        self.instance.overload_timeout = 300
+        self.assertIn('overload_timeout', self._errors(self.instance))
+        self.instance.overload_on_startup = True
+        self.instance.clean()
+
+    def test_interface_metric_depends_on_metric_style(self):
+        interface = Interface.objects.create(
+            name='eth0', device=self.device, type='virtual'
+        )
+        entry = ISISInterface(
+            instance=self.instance,
+            interface=interface,
+            address_family='ipv4',
+            metric=100,
+        )
+        entry.clean()  # wide
+        self.instance.metric_style = 'narrow'
+        self.assertIn('metric', self._errors(entry))
+        self.instance.metric_style = 'wide'
+        entry.metric = 16777215
+        self.assertIn('metric', self._errors(entry))
+
+    def test_interface_level_ranges(self):
+        interface = Interface.objects.create(
+            name='eth0', device=self.device, type='virtual'
+        )
+        entry = ISISInterface.objects.create(
+            instance=self.instance, interface=interface, address_family='ipv4'
+        )
+        for field, value in (
+            ('priority', 128),
+            ('hello_multiplier', 1),
+            ('hello_interval', 0),
+        ):
+            with self.subTest(field=field):
+                level = ISISInterfaceLevel(interface=entry, level=1)
+                setattr(level, field, value)
+                self.assertIn(field, self._errors(level))
+
+    def test_te_router_id_family(self):
+        setting = ISISSetting(
+            assigned_object=self.instance,
+            key='te_ipv4_router_id',
+            value='2001:db8::1',
+        )
+        with self.assertRaises(ValidationError):
+            setting.clean()
+        setting.value = 'Loopback0'  # Cisco interface reference
+        setting.clean()
+        setting.value = '192.0.2.1'
+        setting.clean()

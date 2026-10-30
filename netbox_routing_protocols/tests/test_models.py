@@ -22,6 +22,8 @@ __all__ = (
     'ISISSRv6LocatorModelTestCase',
     'ISISMigrationStateTestCase',
     'ISISConsistencyTestCase',
+    'ISISNetTestCase',
+    'ISISRangeTestCase',
     'EIGRPRouterTestCase',
     'EIGRPAddressFamilyTestCase',
     'EIGRPNetworkTestCase',

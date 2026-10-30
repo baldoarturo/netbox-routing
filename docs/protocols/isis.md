@@ -40,16 +40,18 @@ IS-IS instance (a process on a device, optionally in a VRF)
 | --- | --- |
 | Device, VRF | Where the process runs. IS-IS can run once per VRF. |
 | Process tag | The name of the process (`router isis <tag>`); empty for the unnamed process. Unique per device. |
-| NET | The Network Entity Title, validated against the format above. Empty is allowed while you are drafting. |
+| NET | The Network Entity Title: hex bytes with optional dots, an area address (1-13 bytes, starting with the AFI), a 6-byte system ID and an N-selector that must be `00`, at most 20 bytes in all (ISO 10589, RFC 1195). Empty is allowed while you are drafting. |
 | IS type | **Level-1**, **Level-2 only** or **Level-1-2**. Empty means the platform default (Level-1-2). |
 | Metric style | **Wide**, **Narrow** or **Transition** (both, for migrating between the two). Empty means the platform default. |
 | Overload bit | Set the *overload bit*: other routers stop using this router for **transit** traffic, while still reaching its own prefixes (ISO 10589). Used for maintenance. |
 | Overload on startup, timeout | Set it for a number of seconds after boot so the router joins the network gradually. |
 | Suppress / ignore attached bit | The *attached bit* tells Level-1 routers that this Level-1-2 router reaches other areas, so they use it as a default route. *Suppress* stops the router from setting it; *ignore* stops it from installing the default route toward routers that do (ISO 10589). |
-| Distance | Administrative distance. |
-| Maximum paths | Equal-cost paths installed (ECMP). |
+| Distance | Administrative distance, 1-255. |
+| Maximum paths | Equal-cost paths installed (ECMP), at least 1. |
 | Reference bandwidth | Mbps used to derive default interface metrics. |
 | Traffic engineering | Enable IS-IS TE extensions ([RFC 5305](https://www.rfc-editor.org/rfc/rfc5305)). |
+
+Ranges that are checked when you save: the maximum wait cannot be less than the initial wait, the LSP refresh interval must be less than the LSP lifetime (both 1-65535 s), the LSP MTU is at least 512 bytes, and the overload timeout needs *overload on startup*. Metrics are 1-63 with the narrow style and 1-16777214 otherwise ([RFC 5305](https://www.rfc-editor.org/rfc/rfc5305)); hello interval, CSNP and retransmit intervals are 1-65535 s, the hello multiplier 2-1000 and the DIS priority 0-127.
 
 ### Route policies
 
