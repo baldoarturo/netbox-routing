@@ -323,25 +323,25 @@ class RoutePolicyEntryTestCase(TestCase):
                 route_policy=cls.route_policy[0],
                 action=ActionChoices.PERMIT,
                 sequence=1,
-                match={'tag': 1234},
+                match_tag=1234,
             ),
             RoutePolicyEntry(
                 route_policy=cls.route_policy[0],
                 action=ActionChoices.PERMIT,
                 sequence=2,
-                match={'tag': 5678},
+                match_tag=5678,
             ),
             RoutePolicyEntry(
                 route_policy=cls.route_policy[1],
                 action=ActionChoices.PERMIT,
                 sequence=1,
-                match={'tag': 9012},
+                match_tag=9012,
             ),
             RoutePolicyEntry(
                 route_policy=cls.route_policy[1],
                 action=ActionChoices.PERMIT,
                 sequence=2,
-                match={'tag': 3456},
+                match_tag=3456,
             ),
         ]
         RoutePolicyEntry.objects.bulk_create(cls.route_policy_entry)
@@ -350,8 +350,8 @@ class RoutePolicyEntryTestCase(TestCase):
         params = {'q': 'Route Policy 1'}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
-    def test_match(self):
-        params = {'q': '34'}
+    def test_match_tag(self):
+        params = {'match_tag': [1234, 5678]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_prefix_list(self):

@@ -324,7 +324,6 @@ class CommunityListBulkImportView(BulkImportView):
 class CommunityListView(ObjectListView):
     queryset = Community.objects.select_related('role', 'tenant').annotate(
         entry_count=count_related(CommunityListEntry, 'community'),
-        route_policy_entry_count=count_related(RoutePolicyEntry, 'match_community'),
     )
     table = CommunityTable
     filterset = CommunityFilterSet
@@ -360,12 +359,6 @@ class CommunityDetailView(GetRelatedModelsMixin, ObjectView):
                         .filter(communitylistentries__community=instance)
                         .distinct(),
                         'community_id',
-                    ),
-                    (
-                        RoutePolicyEntry.objects.restrict(request.user, 'view').filter(
-                            match_community=instance
-                        ),
-                        'match_community_id',
                     ),
                 ),
             )

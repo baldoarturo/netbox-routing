@@ -244,11 +244,7 @@ class RoutePolicyEntryTestCase(
     # ViewTestCases.BulkImportObjectsViewTestCase,
     model = RoutePolicyEntry
     action = 'permit'
-    set = {}
-    match = {
-        'tags': 1234,
-    }
-    routing_required_fields = ('match', 'set', 'route_policy', 'action', 'sequence')
+    routing_required_fields = ('route_policy', 'action', 'sequence')
 
     @classmethod
     def setUpTestData(cls):

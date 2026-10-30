@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from ipam.models import Prefix
+from ipam.models import IPAddress, Prefix
 from netbox.context import current_request
 from netbox.forms import PrimaryModelForm
 from utilities.forms.fields import (
@@ -21,7 +21,7 @@ from netbox_routing_protocols.helpers.prefix_list import (
     find_overlaps,
     next_sequence,
 )
-from netbox_routing_protocols.models.community import Community, CommunityList
+from netbox_routing_protocols.models.community import CommunityList
 from netbox_routing_protocols.models.objects import *
 
 # How many overlapping entries are named in the warnings after saving an entry
@@ -393,12 +393,6 @@ class RoutePolicyForm(PrimaryModelForm):
 
 
 class RoutePolicyEntryForm(PrimaryModelForm):
-    match_community = DynamicModelMultipleChoiceField(
-        queryset=Community.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Match Community'),
-    )
     match_community_list = DynamicModelMultipleChoiceField(
         queryset=CommunityList.objects.all(),
         required=False,
@@ -417,6 +411,30 @@ class RoutePolicyEntryForm(PrimaryModelForm):
         selector=True,
         label=_('Match AS-Path'),
     )
+    match_next_hop = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Match Next Hop'),
+        help_text=_('An IPv4 or IPv6 address of IPAM'),
+    )
+    set_next_hop = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Set Next Hop'),
+        help_text=_('An IPv4 or IPv6 address of IPAM'),
+    )
+    set_community_list = DynamicModelChoiceField(
+        queryset=CommunityList.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Set Community List'),
+        help_text=_(
+            'The communities and extended communities that the permit entries of '
+            'the list hold'
+        ),
+    )
 
     fieldsets = (
         FieldSet(
@@ -429,13 +447,28 @@ class RoutePolicyEntryForm(PrimaryModelForm):
                 FieldSet('flow_control', name=_('Flow Control')),
                 FieldSet(
                     'match_prefix_list',
-                    'match_community_list',
-                    'match_community',
                     'match_aspath',
-                    'match',
+                    'match_community_list',
+                    'match_next_hop',
+                    'match_metric',
+                    'match_origin',
+                    'match_tag',
+                    'match_weight',
                     name=_('Match'),
                 ),
-                FieldSet('set', name=_('Set')),
+                FieldSet(
+                    'set_local_preference',
+                    'set_next_hop',
+                    'set_aspath_prepend',
+                    'set_community_list',
+                    'set_community_mode',
+                    'set_metric',
+                    'set_metric_mode',
+                    'set_origin',
+                    'set_tag',
+                    'set_weight',
+                    name=_('Set'),
+                ),
             ),
         ),
     )
@@ -448,17 +481,33 @@ class RoutePolicyEntryForm(PrimaryModelForm):
             'action',
             'flow_control',
             'match_prefix_list',
-            'match_community_list',
-            'match_community',
             'match_aspath',
-            'match',
-            'set',
+            'match_community_list',
+            'match_next_hop',
+            'match_metric',
+            'match_origin',
+            'match_tag',
+            'match_weight',
+            'set_local_preference',
+            'set_next_hop',
+            'set_aspath_prepend',
+            'set_community_list',
+            'set_community_mode',
+            'set_metric',
+            'set_metric_mode',
+            'set_origin',
+            'set_tag',
+            'set_weight',
             'description',
             'comments',
             'tags',
             'owner',
         )
         labels = {'flow_control': _('Continue')}
+        widgets = {
+            'set_community_mode': InlineRadioSelect,
+            'set_metric_mode': InlineRadioSelect,
+        }
         help_texts = {
             'flow_control': _(
                 'Empty = not enabled; 0 = next entry; otherwise the sequence of the '

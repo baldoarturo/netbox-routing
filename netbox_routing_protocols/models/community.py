@@ -1,13 +1,11 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.apps import apps
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
-from utilities.querysets import RestrictedQuerySet
 
 from netbox_routing_protocols.choices import (
     ActionChoices,
@@ -90,35 +88,6 @@ class CommunityList(PrimaryModel):
                 )
 
 
-# How many route policy entries are named in the error of a delete
-MAX_REPORTED = 5
-
-
-def protect_communities_in_use(communities):
-    """
-    Refuse to delete communities matched by route policy entries: the many to many would
-    drop the link silently and change what the policy matches (the entries of a community
-    list are protected by their foreign key). It is checked here and not in a pre_delete
-    signal because raising inside the delete would leave the transaction unusable.
-    """
-    RoutePolicyEntry = apps.get_model('netbox_routing_protocols', 'RoutePolicyEntry')
-    entries = RoutePolicyEntry.objects.filter(
-        match_community__in=communities
-    ).select_related('route_policy')
-    shown = list(entries.distinct()[:MAX_REPORTED])
-    if shown:
-        raise models.ProtectedError(
-            'Cannot delete the community: it is matched by route policy entries.',
-            set(shown),
-        )
-
-
-class CommunityQuerySet(RestrictedQuerySet):
-    def delete(self):
-        protect_communities_in_use(self)
-        return super().delete()
-
-
 class Community(PrimaryModel):
     """
     A BGP community: standard (RFC 1997), extended (RFC 4360) or large (RFC 8092). The
@@ -165,8 +134,6 @@ class Community(PrimaryModel):
         null=True,
         blank=True,
     )
-
-    objects = CommunityQuerySet.as_manager()
 
     class Meta:
         verbose_name = _('Community')
@@ -247,10 +214,6 @@ class Community(PrimaryModel):
         if not self.name and self.type == CommunityTypeChoices.TYPE_STANDARD:
             if found := community_helpers.well_known_name(self.community):
                 self.name = found[0]
-
-    def delete(self, *args, **kwargs):
-        protect_communities_in_use([self])
-        return super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         try:

@@ -1,4 +1,5 @@
 import netaddr
+from django.contrib.postgres.fields import ArrayField
 from django.core.validators import (
     MinValueValidator,
     MaxValueValidator,
@@ -14,7 +15,12 @@ from ipam.choices import IPAddressFamilyChoices
 from netbox.models import PrimaryModel
 
 from netbox_routing_protocols.models.community import *
-from netbox_routing_protocols.choices import ActionChoices
+from netbox_routing_protocols.choices import (
+    ActionChoices,
+    CommunityModeChoices,
+    MetricModeChoices,
+    OriginChoices,
+)
 from netbox_routing_protocols.helpers.aspath import validate_pattern
 
 __all__ = (
@@ -349,6 +355,30 @@ class RoutePolicy(PrimaryModel):
         )
 
 
+# Tag and weight are not BGP path attributes: some vendors have them, others do not
+TAG_HELP = _(
+    'Not a BGP attribute: only some vendors have it (for example Cisco and FRR)'
+)
+WEIGHT_HELP = _(
+    'Not a BGP attribute (0 to 65535): only some vendors have it (for example Cisco '
+    'and FRR), and it never leaves the router'
+)
+
+# The settings of an entry, which a deny entry cannot have
+SET_FIELDS = (
+    'set_local_preference',
+    'set_next_hop',
+    'set_aspath_prepend',
+    'set_community_list',
+    'set_community_mode',
+    'set_metric',
+    'set_metric_mode',
+    'set_origin',
+    'set_tag',
+    'set_weight',
+)
+
+
 class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
     route_policy = models.ForeignKey(
         to=RoutePolicy,
@@ -366,13 +396,10 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
         blank=True,
         validators=[MaxValueValidator(4294967294)],
     )
-    match_community_list = models.ManyToManyField(
-        to=CommunityList,
-        blank=True,
-        related_name='route_policy_entries',
-    )
-    match_community = models.ManyToManyField(
-        to=Community,
+    # What the entry matches on. Several conditions are an AND; several objects in one list
+    # are an OR, as on the routers
+    match_prefix_list = models.ManyToManyField(
+        to=PrefixList,
         blank=True,
         related_name='route_policy_entries',
     )
@@ -381,22 +408,130 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
         blank=True,
         related_name='route_policy_entries',
     )
-    match_prefix_list = models.ManyToManyField(
-        to=PrefixList,
+    match_community_list = models.ManyToManyField(
+        to=CommunityList,
         blank=True,
         related_name='route_policy_entries',
+        help_text=_('Communities and extended communities'),
     )
-    match = models.JSONField(
+    match_next_hop = models.ForeignKey(
+        to='ipam.IPAddress',
+        on_delete=models.PROTECT,
+        related_name='route_policy_entries_match_next_hop',
         blank=True,
         null=True,
-        verbose_name=_('Match parameters'),
-        help_text=_("JSON blob of options to match "),
+        verbose_name=_('Match Next Hop'),
+        help_text=_('NEXT_HOP of the route, an IPv4 or IPv6 address of IPAM'),
     )
-    set = models.JSONField(
+    match_metric = models.PositiveBigIntegerField(
         blank=True,
         null=True,
-        verbose_name=_('Set parameters'),
-        help_text=_("JSON blob of options to set "),
+        validators=[MaxValueValidator(4294967295)],
+        verbose_name=_('Match Metric'),
+        help_text=_('MULTI_EXIT_DISC of the route'),
+    )
+    match_origin = models.CharField(
+        max_length=10,
+        choices=OriginChoices,
+        blank=True,
+        verbose_name=_('Match Origin'),
+    )
+    match_tag = models.PositiveBigIntegerField(
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(4294967295)],
+        verbose_name=_('Match Tag'),
+        help_text=TAG_HELP,
+    )
+    match_weight = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(65535)],
+        verbose_name=_('Match Weight'),
+        help_text=WEIGHT_HELP,
+    )
+
+    # What the entry changes in the routes it permits. A deny entry only denies
+    set_local_preference = models.PositiveBigIntegerField(
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(4294967295)],
+        verbose_name=_('Set Local Preference'),
+    )
+    set_next_hop = models.ForeignKey(
+        to='ipam.IPAddress',
+        on_delete=models.PROTECT,
+        related_name='route_policy_entries_set_next_hop',
+        blank=True,
+        null=True,
+        verbose_name=_('Set Next Hop'),
+        help_text=_('An IPv4 or IPv6 address of IPAM'),
+    )
+    set_aspath_prepend = ArrayField(
+        base_field=models.PositiveBigIntegerField(
+            validators=[MaxValueValidator(4294967295)]
+        ),
+        blank=True,
+        default=list,
+        verbose_name=_('Set AS-Path Prepend'),
+        help_text=_(
+            'AS numbers added at the start of the AS_PATH, in this order '
+            '(repeat a number to prepend it several times)'
+        ),
+    )
+    set_community_list = models.ForeignKey(
+        to=CommunityList,
+        on_delete=models.SET_NULL,
+        related_name='route_policy_entries_set',
+        blank=True,
+        null=True,
+        verbose_name=_('Set Community List'),
+        help_text=_(
+            'The communities and extended communities that the permit entries of '
+            'the list hold'
+        ),
+    )
+    set_community_mode = models.CharField(
+        max_length=10,
+        choices=CommunityModeChoices,
+        blank=True,
+        verbose_name=_('Set Community Mode'),
+        help_text=_('Replace the communities of the route or add to them'),
+    )
+    set_metric = models.PositiveBigIntegerField(
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(4294967295)],
+        verbose_name=_('Set Metric'),
+    )
+    set_metric_mode = models.CharField(
+        max_length=10,
+        choices=MetricModeChoices,
+        blank=True,
+        verbose_name=_('Set Metric Mode'),
+        help_text=_(
+            'Set the metric to the value, or add it to the metric or subtract it'
+        ),
+    )
+    set_origin = models.CharField(
+        max_length=10,
+        choices=OriginChoices,
+        blank=True,
+        verbose_name=_('Set Origin'),
+    )
+    set_tag = models.PositiveBigIntegerField(
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(4294967295)],
+        verbose_name=_('Set Tag'),
+        help_text=TAG_HELP,
+    )
+    set_weight = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(65535)],
+        verbose_name=_('Set Weight'),
+        help_text=WEIGHT_HELP,
     )
 
     clone_fields = (
@@ -427,3 +562,29 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
         return reverse(
             'plugins:netbox_routing_protocols:routepolicyentry', args=[self.pk]
         )
+
+    @property
+    def aspath_prepend_text(self):
+        """E.g. `65001 65001`"""
+        return ' '.join(str(asn) for asn in self.set_aspath_prepend)
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.action == ActionChoices.DENY:
+            # A deny entry only denies: nothing is set and nothing continues
+            for name in (*SET_FIELDS, 'flow_control'):
+                value = getattr(self, name)
+                if value not in (None, '', []):
+                    errors[name] = _(
+                        'A deny entry only denies: it cannot set or continue.'
+                    )
+        else:
+            if self.set_community_list and not self.set_community_mode:
+                errors['set_community_mode'] = _('Choose replace or additive.')
+            if self.set_metric is not None and not self.set_metric_mode:
+                self.set_metric_mode = MetricModeChoices.SET
+            if self.set_metric is None and self.set_metric_mode:
+                errors['set_metric'] = _('The metric mode needs a metric.')
+        if errors:
+            raise ValidationError(errors)

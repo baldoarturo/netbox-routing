@@ -84,11 +84,13 @@ class RoutePolicyType(PrimaryObjectType):
     filters=RoutePolicyEntryFilter,
     select_related=[
         'route_policy',
+        'match_next_hop',
+        'set_next_hop',
+        'set_community_list',
     ],
     prefetch_related=[
         'match_prefix_list',
         'match_community_list',
-        'match_community',
         'match_aspath',
     ],
 )
@@ -110,13 +112,33 @@ class RoutePolicyEntryType(PrimaryObjectType):
             strawberry.lazy('netbox_routing_protocols.graphql.types'),
         ]
     ]
-    match_community: list[
-        Annotated[
-            "CommunityType", strawberry.lazy('netbox_routing_protocols.graphql.types')
-        ]
-    ]
     match_aspath: list[
         Annotated[
             "ASPathType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
     ]
+    match_next_hop: (
+        Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')] | None
+    )
+    match_metric: BigInt | None
+    match_origin: str
+    match_tag: BigInt | None
+    match_weight: int | None
+    set_local_preference: BigInt | None
+    set_next_hop: (
+        Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')] | None
+    )
+    set_aspath_prepend: list[BigInt]
+    set_community_list: (
+        Annotated[
+            "CommunityListType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    set_community_mode: str
+    set_metric: BigInt | None
+    set_metric_mode: str
+    set_origin: str
+    set_tag: BigInt | None
+    set_weight: int | None

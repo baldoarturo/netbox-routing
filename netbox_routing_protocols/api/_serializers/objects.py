@@ -2,9 +2,11 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from ipam.choices import IPAddressFamilyChoices
-from ipam.api.serializers import PrefixSerializer
+from ipam.api.serializers import IPAddressSerializer, PrefixSerializer
 from netbox.api.fields import ChoiceField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
+from netbox_routing_protocols.choices import MetricModeChoices, OriginChoices
+from netbox_routing_protocols.choices.objects import CommunityModeChoices
 from netbox_routing_protocols.helpers import aspath as aspath_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     any_le,
@@ -326,8 +328,16 @@ class RoutePolicyEntrySerializer(NetBoxModelSerializer):
     match_community_list = CommunityListSerializer(
         nested=True, many=True, required=False
     )
-    match_community = CommunitySerializer(nested=True, many=True, required=False)
     match_aspath = ASPathSerializer(nested=True, many=True, required=False)
+    match_next_hop = IPAddressSerializer(nested=True, required=False, allow_null=True)
+    match_origin = ChoiceField(choices=OriginChoices, required=False)
+    set_next_hop = IPAddressSerializer(nested=True, required=False, allow_null=True)
+    set_community_list = CommunityListSerializer(
+        nested=True, required=False, allow_null=True
+    )
+    set_community_mode = ChoiceField(choices=CommunityModeChoices, required=False)
+    set_metric_mode = ChoiceField(choices=MetricModeChoices, required=False)
+    set_origin = ChoiceField(choices=OriginChoices, required=False)
 
     class Meta:
         model = RoutePolicyEntry
@@ -340,11 +350,23 @@ class RoutePolicyEntrySerializer(NetBoxModelSerializer):
             'action',
             'flow_control',
             'match_prefix_list',
-            'match_community_list',
-            'match_community',
             'match_aspath',
-            'match',
-            'set',
+            'match_community_list',
+            'match_next_hop',
+            'match_metric',
+            'match_origin',
+            'match_tag',
+            'match_weight',
+            'set_local_preference',
+            'set_next_hop',
+            'set_aspath_prepend',
+            'set_community_list',
+            'set_community_mode',
+            'set_metric',
+            'set_metric_mode',
+            'set_origin',
+            'set_tag',
+            'set_weight',
             'description',
             'comments',
         )

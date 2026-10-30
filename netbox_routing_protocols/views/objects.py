@@ -45,7 +45,6 @@ from netbox_routing_protocols.forms.objects import *
 from netbox_routing_protocols.models import (
     BGPPeerAddressFamily,
     BGPPolicyTemplate,
-    Community,
     CommunityList,
 )
 from netbox_routing_protocols.models.objects import *
@@ -805,10 +804,11 @@ class RoutePolicyEntryListView(ObjectListView):
 
 @register_model_view(RoutePolicyEntry)
 class RoutePolicyEntryView(GetRelatedModelsMixin, ObjectView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy').prefetch_related(
+    queryset = RoutePolicyEntry.objects.select_related(
+        'route_policy', 'match_next_hop', 'set_next_hop', 'set_community_list'
+    ).prefetch_related(
         'match_prefix_list',
         'match_community_list',
-        'match_community',
         'match_aspath',
     )
     template_name = 'generic/object.html'
@@ -816,9 +816,7 @@ class RoutePolicyEntryView(GetRelatedModelsMixin, ObjectView):
         left_panels=[
             RoutePolicyEntryPanel(title=_('Route Policy Entry')),
             RoutePolicyEntryMatchPanel(title=_('Match Actions')),
-            panels.JSONPanel('match', title=_('Match Parameters'), copy_button=True),
             RoutePolicyEntrySetPanel(title=_('Set Actions')),
-            panels.JSONPanel('set', title=_('Set Parameters'), copy_button=True),
             TagsPanel(),
         ],
         right_panels=[
@@ -842,12 +840,6 @@ class RoutePolicyEntryView(GetRelatedModelsMixin, ObjectView):
                     ),
                     (
                         CommunityList.objects.restrict(request.user, 'view').filter(
-                            route_policy_entries=instance
-                        ),
-                        'route_policy_entry_id',
-                    ),
-                    (
-                        Community.objects.restrict(request.user, 'view').filter(
                             route_policy_entries=instance
                         ),
                         'route_policy_entry_id',

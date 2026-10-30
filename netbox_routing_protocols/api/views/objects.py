@@ -18,7 +18,6 @@ from netbox_routing_protocols.models.objects import *
 ENTRY_MATCHES = (
     'match_prefix_list',
     'match_community_list',
-    'match_community',
     'match_aspath',
 )
 
@@ -100,9 +99,9 @@ class RoutePolicyViewSet(NetBoxModelViewSet):
 
 
 class RoutePolicyEntryViewSet(NetBoxModelViewSet):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy').prefetch_related(
-        *ENTRY_MATCHES
-    )
+    queryset = RoutePolicyEntry.objects.select_related(
+        'route_policy', 'match_next_hop', 'set_next_hop', 'set_community_list'
+    ).prefetch_related(*ENTRY_MATCHES)
     serializer_class = RoutePolicyEntrySerializer
     filterset_class = filtersets.RoutePolicyEntryFilterSet
 

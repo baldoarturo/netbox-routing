@@ -72,13 +72,36 @@ class RoutePolicyEntryMatchPanel(panels.ObjectAttributesPanel):
     match_community_list = attrs.RelatedObjectListAttr(
         'match_community_list', linkify=True, label=_('Community List')
     )
-    match_community = attrs.RelatedObjectListAttr(
-        'match_community', linkify=True, label=_('Community')
+    match_next_hop = attrs.RelatedObjectAttr(
+        'match_next_hop', linkify=True, label=_('Next Hop')
     )
+    match_metric = attrs.NumericAttr('match_metric', label=_('Metric'))
+    match_origin = attrs.ChoiceAttr('match_origin', label=_('Origin'))
+    match_tag = attrs.NumericAttr('match_tag', label=_('Tag'))
+    match_weight = attrs.NumericAttr('match_weight', label=_('Weight'))
 
 
 class RoutePolicyEntrySetPanel(panels.ObjectAttributesPanel):
-    pass
+    set_local_preference = attrs.NumericAttr(
+        'set_local_preference', label=_('Local Preference')
+    )
+    set_next_hop = attrs.RelatedObjectAttr(
+        'set_next_hop', linkify=True, label=_('Next Hop')
+    )
+    set_aspath_prepend = attrs.TextAttr(
+        'aspath_prepend_text', label=_('AS-Path Prepend')
+    )
+    set_community_list = attrs.RelatedObjectAttr(
+        'set_community_list', linkify=True, label=_('Community List')
+    )
+    set_community_mode = attrs.ChoiceAttr(
+        'set_community_mode', label=_('Community Mode')
+    )
+    set_metric = attrs.NumericAttr('set_metric', label=_('Metric'))
+    set_metric_mode = attrs.ChoiceAttr('set_metric_mode', label=_('Metric Mode'))
+    set_origin = attrs.ChoiceAttr('set_origin', label=_('Origin'))
+    set_tag = attrs.NumericAttr('set_tag', label=_('Tag'))
+    set_weight = attrs.NumericAttr('set_weight', label=_('Weight'))
 
 
 class OverlapsPanel(panels.TemplatePanel):

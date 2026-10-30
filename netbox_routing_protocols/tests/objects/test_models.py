@@ -703,7 +703,7 @@ class RoutePolicyEntryTestCase(TestCase):
                 route_policy=self.route_policy,
                 action='permit',
                 sequence=seq,
-                match={'tags': f'{seq}{seq}{seq}{seq}'},
+                match_tag=seq,
             )
             rme.full_clean()
             rme.save()

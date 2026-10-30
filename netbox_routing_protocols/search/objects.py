@@ -79,8 +79,6 @@ class RoutePolicyEntryIndex(SearchIndex):
     model = RoutePolicyEntry
     fields = (
         ('route_policy', 100),
-        ('match', 200),
-        ('set', 300),
         ('description', 4000),
         ('comments', 5000),
     )

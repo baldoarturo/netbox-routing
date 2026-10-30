@@ -384,7 +384,7 @@ class RoutePolicyEntryTestCase(TestCase):
         cls.route_policy = RoutePolicy.objects.create(
             name='Route Policy 1',
         )
-        cls.community = Community.objects.create(community='64512', status='active')
+        cls.community_list = CommunityList.objects.create(name='List')
 
     def test_object(self):
         form = RoutePolicyEntryForm(
@@ -392,21 +392,17 @@ class RoutePolicyEntryTestCase(TestCase):
                 'route_policy': self.route_policy,
                 'sequence': 1,
                 'action': ActionChoices.PERMIT,
-                'match_community': [
-                    self.community.pk,
-                ],
                 'match_prefix_list': [],
-                'match_community_list': [],
+                'match_community_list': [self.community_list.pk],
                 'match_aspath': [],
-                'match': {},
             }
         )
         self.assertTrue(form.is_valid())
         self.assertTrue(form.save())
         self.assertEqual(
-            list(form.instance.match_community.all()),
+            list(form.instance.match_community_list.all()),
             [
-                self.community,
+                self.community_list,
             ],
         )
 

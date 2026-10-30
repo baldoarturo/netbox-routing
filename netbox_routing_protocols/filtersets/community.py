@@ -31,11 +31,6 @@ class CommunityFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
         to_field_name='name',
         label=_('Role (Name)'),
     )
-    route_policy_entry_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='route_policy_entries',
-        queryset=RoutePolicyEntry.objects.all(),
-        label=_('Route Policy Entry (ID)'),
-    )
     usable_in_list_id = django_filters.ModelChoiceFilter(
         queryset=CommunityList.objects.all(),
         method='filter_usable_in_list',

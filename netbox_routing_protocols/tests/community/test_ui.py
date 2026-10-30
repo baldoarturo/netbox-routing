@@ -147,10 +147,8 @@ class CommunityPageTestCase(SuperuserMixin, TestCase):
         community = Community.objects.create(community='65000:1')
         lst = CommunityList.objects.create(name='L')
         make_entry(lst, 10, community)
-        make_policy_entry().match_community.add(community)
         response = self.client.get(community.get_absolute_url())
         self.assertContains(response, f'community_id={community.pk}')
-        self.assertContains(response, f'match_community_id={community.pk}')
 
     def test_the_lists_can_be_filtered_by_community(self):
         from netbox_routing_protocols.filtersets.community import CommunityListFilterSet
@@ -174,12 +172,11 @@ class CommunityTablesTestCase(SuperuserMixin, TestCase):
         make_entry(lst, 10, community)
         make_entry(lst, 20, community, action='deny')
         entry = make_policy_entry()
-        entry.match_community.add(community)
         entry.match_community_list.add(lst)
 
         response = self.client.get(reverse(NS + 'community_list'))
         row = next(r for r in response.context['table'].data if r.pk == community.pk)
-        self.assertEqual((row.entry_count, row.route_policy_entry_count), (2, 1))
+        self.assertEqual(row.entry_count, 2)
         response = self.client.get(reverse(NS + 'communitylist_list'))
         row = next(r for r in response.context['table'].data if r.pk == lst.pk)
         self.assertEqual((row.entry_count, row.route_policy_entry_count), (2, 1))
