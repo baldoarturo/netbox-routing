@@ -2758,7 +2758,14 @@ class OSPFAuthenticationKey(PrimaryModel):
 
     class Meta:
         verbose_name = 'OSPF Authentication Key'
-        ordering = ('instance', 'area', 'ospf_interface', 'virtual_link', 'key_id')
+        ordering = (
+            'instance',
+            'area',
+            'ospf_interface',
+            'virtual_link',
+            'key_id',
+            'pk',
+        )
         constraints = (
             models.CheckConstraint(
                 condition=(

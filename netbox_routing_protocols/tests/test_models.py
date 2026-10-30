@@ -1,3 +1,4 @@
+import re
 from django.apps import apps
 from django.db.models import UniqueConstraint
 from django.test import SimpleTestCase
@@ -235,7 +236,7 @@ class ModelNamesTestCase(SimpleTestCase):
             if str(model._meta.verbose_name_plural).lower().endswith(('ys', 'ss'))
             and str(model._meta.verbose_name_plural).lower()
             == str(model._meta.verbose_name).lower() + 's'
-            and str(model._meta.verbose_name).lower().endswith(('y', 's'))
+            and re.search(r'([^aeiou]y|s)$', str(model._meta.verbose_name).lower())
         }
         self.assertEqual(wrong, {})
 
