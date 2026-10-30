@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -6,7 +7,7 @@ from dcim.models import Interface
 from ipam.models import IPAddress, Prefix
 from utilities.exceptions import AbortRequest
 
-from netbox_routing_protocols.models import OSPFInterface
+from netbox_routing_protocols.models import OSPFInterface, OSPFNeighbor
 
 __all__ = ('validate_prefix_list_entries', 'validate_isis_interfaces')
 
@@ -63,6 +64,10 @@ def validate_isis_interfaces(sender, instance, raw=False, **kwargs):
         )
 
 
+def _iface_type():
+    return ContentType.objects.get_for_model(Interface).pk
+
+
 def _abort_if_invalid(instance, entries, what):
     problems = []
     for entry in entries:
@@ -111,3 +116,35 @@ def validate_ospf_networks(sender, instance, raw=False, **kwargs):
     for entry in entries:
         entry.ip_address = instance
     _abort_if_invalid(instance, entries, 'OSPF networks')
+
+    # The neighbors of the interface it leaves and of the one it goes to have to
+    # stay on a network attached to their interface
+    old = IPAddress.objects.filter(pk=instance.pk).first()
+    interfaces = {
+        pk
+        for pk in (
+            (
+                old.assigned_object_id
+                if old and old.assigned_object_type_id == _iface_type()
+                else None
+            ),
+            (
+                instance.assigned_object_id
+                if instance.assigned_object_type_id == _iface_type()
+                else None
+            ),
+        )
+        if pk
+    }
+    neighbors = list(
+        OSPFNeighbor.objects.filter(
+            ospf_interface__interface__in=interfaces
+        ).select_related('ospf_interface__interface', 'ospf_interface__instance')
+    )
+    for neighbor in neighbors:
+        moves_here = neighbor.ospf_interface.interface_id == instance.assigned_object_id
+        neighbor._address_change = (
+            instance.pk,
+            str(instance.address) if moves_here else None,
+        )
+    _abort_if_invalid(instance, neighbors, 'OSPF neighbors')

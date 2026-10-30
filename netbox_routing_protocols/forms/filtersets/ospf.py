@@ -446,6 +446,12 @@ class OSPFRedistributionFilterForm(NetBoxModelFilterSetForm):
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     route_tag = forms.IntegerField(required=False, label=_('Route Tag'))
+    route_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Route Policy'),
+    )
     tag = TagFilterField(model)
 
 
@@ -659,3 +665,92 @@ class OSPFAuthenticationKeyFilterForm(NetBoxModelFilterSetForm):
         required=False,
     )
     tag = TagFilterField(model)
+
+
+def _add_filter_fields(form, names):
+    """
+    Offer the model fields that the filter set already filters but the form lacks,
+    each as the filter field that fits its type, in one more group of fields.
+    """
+    added = []
+    for name in names:
+        if name in form.declared_fields:
+            continue
+        model_field = form.model._meta.get_field(name)
+        label = str(model_field.verbose_name).capitalize()
+        if model_field.choices:
+            field = forms.ChoiceField(
+                choices=add_blank_choice(model_field.choices),
+                label=label,
+                required=False,
+            )
+        elif model_field.get_internal_type() == 'BooleanField':
+            field = forms.NullBooleanField(
+                label=label,
+                required=False,
+                widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            )
+        elif 'Integer' in model_field.get_internal_type():
+            field = forms.IntegerField(label=label, required=False)
+        else:
+            field = forms.CharField(label=label, required=False)
+        form.base_fields[name] = form.declared_fields[name] = field
+        added.append(name)
+    if added:
+        form.fieldsets = (*form.fieldsets, FieldSet(*added, name=_('Settings')))
+
+
+_add_filter_fields(
+    OSPFInstanceFilterForm,
+    (
+        'authentication',
+        'ospf_instance_id',
+        'default_metric',
+        'distance_intra_area',
+        'distance_inter_area',
+        'distance_external',
+        'maximum_paths',
+        'exit_overflow_interval',
+        'external_lsdb_limit',
+        'graceful_restart_period',
+        'graceful_restart_helper',
+        'graceful_restart_helper_strict_lsa_checking',
+        'opaque_capability',
+        'segment_routing',
+        'ldp_sync',
+    ),
+)
+_add_filter_fields(
+    OSPFAreaFilterForm,
+    ('area_id', 'traffic_engineering', 'fast_reroute', 'authentication'),
+)
+_add_filter_fields(
+    OSPFInterfaceFilterForm,
+    (
+        'te_metric',
+        'te_max_reservable_bandwidth',
+        'te_admin_group',
+        'adjacency_sid',
+        'authentication_key_id',
+        'message_digest_algorithm',
+    ),
+)
+_add_filter_fields(OSPFRedistributionFilterForm, ('metric',))
+OSPFRedistributionFilterForm.fieldsets = (
+    *OSPFRedistributionFilterForm.fieldsets,
+    FieldSet('route_policy_id', name=_('Route Policy')),
+)
+_add_filter_fields(
+    OSPFVirtualLinkFilterForm,
+    (
+        'hello_interval',
+        'dead_interval',
+        'retransmit_interval',
+        'transmit_delay',
+        'ttl_security',
+        'ttl_security_hops',
+        'authentication_key_id',
+        'message_digest_algorithm',
+    ),
+)
+_add_filter_fields(OSPFPrefixSIDFilterForm, ('explicit_null', 'no_php'))

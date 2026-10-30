@@ -165,6 +165,29 @@ class OSPFAuthenticationMixin(models.Model):
         """The MD5 digest of the key, only when it is set to be shown."""
         return self.get_passphrase_md5() if self.show_md5 else None
 
+    def _inherited_keys(self):
+        """Additional keys of the objects below that use this authentication."""
+        from netbox_routing_protocols.models import OSPFAuthenticationKey
+
+        def no_own(prefix):
+            return Q(**{f'{prefix}authentication__isnull': True}) | Q(
+                **{f'{prefix}authentication': ''}
+            )
+
+        if isinstance(self, OSPFInstance):
+            return OSPFAuthenticationKey.objects.filter(
+                Q(area__instance=self) & no_own('area__')
+                | Q(ospf_interface__instance=self)
+                & no_own('ospf_interface__')
+                & no_own('ospf_interface__area__')
+                | Q(virtual_link__instance=self) & no_own('virtual_link__')
+            )
+        if isinstance(self, OSPFArea):
+            return OSPFAuthenticationKey.objects.filter(
+                Q(ospf_interface__area=self) & no_own('ospf_interface__')
+            )
+        return OSPFAuthenticationKey.objects.none()
+
     def _authentication_ip_version(self):
         """4 or 6: the address family of the instance this object belongs to."""
         owner = getattr(self, 'instance', None) or self
@@ -264,11 +287,12 @@ class OSPFAuthenticationMixin(models.Model):
                 OSPFAuthenticationChoices.MESSAGE_DIGEST,
                 OSPFAuthenticationChoices.TRAILER,
             )
-            and self.authentication_keys.exists()
+            and (self.authentication_keys.exists() or self._inherited_keys().exists())
         ):
             errors['authentication'] = _(
-                'The authentication has additional keys, which need message digest '
-                'or authentication trailer: delete them first.'
+                'The authentication, or an object that inherits it, has additional '
+                'keys, which need message digest or authentication trailer: delete '
+                'them first.'
             )
         if self.show_md5 and not self.passphrase:
             errors['show_md5'] = _('There is no key to show the MD5 digest of.')
@@ -447,7 +471,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
     default_originate = models.BooleanField(
         verbose_name=_('Default Originate'),
         help_text=_(
-            'Originate a default route (0.0.0.0/0) into OSPF. '
+            'Originate a default route (0.0.0.0/0, or ::/0 in OSPFv3) into OSPF. '
             'Unless "always" is set, it is only advertised while a default route exists.'
         ),
         default=False,
@@ -2010,6 +2034,18 @@ class OSPFRedistribution(PrimaryModel):
                         )
                     }
                 )
+        if (
+            self.protocol == OSPFRedistributionProtocolChoices.OSPF
+            and self.ospf_source.address_family != self.instance.address_family
+        ):
+            raise ValidationError(
+                {
+                    'ospf_source': _(
+                        'The source runs another address family: IPv4 and IPv6 '
+                        'routes cannot be redistributed into one another.'
+                    )
+                }
+            )
         if not self._source_is_on_instance_device():
             raise ValidationError(
                 {
@@ -2198,7 +2234,10 @@ class OSPFSummaryAddress(PrimaryModel):
     )
     prefix = IPNetworkField(
         verbose_name=_('Prefix'),
-        help_text=_('IPv4 prefix that summarizes the external routes'),
+        help_text=_(
+            'Prefix that summarizes the external routes, of the address family '
+            'of the instance'
+        ),
     )
     not_advertise = models.BooleanField(
         verbose_name=_('Do Not Advertise'),
@@ -2341,10 +2380,22 @@ class OSPFNeighbor(PrimaryModel):
         return reverse('plugins:netbox_routing_protocols:ospfneighbor', args=[self.pk])
 
     def _local_networks(self):
-        """The IPv4 networks configured on the interface of the OSPF interface."""
+        """
+        The IPv4 networks configured on the interface of the OSPF interface.
+        `_address_change` = (IP address pk, new address or None) answers for an
+        address that is about to change or move away, before it is saved.
+        """
+        change = getattr(self, '_address_change', None)
+        addresses = [
+            (address.pk, str(address.address))
+            for address in self.ospf_interface.interface.ip_addresses.all()
+            if not change or address.pk != change[0]
+        ]
+        if change and change[1]:
+            addresses.append((change[0], change[1]))
         networks = []
-        for address in self.ospf_interface.interface.ip_addresses.all():
-            interface_address = netaddr.IPNetwork(str(address.address))
+        for _pk, address in addresses:
+            interface_address = netaddr.IPNetwork(address)
             if interface_address.version == 4:
                 networks.append(interface_address)
         return networks
@@ -2434,7 +2485,7 @@ class OSPFAreaRange(PrimaryModel):
     )
     prefix = IPNetworkField(
         verbose_name=_('Prefix'),
-        help_text=_('IPv4 address range of the area'),
+        help_text=_('Address range of the area, of the address family of the instance'),
     )
     range_type = models.CharField(
         verbose_name=_('Range Type'),
@@ -2526,7 +2577,9 @@ class OSPFPrefixSID(PrimaryModel):
     )
     prefix = IPNetworkField(
         verbose_name=_('Prefix'),
-        help_text=_('IPv4 prefix the SID is advertised for'),
+        help_text=_(
+            'Prefix the SID is advertised for, of the address family of the ' 'instance'
+        ),
     )
     sid_type = models.CharField(
         verbose_name=_('SID Type'),

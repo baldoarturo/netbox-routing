@@ -278,7 +278,7 @@ the same limits as the main key. Optionally it has the four **lifetimes** of
 [RFC 7474](https://www.rfc-editor.org/rfc/rfc7474): *accept from*, *send from*, *send until* and
 *accept until*, which must go in that order. A key belongs to exactly one object, and deleting the
 object deletes its keys. The authentication of the object cannot change to another type while it has
-keys.
+keys, or while an object below that inherits it does (an interface without authentication of its own, for example).
 
 ### Inheritance
 
@@ -303,7 +303,7 @@ router into an ASBR.
 | Field | Meaning |
 | --- | --- |
 | Protocol | **Connected**, **Static**, **EIGRP**, **BGP**, **OSPF** or **IS-IS**. |
-| Source | The process to take routes from, for EIGRP, BGP, OSPF and IS-IS. It must be on the **same device** as the instance. Connected and static have no source. |
+| Source | The process to take routes from, for EIGRP, BGP, OSPF and IS-IS. It must be on the **same device** as the instance, and an OSPF source must run the **same address family** (IPv4 and IPv6 routes cannot be redistributed into one another). Connected and static have no source. |
 | Metric | Metric of the redistributed routes. |
 | Metric type | **E1** or **E2**. With **E2** (the default) the metric stays the same across the OSPF domain; with **E1** the internal cost to reach the ASBR is added, which makes routers prefer the closer ASBR ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) §16.4.1). |
 | Subnets | Redistribute subnets, not only classful networks. On by default. |
@@ -425,7 +425,7 @@ change:
 - A NetBox **interface** with an OSPF interface cannot move to another device or VRF so that it no
   longer matches the instance, and an **IP address** used by an OSPF network cannot be moved to another
   interface or changed so that the network stops being valid. The change is refused and the message
-  names the OSPF objects it would break.
+  names the OSPF objects it would break. The same applies to the neighbors of the interface an address leaves or goes to: they must stay on a network attached to it.
 
 In lists and selects, an OSPF interface is shown as `device interface` and an area as
 `area (instance)`, so equal names on different devices or instances can be told apart.
