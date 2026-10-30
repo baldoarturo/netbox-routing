@@ -54,6 +54,12 @@ routepolicy = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_routepolicy'],
         ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:routepolicy_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.add_routepolicy'],
+        ),
     ),
 )
 routepolicy_entry = PluginMenuItem(
@@ -65,6 +71,12 @@ routepolicy_entry = PluginMenuItem(
             link='plugins:netbox_routing_protocols:routepolicyentry_add',
             title='Add',
             icon_class=COL_ADD,
+            permissions=['netbox_routing_protocols.add_routepolicyentry'],
+        ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:routepolicyentry_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
             permissions=['netbox_routing_protocols.add_routepolicyentry'],
         ),
     ),

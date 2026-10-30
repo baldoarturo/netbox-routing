@@ -101,17 +101,47 @@ class PrefixListEntryTable(NetBoxTable):
 
 class RoutePolicyTable(NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_protocols:routepolicyentry_list',
+        url_params={'route_policy_id': 'pk'},
+        verbose_name=_('Entries'),
+    )
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_routing_protocols:routepolicy_list'
+    )
 
     class Meta(NetBoxTable.Meta):
         model = RoutePolicy
-        fields = ('pk', 'id', 'name')
-        default_columns = ('pk', 'id', 'name')
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'entry_count',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = ('pk', 'name', 'entry_count', 'description', 'actions')
 
 
 class RoutePolicyEntryTable(NetBoxTable):
     route_policy = tables.Column(verbose_name=_('Route Policy'), linkify=True)
     action = columns.ChoiceFieldColumn()
     flow_control = tables.Column(verbose_name=_('Flow Control (Continue)'))
+    match_prefix_list = columns.ManyToManyColumn(
+        linkify_item=True, verbose_name=_('Match Prefix Lists'), orderable=False
+    )
+    match_aspath = columns.ManyToManyColumn(
+        linkify_item=True, verbose_name=_('Match AS Paths'), orderable=False
+    )
+    match_community_list = columns.ManyToManyColumn(
+        linkify_item=True, verbose_name=_('Match Community Lists'), orderable=False
+    )
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_routing_protocols:routepolicyentry_list'
+    )
     match_next_hop = tables.Column(verbose_name=_('Match Next Hop'), linkify=True)
     match_origin = tables.Column(verbose_name=_('Match Origin'))
     set_next_hop = tables.Column(verbose_name=_('Set Next Hop'), linkify=True)
@@ -136,6 +166,9 @@ class RoutePolicyEntryTable(NetBoxTable):
             'sequence',
             'action',
             'flow_control',
+            'match_prefix_list',
+            'match_aspath',
+            'match_community_list',
             'match_next_hop',
             'match_metric',
             'match_origin',
@@ -151,8 +184,21 @@ class RoutePolicyEntryTable(NetBoxTable):
             'set_origin',
             'set_tag',
             'set_weight',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
         )
-        default_columns = ('pk', 'id', 'route_policy', 'sequence', 'action')
+        default_columns = (
+            'pk',
+            'id',
+            'route_policy',
+            'sequence',
+            'action',
+            'description',
+            'actions',
+        )
 
 
 class ASPathTable(NetBoxTable):

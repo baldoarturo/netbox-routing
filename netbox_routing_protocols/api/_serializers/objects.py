@@ -4,10 +4,11 @@ from rest_framework import serializers
 from ipam.choices import IPAddressFamilyChoices
 from ipam.api.serializers import IPAddressSerializer, PrefixSerializer
 from netbox.api.fields import ChoiceField
-from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
+from netbox.api.serializers import PrimaryModelSerializer
 from netbox_routing_protocols.choices import MetricModeChoices, OriginChoices
 from netbox_routing_protocols.choices.objects import CommunityModeChoices
 from netbox_routing_protocols.helpers import aspath as aspath_helpers
+from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     any_le,
     next_sequence,
@@ -301,7 +302,7 @@ class PrefixListEntrySerializer(PrimaryModelSerializer):
         return super().validate(data)
 
 
-class RoutePolicySerializer(NetBoxModelSerializer):
+class RoutePolicySerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:routepolicy-detail'
     )
@@ -314,12 +315,17 @@ class RoutePolicySerializer(NetBoxModelSerializer):
             'display',
             'name',
             'description',
+            'owner',
             'comments',
+            'tags',
+            'custom_fields',
+            'created',
+            'last_updated',
         )
         brief_fields = ('url', 'id', 'display', 'name')
 
 
-class RoutePolicyEntrySerializer(NetBoxModelSerializer):
+class RoutePolicyEntrySerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:routepolicyentry-detail'
     )
@@ -341,6 +347,7 @@ class RoutePolicyEntrySerializer(NetBoxModelSerializer):
 
     class Meta:
         model = RoutePolicyEntry
+        extra_kwargs = {'sequence': {'required': False, 'allow_null': True}}
         fields = (
             'url',
             'id',
@@ -368,7 +375,12 @@ class RoutePolicyEntrySerializer(NetBoxModelSerializer):
             'set_tag',
             'set_weight',
             'description',
+            'owner',
             'comments',
+            'tags',
+            'custom_fields',
+            'created',
+            'last_updated',
         )
         brief_fields = (
             'url',
@@ -378,3 +390,19 @@ class RoutePolicyEntrySerializer(NetBoxModelSerializer):
             'sequence',
             'action',
         )
+
+    def validate(self, data):
+        # A new entry without sequence gets the next one of its route policy. The serializer
+        # of a bulk request is shared by the entries, so they get consecutive numbers.
+        if self.instance is None and data.get('sequence') is None:
+            route_policy = data.get('route_policy')
+            if route_policy is not None:
+                assigned = self.context.setdefault('route_policy_sequences', {})
+                try:
+                    sequence = route_policy_helpers.next_sequence(
+                        route_policy, assigned.get(route_policy.pk, 0)
+                    )
+                except DjangoValidationError as e:
+                    raise serializers.ValidationError({'sequence': e.messages})
+                assigned[route_policy.pk] = data['sequence'] = sequence
+        return super().validate(data)

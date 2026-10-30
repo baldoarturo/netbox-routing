@@ -7,7 +7,11 @@ from utilities.forms import add_blank_choice
 from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 
-from netbox_routing_protocols.choices import ActionChoices
+from netbox_routing_protocols.choices import (
+    ActionChoices,
+    MetricModeChoices,
+    OriginChoices,
+)
 from netbox_routing_protocols.models.objects import *
 
 __all__ = (
@@ -76,14 +80,93 @@ class RoutePolicyEntryBulkEditForm(PrimaryModelBulkEditForm):
         selector=True,
     )
 
+    action = forms.ChoiceField(
+        label=_('Action'),
+        choices=add_blank_choice(ActionChoices),
+        required=False,
+    )
+    flow_control = forms.IntegerField(
+        label=_('Continue'), required=False, min_value=0, max_value=4294967294
+    )
+    match_metric = forms.IntegerField(
+        label=_('Match Metric'), required=False, min_value=0, max_value=4294967295
+    )
+    match_origin = forms.ChoiceField(
+        label=_('Match Origin'),
+        choices=add_blank_choice(OriginChoices),
+        required=False,
+    )
+    match_tag = forms.IntegerField(
+        label=_('Match Tag'), required=False, min_value=0, max_value=4294967295
+    )
+    match_weight = forms.IntegerField(
+        label=_('Match Weight'), required=False, min_value=0, max_value=65535
+    )
+    set_local_preference = forms.IntegerField(
+        label=_('Set Local Preference'),
+        required=False,
+        min_value=0,
+        max_value=4294967295,
+    )
+    set_metric = forms.IntegerField(
+        label=_('Set Metric'), required=False, min_value=0, max_value=4294967295
+    )
+    set_metric_mode = forms.ChoiceField(
+        label=_('Set Metric Mode'),
+        choices=add_blank_choice(MetricModeChoices),
+        required=False,
+    )
+    set_origin = forms.ChoiceField(
+        label=_('Set Origin'),
+        choices=add_blank_choice(OriginChoices),
+        required=False,
+    )
+    set_tag = forms.IntegerField(
+        label=_('Set Tag'), required=False, min_value=0, max_value=4294967295
+    )
+    set_weight = forms.IntegerField(
+        label=_('Set Weight'), required=False, min_value=0, max_value=65535
+    )
+
     model = RoutePolicyEntry
     fieldsets = (
         FieldSet(
             'route_policy',
+            'action',
+            'flow_control',
             'description',
         ),
+        FieldSet(
+            'match_metric',
+            'match_origin',
+            'match_tag',
+            'match_weight',
+            name=_('Match'),
+        ),
+        FieldSet(
+            'set_local_preference',
+            'set_metric',
+            'set_metric_mode',
+            'set_origin',
+            'set_tag',
+            'set_weight',
+            name=_('Set'),
+        ),
     )
-    nullable_fields = ('description',)
+    nullable_fields = (
+        'description',
+        'flow_control',
+        'match_metric',
+        'match_origin',
+        'match_tag',
+        'match_weight',
+        'set_local_preference',
+        'set_metric',
+        'set_metric_mode',
+        'set_origin',
+        'set_tag',
+        'set_weight',
+    )
 
 
 class ASPathBulkEditForm(PrimaryModelBulkEditForm):
