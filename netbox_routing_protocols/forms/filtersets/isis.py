@@ -14,6 +14,9 @@ from netbox_routing_protocols.choices import (
     ISISAddressFamilyChoices,
     ISISAuthTypeChoices,
     ISISCircuitTypeChoices,
+    ISISFastRerouteChoices,
+    ISISFrrProtectionChoices,
+    ISISMetricStyleChoices,
     ISISIsTypeChoices,
     ISISNetworkTypeChoices,
 )
@@ -117,12 +120,35 @@ class ISISInstanceFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('IS Type'),
     )
+    metric_style = forms.MultipleChoiceField(
+        choices=ISISMetricStyleChoices, required=False, label=_('Metric Style')
+    )
+    fast_reroute = forms.MultipleChoiceField(
+        choices=ISISFastRerouteChoices, required=False, label=_('Fast Reroute')
+    )
+    overload_bit = forms.NullBooleanField(
+        required=False,
+        label=_('Overload Bit'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    te_enabled = forms.NullBooleanField(
+        required=False,
+        label=_('Traffic Engineering'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
 
     model = ISISInstance
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet(
             'device_id', 'vrf_id', 'process_tag', 'net', 'is_type', name=_('IS-IS')
+        ),
+        FieldSet(
+            'metric_style',
+            'fast_reroute',
+            'overload_bit',
+            'te_enabled',
+            name=_('Attributes'),
         ),
         FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
     )
@@ -141,7 +167,16 @@ class ISISInterfaceFilterForm(NetBoxModelFilterSetForm):
             name=_('IS-IS'),
         ),
         FieldSet('device_id', 'interface_id', 'vrf_id', name=_('Device')),
-        FieldSet('metric', 'passive', 'hello_auth_type', name=_('Attributes')),
+        FieldSet(
+            'metric',
+            'passive',
+            'bfd_enabled',
+            'frr_enabled',
+            'frr_protection',
+            'mesh_group',
+            'hello_auth_type',
+            name=_('Attributes'),
+        ),
     )
     device_id = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(),
@@ -193,4 +228,18 @@ class ISISInterfaceFilterForm(NetBoxModelFilterSetForm):
         label=_('Hello Auth Type'),
     )
     metric = forms.IntegerField(required=False, label=_('Metric'))
+    bfd_enabled = forms.NullBooleanField(
+        required=False,
+        label=_('BFD Enabled'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    frr_enabled = forms.NullBooleanField(
+        required=False,
+        label=_('FRR Enabled'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    frr_protection = forms.MultipleChoiceField(
+        choices=ISISFrrProtectionChoices, required=False, label=_('FRR Protection')
+    )
+    mesh_group = forms.CharField(required=False, label=_('Mesh Group'))
     tag = TagFilterField(model)

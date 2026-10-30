@@ -32,6 +32,8 @@ IS-IS instance (a process on a device, optionally in a VRF)
      └─ Settings
 ```
 
+Every list can be filtered by the attributes of its model (for instances: metric style, fast reroute, overload bit, traffic engineering, authentication type, distance and so on; for interfaces: BFD, FRR, mesh group, timers) and **every object type can be edited in bulk**, not only instances and interfaces.
+
 ## Instances
 
 **IS-IS → Instances**

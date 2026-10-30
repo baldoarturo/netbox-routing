@@ -10,11 +10,13 @@ from utilities.testing import create_test_device
 from netbox_routing_protocols.filtersets import (
     ISISInstanceFilterSet,
     ISISInterfaceFilterSet,
+    ISISPrefixSIDFilterSet,
     ISISSettingFilterSet,
     ISISSRv6LocatorFilterSet,
 )
 from netbox_routing_protocols.models import (
     ISISInstance,
+    ISISPrefixSID,
     ISISInterface,
     ISISSetting,
     ISISSRv6Locator,
@@ -22,6 +24,7 @@ from netbox_routing_protocols.models import (
 
 __all__ = (
     'ISISInstanceFilterSetTestCase',
+    'ISISAttributeFilterSetTestCase',
     'ISISInterfaceFilterSetTestCase',
     'ISISSettingFilterSetTestCase',
     'ISISSRv6LocatorFilterSetTestCase',
@@ -344,3 +347,85 @@ class ISISSettingFilterSetTestCase(TestCase):
     def test_search_ignores_blank(self):
         # A blank/whitespace term must not filter anything out.
         self.assertEqual(self.filterset().search(self.queryset, 'q', '   ').count(), 2)
+
+
+class ISISAttributeFilterSetTestCase(TestCase):
+    """Filters on the attributes of the instance, interface and prefix-SID (#441)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        devices = [create_test_device(name=f'Device {i}') for i in (1, 2)]
+        cls.instances = [
+            ISISInstance.objects.create(
+                device=devices[0],
+                metric_style='wide',
+                overload_bit=True,
+                fast_reroute='ti-lfa',
+                distance=115,
+            ),
+            ISISInstance.objects.create(
+                device=devices[1], metric_style='narrow', te_enabled=True
+            ),
+        ]
+        cls.interfaces = [
+            ISISInterface.objects.create(
+                instance=cls.instances[0],
+                interface=Interface.objects.create(
+                    name='eth0', device=devices[0], type='virtual'
+                ),
+                address_family='ipv4',
+                bfd_enabled=True,
+                frr_protection='node',
+                mesh_group='blocked',
+            ),
+            ISISInterface.objects.create(
+                instance=cls.instances[1],
+                interface=Interface.objects.create(
+                    name='eth0', device=devices[1], type='virtual'
+                ),
+                address_family='ipv4',
+                bfd_enabled=False,
+            ),
+        ]
+        ISISPrefixSID.objects.create(
+            interface=cls.interfaces[0], sid_index=1, no_php=True
+        )
+        ISISPrefixSID.objects.create(
+            interface=cls.interfaces[1], sid_index=2, no_php=False
+        )
+
+    def _ids(self, filterset, params, queryset):
+        return set(filterset(params, queryset).qs.values_list('pk', flat=True))
+
+    def test_instance_filters(self):
+        qs = ISISInstance.objects.all()
+        first, second = self.instances
+        for params, expected in (
+            ({'metric_style': ['wide']}, first),
+            ({'overload_bit': True}, first),
+            ({'fast_reroute': ['ti-lfa']}, first),
+            ({'distance': [115]}, first),
+            ({'te_enabled': True}, second),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self._ids(ISISInstanceFilterSet, params, qs), {expected.pk}
+                )
+
+    def test_interface_filters(self):
+        qs = ISISInterface.objects.all()
+        first, second = self.interfaces
+        for params, expected in (
+            ({'bfd_enabled': True}, first),
+            ({'bfd_enabled': False}, second),
+            ({'frr_protection': ['node']}, first),
+            ({'mesh_group': ['blocked']}, first),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self._ids(ISISInterfaceFilterSet, params, qs), {expected.pk}
+                )
+
+    def test_prefix_sid_flag_filter(self):
+        qs = ISISPrefixSID.objects.all()
+        self.assertEqual(ISISPrefixSIDFilterSet({'no_php': True}, qs).qs.count(), 1)
