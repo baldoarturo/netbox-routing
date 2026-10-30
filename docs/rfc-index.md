@@ -68,7 +68,9 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 8333](https://www.rfc-editor.org/rfc/rfc8333) | Micro-loop prevention | [IS-IS](protocols/isis.md#fast-reroute-and-micro-loops) |
 | [RFC 8349](https://www.rfc-editor.org/rfc/rfc8349) | YANG data model for routing management (static routes, special next hops, route preference) | [Static routes](protocols/static.md) |
 | [RFC 8405](https://www.rfc-editor.org/rfc/rfc8405) | SPF back-off delay algorithm | [OSPF](protocols/ospf.md#timers), [IS-IS](protocols/isis.md#timers) |
-| [RFC 8667](https://www.rfc-editor.org/rfc/rfc8667) | IS-IS segment routing | [IS-IS](protocols/isis.md#segment-routing) |
+| [RFC 8667](https://www.rfc-editor.org/rfc/rfc8667) | IS-IS segment routing | [IS-IS](protocols/isis.md#segment-routing), [SR mapping entries](protocols/isis.md#sr-mapping-entries), [adjacency-SIDs](protocols/isis.md#adjacency-sids) |
+| [RFC 8661](https://www.rfc-editor.org/rfc/rfc8661) | Segment routing with LDP interworking (mapping server) | [IS-IS SR mapping entries](protocols/isis.md#sr-mapping-entries) |
+| [RFC 8570](https://www.rfc-editor.org/rfc/rfc8570) | IS-IS traffic engineering metric extensions (delay) | [IS-IS Flex-Algo](protocols/isis.md#flex-algo) |
 | [RFC 8665](https://www.rfc-editor.org/rfc/rfc8665) | OSPF segment routing | [OSPF](protocols/ospf.md#prefix-sids) |
 | [RFC 8706](https://www.rfc-editor.org/rfc/rfc8706) | IS-IS restart signaling | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 8955](https://www.rfc-editor.org/rfc/rfc8955), [RFC 8956](https://www.rfc-editor.org/rfc/rfc8956) | BGP Flowspec | [BGP](protocols/bgp.md#address-families) |

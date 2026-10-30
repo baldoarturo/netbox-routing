@@ -17,6 +17,8 @@ from netbox_routing_protocols.graphql.isis.filters import (
     ISISFlexAlgoFilter,
     ISISPrefixSIDFilter,
     ISISSRv6LocatorFilter,
+    ISISSRMappingEntryFilter,
+    ISISAdjacencySIDFilter,
     ISISAreaAddressFilter,
     ISISRedistributionFilter,
     ISISSummaryAddressFilter,
@@ -33,6 +35,8 @@ __all__ = (
     'ISISFlexAlgoType',
     'ISISPrefixSIDType',
     'ISISSRv6LocatorType',
+    'ISISSRMappingEntryType',
+    'ISISAdjacencySIDType',
     'ISISAreaAddressType',
     'ISISRedistributionType',
     'ISISSummaryAddressType',
@@ -273,3 +277,29 @@ class ISISAreaAddressType(PrimaryObjectType):
         "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     net: str
+
+
+@strawberry_django.type(
+    models.ISISSRMappingEntry, fields='__all__', filters=ISISSRMappingEntryFilter
+)
+class ISISSRMappingEntryType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    prefix: str
+    range_size: int
+    sid_index: int | None
+    sid_label: int | None
+    algorithm: int
+    level: str
+
+
+@strawberry_django.type(
+    models.ISISAdjacencySID, fields='__all__', filters=ISISAdjacencySIDFilter
+)
+class ISISAdjacencySIDType(PrimaryObjectType):
+    interface: Annotated[
+        "ISISInterfaceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    sid_label: int
+    protected: bool

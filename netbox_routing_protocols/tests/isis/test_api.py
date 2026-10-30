@@ -20,6 +20,8 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -35,6 +37,8 @@ __all__ = (
     'ISISInterfaceLevelAPITestCase',
     'ISISSegmentRoutingAPITestCase',
     'ISISFlexAlgoAPITestCase',
+    'ISISSRMappingEntryAPITestCase',
+    'ISISAdjacencySIDAPITestCase',
     'ISISAreaAddressAPITestCase',
     'ISISRedistributionAPITestCase',
     'ISISSummaryAddressAPITestCase',
@@ -815,3 +819,56 @@ class ISISAreaAddressAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTes
         cls.create_data = [
             {'instance': inst2.pk, 'net': '49.0008.0000.0000.0002.00'},
         ]
+
+
+class ISISSRMappingEntryAPITestCase(
+    LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
+):
+    model = ISISSRMappingEntry
+    view_namespace = 'plugins-api:netbox_routing_protocols'
+    graphql_base_name = 'isis_sr_mapping_entry'
+    brief_fields = ['display', 'id', 'instance', 'prefix', 'url']
+    user_permissions = ('netbox_routing_protocols.view_isisinstance',)
+    bulk_update_data = {'range_size': 5}
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        inst = ISISInstance.objects.create(device=device, process_tag='0')
+        for n in range(3):
+            ISISSRMappingEntry.objects.create(
+                instance=inst, prefix=f'10.{n}.0.0/24', range_size=2, sid_index=n * 10
+            )
+        cls.create_data = [
+            {
+                'instance': inst.pk,
+                'prefix': '192.0.2.0/24',
+                'range_size': 8,
+                'sid_index': 500,
+                'level': 'level-2',
+            },
+        ]
+
+
+class ISISAdjacencySIDAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
+    model = ISISAdjacencySID
+    view_namespace = 'plugins-api:netbox_routing_protocols'
+    graphql_base_name = 'isis_adjacency_sid'
+    brief_fields = ['display', 'id', 'interface', 'sid_label', 'url']
+    user_permissions = ('netbox_routing_protocols.view_isisinterface',)
+    bulk_update_data = {'protected': True}
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        inst = ISISInstance.objects.create(device=device, process_tag='0')
+        iface = ISISInterface.objects.create(
+            instance=inst,
+            interface=Interface.objects.create(
+                device=device, name='Eth1', type='virtual'
+            ),
+            address_family='ipv4',
+        )
+        for label in (24001, 24002, 24003):
+            ISISAdjacencySID.objects.create(interface=iface, sid_label=label)
+        cls.create_data = [{'interface': iface.pk, 'sid_label': 24010}]

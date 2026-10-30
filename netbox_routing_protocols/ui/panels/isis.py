@@ -17,6 +17,8 @@ __all__ = (
     'ISISFlexAlgoPanel',
     'ISISPrefixSIDPanel',
     'ISISSRv6LocatorPanel',
+    'ISISSRMappingEntryPanel',
+    'ISISAdjacencySIDPanel',
     'ISISAreaAddressPanel',
     'ISISRedistributionPanel',
     'ISISSummaryAddressPanel',
@@ -239,6 +241,9 @@ class ISISInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     three_way_handshake = attrs.BooleanAttr(
         'three_way_handshake', label=_('Three-way Handshake')
     )
+    admin_group = attrs.TextAttr('admin_group', label=_('Admin Group'))
+    te_metric = attrs.NumericAttr('te_metric', label=_('TE Metric'))
+    delay_metric = attrs.NumericAttr('delay_metric', label=_('Delay Metric'))
     hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
     hello_auth_key = attrs.TextAttr('hello_auth_key', label=_('Hello Auth Key'))
     hello_auth_key_id = attrs.NumericAttr(
@@ -295,4 +300,22 @@ class ISISAreaAddressPanel(panels.ObjectAttributesPanel):
     net = attrs.TextAttr('net', label=_('NET'))
     area = attrs.TextAttr('area', label=_('Area'))
     system_id = attrs.TextAttr('system_id', label=_('System ID'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISSRMappingEntryPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    range_size = attrs.NumericAttr('range_size', label=_('Range Size'))
+    sid_index = attrs.NumericAttr('sid_index', label=_('SID Index'))
+    sid_label = attrs.NumericAttr('sid_label', label=_('SID Label'))
+    algorithm = attrs.NumericAttr('algorithm', label=_('Algorithm'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISAdjacencySIDPanel(panels.ObjectAttributesPanel):
+    interface = attrs.RelatedObjectAttr('interface', label=_('Interface'), linkify=True)
+    sid_label = attrs.NumericAttr('sid_label', label=_('SID Label'))
+    protected = attrs.BooleanAttr('protected', label=_('Protected'))
     description = attrs.TextAttr('description', label=_('Description'))

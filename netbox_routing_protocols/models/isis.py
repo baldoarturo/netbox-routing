@@ -760,6 +760,33 @@ class ISISInterface(PrimaryModel):
         null=True,
         help_text=_('Administrative tag of the prefixes of this interface (RFC 5130).'),
     )
+    admin_group = models.CharField(
+        verbose_name=_('Admin group'),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=_(
+            'Affinity (admin-group) names of the link, separated by commas. '
+            'Flex-Algo includes or excludes links by them (RFC 9350 section 12).'
+        ),
+    )
+    te_metric = models.PositiveIntegerField(
+        verbose_name=_('TE metric'),
+        validators=[MaxValueValidator(4294967295)],
+        blank=True,
+        null=True,
+        help_text=_('Traffic-engineering default metric (RFC 5305), 0 to 4294967295.'),
+    )
+    delay_metric = models.PositiveIntegerField(
+        verbose_name=_('Delay metric'),
+        validators=[MaxValueValidator(16777215)],
+        blank=True,
+        null=True,
+        help_text=_(
+            'Minimum unidirectional link delay in microseconds, 0 to 16777215 '
+            '(RFC 8570); used by Flex-Algo with the delay metric type.'
+        ),
+    )
     three_way_handshake = models.BooleanField(
         verbose_name=_('Three-way handshake'),
         blank=True,
@@ -796,6 +823,9 @@ class ISISInterface(PrimaryModel):
         'prefix_suppression',
         'route_tag',
         'three_way_handshake',
+        'admin_group',
+        'te_metric',
+        'delay_metric',
     )
     prerequisite_models = (
         'netbox_routing_protocols.ISISInstance',
@@ -2163,5 +2193,201 @@ class ISISAreaAddress(PrimaryModel):
             errors['net'] = _(
                 'A router has at most {count} area addresses (ISO 10589).'
             ).format(count=self.MAX_AREA_ADDRESSES)
+        if errors:
+            raise ValidationError(errors)
+
+
+class ISISSRMappingEntry(PrimaryModel):
+    """
+    An SR mapping server entry: a range of prefixes that do not advertise their own
+    prefix-SID, with the SID of the first one (RFC 8661, RFC 8667 section 2.4). It
+    lets routers that do not support segment routing take part in an SR network.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='sr_mapping_entries',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    prefix = IPNetworkField(
+        verbose_name=_('Prefix'),
+        help_text=_('First prefix of the range (IPv4 or IPv6)'),
+    )
+    range_size = models.PositiveIntegerField(
+        verbose_name=_('Range size'),
+        default=1,
+        validators=[MinValueValidator(1), MaxValueValidator(65535)],
+        help_text=_(
+            'Number of consecutive prefixes of the same length, each one with the '
+            'next SID (1 to 65535)'
+        ),
+    )
+    sid_index = models.PositiveIntegerField(
+        verbose_name=_('SID index'),
+        blank=True,
+        null=True,
+        help_text=_('Index into the SRGB of the first prefix (not with a label).'),
+    )
+    sid_label = models.PositiveIntegerField(
+        verbose_name=_('SID label'),
+        blank=True,
+        null=True,
+        help_text=_('Absolute label of the first prefix (not with an index).'),
+    )
+    algorithm = models.PositiveSmallIntegerField(
+        verbose_name=_('Algorithm'),
+        default=0,
+        help_text=_('SR algorithm: 0 (SPF) or a Flex-Algo (128-255).'),
+    )
+    level = models.CharField(
+        verbose_name=_('Level'),
+        help_text=_('Level the mapping is advertised into'),
+        choices=ISISLevelScopeChoices,
+        default=ISISLevelScopeChoices.LEVEL12,
+        max_length=9,
+    )
+
+    clone_fields = ('instance', 'range_size', 'algorithm', 'level')
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS SR Mapping Entry'
+        verbose_name_plural = 'IS-IS SR Mapping Entries'
+        ordering = ('instance', 'prefix', 'algorithm', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'prefix', 'algorithm', 'level'),
+                name='%(app_label)s_%(class)s_unique_instance_prefix_algo_level',
+                violation_error_message=_(
+                    'This prefix already has a mapping for the algorithm and level.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return (
+            f'{self.prefix} (+{self.range_size - 1})'
+            if self.range_size
+            else str(self.prefix)
+        )
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isissrmappingentry', args=[self.pk]
+        )
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.prefix not in (None, ''):
+            try:
+                prefix = netaddr.IPNetwork(str(self.prefix))
+            except (netaddr.AddrFormatError, ValueError):
+                prefix = None  # reported by the field's own validation
+            if prefix is not None and prefix.ip != prefix.cidr.ip:
+                errors['prefix'] = _(
+                    'The prefix has host bits set: use {cidr}.'
+                ).format(cidr=prefix.cidr)
+        if (self.sid_index is None) == (self.sid_label is None):
+            msg = _('Set either an index or an absolute label.')
+            errors['sid_index'] = errors['sid_label'] = msg
+        errors.update(range_errors(self, (('sid_label', SR_MIN_LABEL, SR_MAX_LABEL),)))
+        errors.update(range_errors(self, (('sid_index', 0, SR_MAX_LABEL),)))
+        if self.algorithm and not 128 <= self.algorithm <= 255:
+            errors['algorithm'] = _(
+                'Algorithm must be 0 (SPF) or a Flex-Algo value in 128-255.'
+            )
+        if self.instance_id:
+            instance = self.instance
+            if (
+                self.algorithm
+                and 'algorithm' not in errors
+                and not instance.flex_algos.filter(algo_id=self.algorithm).exists()
+            ):
+                errors['algorithm'] = _('The instance has no Flex-Algo %(algo)s.') % {
+                    'algo': self.algorithm
+                }
+            if not scope_levels(self.level) & type_levels(instance.is_type):
+                errors['level'] = _('The instance does not run this level.')
+            sr = getattr(instance, 'segment_routing', None)
+            if (
+                self.sid_index is not None
+                and self.range_size
+                and sr is not None
+                and sr.srgb_range
+                and self.sid_index + self.range_size > sr.srgb_range
+            ):
+                errors['sid_index'] = _(
+                    'The range goes outside the SRGB (range size %(size)s).'
+                ) % {'size': sr.srgb_range}
+        if errors:
+            raise ValidationError(errors)
+
+
+class ISISAdjacencySID(PrimaryModel):
+    """
+    A manually assigned adjacency-SID of an IS-IS interface: the label that selects
+    the link to the neighbor (RFC 8667 section 2.2). It is taken from the SRLB, and
+    a protected one is also used as the backup of fast reroute.
+    """
+
+    interface = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInterface',
+        related_name='adjacency_sids',
+        on_delete=models.CASCADE,
+        verbose_name=_('Interface'),
+    )
+    sid_label = models.PositiveIntegerField(
+        verbose_name=_('SID label'),
+        help_text=_('Local label of the adjacency, 16 to 1048575; inside the SRLB'),
+    )
+    protected = models.BooleanField(
+        verbose_name=_('Protected'),
+        default=False,
+        help_text=_('The adjacency is protected by fast reroute (B flag)'),
+    )
+
+    clone_fields = ('interface', 'protected')
+    prerequisite_models = ('netbox_routing_protocols.ISISInterface',)
+
+    class Meta:
+        verbose_name = 'IS-IS Adjacency-SID'
+        ordering = ('interface', 'sid_label')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('interface', 'sid_label'),
+                name='%(app_label)s_%(class)s_unique_interface_label',
+                violation_error_message=_(
+                    'This label is already an adjacency-SID of the interface.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.interface} adjacency-SID {self.sid_label}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isisadjacencysid', args=[self.pk]
+        )
+
+    def clean(self):
+        super().clean()
+        errors = range_errors(self, (('sid_label', SR_MIN_LABEL, SR_MAX_LABEL),))
+        if self.interface_id and self.sid_label is not None and not errors:
+            sr = getattr(self.interface.instance, 'segment_routing', None)
+            if (
+                sr is not None
+                and sr.srlb_start is not None
+                and sr.srlb_range
+                and not sr.srlb_start <= self.sid_label < sr.srlb_start + sr.srlb_range
+            ):
+                errors['sid_label'] = _(
+                    'The label is outside the SRLB (%(start)s-%(end)s).'
+                ) % {
+                    'start': sr.srlb_start,
+                    'end': sr.srlb_start + sr.srlb_range - 1,
+                }
         if errors:
             raise ValidationError(errors)

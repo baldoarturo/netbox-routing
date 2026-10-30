@@ -20,6 +20,8 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -37,6 +39,8 @@ __all__ = (
     'ISISFlexAlgoImportForm',
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
+    'ISISSRMappingEntryImportForm',
+    'ISISAdjacencySIDImportForm',
     'ISISAreaAddressImportForm',
     'ISISRedistributionImportForm',
     'ISISSummaryAddressImportForm',
@@ -335,6 +339,9 @@ class ISISInterfaceImportForm(NetBoxModelImportForm):
             'prefix_suppression',
             'route_tag',
             'three_way_handshake',
+            'admin_group',
+            'te_metric',
+            'delay_metric',
             'description',
             'comments',
             'tags',
@@ -454,3 +461,45 @@ class ISISAreaAddressImportForm(NetBoxModelImportForm):
     class Meta:
         model = ISISAreaAddress
         fields = ('instance', 'net', 'description', 'comments', 'tags')
+
+
+class ISISSRMappingEntryImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISSRMappingEntry
+        fields = (
+            'instance',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISAdjacencySIDImportForm(NetBoxModelImportForm):
+    interface = CSVModelChoiceField(
+        queryset=ISISInterface.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Interface'),
+    )
+
+    class Meta:
+        model = ISISAdjacencySID
+        fields = (
+            'interface',
+            'sid_label',
+            'protected',
+            'description',
+            'comments',
+            'tags',
+        )

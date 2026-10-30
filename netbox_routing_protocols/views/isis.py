@@ -27,6 +27,8 @@ from netbox_routing_protocols.filtersets.isis import (
     ISISFlexAlgoFilterSet,
     ISISPrefixSIDFilterSet,
     ISISSRv6LocatorFilterSet,
+    ISISSRMappingEntryFilterSet,
+    ISISAdjacencySIDFilterSet,
     ISISRedistributionFilterSet,
     ISISSummaryAddressFilterSet,
     ISISRouteLeakFilterSet,
@@ -47,6 +49,8 @@ from netbox_routing_protocols.models import (
     ISISSummaryAddress,
     ISISRouteLeak,
     ISISAreaAddress,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
 )
 from netbox_routing_protocols.tables.isis import (
     ISISInstanceTable,
@@ -58,6 +62,8 @@ from netbox_routing_protocols.tables.isis import (
     ISISFlexAlgoTable,
     ISISPrefixSIDTable,
     ISISSRv6LocatorTable,
+    ISISSRMappingEntryTable,
+    ISISAdjacencySIDTable,
     ISISAreaAddressTable,
     ISISRedistributionTable,
     ISISSummaryAddressTable,
@@ -109,6 +115,22 @@ __all__ = (
     'ISISSRv6LocatorDeleteView',
     'ISISSRv6LocatorBulkDeleteView',
     'ISISSRv6LocatorBulkImportView',
+    'ISISSRMappingEntryListView',
+    'ISISSRMappingEntryView',
+    'ISISSRMappingEntryEditView',
+    'ISISSRMappingEntryBulkEditView',
+    'ISISSRMappingEntryDeleteView',
+    'ISISSRMappingEntryBulkDeleteView',
+    'ISISSRMappingEntryBulkImportView',
+    'ISISAdjacencySIDListView',
+    'ISISAdjacencySIDView',
+    'ISISAdjacencySIDEditView',
+    'ISISAdjacencySIDBulkEditView',
+    'ISISAdjacencySIDDeleteView',
+    'ISISAdjacencySIDBulkDeleteView',
+    'ISISAdjacencySIDBulkImportView',
+    'ISISInstanceSRMappingEntriesView',
+    'ISISInterfaceAdjacencySidsView',
     'ISISAreaAddressListView',
     'ISISAreaAddressView',
     'ISISAreaAddressEditView',
@@ -1065,3 +1087,147 @@ class ISISInstanceAreaAddressesView(ObjectChildrenView):
 
     def get_children(self, request, parent):
         return AREA_ADDRESS_QUERYSET.filter(instance=parent)
+
+
+ISISSRMAPPINGENTRY_QUERYSET = ISISSRMappingEntry.objects.select_related(
+    'instance__device'
+)
+
+
+@register_model_view(ISISSRMappingEntry, name='list', path='', detail=False)
+class ISISSRMappingEntryListView(ObjectListView):
+    queryset = ISISSRMAPPINGENTRY_QUERYSET
+    filterset = ISISSRMappingEntryFilterSet
+    filterset_form = ISISSRMappingEntryFilterForm
+    table = ISISSRMappingEntryTable
+
+
+@register_model_view(ISISSRMappingEntry)
+class ISISSRMappingEntryView(ObjectView):
+    queryset = ISISSRMAPPINGENTRY_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[ISISSRMappingEntryPanel(), TagsPanel()],
+        right_panels=[panels.CommentsPanel(), panels.RelatedObjectsPanel()],
+    )
+
+
+@register_model_view(ISISSRMappingEntry, name='add', detail=False)
+@register_model_view(ISISSRMappingEntry, name='edit')
+class ISISSRMappingEntryEditView(ObjectEditView):
+    queryset = ISISSRMAPPINGENTRY_QUERYSET
+    form = ISISSRMappingEntryForm
+
+
+@register_model_view(ISISSRMappingEntry, name='delete')
+class ISISSRMappingEntryDeleteView(ObjectDeleteView):
+    queryset = ISISSRMAPPINGENTRY_QUERYSET
+
+
+@register_model_view(ISISSRMappingEntry, name='bulk_import', detail=False)
+class ISISSRMappingEntryBulkImportView(BulkImportView):
+    queryset = ISISSRMAPPINGENTRY_QUERYSET
+    model_form = ISISSRMappingEntryImportForm
+
+
+@register_model_view(ISISSRMappingEntry, name='bulk_edit', detail=False)
+class ISISSRMappingEntryBulkEditView(BulkEditView):
+    queryset = ISISSRMAPPINGENTRY_QUERYSET
+    filterset = ISISSRMappingEntryFilterSet
+    table = ISISSRMappingEntryTable
+    form = ISISSRMappingEntryBulkEditForm
+
+
+@register_model_view(ISISSRMappingEntry, name='bulk_delete', detail=False)
+class ISISSRMappingEntryBulkDeleteView(BulkDeleteView):
+    queryset = ISISSRMAPPINGENTRY_QUERYSET
+    filterset = ISISSRMappingEntryFilterSet
+    table = ISISSRMappingEntryTable
+
+
+ISISADJACENCYSID_QUERYSET = ISISAdjacencySID.objects.select_related(
+    'interface__interface'
+)
+
+
+@register_model_view(ISISAdjacencySID, name='list', path='', detail=False)
+class ISISAdjacencySIDListView(ObjectListView):
+    queryset = ISISADJACENCYSID_QUERYSET
+    filterset = ISISAdjacencySIDFilterSet
+    filterset_form = ISISAdjacencySIDFilterForm
+    table = ISISAdjacencySIDTable
+
+
+@register_model_view(ISISAdjacencySID)
+class ISISAdjacencySIDView(ObjectView):
+    queryset = ISISADJACENCYSID_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[ISISAdjacencySIDPanel(), TagsPanel()],
+        right_panels=[panels.CommentsPanel(), panels.RelatedObjectsPanel()],
+    )
+
+
+@register_model_view(ISISAdjacencySID, name='add', detail=False)
+@register_model_view(ISISAdjacencySID, name='edit')
+class ISISAdjacencySIDEditView(ObjectEditView):
+    queryset = ISISADJACENCYSID_QUERYSET
+    form = ISISAdjacencySIDForm
+
+
+@register_model_view(ISISAdjacencySID, name='delete')
+class ISISAdjacencySIDDeleteView(ObjectDeleteView):
+    queryset = ISISADJACENCYSID_QUERYSET
+
+
+@register_model_view(ISISAdjacencySID, name='bulk_import', detail=False)
+class ISISAdjacencySIDBulkImportView(BulkImportView):
+    queryset = ISISADJACENCYSID_QUERYSET
+    model_form = ISISAdjacencySIDImportForm
+
+
+@register_model_view(ISISAdjacencySID, name='bulk_edit', detail=False)
+class ISISAdjacencySIDBulkEditView(BulkEditView):
+    queryset = ISISADJACENCYSID_QUERYSET
+    filterset = ISISAdjacencySIDFilterSet
+    table = ISISAdjacencySIDTable
+    form = ISISAdjacencySIDBulkEditForm
+
+
+@register_model_view(ISISAdjacencySID, name='bulk_delete', detail=False)
+class ISISAdjacencySIDBulkDeleteView(BulkDeleteView):
+    queryset = ISISADJACENCYSID_QUERYSET
+    filterset = ISISAdjacencySIDFilterSet
+    table = ISISAdjacencySIDTable
+
+
+@register_model_view(ISISInstance, name='sr-mapping-entries')
+class ISISInstanceSRMappingEntriesView(ObjectChildrenView):
+    queryset = ISISInstance.objects.all()
+    child_model = ISISSRMappingEntry
+    table = ISISSRMappingEntryTable
+    filterset = ISISSRMappingEntryFilterSet
+    tab = ViewTab(
+        label=_('SR Mapping Entries'),
+        badge=lambda obj: ISISSRMappingEntry.objects.filter(instance=obj).count(),
+        hide_if_empty=False,
+    )
+
+    def get_children(self, request, parent):
+        return ISISSRMAPPINGENTRY_QUERYSET.filter(instance=parent)
+
+
+@register_model_view(ISISInterface, name='adjacency-sids')
+class ISISInterfaceAdjacencySidsView(ObjectChildrenView):
+    queryset = ISISInterface.objects.all()
+    child_model = ISISAdjacencySID
+    table = ISISAdjacencySIDTable
+    filterset = ISISAdjacencySIDFilterSet
+    tab = ViewTab(
+        label=_('Adjacency-SIDs'),
+        badge=lambda obj: ISISAdjacencySID.objects.filter(interface=obj).count(),
+        hide_if_empty=False,
+    )
+
+    def get_children(self, request, parent):
+        return ISISADJACENCYSID_QUERYSET.filter(interface=parent)

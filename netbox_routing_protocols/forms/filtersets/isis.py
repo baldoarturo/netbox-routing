@@ -33,6 +33,8 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -50,6 +52,8 @@ __all__ = (
     'ISISFlexAlgoFilterForm',
     'ISISPrefixSIDFilterForm',
     'ISISSRv6LocatorFilterForm',
+    'ISISSRMappingEntryFilterForm',
+    'ISISAdjacencySIDFilterForm',
     'ISISAreaAddressFilterForm',
     'ISISRedistributionFilterForm',
     'ISISSummaryAddressFilterForm',
@@ -382,5 +386,60 @@ class ISISAreaAddressFilterForm(NetBoxModelFilterSetForm):
         required=False,
         selector=True,
         label=_('Instance'),
+    )
+    tag = TagFilterField(model)
+
+
+class ISISSRMappingEntryFilterForm(NetBoxModelFilterSetForm):
+    model = ISISSRMappingEntry
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('IS-IS')),
+        FieldSet('prefix', 'algorithm', 'level', name=_('Mapping Entry')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    prefix = forms.CharField(required=False, label=_('Prefix'))
+    algorithm = forms.IntegerField(required=False, label=_('Algorithm'))
+    level = forms.MultipleChoiceField(
+        choices=ISISLevelScopeChoices, required=False, label=_('Level')
+    )
+    tag = TagFilterField(model)
+
+
+class ISISAdjacencySIDFilterForm(NetBoxModelFilterSetForm):
+    model = ISISAdjacencySID
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('instance_id', 'interface_id', name=_('IS-IS')),
+        FieldSet('sid_label', 'protected', name=_('Adjacency-SID')),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    interface_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInterface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Interface'),
+    )
+    sid_label = forms.IntegerField(required=False, label=_('SID Label'))
+    protected = forms.NullBooleanField(
+        required=False,
+        label=_('Protected'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     tag = TagFilterField(model)

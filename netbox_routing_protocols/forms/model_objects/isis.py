@@ -31,6 +31,8 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -48,6 +50,8 @@ __all__ = (
     'ISISFlexAlgoForm',
     'ISISPrefixSIDForm',
     'ISISSRv6LocatorForm',
+    'ISISSRMappingEntryForm',
+    'ISISAdjacencySIDForm',
     'ISISAreaAddressForm',
     'ISISRedistributionForm',
     'ISISSummaryAddressForm',
@@ -364,6 +368,9 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'ldp_sync',
             'prefix_suppression',
             'three_way_handshake',
+            'admin_group',
+            'te_metric',
+            'delay_metric',
             'route_tag',
             name=_('Options'),
         ),
@@ -400,6 +407,9 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'prefix_suppression',
             'route_tag',
             'three_way_handshake',
+            'admin_group',
+            'te_metric',
+            'delay_metric',
             'hello_auth_type',
             'hello_auth_key',
             'hello_auth_key_id',
@@ -1011,6 +1021,73 @@ class ISISAreaAddressForm(PrimaryModelForm):
         fields = (
             'instance',
             'net',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+
+class ISISSRMappingEntryForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'instance',
+            'prefix',
+            'range_size',
+            'description',
+            name=_('Mapping Entry'),
+        ),
+        FieldSet('sid_index', 'sid_label', 'algorithm', 'level', name=_('SID')),
+    )
+
+    class Meta:
+        model = ISISSRMappingEntry
+        fields = (
+            'instance',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+
+class ISISAdjacencySIDForm(PrimaryModelForm):
+    interface = DynamicModelChoiceField(
+        queryset=ISISInterface.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Interface'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'interface',
+            'sid_label',
+            'protected',
+            'description',
+            name=_('Adjacency-SID'),
+        ),
+    )
+
+    class Meta:
+        model = ISISAdjacencySID
+        fields = (
+            'interface',
+            'sid_label',
+            'protected',
             'description',
             'comments',
             'tags',

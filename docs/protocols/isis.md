@@ -27,10 +27,12 @@ IS-IS instance (a process on a device, optionally in a VRF)
  ├─ Segment routing (SR-MPLS, SRv6, SRGB/SRLB)
  ├─ Flex-Algo        ├─ SRv6 locator        └─ Settings
  ├─ Redistribution   ├─ Summary address     └─ Route leak
+ ├─ SR mapping entry (SIDs for prefixes that have none)
  ├─ Area address (more NETs for migrations and area merges)
  └─ Interface (device interface + address family)
      ├─ Interface level (per-level metric and hello settings)
      ├─ Prefix-SID
+     ├─ Adjacency-SID
      └─ Settings
 ```
 
@@ -201,6 +203,35 @@ avoiding links of colour red" ([RFC 9350](https://www.rfc-editor.org/rfc/rfc9350
 | Priority | 0 to 255. Used when routers define the same algorithm differently; the highest priority wins (RFC 9350 default is 128 when empty). |
 | Admin groups: exclude / include any / include all | The affinities (link colours) the paths must avoid or use. Comma-separated names. |
 
+The attributes of each link that the algorithm uses are on the [interface](#interfaces): **admin group** (the colours of the link), **TE metric** and **delay metric** (microseconds, [RFC 8570](https://www.rfc-editor.org/rfc/rfc8570)).
+
+### SR mapping entries
+
+**IS-IS → SR Mapping Entries**
+
+An **SR mapping server** advertises SIDs on behalf of prefixes that do not advertise their own, typically
+routers that do not support segment routing, so they can still be reached with a label
+([RFC 8661](https://www.rfc-editor.org/rfc/rfc8661), [RFC 8667](https://www.rfc-editor.org/rfc/rfc8667) section 2.4).
+Each entry maps a **range** of prefixes: the first one takes the SID given, the next one the following SID, and so on.
+
+| Field | Meaning |
+| --- | --- |
+| Prefix | First prefix of the range, IPv4 or IPv6, without host bits. |
+| Range size | How many consecutive prefixes of the same length, 1 to 65535. |
+| SID index / SID label | The SID of the first prefix: an index into the SRGB **or** an absolute label (16 to 1048575), one of the two. An index range must fit in the SRGB. |
+| Algorithm | 0 (SPF) or a Flex-Algo (128 to 255) that the instance defines. |
+| Level | Level the mapping is advertised into; the instance must run it. |
+
+A prefix has one mapping per algorithm and level.
+
+### Adjacency-SIDs
+
+**IS-IS → Adjacency-SIDs**, and the **Adjacency-SIDs** tab of an interface
+
+A label that selects **one link** to the neighbor ([RFC 8667](https://www.rfc-editor.org/rfc/rfc8667) section 2.2), assigned by hand when the device should not choose it. It is a local label taken from the SRLB: when the instance defines an SRLB the label has to be inside it. **Protected** marks an adjacency that fast reroute protects. A label is used once per interface.
+
+Fast reroute with TI-LFA is set per interface (`frr_enabled`, `frr_protection`) and on the instance; SR policies are reached through the tunnel table preference of [Segment routing](#segment-routing).
+
 ### SRv6 locators
 
 **IS-IS → SRv6 Locators**
@@ -353,6 +384,9 @@ IS-IS instance
 │     · not_advertise? · metric · route_tag
 ├─ Route leak
 │     instance → IS-IS instance · address_family {IPv4 | IPv6} · route_policy
+├─ SR mapping entry
+│     instance → IS-IS instance · prefix · range_size · sid_index · sid_label
+│     · algorithm · level {Level-1 | Level-2 | Level-1-2}
 ├─ SRv6 locator
 │     instance → IS-IS instance · name · prefix · algorithm · enabled?
 │     · isis_level {Level-1 | Level-2} · is_anycast? · is_micro_segment? · flavor
@@ -367,6 +401,7 @@ IS-IS instance
     ├─ Timers: csnp_interval · retransmit_interval · lsp_interval · mesh_group
     ├─ Options: hello_padding? · ldp_sync? · prefix_suppression? · three_way_handshake?
     │     · route_tag
+    ├─ Flex-Algo link attributes: admin_group · te_metric · delay_metric
     ├─ Settings (key / value; the key is one of): SPF Second Wait (ms) · SPF Rapid Runs
     │     · LSP-Gen Second Wait (ms) · TE IPv4 Router-ID · TE IPv6 Router-ID · Graceful Restart
     │     · LDP-IGP Sync · Prefix Suppression · Log Adjacency Changes · Advertise Passive Only
@@ -378,9 +413,11 @@ IS-IS instance
     │     interface → IS-IS interface · level {Level-1 | Level-2} · metric
     │     · hello_interval · hello_multiplier · priority · passive?
     │     · hello_auth_type {MD5 | Cleartext | HMAC-SHA-1/224/256/384/512 | Key chain} · hello_auth_key · hello_auth_key_id · hello_auth_key_chain · hello_auth_send_only
-    └─ Prefix SID
-          interface → IS-IS interface · algorithm · sid_index · sid_label
-          · n_flag? · no_php? · explicit_null? · readvertise?
+    ├─ Prefix SID
+    │     interface → IS-IS interface · algorithm · sid_index · sid_label
+    │     · n_flag? · no_php? · explicit_null? · readvertise?
+    └─ Adjacency-SID
+          interface → IS-IS interface · sid_label · protected?
 ```
 
 ## Standards behind IS-IS

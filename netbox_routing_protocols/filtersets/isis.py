@@ -40,6 +40,8 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -57,6 +59,8 @@ __all__ = (
     'ISISFlexAlgoFilterSet',
     'ISISPrefixSIDFilterSet',
     'ISISSRv6LocatorFilterSet',
+    'ISISSRMappingEntryFilterSet',
+    'ISISAdjacencySIDFilterSet',
     'ISISAreaAddressFilterSet',
     'ISISRedistributionFilterSet',
     'ISISSummaryAddressFilterSet',
@@ -607,3 +611,60 @@ class ISISAreaAddressFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         return queryset.filter(net__icontains=value)
+
+
+@register_filterset
+class ISISSRMappingEntryFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    level = django_filters.MultipleChoiceFilter(
+        choices=ISISLevelScopeChoices,
+        label=_('Level'),
+    )
+    prefix = django_filters.CharFilter(method='filter_prefix', label=_('Prefix'))
+
+    class Meta:
+        model = ISISSRMappingEntry
+        fields = ('instance_id', 'prefix', 'algorithm', 'range_size')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(prefix__icontains=value)
+
+    def filter_prefix(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        try:
+            return queryset.filter(prefix=str(netaddr.IPNetwork(value).cidr))
+        except (netaddr.AddrFormatError, ValueError):
+            return queryset.none()
+
+
+@register_filterset
+class ISISAdjacencySIDFilterSet(NetBoxModelFilterSet):
+    interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='interface',
+        queryset=ISISInterface.objects.all(),
+        label=_('Interface (ID)'),
+    )
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='interface__instance',
+        queryset=ISISInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+
+    class Meta:
+        model = ISISAdjacencySID
+        fields = ('interface_id', 'sid_label', 'protected')
+
+    def search(self, queryset, name, value):
+        return queryset
