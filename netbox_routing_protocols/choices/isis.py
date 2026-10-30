@@ -7,6 +7,7 @@ __all__ = (
     'ISISAuthTypeChoices',
     'ISISCircuitTypeChoices',
     'ISISFastRerouteChoices',
+    'ISISFlexAlgoMetricTypeChoices',
     'ISISFrrProtectionChoices',
     'ISISIsTypeChoices',
     'ISISMetricStyleChoices',
@@ -97,6 +98,21 @@ class ISISFastRerouteChoices(ChoiceSet):
         (LFA, 'LFA'),
         (REMOTE_LFA, 'Remote LFA'),
         (TI_LFA, 'TI-LFA'),
+    )
+
+
+class ISISFlexAlgoMetricTypeChoices(ChoiceSet):
+    """Flex-Algo metric types (RFC 9350 section 5.1): IGP metric (0), minimum unidirectional
+    link delay (1) and TE default metric (2)."""
+
+    IGP = 'igp-metric'
+    DELAY = 'delay-metric'
+    TE = 'te-metric'
+
+    CHOICES = (
+        (IGP, 'IGP metric'),
+        (DELAY, 'Minimum unidirectional delay'),
+        (TE, 'TE metric'),
     )
 
 

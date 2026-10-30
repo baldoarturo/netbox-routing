@@ -35,6 +35,7 @@ __all__ = (
     'ISISConsistencyTestCase',
     'ISISNetTestCase',
     'ISISRangeTestCase',
+    'ISISSegmentRoutingRulesTestCase',
 )
 
 
@@ -847,3 +848,115 @@ class ISISRangeTestCase(TestCase):
         setting.clean()
         setting.value = '192.0.2.1'
         setting.clean()
+
+
+class ISISSegmentRoutingRulesTestCase(TestCase):
+    """RFC 8667, RFC 8986 and RFC 9350 rules of the segment routing models (#431, #436, #440)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(device=cls.device)
+        interface = Interface.objects.create(
+            name='lo0', device=cls.device, type='virtual'
+        )
+        cls.isis_interface = ISISInterface.objects.create(
+            instance=cls.instance, interface=interface, address_family='ipv4'
+        )
+
+    def _errors(self, obj):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.clean()
+        return ctx.exception.message_dict
+
+    def test_no_php_and_explicit_null_are_exclusive(self):
+        sid = ISISPrefixSID(
+            interface=self.isis_interface, sid_index=1, no_php=True, explicit_null=True
+        )
+        self.assertIn('no_php', self._errors(sid))
+
+    def test_label_range(self):
+        for label in (15, 1048576):
+            with self.subTest(label=label):
+                sid = ISISPrefixSID(interface=self.isis_interface, sid_label=label)
+                self.assertIn('sid_label', self._errors(sid))
+        ISISPrefixSID(interface=self.isis_interface, sid_label=16).clean()
+
+    def test_flex_algo_sid_needs_the_flex_algo(self):
+        sid = ISISPrefixSID(interface=self.isis_interface, algorithm=128, sid_index=1)
+        self.assertIn('algorithm', self._errors(sid))
+        ISISFlexAlgo.objects.create(instance=self.instance, algo_id=128)
+        sid.clean()
+
+    def test_index_must_fit_the_srgb(self):
+        ISISSegmentRouting.objects.create(
+            instance=self.instance, srgb_start=16000, srgb_range=8000
+        )
+        sid = ISISPrefixSID(interface=self.isis_interface, sid_index=8000)
+        self.assertIn('sid_index', self._errors(sid))
+        sid.sid_index = 7999
+        sid.clean()
+
+    def test_node_flag_needs_a_host_prefix(self):
+        from ipam.models import IPAddress
+
+        IPAddress.objects.create(
+            address='192.0.2.1/24', assigned_object=self.isis_interface.interface
+        )
+        sid = ISISPrefixSID(interface=self.isis_interface, sid_index=1, n_flag=True)
+        self.assertIn('n_flag', self._errors(sid))
+        IPAddress.objects.create(
+            address='192.0.2.2/32', assigned_object=self.isis_interface.interface
+        )
+        sid.clean()
+
+    def test_srgb_and_srlb_limits_and_overlap(self):
+        sr = ISISSegmentRouting(instance=self.instance, srgb_start=8, srgb_range=100)
+        self.assertIn('srgb_start', self._errors(sr))
+        sr = ISISSegmentRouting(
+            instance=self.instance, srgb_start=1048000, srgb_range=1000
+        )
+        self.assertIn('srgb_start', self._errors(sr))
+        sr = ISISSegmentRouting(
+            instance=self.instance,
+            srgb_start=16000,
+            srgb_range=8000,
+            srlb_start=20000,
+            srlb_range=1000,
+        )
+        self.assertIn('srlb_start', self._errors(sr))
+        sr.srlb_start = 15000
+        sr.srlb_range = 1000
+        sr.clean()
+
+    def test_srv6_locator_prefix_rules(self):
+        locator = ISISSRv6Locator(
+            instance=self.instance, name='L', prefix='192.0.2.0/24'
+        )
+        self.assertIn('prefix', self._errors(locator))
+        locator = ISISSRv6Locator(
+            instance=self.instance,
+            name='L',
+            prefix='2001:db8:1::/48',
+            block_length=32,
+            node_length=8,
+        )
+        self.assertIn('prefix', self._errors(locator))
+        locator.node_length = 16
+        locator.clean()
+
+    def test_srv6_locator_flex_algo_must_exist(self):
+        locator = ISISSRv6Locator(
+            instance=self.instance, name='L', prefix='2001:db8:1::/48', algorithm=130
+        )
+        self.assertIn('algorithm', self._errors(locator))
+
+    def test_flex_algo_priority_range(self):
+        algo = ISISFlexAlgo(instance=self.instance, algo_id=128, priority=256)
+        self.assertIn('priority', self._errors(algo))
+
+    def test_flex_algo_metric_type_is_a_choice(self):
+        algo = ISISFlexAlgo(instance=self.instance, algo_id=128, metric_type='cost')
+        with self.assertRaises(ValidationError) as ctx:
+            algo.full_clean(exclude=['instance'])
+        self.assertIn('metric_type', ctx.exception.message_dict)
