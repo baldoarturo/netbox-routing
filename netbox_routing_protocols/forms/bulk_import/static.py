@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device
 from ipam.models import VRF
 from netbox.forms import NetBoxModelImportForm
-from utilities.forms.fields import CSVModelChoiceField
+from utilities.forms.fields import CSVModelChoiceField, CSVModelMultipleChoiceField
 
 from netbox_routing_protocols.models import StaticRoute
 
@@ -11,11 +11,11 @@ __all__ = ("StaticRouteImportForm",)
 
 
 class StaticRouteImportForm(NetBoxModelImportForm):
-    device = CSVModelChoiceField(
+    devices = CSVModelMultipleChoiceField(
         queryset=Device.objects.all(),
         required=True,
         to_field_name="name",
-        help_text=_("Name of device"),
+        help_text=_("Names of the devices, separated by commas"),
     )
     vrf = CSVModelChoiceField(
         queryset=VRF.objects.all(),
@@ -28,11 +28,13 @@ class StaticRouteImportForm(NetBoxModelImportForm):
         model = StaticRoute
         fields = (
             "name",
-            "device",
+            "devices",
             "vrf",
             "prefix",
             "next_hop",
+            "interface_next_hop",
             "metric",
+            "tag",
             "permanent",
             "description",
             "comments",
