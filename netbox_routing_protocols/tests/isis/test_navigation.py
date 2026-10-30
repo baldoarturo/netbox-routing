@@ -22,6 +22,9 @@ class ISISNavigationTestCase(SimpleTestCase):
         'isislevel',
         'isissegmentrouting',
         'isisflexalgo',
+        'isisredistribution',
+        'isissummaryaddress',
+        'isisrouteleak',
         'isisprefixsid',
         'isissrv6locator',
     )

@@ -17,6 +17,9 @@ __all__ = (
     'ISISFlexAlgoPanel',
     'ISISPrefixSIDPanel',
     'ISISSRv6LocatorPanel',
+    'ISISRedistributionPanel',
+    'ISISSummaryAddressPanel',
+    'ISISRouteLeakPanel',
 )
 
 
@@ -212,3 +215,33 @@ class ISISSettingPanel(panels.ObjectAttributesPanel):
     assigned_object = attrs.RelatedObjectAttr('assigned_object', linkify=True)
     name = attrs.TextAttr('key', label=_('Name'))
     value = attrs.TextAttr('value', label=_('Value'))
+
+
+class ISISRedistributionPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    protocol = attrs.ChoiceAttr('protocol', label=_('Protocol'))
+    source = attrs.TextAttr('source', label=_('Source'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    metric_type = attrs.ChoiceAttr('metric_type', label=_('Metric Type'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISSummaryAddressPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    not_advertise = attrs.BooleanAttr('not_advertise', label=_('Do Not Advertise'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISRouteLeakPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))

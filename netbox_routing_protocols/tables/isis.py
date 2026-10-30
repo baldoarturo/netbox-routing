@@ -14,6 +14,9 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 
 __all__ = (
@@ -26,6 +29,9 @@ __all__ = (
     'ISISFlexAlgoTable',
     'ISISPrefixSIDTable',
     'ISISSRv6LocatorTable',
+    'ISISRedistributionTable',
+    'ISISSummaryAddressTable',
+    'ISISRouteLeakTable',
 )
 
 
@@ -242,3 +248,104 @@ class ISISInterfaceTable(NetBoxTable):
             'address_family',
             'passive',
         )
+
+
+class ISISRedistributionTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    protocol = tables.Column(verbose_name=_('Protocol'))
+    source = tables.Column(verbose_name=_('Source'), orderable=False, empty_values=())
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISRedistribution
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'address_family',
+            'protocol',
+            'source',
+            'level',
+            'metric',
+            'metric_type',
+            'route_tag',
+            'route_policy',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'address_family',
+            'protocol',
+            'source',
+            'level',
+            'metric',
+            'route_policy',
+        )
+
+    def render_protocol(self, record):
+        return record.get_protocol_display()
+
+    def render_source(self, record):
+        return str(record.source) if record.source else '—'
+
+
+class ISISSummaryAddressTable(NetBoxTable):
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    not_advertise = tables.BooleanColumn(verbose_name=_('Do Not Advertise'))
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISSummaryAddress
+        fields = (
+            'pk',
+            'id',
+            'prefix',
+            'instance',
+            'device',
+            'level',
+            'not_advertise',
+            'metric',
+            'route_tag',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'prefix',
+            'instance',
+            'level',
+            'not_advertise',
+            'metric',
+        )
+
+
+class ISISRouteLeakTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISRouteLeak
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'address_family',
+            'route_policy',
+            'description',
+        )
+        default_columns = ('pk', 'id', 'instance', 'address_family', 'route_policy')
+
+    def render_address_family(self, record):
+        return record.get_address_family_display()

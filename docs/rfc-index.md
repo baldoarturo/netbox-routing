@@ -6,6 +6,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | RFC | Title (short) | Used for |
 | --- | --- | --- |
 | [RFC 1195](https://www.rfc-editor.org/rfc/rfc1195) | IS-IS for IP | [IS-IS](protocols/isis.md) |
+| [RFC 5302](https://www.rfc-editor.org/rfc/rfc5302) | IS-IS domain-wide prefix distribution (route leaking) | [IS-IS route leaking](protocols/isis.md#route-leaking) |
 | [RFC 1765](https://www.rfc-editor.org/rfc/rfc1765) | OSPF database overflow | [OSPF](protocols/ospf.md#limits) |
 | [RFC 1793](https://www.rfc-editor.org/rfc/rfc1793) | OSPF demand circuits | [OSPF](protocols/ospf.md#other-interface-options) |
 | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) | BGP communities (standard, well-known) | [Routing objects](routing-objects.md#communities) |
@@ -30,7 +31,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 4761](https://www.rfc-editor.org/rfc/rfc4761) | VPLS using BGP | [BGP](protocols/bgp.md#address-families) |
 | [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082) | Generalized TTL security | [BGP peers](protocols/bgp.md#peers), [OSPF interfaces](protocols/ospf.md#other-interface-options) |
 | [RFC 5120](https://www.rfc-editor.org/rfc/rfc5120) | IS-IS multi-topology | [IS-IS settings](protocols/isis.md#settings) |
-| [RFC 5130](https://www.rfc-editor.org/rfc/rfc5130) | IS-IS administrative tags | [IS-IS interfaces](protocols/isis.md#interfaces) |
+| [RFC 5130](https://www.rfc-editor.org/rfc/rfc5130) | IS-IS administrative tags | [IS-IS interfaces](protocols/isis.md#interfaces), [redistribution](protocols/isis.md#redistribution) |
 | [RFC 5250](https://www.rfc-editor.org/rfc/rfc5250) | OSPF opaque LSAs | [OSPF](protocols/ospf.md#advanced-features) |
 | [RFC 5286](https://www.rfc-editor.org/rfc/rfc5286) | Loop-free alternates | [OSPF](protocols/ospf.md#areas), [IS-IS](protocols/isis.md#fast-reroute-and-micro-loops) |
 | [RFC 5303](https://www.rfc-editor.org/rfc/rfc5303) | IS-IS three-way handshake for point-to-point | [IS-IS interfaces](protocols/isis.md#interfaces) |

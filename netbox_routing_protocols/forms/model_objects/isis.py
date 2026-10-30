@@ -9,12 +9,19 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface
 from ipam.models import VRF
 from netbox.forms import PrimaryModelForm
-from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, get_field_value
 from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet, TabbedGroups
+from utilities.forms.widgets import HTMXSelect
 
-from netbox_routing_protocols.choices import ISISSettingChoices
+from netbox_routing_protocols.choices import (
+    ISISRedistributionMetricTypeChoices,
+    ISISSettingChoices,
+)
 from netbox_routing_protocols.models import (
+    BGPRouter,
+    EIGRPRouter,
+    OSPFInstance,
     ISISInstance,
     ISISInterface,
     ISISSetting,
@@ -24,6 +31,9 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.models.objects import RoutePolicy
 
@@ -37,6 +47,9 @@ __all__ = (
     'ISISFlexAlgoForm',
     'ISISPrefixSIDForm',
     'ISISSRv6LocatorForm',
+    'ISISRedistributionForm',
+    'ISISSummaryAddressForm',
+    'ISISRouteLeakForm',
 )
 
 
@@ -737,3 +750,193 @@ class ISISSRv6LocatorForm(PrimaryModelForm):
             'is_micro_segment': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         }
+
+
+class ISISRedistributionForm(PrimaryModelForm):
+    # Only used to narrow the instance and the sources to one device; the model
+    # validates that the source really is on the instance's device.
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+        query_params={'device_id': '$device'},
+    )
+    ospf_source = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Source'),
+        query_params={'device_id': '$device'},
+    )
+    eigrp_source = DynamicModelChoiceField(
+        queryset=EIGRPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('EIGRP Source'),
+        query_params={'device_id': '$device'},
+    )
+    bgp_source = DynamicModelChoiceField(
+        queryset=BGPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('BGP Source'),
+        help_text=_('A BGP router assigned to the device'),
+    )
+    isis_source = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('IS-IS Source'),
+        query_params={'device_id': '$device'},
+    )
+
+    fieldsets = (
+        FieldSet(
+            'device',
+            'instance',
+            'address_family',
+            'protocol',
+            'description',
+            name=_('Redistribution'),
+        ),
+        FieldSet(
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            name=_('Source'),
+        ),
+        FieldSet(
+            'level',
+            'metric',
+            'metric_type',
+            'route_tag',
+            'route_policy',
+            name=_('Attributes'),
+        ),
+    )
+
+    class Meta:
+        model = ISISRedistribution
+        widgets = {
+            'protocol': HTMXSelect(),
+        }
+        fields = (
+            'device',
+            'instance',
+            'address_family',
+            'protocol',
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            'level',
+            'metric',
+            'metric_type',
+            'route_tag',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial['device'] = self.instance.instance.device_id
+        # An empty metric type falls back to its default (see clean()).
+        self.fields['metric_type'].required = False
+
+        # Only the source of the selected protocol is shown (none for connected,
+        # static or while no protocol is selected)
+        protocol = get_field_value(self, 'protocol')
+        for source_protocol, field in ISISRedistribution.SOURCE_FIELDS.items():
+            if source_protocol != protocol:
+                del self.fields[field]
+
+    def clean(self):
+        if not self.cleaned_data.get('metric_type'):
+            self.cleaned_data['metric_type'] = (
+                ISISRedistributionMetricTypeChoices.INTERNAL
+            )
+        # A source left over from a previous protocol is not on the form anymore
+        for field in ISISRedistribution.SOURCE_FIELDS.values():
+            if field not in self.fields:
+                setattr(self.instance, field, None)
+        return super().clean()
+
+
+class ISISSummaryAddressForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'instance',
+            'prefix',
+            'level',
+            'not_advertise',
+            'metric',
+            'route_tag',
+            'description',
+            name=_('Summary Address'),
+        ),
+    )
+
+    class Meta:
+        model = ISISSummaryAddress
+        fields = (
+            'instance',
+            'prefix',
+            'level',
+            'not_advertise',
+            'metric',
+            'route_tag',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+
+
+class ISISRouteLeakForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Instance'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'instance',
+            'address_family',
+            'route_policy',
+            'description',
+            name=_('Route Leak'),
+        ),
+    )
+
+    class Meta:
+        model = ISISRouteLeak
+        fields = (
+            'instance',
+            'address_family',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )

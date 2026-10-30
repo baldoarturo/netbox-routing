@@ -119,6 +119,29 @@ urlpatterns = [
     ),
     path('isis/flex-algo/<int:pk>/', include(get_model_urls(app_name, 'isisflexalgo'))),
     path(
+        'isis/redistribution/',
+        include(get_model_urls(app_name, 'isisredistribution', detail=False)),
+    ),
+    path(
+        'isis/redistribution/<int:pk>/',
+        include(get_model_urls(app_name, 'isisredistribution')),
+    ),
+    path(
+        'isis/summary-address/',
+        include(get_model_urls(app_name, 'isissummaryaddress', detail=False)),
+    ),
+    path(
+        'isis/summary-address/<int:pk>/',
+        include(get_model_urls(app_name, 'isissummaryaddress')),
+    ),
+    path(
+        'isis/route-leak/',
+        include(get_model_urls(app_name, 'isisrouteleak', detail=False)),
+    ),
+    path(
+        'isis/route-leak/<int:pk>/', include(get_model_urls(app_name, 'isisrouteleak'))
+    ),
+    path(
         'isis/prefix-sid/',
         include(get_model_urls(app_name, 'isisprefixsid', detail=False)),
     ),

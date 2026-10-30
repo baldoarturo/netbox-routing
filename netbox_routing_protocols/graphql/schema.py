@@ -37,6 +37,9 @@ from .isis.types import (
     ISISFlexAlgoType,
     ISISPrefixSIDType,
     ISISSRv6LocatorType,
+    ISISRedistributionType,
+    ISISSummaryAddressType,
+    ISISRouteLeakType,
 )
 from .ospf.types import (
     OSPFInstanceType,
@@ -114,6 +117,12 @@ class ISISQuery:
 
     isis_flex_algo: ISISFlexAlgoType = strawberry_django.field()
     isis_flex_algo_list: list[ISISFlexAlgoType] = strawberry_django.field()
+    isis_redistribution: ISISRedistributionType = strawberry_django.field()
+    isis_redistribution_list: list[ISISRedistributionType] = strawberry_django.field()
+    isis_summary_address: ISISSummaryAddressType = strawberry_django.field()
+    isis_summary_address_list: list[ISISSummaryAddressType] = strawberry_django.field()
+    isis_route_leak: ISISRouteLeakType = strawberry_django.field()
+    isis_route_leak_list: list[ISISRouteLeakType] = strawberry_django.field()
 
     isis_prefix_sid: ISISPrefixSIDType = strawberry_django.field()
     isis_prefix_sid_list: list[ISISPrefixSIDType] = strawberry_django.field()

@@ -26,6 +26,7 @@ IS-IS instance (a process on a device, optionally in a VRF)
  ├─ Level (Level-1 / Level-2 settings of the instance)
  ├─ Segment routing (SR-MPLS, SRv6, SRGB/SRLB)
  ├─ Flex-Algo        ├─ SRv6 locator        └─ Settings
+ ├─ Redistribution   ├─ Summary address     └─ Route leak
  └─ Interface (device interface + address family)
      ├─ Interface level (per-level metric and hello settings)
      ├─ Prefix-SID
@@ -62,7 +63,7 @@ Ranges that are checked when you save: the maximum wait cannot be less than the 
 | Import policy | Optional [route policy](../routing-objects.md#route-policies) that filters the routes IS-IS **installs** in the routing table. |
 | Export policy | Optional route policy that filters the routes IS-IS **advertises or takes from other sources** (redistribution into IS-IS). |
 
-A route policy that an instance uses **cannot be deleted**: choose another one, or clear the field, first. The policy is per instance; the leaking of routes between levels ([RFC 5302](https://www.rfc-editor.org/rfc/rfc5302)) is not modelled yet.
+A route policy that an instance uses **cannot be deleted**: choose another one, or clear the field, first. The policy is per instance; the leaking of routes between levels ([RFC 5302](https://www.rfc-editor.org/rfc/rfc5302)) is modelled by [Route leaking](#route-leaking), and the redistribution of other protocols by [Redistribution](#redistribution).
 
 ### Timers
 
@@ -209,6 +210,47 @@ the router, split into *block* and *node* parts (`LOC = Block:Node` in RFC 8986)
 | Enabled | The instance advertises the locator. |
 | Vendor extensions | JSON for vendor details with no cross-vendor equivalent. |
 
+## Redistribution
+
+**IS-IS → Redistribution**
+
+Routes of another protocol that the instance advertises, for one address family and level ([RFC 1195](https://www.rfc-editor.org/rfc/rfc1195) section 3.3 defines the external routes). It mirrors OSPF redistribution.
+
+| Field | Meaning |
+| --- | --- |
+| Instance, Address family | The IS-IS instance and the family (IPv4 or IPv6) of the routes. |
+| Protocol | Connected, static, OSPF, EIGRP, BGP or another IS-IS instance. Connected and static need no source. |
+| Source | The process the routes come from. It is **required** for OSPF, EIGRP, BGP and IS-IS, only the source of the chosen protocol is allowed, it must be **on the same device** as the instance, and an instance cannot be redistributed into itself. |
+| Level | Level-1, Level-2 or both. The instance must run the level. |
+| Metric | Metric of the routes: 1 to 63 with a narrow metric style, 1 to 16777214 otherwise ([RFC 5305](https://www.rfc-editor.org/rfc/rfc5305)). Empty uses the platform default. |
+| Metric type | Internal or external, as defined in RFC 1195. |
+| Route tag | Administrative tag set on the routes, 1 to 4294967295 ([RFC 5130](https://www.rfc-editor.org/rfc/rfc5130)). |
+| Route policy | Name of the policy applied to the routes. |
+
+A source is redistributed once per address family and level.
+
+## Summary addresses
+
+**IS-IS → Summary Addresses**
+
+One prefix advertised **instead of the routes it covers**, per level ([RFC 1195](https://www.rfc-editor.org/rfc/rfc1195), [RFC 5302](https://www.rfc-editor.org/rfc/rfc5302)). The prefix may be IPv4 or IPv6 and cannot have host bits set.
+
+| Field | Meaning |
+| --- | --- |
+| Prefix | The summary prefix. |
+| Level | Level the summary is advertised into; the instance must run it. |
+| Do not advertise | Suppress the covered routes instead of summarizing them. |
+| Metric | Metric of the summary (same range as in redistribution). Empty takes the best covered route. |
+| Route tag | Administrative tag set on the summary route. |
+
+A prefix is summarized once per instance and level.
+
+## Route leaking
+
+**IS-IS → Route Leaking**
+
+Leaking of **Level-2 routes into Level 1** for an address family ([RFC 5302](https://www.rfc-editor.org/rfc/rfc5302) section 3): the routes are advertised with the up/down bit set so they are not looped back. Routes of Level 1 are always advertised into Level 2, so only this direction is configured. Only an instance that runs **both levels** can leak. The optional **route policy** selects the routes; empty leaks all of them. There is one entry per instance and address family.
+
 ## Settings
 
 **IS-IS → Settings**
@@ -268,6 +310,17 @@ IS-IS instance
 ├─ Flex-Algo
 │     instance → IS-IS instance · algo_id · metric_type · priority
 │     · admin_group_exclude · admin_group_include_any · admin_group_include_all
+├─ Redistribution
+│     instance → IS-IS instance · address_family {IPv4 | IPv6}
+│     · protocol {Connected | Static | EIGRP | BGP | OSPF | IS-IS}
+│     · ospf_source → OSPF instance · eigrp_source → EIGRP router · bgp_source → BGP router
+│     · isis_source → IS-IS instance · level {Level-1 | Level-2 | Level-1-2}
+│     · metric · metric_type {Internal | External} · route_tag · route_policy
+├─ Summary address
+│     instance → IS-IS instance · prefix · level {Level-1 | Level-2 | Level-1-2}
+│     · not_advertise? · metric · route_tag
+├─ Route leak
+│     instance → IS-IS instance · address_family {IPv4 | IPv6} · route_policy
 ├─ SRv6 locator
 │     instance → IS-IS instance · name · prefix · algorithm · enabled?
 │     · isis_level {Level-1 | Level-2} · is_anycast? · is_micro_segment? · flavor

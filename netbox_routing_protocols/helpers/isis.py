@@ -16,6 +16,11 @@ __all__ = (
 )
 
 
+def scope_levels(value):
+    """The levels a level scope (level-1, level-2, level-1-2) covers."""
+    return {'level-1': {1}, 'level-2': {2}}.get(value, {1, 2})
+
+
 def type_levels(value):
     """The IS-IS levels an IS type or circuit type runs; an empty value is the
     default level-1-2 (ISO 10589 / RFC 1195)."""

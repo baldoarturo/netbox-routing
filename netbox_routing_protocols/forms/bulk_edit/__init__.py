@@ -29,6 +29,9 @@ __all__ = (
     'ISISFlexAlgoBulkEditForm',
     'ISISPrefixSIDBulkEditForm',
     'ISISSRv6LocatorBulkEditForm',
+    'ISISRedistributionBulkEditForm',
+    'ISISSummaryAddressBulkEditForm',
+    'ISISRouteLeakBulkEditForm',
     # EIGRP
     'EIGRPRouterBulkEditForm',
     'EIGRPAddressFamilyBulkEditForm',
