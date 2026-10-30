@@ -1,7 +1,11 @@
 # Using the plugin
 
-> [!WARNING]
-> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
+!!! warning
+    **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
+
+## About this project
+
+This plugin was created by Daniel Sheppard ([`dansheps`](https://github.com/dansheps/netbox-routing)). This repository is a fork that is developed with the help of AI, using [Claude Code](https://claude.com/claude-code) to speed up development: Claude writes the code, tests and documentation, and the maintainer sets the direction and reviews and approves the changes.
 
 ## The menu
 

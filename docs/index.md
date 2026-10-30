@@ -1,7 +1,7 @@
 # NetBox Routing Protocols
 
-> [!WARNING]
-> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
+!!! warning
+    **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
 
 A NetBox plugin to **document the routing configuration of your network**: static routes, BGP,
 OSPF, IS-IS and EIGRP, together with the objects they use (prefix lists, route policies, AS paths,
