@@ -315,13 +315,14 @@ def resequence(prefix_list, start=SEQUENCE_STEP, step=SEQUENCE_STEP):
     return resequence_entries(prefix_list.prefix_list_entries, start, step)
 
 
-def resequence_entries(entries, start=SEQUENCE_STEP, step=SEQUENCE_STEP):
+def resequence_entries(entries, start=SEQUENCE_STEP, step=SEQUENCE_STEP, reserve=0):
     """
     Renumber the entries (the related manager of a prefix list or an AS-path) keeping their
     order: `start`, then every `step`. Returns how many entries changed. Entries that
     already have their number are not touched. Done in one transaction: the entries that
     move go first to numbers above the maximum, so the unique (parent, sequence) constraint
-    is never hit half way.
+    is never hit half way. `reserve` is how many numbers above the maximum belong to someone
+    else (the final deny of a route policy), which the temporary numbers skip.
     """
     if start < 1 or step < 1:
         raise ValidationError(_('The first number and the step must be at least 1.'))
@@ -343,7 +344,7 @@ def resequence_entries(entries, start=SEQUENCE_STEP, step=SEQUENCE_STEP):
         ]
         # Two steps: out of the way (above the maximum), then to the final number
         for offset, (entry, _new) in enumerate(moves, start=1):
-            entry.sequence = MAX_SEQUENCE + offset
+            entry.sequence = MAX_SEQUENCE + reserve + offset
             entry.save()
         for entry, new in moves:
             entry.sequence = new

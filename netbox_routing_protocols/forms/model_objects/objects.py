@@ -463,7 +463,7 @@ class RoutePolicyEntryForm(PrimaryModelForm):
         ),
         FieldSet(
             TabbedGroups(
-                FieldSet('flow_control', name=_('Flow Control')),
+                FieldSet('jump_policy', name=_('Jump')),
                 FieldSet(
                     'match_prefix_list',
                     'match_aspath',
@@ -498,7 +498,7 @@ class RoutePolicyEntryForm(PrimaryModelForm):
             'route_policy',
             'sequence',
             'action',
-            'flow_control',
+            'jump_policy',
             'match_prefix_list',
             'match_aspath',
             'match_community_list',
@@ -522,7 +522,6 @@ class RoutePolicyEntryForm(PrimaryModelForm):
             'tags',
             'owner',
         )
-        labels = {'flow_control': _('Continue')}
         widgets = {
             'set_community_mode': InlineRadioSelect,
             'set_metric_mode': InlineRadioSelect,
@@ -533,10 +532,6 @@ class RoutePolicyEntryForm(PrimaryModelForm):
                 'empty to use the next one of the route policy (steps of %(step)s).'
             )
             % {'step': SEQUENCE_STEP},
-            'flow_control': _(
-                'Empty = not enabled; 0 = next entry; otherwise the sequence of the '
-                'entry to continue at'
-            ),
         }
 
     def __init__(self, *args, **kwargs):

@@ -252,6 +252,12 @@ class RoutePolicyEntryImportForm(PrimaryModelImportForm):
         required=False,
         help_text=_('Empty takes the next free one of the route policy'),
     )
+    jump_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        required=False,
+        help_text=_('Name of the route policy to jump to (a permit entry only)'),
+    )
     match_prefix_list = CSVModelMultipleChoiceField(
         queryset=PrefixList.objects.all(),
         to_field_name='name',
@@ -317,7 +323,7 @@ class RoutePolicyEntryImportForm(PrimaryModelImportForm):
             'route_policy',
             'sequence',
             'action',
-            'flow_control',
+            'jump_policy',
             'match_prefix_list',
             'match_aspath',
             'match_community_list',

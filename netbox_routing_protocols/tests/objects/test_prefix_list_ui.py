@@ -412,7 +412,9 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
         self.assertFalse(PrefixList.objects.filter(pk=self.used.pk).exists())
         self.template.refresh_from_db()
         self.assertIsNone(self.template.prefixlist_in)
-        self.assertFalse(RoutePolicyEntry.objects.get().match_prefix_list.exists())
+        self.assertFalse(
+            RoutePolicyEntry.objects.get(implicit=False).match_prefix_list.exists()
+        )
 
     def test_the_bulk_delete_confirmation_warns(self):
         self.login()
@@ -470,7 +472,9 @@ class ASPathDeleteWarningTestCase(SuperuserMixin, TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(ASPath.objects.filter(pk=self.used.pk).exists())
-        self.assertFalse(RoutePolicyEntry.objects.get().match_aspath.exists())
+        self.assertFalse(
+            RoutePolicyEntry.objects.get(implicit=False).match_aspath.exists()
+        )
 
     def test_the_bulk_delete_confirmation_warns(self):
         self.login()

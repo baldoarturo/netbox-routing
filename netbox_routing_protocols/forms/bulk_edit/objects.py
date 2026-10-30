@@ -85,8 +85,11 @@ class RoutePolicyEntryBulkEditForm(PrimaryModelBulkEditForm):
         choices=add_blank_choice(ActionChoices),
         required=False,
     )
-    flow_control = forms.IntegerField(
-        label=_('Continue'), required=False, min_value=0, max_value=4294967294
+    jump_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        label=_('Jump to Route Policy'),
+        required=False,
+        selector=True,
     )
     match_metric = forms.IntegerField(
         label=_('Match Metric'), required=False, min_value=0, max_value=4294967295
@@ -133,7 +136,7 @@ class RoutePolicyEntryBulkEditForm(PrimaryModelBulkEditForm):
         FieldSet(
             'route_policy',
             'action',
-            'flow_control',
+            'jump_policy',
             'description',
         ),
         FieldSet(
@@ -155,7 +158,7 @@ class RoutePolicyEntryBulkEditForm(PrimaryModelBulkEditForm):
     )
     nullable_fields = (
         'description',
-        'flow_control',
+        'jump_policy',
         'match_metric',
         'match_origin',
         'match_tag',

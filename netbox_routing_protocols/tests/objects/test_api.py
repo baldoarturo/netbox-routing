@@ -634,7 +634,7 @@ class RoutePolicyEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestC
                 'route_policy': cls.route_policy[0].pk,
                 'action': 'permit',
                 'sequence': 3,
-                'flow_control': 4,
+                'jump_policy': cls.route_policy[1].pk,
                 'match_tag': 4,
             },
             {
