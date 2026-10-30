@@ -15,6 +15,7 @@ __all__ = (
     'BGPInstanceRoutingPanel',
     'BGPInstanceVRFPanel',
     'BGPListenRangePanel',
+    'BGPRedistributionPanel',
     'BGPInstancePanel',
     'BGPAddressFamilyPanel',
     'BGPAddressFamilyOptionsPanel',

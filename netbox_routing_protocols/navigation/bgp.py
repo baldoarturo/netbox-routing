@@ -13,6 +13,7 @@ def build_menus():
         ('bgpaddressfamily', 'Address Families'),
         ('bgppeergroup', 'Peer Groups'),
         ('bgplistenrange', 'Listen Ranges'),
+        ('bgpredistribution', 'Redistribution'),
         ('bgppeer', 'Peers'),
         ('bgppeeraddressfamily', 'Peer Address Families'),
     )

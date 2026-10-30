@@ -11,6 +11,7 @@ from utilities.forms.rendering import FieldSet
 from utilities.forms.widgets import BulkEditNullBooleanSelect
 
 from netbox_routing_protocols.choices.bgp import *
+from netbox_routing_protocols.choices.ospf import OSPFRouteTypeChoices
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
@@ -18,6 +19,7 @@ __all__ = (
     'BGPAddressFamilyBulkEditForm',
     'BGPPeerGroupBulkEditForm',
     'BGPListenRangeBulkEditForm',
+    'BGPRedistributionBulkEditForm',
     'BGPPeerBulkEditForm',
     'BGPPeerAddressFamilyBulkEditForm',
     'BFDProfileBulkEditForm',
@@ -228,6 +230,28 @@ class BGPPeerGroupBulkEditForm(
         FieldSet('tenant', name=_('Tenancy')),
     )
     nullable_fields = _CONFIG_NULLABLE + ('listen_limit',)
+
+
+class BGPRedistributionBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
+    model = BGPRedistribution
+    metric = forms.IntegerField(
+        label=_('Metric'), required=False, min_value=0, max_value=4294967295
+    )
+    route_policy = DynamicModelChoiceField(
+        label=_('Route Policy'),
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+    )
+    ospf_match = forms.MultipleChoiceField(
+        label=_('OSPF Route Types'), choices=OSPFRouteTypeChoices, required=False
+    )
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('metric', 'route_policy', 'ospf_match', name=_('Redistribution')),
+        FieldSet('tenant', name=_('Tenancy')),
+    )
+    nullable_fields = ('metric', 'route_policy', 'ospf_match', 'description', 'tenant')
 
 
 class BGPListenRangeBulkEditForm(PrimaryModelBulkEditForm):

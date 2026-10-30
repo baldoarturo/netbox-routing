@@ -11,6 +11,7 @@ from netbox_routing_protocols.graphql.bgp.filters import (
     BGPAddressFamilyFilter,
     BGPPeerGroupFilter,
     BGPListenRangeFilter,
+    BGPRedistributionFilter,
     BGPPeerFilter,
     BGPPeerAddressFamilyFilter,
     BFDProfileFilter,
@@ -21,6 +22,7 @@ __all__ = (
     'BGPAddressFamilyType',
     'BGPPeerGroupType',
     'BGPListenRangeType',
+    'BGPRedistributionType',
     'BGPPeerType',
     'BGPPeerAddressFamilyType',
     'BFDProfileType',
@@ -96,6 +98,12 @@ class BGPAddressFamilyType(PrimaryObjectType):
     additional_paths_receive: bool | None
     additional_paths_install: bool | None
     long_lived_stale_time: int | None
+    redistributions: list[
+        Annotated[
+            "BGPRedistributionType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
     tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
@@ -166,6 +174,26 @@ class BGPListenRangeType(PrimaryObjectType):
         "BGPPeerGroupType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     prefix: Annotated["PrefixType", strawberry.lazy('ipam.graphql.types')]
+
+
+@strawberry_django.type(
+    models.BGPRedistribution, fields='__all__', filters=BGPRedistributionFilter
+)
+class BGPRedistributionType(PrimaryObjectType):
+    address_family: Annotated[
+        "BGPAddressFamilyType",
+        strawberry.lazy('netbox_routing_protocols.graphql.types'),
+    ]
+    protocol: str
+    metric: int | None
+    route_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    ospf_match: list[str]
+    tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
 @strawberry_django.type(models.BGPPeer, fields='__all__', filters=BGPPeerFilter)

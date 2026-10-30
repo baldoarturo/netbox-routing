@@ -17,6 +17,8 @@
   "bgppeeraddressfamily:list_objects_with_permission": 16,
   "bgppeergroup:api_list_objects": 12,
   "bgppeergroup:list_objects_with_permission": 16,
+  "bgpredistribution:api_list_objects": 12,
+  "bgpredistribution:list_objects_with_permission": 16,
   "community:api_list_objects": 12,
   "community:list_objects_with_permission": 16,
   "communitylist:api_list_objects": 12,

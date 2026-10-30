@@ -3,9 +3,29 @@ from utilities.choices import ChoiceSet
 __all__ = (
     'BGPAddressFamilyChoices',
     'BGPCommunityTypeChoices',
+    'BGPRedistributionProtocolChoices',
     'BGPMaximumPrefixActionChoices',
     'BGPStatusChoices',
 )
+
+
+class BGPRedistributionProtocolChoices(ChoiceSet):
+    """The routes BGP takes from another protocol into its address family (RFC 4271
+    section 9; vendors call it redistribute). BGP itself is not a source."""
+
+    CONNECTED = 'connected'
+    STATIC = 'static'
+    OSPF = 'ospf'
+    ISIS = 'isis'
+    EIGRP = 'eigrp'
+
+    CHOICES = [
+        (CONNECTED, 'Connected'),
+        (STATIC, 'Static'),
+        (OSPF, 'OSPF'),
+        (ISIS, 'IS-IS'),
+        (EIGRP, 'EIGRP'),
+    ]
 
 
 class BGPCommunityTypeChoices(ChoiceSet):

@@ -46,6 +46,7 @@ __all__ = (
     'BGPAddressFamilyViewSet',
     'BGPPeerGroupViewSet',
     'BGPListenRangeViewSet',
+    'BGPRedistributionViewSet',
     'BGPPeerViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',

@@ -10,6 +10,7 @@ __all__ = (
     'BGPAddressFamilyTable',
     'BGPPeerGroupTable',
     'BGPListenRangeTable',
+    'BGPRedistributionTable',
     'BGPPeerTable',
     'BGPPeerAddressFamilyTable',
     'BFDProfileTable',
@@ -130,6 +131,48 @@ class BGPPeerGroupTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable)
             'description',
         )
         default_columns = ('pk', 'id', 'name', 'instance', 'remote_as', 'enabled')
+
+
+class BGPRedistributionTable(TenancyColumnsMixin, NetBoxTable):
+    instance = tables.Column(
+        linkify=True, accessor='address_family__instance', verbose_name=_('Instance')
+    )
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+    protocol = tables.Column(linkify=True, verbose_name=_('Protocol'))
+    source = tables.Column(linkify=True, orderable=False, verbose_name=_('Source'))
+    route_policy = tables.Column(linkify=True, verbose_name=_('Route Policy'))
+    ospf_match = tables.Column(
+        accessor='ospf_match_display',
+        orderable=False,
+        verbose_name=_('OSPF Route Types'),
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = BGPRedistribution
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'address_family',
+            'protocol',
+            'source',
+            'metric',
+            'route_policy',
+            'ospf_match',
+            'tenant_group',
+            'tenant',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'address_family',
+            'protocol',
+            'source',
+            'metric',
+            'route_policy',
+        )
 
 
 class BGPListenRangeTable(NetBoxTable):

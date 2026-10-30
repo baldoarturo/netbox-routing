@@ -53,6 +53,7 @@ __all__ = (
     'BGPAddressFamilyBulkEditForm',
     'BGPPeerGroupBulkEditForm',
     'BGPListenRangeBulkEditForm',
+    'BGPRedistributionBulkEditForm',
     'BGPPeerBulkEditForm',
     'BGPPeerAddressFamilyBulkEditForm',
 )

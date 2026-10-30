@@ -12,6 +12,7 @@ __all__ = (
     'BGPAddressFamilyFilterSet',
     'BGPPeerGroupFilterSet',
     'BGPListenRangeFilterSet',
+    'BGPRedistributionFilterSet',
     'BGPPeerFilterSet',
     'BGPPeerAddressFamilyFilterSet',
     'OSPFInstanceFilterSet',

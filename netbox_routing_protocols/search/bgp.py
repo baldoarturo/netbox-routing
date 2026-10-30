@@ -47,6 +47,16 @@ class BGPListenRangeIndex(SearchIndex):
 
 
 @register_search
+class BGPRedistributionIndex(SearchIndex):
+    model = BGPRedistribution
+    fields = (
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('address_family', 'protocol', 'source')
+
+
+@register_search
 class BGPPeerIndex(SearchIndex):
     model = BGPPeer
     fields = (

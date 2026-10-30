@@ -13,6 +13,8 @@ from utilities.forms.fields import (
 from utilities.forms.rendering import FieldSet, TabbedGroups
 
 from netbox_routing_protocols.choices.bgp import BGPCommunityTypeChoices
+from netbox_routing_protocols.choices.ospf import OSPFRouteTypeChoices
+from netbox_routing_protocols.models import EIGRPRouter, ISISInstance, OSPFInstance
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.models.bgp import *
 
@@ -21,6 +23,7 @@ __all__ = (
     'BGPAddressFamilyForm',
     'BGPPeerGroupForm',
     'BGPListenRangeForm',
+    'BGPRedistributionForm',
     'BGPPeerForm',
     'BGPPeerAddressFamilyForm',
     'BFDProfileForm',
@@ -267,6 +270,81 @@ class BGPListenRangeForm(PrimaryModelForm):
     class Meta:
         model = BGPListenRange
         fields = ('peer_group', 'prefix', *_COMMON_FIELDS)
+
+
+class BGPRedistributionForm(TenancyForm, PrimaryModelForm):
+    address_family = DynamicModelChoiceField(
+        queryset=BGPAddressFamily.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Address Family'),
+    )
+    ospf_source = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Source'),
+        help_text=_('An OSPF instance on the device of the BGP instance'),
+    )
+    isis_source = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('IS-IS Source'),
+    )
+    eigrp_source = DynamicModelChoiceField(
+        queryset=EIGRPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('EIGRP Source'),
+    )
+    ospf_match = forms.MultipleChoiceField(
+        choices=OSPFRouteTypeChoices,
+        required=False,
+        label=_('OSPF Route Types'),
+        help_text=_('Empty takes all of them'),
+    )
+    route_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Route Policy'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'address_family',
+            'protocol',
+            'metric',
+            'route_policy',
+            'description',
+            name=_('Redistribution'),
+        ),
+        FieldSet(
+            'ospf_source',
+            'ospf_match',
+            'isis_source',
+            'eigrp_source',
+            name=_('Source'),
+        ),
+        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
+    )
+
+    class Meta:
+        model = BGPRedistribution
+        fields = (
+            'address_family',
+            'protocol',
+            'ospf_source',
+            'isis_source',
+            'eigrp_source',
+            'metric',
+            'route_policy',
+            'ospf_match',
+            'tenant_group',
+            'tenant',
+            *_COMMON_FIELDS,
+        )
 
 
 class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):

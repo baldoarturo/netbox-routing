@@ -6,7 +6,15 @@ from netbox.filtersets import NetBoxModelFilterSet
 from dcim.models import Device
 from dcim.models import Interface
 from ipam.models import ASN, VRF, IPAddress, Prefix
-from netbox_routing_protocols.models import ASPath, PrefixList, RoutePolicy
+from netbox_routing_protocols.choices.ospf import OSPFRouteTypeChoices
+from netbox_routing_protocols.models import (
+    ASPath,
+    EIGRPRouter,
+    ISISInstance,
+    OSPFInstance,
+    PrefixList,
+    RoutePolicy,
+)
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filtersets import register_filterset
 
@@ -18,6 +26,7 @@ __all__ = (
     'BGPAddressFamilyFilterSet',
     'BGPPeerGroupFilterSet',
     'BGPListenRangeFilterSet',
+    'BGPRedistributionFilterSet',
     'BGPPeerFilterSet',
     'BGPPeerAddressFamilyFilterSet',
     'BFDProfileFilterSet',
@@ -297,6 +306,68 @@ class BGPListenRangeFilterSet(NetBoxModelFilterSet):
             | Q(peer_group__instance__name__icontains=value)
             | Q(description__icontains=value)
         )
+
+
+@register_filterset
+class BGPRedistributionFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='address_family__instance',
+        queryset=BGPInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    address_family_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='address_family',
+        queryset=BGPAddressFamily.objects.all(),
+        label=_('Address Family (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='address_family__instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    ospf_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_source',
+        queryset=OSPFInstance.objects.all(),
+        label=_('OSPF Source (ID)'),
+    )
+    isis_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='isis_source',
+        queryset=ISISInstance.objects.all(),
+        label=_('IS-IS Source (ID)'),
+    )
+    eigrp_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='eigrp_source',
+        queryset=EIGRPRouter.objects.all(),
+        label=_('EIGRP Source (ID)'),
+    )
+    route_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Route Policy (ID)'),
+    )
+    protocol = django_filters.MultipleChoiceFilter(
+        choices=BGPRedistributionProtocolChoices
+    )
+    ospf_match = django_filters.MultipleChoiceFilter(
+        field_name='ospf_match',
+        lookup_expr='contains',
+        choices=OSPFRouteTypeChoices,
+    )
+
+    class Meta:
+        model = BGPRedistribution
+        fields = ('id', 'protocol', 'metric', 'description')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(address_family__instance__name__icontains=value)
+            | Q(address_family__instance__device__name__icontains=value)
+            | Q(ospf_source__name__icontains=value)
+            | Q(isis_source__process_tag__icontains=value)
+            | Q(description__icontains=value)
+        ).distinct()
 
 
 @register_filterset

@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
+from netbox_routing_protocols.choices.ospf import OSPFRouteTypeChoices
 from netbox_routing_protocols.models.policy import RoutePolicyMixin
 from netbox_routing_protocols.choices.bgp import *
 
@@ -17,6 +18,7 @@ __all__ = (
     'BGPAddressFamily',
     'BGPPeerGroup',
     'BGPListenRange',
+    'BGPRedistribution',
     'BGPPeer',
     'BGPPeerAddressFamily',
     'BFDProfile',
@@ -688,6 +690,177 @@ class BGPListenRange(PrimaryModel):
             errors['peer_group'] = _(
                 'A peer group that listens needs a remote AS: the neighbors it '
                 'accepts are not known beforehand.'
+            )
+        if errors:
+            raise ValidationError(errors)
+
+
+class BGPRedistribution(PrimaryModel):
+    """Routes taken from another protocol into an address family of a BGP instance:
+    the protocol, the source instance (for OSPF, IS-IS and EIGRP), the metric (MED,
+    RFC 4271 section 5.1.4) and a route policy that filters them. The source must be
+    on the device of the instance and in its VRF."""
+
+    SOURCE_FIELDS = {
+        BGPRedistributionProtocolChoices.OSPF: 'ospf_source',
+        BGPRedistributionProtocolChoices.ISIS: 'isis_source',
+        BGPRedistributionProtocolChoices.EIGRP: 'eigrp_source',
+    }
+
+    address_family = models.ForeignKey(
+        verbose_name=_('Address Family'),
+        to='netbox_routing_protocols.BGPAddressFamily',
+        on_delete=models.CASCADE,
+        related_name='redistributions',
+    )
+    protocol = models.CharField(
+        verbose_name=_('Protocol'),
+        max_length=20,
+        choices=BGPRedistributionProtocolChoices,
+    )
+    ospf_source = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFInstance',
+        related_name='bgp_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('OSPF Source'),
+        blank=True,
+        null=True,
+    )
+    isis_source = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='bgp_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('IS-IS Source'),
+        blank=True,
+        null=True,
+    )
+    eigrp_source = models.ForeignKey(
+        to='netbox_routing_protocols.EIGRPRouter',
+        related_name='bgp_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('EIGRP Source'),
+        blank=True,
+        null=True,
+    )
+    metric = models.PositiveBigIntegerField(
+        verbose_name=_('Metric'),
+        help_text=_('MED of the redistributed routes (RFC 4271)'),
+        validators=[MaxValueValidator(4294967295)],
+        blank=True,
+        null=True,
+    )
+    route_policy = models.ForeignKey(
+        verbose_name=_('Route Policy'),
+        to='netbox_routing_protocols.RoutePolicy',
+        on_delete=models.PROTECT,
+        related_name='bgp_redistributions',
+        blank=True,
+        null=True,
+        help_text=_('Filters the redistributed routes'),
+    )
+    ospf_match = ArrayField(
+        base_field=models.CharField(max_length=20, choices=OSPFRouteTypeChoices),
+        verbose_name=_('OSPF Route Types'),
+        help_text=_(
+            'Types of OSPF routes to redistribute, when the source is OSPF. '
+            'Empty takes all of them'
+        ),
+        blank=True,
+        default=list,
+    )
+    tenant = models.ForeignKey(
+        verbose_name=_('Tenant'),
+        to='tenancy.Tenant',
+        on_delete=models.PROTECT,
+        related_name='bgp_redistributions',
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = (
+        'address_family',
+        'protocol',
+        'metric',
+        'route_policy',
+        'ospf_match',
+        'tenant',
+    )
+    prerequisite_models = ('netbox_routing_protocols.BGPAddressFamily',)
+
+    class Meta:
+        verbose_name = 'BGP Redistribution'
+        verbose_name_plural = 'BGP Redistributions'
+        ordering = ('address_family', 'protocol', 'pk')
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    'address_family',
+                    'protocol',
+                    'ospf_source',
+                    'isis_source',
+                    'eigrp_source',
+                ),
+                name='%(app_label)s_%(class)s_unique_af_source',
+                violation_error_message=_(
+                    'This source is already redistributed into the address family.'
+                ),
+                nulls_distinct=False,
+            ),
+        ]
+
+    def __str__(self):
+        if self.source is None:
+            return self.get_protocol_display()
+        return f'{self.get_protocol_display()} {self.source}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:bgpredistribution', args=[self.pk]
+        )
+
+    @property
+    def source(self):
+        field = self.SOURCE_FIELDS.get(self.protocol)
+        return getattr(self, field) if field else None
+
+    @property
+    def ospf_match_display(self):
+        choices = dict(OSPFRouteTypeChoices.CHOICES)
+        return ', '.join(choices.get(item, item) for item in self.ospf_match)
+
+    def clean(self):
+        super().clean()
+        if not self.address_family_id:
+            return
+        errors = {}
+        if self.ospf_match and self.protocol != BGPRedistributionProtocolChoices.OSPF:
+            errors['ospf_match'] = _(
+                'The route types only apply when the source is OSPF.'
+            )
+        for protocol, field in self.SOURCE_FIELDS.items():
+            is_set = getattr(self, f'{field}_id') is not None
+            if protocol == self.protocol and not is_set:
+                errors[field] = _('A source is required for this protocol.')
+            elif protocol != self.protocol and is_set:
+                errors[field] = _(
+                    'Only the source of the selected protocol is allowed.'
+                )
+        if errors:
+            raise ValidationError(errors)
+
+        if self.source is None:
+            return
+        instance = self.address_family.instance
+        source = self.source
+        if source.device_id != instance.device_id:
+            errors[self.SOURCE_FIELDS[self.protocol]] = _(
+                'The source must be on the same device as the BGP instance.'
+            )
+        elif getattr(source, 'vrf_id', None) != instance.vrf_id:
+            # an EIGRP router has no VRF: it runs in the global table
+            errors[self.SOURCE_FIELDS[self.protocol]] = _(
+                'The source must be in the same VRF as the BGP instance (an EIGRP '
+                'router is in the global table).'
             )
         if errors:
             raise ValidationError(errors)

@@ -8,6 +8,7 @@ __all__ = (
     'BGPAddressFamilyViewSet',
     'BGPPeerGroupViewSet',
     'BGPListenRangeViewSet',
+    'BGPRedistributionViewSet',
     'BGPPeerViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',
@@ -61,6 +62,21 @@ class BGPListenRangeViewSet(NetBoxModelViewSet):
     )
     serializer_class = BGPListenRangeSerializer
     filterset_class = filtersets.BGPListenRangeFilterSet
+
+
+class BGPRedistributionViewSet(NetBoxModelViewSet):
+    queryset = BGPRedistribution.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'ospf_source__device',
+        'isis_source__device',
+        'eigrp_source__device',
+        'route_policy',
+        'tenant',
+    )
+    serializer_class = BGPRedistributionSerializer
+    filterset_class = filtersets.BGPRedistributionFilterSet
 
 
 class BGPPeerViewSet(NetBoxModelViewSet):
