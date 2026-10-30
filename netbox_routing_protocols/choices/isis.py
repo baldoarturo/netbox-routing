@@ -222,6 +222,17 @@ class ISISSettingChoices(ChoiceSet):
         (PURGE_ORIGINATOR_ID, 'Purge Originator Identification'),
     ]
 
+    # Short explanation shown under a key on the form
+    HELP_TEXTS = {
+        MULTI_TOPOLOGY: (
+            'RFC 5120: IPv4 and IPv6 each get their own topology and path '
+            'calculation, so a link that lacks one family is not used for it. '
+            'Without it both families share one topology.'
+        ),
+    }
+    # Keys shown as a checkbox instead of a True/False/blank select
+    CHECKBOXES = (MULTI_TOPOLOGY,)
+
     FIELD_TYPES = {
         SPF_SECOND_WAIT: 'integer',
         SPF_RAPID_RUNS: 'integer',
