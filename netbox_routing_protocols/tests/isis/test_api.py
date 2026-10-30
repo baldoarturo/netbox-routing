@@ -420,6 +420,7 @@ class ISISPrefixSIDAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestC
     def setUpTestData(cls):
         device = create_test_device(name='Test Device')
         inst = ISISInstance.objects.create(device=device, process_tag='0')
+        ISISFlexAlgo.objects.create(instance=inst, algo_id=128)
         ifaces = [
             Interface.objects.create(
                 device=device, name=f'Loopback {n}', type='virtual'
@@ -457,6 +458,7 @@ class ISISSRv6LocatorAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTes
             ISISInstance.objects.create(device=device, process_tag=str(n))
             for n in range(2)
         ]
+        ISISFlexAlgo.objects.create(instance=insts[1], algo_id=128)
         ISISSRv6Locator.objects.create(
             instance=insts[0], name='LOC1', prefix='2001:db8:0:a1::/64', enabled=True
         )

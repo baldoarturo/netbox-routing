@@ -392,6 +392,8 @@ class ISISPrefixSIDModelTestCase(TestCase):
         instance = ISISInstance.objects.create(
             device=device, process_tag='CORE', net='49.0001.0000.0000.0001.00'
         )
+        for algo_id in (128, 255):
+            ISISFlexAlgo.objects.create(instance=instance, algo_id=algo_id)
         loopback = Interface.objects.create(
             name='Loopback0', device=device, type='virtual'
         )
@@ -504,6 +506,8 @@ class ISISSRv6LocatorModelTestCase(TestCase):
         cls.instance = ISISInstance.objects.create(
             device=device, process_tag='CORE', net='49.0001.0000.0000.0001.00'
         )
+        for algo_id in (128, 255):
+            ISISFlexAlgo.objects.create(instance=cls.instance, algo_id=algo_id)
 
     def test_clean_rejects_oversized_sid_structure(self):
         # 40 + 24 + 48 + 32 = 144 > 128
