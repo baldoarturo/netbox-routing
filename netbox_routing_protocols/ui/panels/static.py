@@ -21,6 +21,6 @@ class StaticRouteRoutePanel(panels.ObjectAttributesPanel):
     interface_next_hop = attrs.TextAttr(
         'interface_next_hop', label=_('Interface Next Hop')
     )
-    metric = attrs.TextAttr('metric', label=_('Metric'))
+    distance = attrs.TextAttr('distance', label=_('Distance'))
     tag = attrs.TextAttr('tag', label=_('Route Tag'))
     permanent = attrs.BooleanAttr('permanent', label=_('Permanent'))

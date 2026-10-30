@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q
 from django.urls import reverse
@@ -40,23 +41,28 @@ class StaticRoute(PrimaryModel):
         max_length=50,
         verbose_name='Name',
         blank=True,
-        null=True,
+        default='',
         help_text='Optional name for this static route',
     )
-    metric = models.PositiveSmallIntegerField(
-        verbose_name='Metric',
+    distance = models.PositiveSmallIntegerField(
+        verbose_name=_('Distance'),
+        help_text=_(
+            'Administrative distance (Junos: preference, RFC 8349: route-preference). '
+            'Lower wins; 1-255, default 1'
+        ),
+        validators=[MinValueValidator(1), MaxValueValidator(255)],
         blank=True,
         default=1,
     )
     permanent = models.BooleanField(
+        verbose_name=_('Permanent'),
         default=False,
-        blank=True,
-        null=True,
     )
 
-    tag = models.IntegerField(
+    tag = models.PositiveBigIntegerField(
         verbose_name='Route Tag',
-        help_text='Optional tag for this static route',
+        help_text='Optional tag for this static route (0-4294967295)',
+        validators=[MaxValueValidator(4294967295)],
         blank=True,
         null=True,
     )
@@ -68,18 +74,19 @@ class StaticRoute(PrimaryModel):
         'next_hop',
         'interface_next_hop',
         'vrf',
-        'metric',
+        'distance',
+        'tag',
         'permanent',
     )
 
     prerequisite_models = ('dcim.Device',)
 
     class Meta:
-        ordering = ['vrf', 'prefix', 'metric', 'pk']
+        ordering = ['vrf', 'prefix', 'distance', 'pk']
         constraints = (
             CheckConstraint(
-                condition=Q(Q(metric__lte=255) & Q(metric__gte=0)),
-                name='metric_gte_lte',
+                condition=Q(distance__lte=255) & Q(distance__gte=1),
+                name='staticroute_distance_1_255',
             ),
         )
 

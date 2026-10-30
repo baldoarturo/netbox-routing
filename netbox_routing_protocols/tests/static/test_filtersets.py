@@ -33,7 +33,7 @@ class StaticRouteTestCase(TestCase):
                 prefix='1.1.1.0/24',
                 next_hop=netaddr.IPAddress('10.10.10.2'),
             ),
-            StaticRoute(name="Route 3", prefix='0.0.0.0/0', next_hop=nh, metric=100),
+            StaticRoute(name="Route 3", prefix='0.0.0.0/0', next_hop=nh, distance=100),
         )
 
         StaticRoute.objects.bulk_create(routes)
@@ -66,8 +66,8 @@ class StaticRouteTestCase(TestCase):
         params = {'next_hop': '10.10.10.1'}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
-    def test_metric(self):
-        params = {'metric': [1]}
+    def test_distance(self):
+        params = {'distance': [1]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_q_device_name(self):

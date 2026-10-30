@@ -18,5 +18,6 @@ class StaticRouteType(PrimaryObjectType):
     prefix: str | None
     next_hop: str | None
     interface_next_hop: str | None
-    metric: int | None
-    permanent: bool | None
+    distance: int
+    permanent: bool
+    tag: int | None

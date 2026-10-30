@@ -24,7 +24,7 @@ class StaticRouteTestCase(TestCase):
                 'vrf': None,
                 'prefix': '0.0.0.0/0',
                 'next_hop': '10.10.10.1',
-                'metric': 1,
+                'distance': 1,
             }
         )
         self.assertTrue(form.is_valid())
@@ -49,13 +49,13 @@ class StaticRouteTestCase(TestCase):
 
     def test_bulk_edit_form_fields(self):
         form = StaticRouteBulkEditForm()
-        for field in ('name', 'interface_next_hop', 'tag', 'metric'):
+        for field in ('name', 'interface_next_hop', 'tag', 'distance'):
             self.assertIn(field, form.fields)
         for _, names in [(fs.name, fs.items) for fs in form.fieldsets]:
             for name in names:
                 self.assertIn(name, form.fields)
 
-    def test_bulk_edit_metric_bounds(self):
-        form = StaticRouteBulkEditForm(data={'metric': 300})
+    def test_bulk_edit_distance_bounds(self):
+        form = StaticRouteBulkEditForm(data={'distance': 300})
         self.assertFalse(form.is_valid())
-        self.assertIn('metric', form.errors)
+        self.assertIn('distance', form.errors)

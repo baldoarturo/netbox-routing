@@ -39,7 +39,7 @@ class StaticRouteTestCase(
                 prefix='1.1.1.0/24',
                 next_hop=netaddr.IPAddress('10.10.10.2'),
             ),
-            StaticRoute(name="Route 3", prefix='0.0.0.0/0', next_hop=nh, metric=100),
+            StaticRoute(name="Route 3", prefix='0.0.0.0/0', next_hop=nh, distance=100),
         )
 
         StaticRoute.objects.bulk_create(routes)
@@ -57,19 +57,19 @@ class StaticRouteTestCase(
         }
 
         cls.bulk_edit_data = {
-            'metric': 10,
+            'distance': 10,
             'tag': 7,
             'interface_next_hop': 'Gi0/1',
         }
 
         cls.csv_data = (
-            'devices,vrf,prefix,next_hop,interface_next_hop,metric,tag',
+            'devices,vrf,prefix,next_hop,interface_next_hop,distance,tag',
             'Device 1,,10.1.0.0/16,10.10.10.9,,5,3',
             '"Device 1,Device 2",Test VRF,10.2.0.0/16,,Gi0/1,1,',
         )
 
         cls.csv_update_data = (
-            'id,metric,tag',
+            'id,distance,tag',
             f'{routes[0].pk},50,1',
             f'{routes[1].pk},60,2',
         )
