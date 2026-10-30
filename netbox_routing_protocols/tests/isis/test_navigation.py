@@ -18,6 +18,7 @@ class ISISNavigationTestCase(SimpleTestCase):
     EXPECTED_MODELS = (
         'isisinstance',
         'isisinterface',
+        'isisareaaddress',
         'isissetting',
         'isislevel',
         'isissegmentrouting',

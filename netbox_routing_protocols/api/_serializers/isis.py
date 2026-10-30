@@ -21,6 +21,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAreaAddress,
 )
 from netbox_routing_protocols.api._serializers.objects import RoutePolicySerializer
 
@@ -34,6 +35,7 @@ __all__ = (
     'ISISFlexAlgoSerializer',
     'ISISPrefixSIDSerializer',
     'ISISSRv6LocatorSerializer',
+    'ISISAreaAddressSerializer',
 )
 
 
@@ -357,3 +359,27 @@ class ISISInterfaceSerializer(NetBoxModelSerializer):
             'interface',
             'address_family',
         )
+
+
+class ISISAreaAddressSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:isisareaaddress-detail'
+    )
+    instance = ISISInstanceSerializer(nested=True)
+
+    class Meta:
+        model = ISISAreaAddress
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'net',
+            'area',
+            'system_id',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'instance', 'net')

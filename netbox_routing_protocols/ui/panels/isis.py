@@ -17,6 +17,7 @@ __all__ = (
     'ISISFlexAlgoPanel',
     'ISISPrefixSIDPanel',
     'ISISSRv6LocatorPanel',
+    'ISISAreaAddressPanel',
     'ISISRedistributionPanel',
     'ISISSummaryAddressPanel',
     'ISISRouteLeakPanel',
@@ -121,6 +122,9 @@ class ISISInstancePanel(panels.ObjectAttributesPanel):
     vrf = attrs.RelatedObjectAttr('vrf', linkify=True)
     process_tag = attrs.TextAttr('process_tag', label=_('Process Tag'))
     net = attrs.TextAttr('net', label=_('NET'))
+    duplicate_system_ids = attrs.TextAttr(
+        'duplicate_system_ids_display', label=_('Same System ID In')
+    )
     is_type = attrs.ChoiceAttr('is_type', label=_('IS Type'))
     import_policy = attrs.RelatedObjectAttr(
         'import_policy', linkify=True, label=_('Import Policy')
@@ -244,4 +248,12 @@ class ISISRouteLeakPanel(panels.ObjectAttributesPanel):
     instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
     address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
     route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISAreaAddressPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    net = attrs.TextAttr('net', label=_('NET'))
+    area = attrs.TextAttr('area', label=_('Area'))
+    system_id = attrs.TextAttr('system_id', label=_('System ID'))
     description = attrs.TextAttr('description', label=_('Description'))

@@ -20,6 +20,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
@@ -36,6 +37,7 @@ __all__ = (
     'ISISFlexAlgoImportForm',
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
+    'ISISAreaAddressImportForm',
     'ISISRedistributionImportForm',
     'ISISSummaryAddressImportForm',
     'ISISRouteLeakImportForm',
@@ -425,3 +427,15 @@ class ISISRouteLeakImportForm(NetBoxModelImportForm):
             'comments',
             'tags',
         )
+
+
+class ISISAreaAddressImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISAreaAddress
+        fields = ('instance', 'net', 'description', 'comments', 'tags')

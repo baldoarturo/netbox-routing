@@ -17,6 +17,7 @@ from netbox_routing_protocols.graphql.isis.filters import (
     ISISFlexAlgoFilter,
     ISISPrefixSIDFilter,
     ISISSRv6LocatorFilter,
+    ISISAreaAddressFilter,
     ISISRedistributionFilter,
     ISISSummaryAddressFilter,
     ISISRouteLeakFilter,
@@ -32,6 +33,7 @@ __all__ = (
     'ISISFlexAlgoType',
     'ISISPrefixSIDType',
     'ISISSRv6LocatorType',
+    'ISISAreaAddressType',
     'ISISRedistributionType',
     'ISISSummaryAddressType',
     'ISISRouteLeakType',
@@ -261,3 +263,13 @@ class ISISRouteLeakType(PrimaryObjectType):
     ]
     address_family: str
     route_policy: str
+
+
+@strawberry_django.type(
+    models.ISISAreaAddress, fields='__all__', filters=ISISAreaAddressFilter
+)
+class ISISAreaAddressType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    net: str

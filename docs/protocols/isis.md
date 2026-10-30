@@ -27,6 +27,7 @@ IS-IS instance (a process on a device, optionally in a VRF)
  ├─ Segment routing (SR-MPLS, SRv6, SRGB/SRLB)
  ├─ Flex-Algo        ├─ SRv6 locator        └─ Settings
  ├─ Redistribution   ├─ Summary address     └─ Route leak
+ ├─ Area address (more NETs for migrations and area merges)
  └─ Interface (device interface + address family)
      ├─ Interface level (per-level metric and hello settings)
      ├─ Prefix-SID
@@ -210,6 +211,25 @@ the router, split into *block* and *node* parts (`LOC = Block:Node` in RFC 8986)
 | Enabled | The instance advertises the locator. |
 | Vendor extensions | JSON for vendor details with no cross-vendor equivalent. |
 
+## Area addresses
+
+**IS-IS → Area Addresses**
+
+A router can belong to **up to three areas at once** (ISO 10589 7.1.4). This is what is done while two areas are merged or a router is moved from one area to another: it keeps its old area and gets the new one, and the old one is removed once everything has converged. The **NET** of the instance is the first area address; each entry here adds another NET.
+
+| Field | Meaning |
+| --- | --- |
+| Instance | The IS-IS instance. |
+| NET | Network Entity Title with the new area, for example `49.0002.0001.0001.0001.00`. The area and system ID are shown split in the list. |
+
+Rules:
+
+- All the NETs of an instance have the **same system ID** (the 6 bytes before the last one): only the area changes. Changing the system ID of the instance while it has area addresses is rejected.
+- The area cannot be one the instance already has, and an instance has at most **three** (the NET plus two more).
+- The last byte (selector) must be `00`, as in the NET of the instance.
+
+**Duplicate system IDs.** Two routers with the same system ID in the same area cannot form adjacencies. The page of an instance shows **Same System ID In** with the other instances that share a system ID and an area (counting their added area addresses too); `—` means there are none. It is a warning, nothing is blocked.
+
 ## Redistribution
 
 **IS-IS → Redistribution**
@@ -310,6 +330,8 @@ IS-IS instance
 ├─ Flex-Algo
 │     instance → IS-IS instance · algo_id · metric_type · priority
 │     · admin_group_exclude · admin_group_include_any · admin_group_include_all
+├─ Area address
+│     instance → IS-IS instance · net (the area and system_id are read-only, derived from it)
 ├─ Redistribution
 │     instance → IS-IS instance · address_family {IPv4 | IPv6}
 │     · protocol {Connected | Static | EIGRP | BGP | OSPF | IS-IS}

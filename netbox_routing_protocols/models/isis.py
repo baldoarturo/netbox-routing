@@ -27,6 +27,7 @@ from netbox_routing_protocols.helpers.isis import (
     auth_pair_errors,
     metric_errors,
     net_error,
+    net_parts,
     range_errors,
     router_id_error,
     scope_levels,
@@ -464,9 +465,43 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
         if self.net and (message := net_error(self.net)):
             errors['net'] = message
         errors.update(self._range_errors())
+        if self.pk is not None and (mine := net_parts(self.net)):
+            if any(
+                (parts := net_parts(extra)) and parts[1] != mine[1]
+                for extra in self.area_addresses.values_list('net', flat=True)
+            ):
+                errors['net'] = _(
+                    'The system ID differs from the one of its area addresses.'
+                )
         if errors:
             raise ValidationError(errors)
         self._clean_children()
+
+    @property
+    def area_address_list(self):
+        """The NET plus the area addresses added to the instance."""
+        nets = [self.net] if self.net else []
+        if self.pk is not None:
+            nets += [extra.net for extra in self.area_addresses.all()]
+        return nets
+
+    @property
+    def duplicate_system_ids(self):
+        """Other instances that have the same system ID in a shared area: two routers
+        with one system ID in an area cannot form adjacencies (ISO 10589 7.1.4)."""
+        mine = {parts for net in self.area_address_list if (parts := net_parts(net))}
+        if not mine:
+            return []
+        found = []
+        candidates = ISISInstance.objects.exclude(pk=self.pk).select_related('device')
+        for other in candidates.prefetch_related('area_addresses'):
+            if any(net_parts(net) in mine for net in other.area_address_list):
+                found.append(other)
+        return found
+
+    @property
+    def duplicate_system_ids_display(self):
+        return ', '.join(str(other) for other in self.duplicate_system_ids) or '—'
 
     def _range_errors(self):
         """Limits of the timers and counters (ISO 10589 7.3, vendor documentation) and
@@ -1966,3 +2001,95 @@ class ISISRouteLeak(PrimaryModel):
                     )
                 }
             )
+
+
+class ISISAreaAddress(PrimaryModel):
+    """
+    An area address added to an instance: a router can belong to up to three areas
+    at once (ISO 10589 7.1.4), which is how areas are merged and routers moved from
+    one area to another. All of its NETs share the system ID, so only the area
+    changes. The NET of the instance is the first one.
+    """
+
+    MAX_AREA_ADDRESSES = 3
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='area_addresses',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    net = models.CharField(
+        verbose_name=_('NET'),
+        max_length=100,
+        help_text=_(
+            'Network Entity Title with another area and the system ID of the '
+            'instance (e.g. 49.0002.0001.0001.0001.00)'
+        ),
+    )
+
+    clone_fields = ('instance',)
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Area Address'
+        verbose_name_plural = 'IS-IS Area Addresses'
+        ordering = ('instance', 'net', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'net'),
+                name='%(app_label)s_%(class)s_unique_instance_net',
+                violation_error_message=_(
+                    'This NET is already an area address of the instance.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return self.net
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isisareaaddress', args=[self.pk]
+        )
+
+    @property
+    def area(self):
+        parts = net_parts(self.net)
+        return parts[0] if parts else None
+
+    @property
+    def system_id(self):
+        parts = net_parts(self.net)
+        return parts[1] if parts else None
+
+    def clean(self):
+        super().clean()
+        if not self.net:
+            return
+        if message := net_error(self.net):
+            raise ValidationError({'net': message})
+        if not self.instance_id:
+            return
+        mine = net_parts(self.net)
+        others = [
+            *([self.instance.net] if self.instance.net else []),
+            *self.instance.area_addresses.exclude(pk=self.pk).values_list(
+                'net', flat=True
+            ),
+        ]
+        known = [parts for net in others if (parts := net_parts(net))]
+        errors = {}
+        if any(parts[1] != mine[1] for parts in known):
+            errors['net'] = _(
+                'All the NETs of an instance have the same system ID: '
+                'only the area address changes.'
+            )
+        elif any(parts[0] == mine[0] for parts in known):
+            errors['net'] = _('The instance already has this area address.')
+        elif len(others) >= self.MAX_AREA_ADDRESSES:
+            errors['net'] = _(
+                'A router has at most {count} area addresses (ISO 10589).'
+            ).format(count=self.MAX_AREA_ADDRESSES)
+        if errors:
+            raise ValidationError(errors)

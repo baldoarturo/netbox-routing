@@ -20,6 +20,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
@@ -34,6 +35,7 @@ __all__ = (
     'ISISInterfaceLevelAPITestCase',
     'ISISSegmentRoutingAPITestCase',
     'ISISFlexAlgoAPITestCase',
+    'ISISAreaAddressAPITestCase',
     'ISISRedistributionAPITestCase',
     'ISISSummaryAddressAPITestCase',
     'ISISRouteLeakAPITestCase',
@@ -785,4 +787,31 @@ class ISISRouteLeakAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestC
                 'address_family': 'ipv4',
                 'route_policy': 'LEAK-L2',
             },
+        ]
+
+
+class ISISAreaAddressAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
+    model = ISISAreaAddress
+    view_namespace = 'plugins-api:netbox_routing_protocols'
+    graphql_base_name = 'isis_area_address'
+    brief_fields = ['display', 'id', 'instance', 'net', 'url']
+    user_permissions = ('netbox_routing_protocols.view_isisinstance',)
+    bulk_update_data = {'description': 'migration'}
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        inst = ISISInstance.objects.create(
+            device=device, process_tag='0', net='49.0001.0000.0000.0001.00'
+        )
+        for area in ('0002', '0003'):
+            ISISAreaAddress.objects.create(
+                instance=inst, net=f'49.{area}.0000.0000.0001.00'
+            )
+        inst2 = ISISInstance.objects.create(
+            device=device, process_tag='1', net='49.0001.0000.0000.0002.00'
+        )
+        ISISAreaAddress.objects.create(instance=inst2, net='49.0009.0000.0000.0002.00')
+        cls.create_data = [
+            {'instance': inst2.pk, 'net': '49.0008.0000.0000.0002.00'},
         ]

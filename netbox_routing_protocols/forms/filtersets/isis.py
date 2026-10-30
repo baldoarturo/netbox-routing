@@ -33,6 +33,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
@@ -49,6 +50,7 @@ __all__ = (
     'ISISFlexAlgoFilterForm',
     'ISISPrefixSIDFilterForm',
     'ISISSRv6LocatorFilterForm',
+    'ISISAreaAddressFilterForm',
     'ISISRedistributionFilterForm',
     'ISISSummaryAddressFilterForm',
     'ISISRouteLeakFilterForm',
@@ -359,5 +361,26 @@ class ISISRouteLeakFilterForm(NetBoxModelFilterSetForm):
         choices=ISISAddressFamilyChoices,
         required=False,
         label=_('Address Family'),
+    )
+    tag = TagFilterField(model)
+
+
+class ISISAreaAddressFilterForm(NetBoxModelFilterSetForm):
+    model = ISISAreaAddress
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('IS-IS')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
     )
     tag = TagFilterField(model)
