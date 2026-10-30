@@ -55,7 +55,7 @@ class StaticRouteFilterSet(NetBoxModelFilterSet):
             'vrf',
             'vrf_id',
             'prefix',
-            'metric',
+            'distance',
             'next_hop',
         )
 

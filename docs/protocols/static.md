@@ -18,9 +18,9 @@ that carry it.
 | VRF | Optional. Leave empty for the global routing table. |
 | Next hop | The IP address to forward to. |
 | Interface next hop | The outgoing interface name, for routes without an IP next hop (a point-to-point link, for example). |
-| Metric | The route's preference when several routes to the same prefix exist; lower wins. Defaults to 1. |
+| Distance | The administrative distance (Cisco IOS/NX-OS/EOS) or *preference* (Junos); RFC 8349 calls it `route-preference`. When several routes to the same prefix exist, the lowest wins. 1 to 255, default 1. It was called *Metric* before; the REST API field is now `distance`. |
 | Permanent | Marks a route that stays installed even if its next hop becomes unreachable (the `permanent` keyword on some platforms). |
-| Tag | Optional number to match the route in policies, for example when redistributing static routes into OSPF. |
+| Tag | Optional number (0 to 4294967295) to match the route in policies, for example when redistributing static routes into OSPF. |
 | Devices | The devices that have this route configured. |
 
 **A route needs a next hop**: either an IP next hop, an interface next hop, or both. The form refuses
@@ -30,7 +30,7 @@ a route with neither.
 
 * **A default route on many devices.** Create the route once and select all the devices it applies
   to, instead of one record per device.
-* **Floating static routes.** Create the backup route with a higher *Metric* than the primary.
+* **Floating static routes.** Create the backup route with a higher *Distance* than the primary.
 * **Route in a VRF.** Select the *VRF*; the same prefix can then exist in several VRFs.
 * **Seeing a device's routes.** Open the device and use the **Static Routes** tab, which shows the
   routes assigned to it and how many there are.
@@ -48,6 +48,6 @@ Every object also has `description`, `comments`, tags and custom fields, which a
 Static route
 ├─ Destination: prefix · vrf → VRF
 ├─ Next hop: next_hop · interface_next_hop
-├─ Attributes: name · metric · tag · permanent?
+├─ Attributes: name · distance · tag · permanent?
 └─ Applies to: devices → Device (several)
 ```

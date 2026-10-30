@@ -30,7 +30,7 @@ class StaticRouteSerializer(NetBoxModelSerializer):
             'next_hop',
             'interface_next_hop',
             'name',
-            'metric',
+            'distance',
             'tag',
             'permanent',
             'description',

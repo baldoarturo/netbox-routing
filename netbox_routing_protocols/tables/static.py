@@ -26,7 +26,7 @@ class StaticRouteTable(NetBoxTable):
             'next_hop',
             'interface_next_hop',
             'name',
-            'metric',
+            'distance',
             'permanent',
             'tag',
             'description',

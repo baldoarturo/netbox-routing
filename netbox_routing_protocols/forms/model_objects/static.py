@@ -31,7 +31,7 @@ class StaticRouteForm(PrimaryModelForm):
             'prefix',
             'next_hop',
             'interface_next_hop',
-            'metric',
+            'distance',
             name=_('Route'),
         ),
         FieldSet(
@@ -56,7 +56,7 @@ class StaticRouteForm(PrimaryModelForm):
             'next_hop',
             'interface_next_hop',
             'name',
-            'metric',
+            'distance',
             'permanent',
             'tag',
             'description',

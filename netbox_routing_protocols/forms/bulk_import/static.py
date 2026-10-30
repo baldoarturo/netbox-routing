@@ -33,7 +33,7 @@ class StaticRouteImportForm(NetBoxModelImportForm):
             "prefix",
             "next_hop",
             "interface_next_hop",
-            "metric",
+            "distance",
             "tag",
             "permanent",
             "description",
