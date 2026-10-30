@@ -1,0 +1,71 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Route Policy Match" %}{% endblock %}
+
+{% block content %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <p class="text-muted">
+        {% trans "Describe a route (all the fields are optional) to see which entry of a route policy decides it, the conditions it meets and what it sets. An entry whose condition is on a field you did not give is not met. The results update as you type." %}
+      </p>
+      <form method="get" action="{% url 'plugins:netbox_routing_protocols:routepolicy_match' %}"
+            hx-get="{% url 'plugins:netbox_routing_protocols:routepolicy_match' %}"
+            hx-trigger="input delay:300ms, change, submit"
+            hx-target="#routepolicy-match-results"
+            hx-push-url="true">
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label" for="rp-policy">{% trans "Route policy" %}</label>
+            <select id="rp-policy" name="policy" class="form-select">
+              <option value="">{% trans "All" %}</option>
+              {% for policy in policies %}
+                <option value="{{ policy.pk }}"{% if policy_id == policy.pk|stringformat:"s" %} selected{% endif %}>{{ policy }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="rp-prefix">{% trans "Prefix" %}</label>
+            <input type="text" id="rp-prefix" name="prefix" value="{{ values.prefix }}" class="form-control" placeholder="10.0.0.0/24" autocomplete="off">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="rp-as-path">{% trans "AS path" %}</label>
+            <input type="text" id="rp-as-path" name="as_path" value="{{ values.as_path }}" class="form-control" placeholder="65001 65002" autocomplete="off">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="rp-communities">{% trans "Communities" %}</label>
+            <input type="text" id="rp-communities" name="communities" value="{{ values.communities }}" class="form-control" placeholder="65001:100 65001:200" autocomplete="off">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="rp-next-hop">{% trans "Next hop" %}</label>
+            <input type="text" id="rp-next-hop" name="next_hop" value="{{ values.next_hop }}" class="form-control" placeholder="192.0.2.1" autocomplete="off">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="rp-metric">{% trans "Metric" %}</label>
+            <input type="number" id="rp-metric" name="metric" value="{{ values.metric }}" class="form-control" min="0">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="rp-origin">{% trans "Origin" %}</label>
+            <select id="rp-origin" name="origin" class="form-select">
+              <option value=""></option>
+              {% for value, label in origins.CHOICES %}
+                <option value="{{ value }}"{% if values.origin == value %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="rp-tag">{% trans "Tag" %}</label>
+            <input type="number" id="rp-tag" name="tag" value="{{ values.tag }}" class="form-control" min="0">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="rp-weight">{% trans "Weight" %}</label>
+            <input type="number" id="rp-weight" name="weight" value="{{ values.weight }}" class="form-control" min="0" max="65535">
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="routepolicy-match-results">
+    {% include 'netbox_routing_protocols/routepolicy_match_results.html' %}
+  </div>
+{% endblock content %}

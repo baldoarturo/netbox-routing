@@ -1,0 +1,51 @@
+{% load i18n %}
+{% if error %}
+  <div class="alert alert-warning">{{ error }}</div>
+{% elif results %}
+  {% for result in results %}
+    <div class="card mb-3">
+      <h2 class="card-header d-flex justify-content-between">
+        <a href="{{ result.policy.get_absolute_url }}">{{ result.policy }}</a>
+        <span class="badge text-bg-{% if result.result == 'permit' %}blue{% else %}red{% endif %}">{% if result.result == 'permit' %}{% trans "Permit" %}{% else %}{% trans "Deny" %}{% endif %}</span>
+      </h2>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>{% trans "Policy" %}</th>
+              <th>{% trans "Sequence" %}</th>
+              <th>{% trans "Action" %}</th>
+              <th>{% trans "Conditions" %}</th>
+              <th>{% trans "Result" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for step in result.steps %}
+              <tr{% if not step.matched %} class="text-muted"{% endif %}>
+                <td>{% if step.policy != result.policy %}<a href="{{ step.policy.get_absolute_url }}">{{ step.policy }}</a>{% endif %}</td>
+                <td><a href="{{ step.entry.get_absolute_url }}">{% if step.entry.implicit %}{% trans "final" %}{% else %}{{ step.entry.sequence }}{% endif %}</a></td>
+                <td><span class="badge text-bg-{{ step.entry.get_action_color }}">{{ step.entry.get_action_display }}</span></td>
+                <td>
+                  {% for label, ok, detail in step.checks %}
+                    <div>{% if ok %}<span class="text-success">&#10003;</span>{% else %}<span class="text-danger">&#10007;</span>{% endif %} {{ label }}{% if detail %}: {{ detail }}{% endif %}</div>
+                  {% empty %}
+                    <em>{% trans "no conditions: matches every route" %}</em>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if step.matched %}
+                    <strong>{{ step.entry.get_action_display }}</strong>
+                    {% if step.entry.jump_policy %} &rarr; {{ step.entry.jump_policy }}{% endif %}
+                    {% for text in step.settings %}<div><code>set {{ text }}</code></div>{% endfor %}
+                  {% else %}
+                    {% trans "not met" %}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}

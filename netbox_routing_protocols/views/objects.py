@@ -30,6 +30,8 @@ from utilities.views import (
     register_model_view,
 )
 from netbox_routing_protocols.helpers import aspath as aspath_helpers
+from netbox_routing_protocols.choices import OriginChoices
+from netbox_routing_protocols.helpers import community as community_helpers
 from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     describe_entry,
@@ -656,6 +658,93 @@ class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
             matched = [result['aspath'].pk for result in results]
             context['unmatched'] = aspaths.exclude(pk__in=matched)
         return context
+
+
+#
+# Route policy match: which entry of a route policy decides a route
+#
+class RoutePolicyMatchView(ContentTypePermissionRequiredMixin, View):
+    template_name = 'netbox_routing_protocols/routepolicy_match.html'
+    partial_name = 'netbox_routing_protocols/routepolicy_match_results.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.view_routepolicyentry'
+
+    def get(self, request):
+        data = request.GET
+        fields = (
+            'prefix',
+            'as_path',
+            'communities',
+            'next_hop',
+            'metric',
+            'origin',
+            'tag',
+            'weight',
+        )
+        values = {name: data.get(name, '').strip() for name in fields}
+        policies = RoutePolicy.objects.restrict(request.user, 'view')
+        context = {
+            'values': values,
+            'policy_id': data.get('policy', ''),
+            'policies': policies,
+            'origins': OriginChoices,
+        }
+        if any(values.values()):
+            context.update(
+                self.evaluate(request, values, data.get('policy', ''), policies)
+            )
+        # HTMX asks for the results only, a normal request for the whole page
+        template = self.partial_name if request.htmx else self.template_name
+        return render(request, template, context)
+
+    @staticmethod
+    def parse(values):
+        """The route typed by the user, or the first error"""
+        route = route_policy_helpers.Route()
+        try:
+            if values['prefix']:
+                route.prefix = netaddr.IPNetwork(values['prefix'])
+            if values['as_path']:
+                route.as_path = aspath_helpers.parse_as_path(values['as_path'])
+            if values['communities']:
+                route.communities = community_helpers.parse_communities(
+                    values['communities']
+                )
+            if values['next_hop']:
+                route.next_hop = netaddr.IPAddress(values['next_hop'])
+            for name, high in (
+                ('metric', 4294967295),
+                ('tag', 4294967295),
+                ('weight', 65535),
+            ):
+                if values[name]:
+                    number = int(values[name])
+                    if not 0 <= number <= high:
+                        raise ValueError(name)
+                    setattr(route, name, number)
+        except (netaddr.AddrFormatError, ValueError, TypeError) as e:
+            return None, _('"%(value)s" is not valid.') % {'value': e}
+        except ValidationError as e:
+            return None, e.messages[0]
+        if values['origin']:
+            if values['origin'] not in OriginChoices.values():
+                return None, _('The origin must be igp, egp or incomplete.')
+            route.origin = values['origin']
+        return route, None
+
+    def evaluate(self, request, values, policy_id, policies):
+        route, error = self.parse(values)
+        if error:
+            return {'error': error}
+        if policy_id.isdigit():
+            policies = policies.filter(pk=policy_id)
+        results = []
+        for policy in policies.order_by('name'):
+            outcome = route_policy_helpers.evaluate(policy, route)
+            outcome['policy'] = policy
+            results.append(outcome)
+        return {'results': results}
 
 
 #
