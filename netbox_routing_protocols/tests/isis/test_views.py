@@ -216,7 +216,7 @@ class ISISBulkEditViewsTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         user = get_user_model().objects.create_user(
-            username='bulk', password='x', is_superuser=True, is_staff=True
+            username='bulk', password='x', is_superuser=True
         )
         cls.user = user
         device = create_test_device(name='Device 1')

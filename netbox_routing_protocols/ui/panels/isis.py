@@ -93,6 +93,7 @@ class ISISInterfaceLevelPanel(panels.ObjectAttributesPanel):
     )
     priority = attrs.NumericAttr('priority', label=_('Priority'))
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
+    hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
 
 
 class ISISSegmentRoutingPanel(panels.ObjectAttributesPanel):
@@ -192,6 +193,15 @@ class ISISInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     )
     lsp_interval = attrs.NumericAttr('lsp_interval', label=_('LSP Interval'))
     mesh_group = attrs.TextAttr('mesh_group', label=_('Mesh Group'))
+    hello_padding = attrs.BooleanAttr('hello_padding', label=_('Hello Padding'))
+    ldp_sync = attrs.BooleanAttr('ldp_sync', label=_('LDP-IGP Sync'))
+    prefix_suppression = attrs.BooleanAttr(
+        'prefix_suppression', label=_('Prefix Suppression')
+    )
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    three_way_handshake = attrs.BooleanAttr(
+        'three_way_handshake', label=_('Three-way Handshake')
+    )
     hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
     hello_auth_key = attrs.TextAttr('hello_auth_key', label=_('Hello Auth Key'))
     description = attrs.TextAttr('description', label=_('Description'))

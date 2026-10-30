@@ -88,13 +88,16 @@ class ISISLevelType(PrimaryObjectType):
 
 
 @strawberry_django.type(
-    models.ISISInterfaceLevel, fields='__all__', filters=ISISInterfaceLevelFilter
+    models.ISISInterfaceLevel,
+    exclude=['hello_auth_key'],
+    filters=ISISInterfaceLevelFilter,
 )
 class ISISInterfaceLevelType(PrimaryObjectType):
     interface: Annotated[
         'ISISInterfaceType', strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     level: int
+    hello_auth_type: str | None
 
 
 @strawberry_django.type(

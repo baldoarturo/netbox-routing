@@ -16,6 +16,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 3623](https://www.rfc-editor.org/rfc/rfc3623) | OSPF graceful restart | [OSPF instances](protocols/ospf.md#stability-and-maintenance) |
 | [RFC 3630](https://www.rfc-editor.org/rfc/rfc3630) | OSPF traffic engineering | [OSPF](protocols/ospf.md#advanced-features) |
 | [RFC 3765](https://www.rfc-editor.org/rfc/rfc3765) | NOPEER community | [Routing objects](routing-objects.md#well-known-communities) |
+| [RFC 3787](https://www.rfc-editor.org/rfc/rfc3787) | IS-IS recommendations for hello padding | [IS-IS interfaces](protocols/isis.md#interfaces) |
 | [RFC 4136](https://www.rfc-editor.org/rfc/rfc4136) | OSPF refresh and flooding reduction | [OSPF interfaces](protocols/ospf.md#other-interface-options) |
 | [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) | BGP-4 | [BGP](protocols/bgp.md), [AS paths](routing-objects.md#as-paths), [Route policies](routing-objects.md#route-policies) (the path attributes they match and set) |
 | [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291) | IPv6 addressing | [Prefix lists](routing-objects.md#prefix-lists) |
@@ -29,8 +30,10 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 4761](https://www.rfc-editor.org/rfc/rfc4761) | VPLS using BGP | [BGP](protocols/bgp.md#address-families) |
 | [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082) | Generalized TTL security | [BGP peers](protocols/bgp.md#peers), [OSPF interfaces](protocols/ospf.md#other-interface-options) |
 | [RFC 5120](https://www.rfc-editor.org/rfc/rfc5120) | IS-IS multi-topology | [IS-IS settings](protocols/isis.md#settings) |
+| [RFC 5130](https://www.rfc-editor.org/rfc/rfc5130) | IS-IS administrative tags | [IS-IS interfaces](protocols/isis.md#interfaces) |
 | [RFC 5250](https://www.rfc-editor.org/rfc/rfc5250) | OSPF opaque LSAs | [OSPF](protocols/ospf.md#advanced-features) |
 | [RFC 5286](https://www.rfc-editor.org/rfc/rfc5286) | Loop-free alternates | [OSPF](protocols/ospf.md#areas), [IS-IS](protocols/isis.md#fast-reroute-and-micro-loops) |
+| [RFC 5303](https://www.rfc-editor.org/rfc/rfc5303) | IS-IS three-way handshake for point-to-point | [IS-IS interfaces](protocols/isis.md#interfaces) |
 | [RFC 5304](https://www.rfc-editor.org/rfc/rfc5304) | IS-IS cryptographic authentication (MD5) | [IS-IS](protocols/isis.md#authentication) |
 | [RFC 5305](https://www.rfc-editor.org/rfc/rfc5305) | IS-IS traffic engineering | [IS-IS](protocols/isis.md) |
 | [RFC 5308](https://www.rfc-editor.org/rfc/rfc5308) | IS-IS for IPv6 | [IS-IS](protocols/isis.md) |
@@ -44,6 +47,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5882](https://www.rfc-editor.org/rfc/rfc5882) | Generic application of BFD | [IS-IS interfaces](protocols/isis.md#interfaces) |
 | [RFC 5925](https://www.rfc-editor.org/rfc/rfc5925) | TCP authentication option | [BGP peers](protocols/bgp.md#peers) |
 | [RFC 6119](https://www.rfc-editor.org/rfc/rfc6119) | IPv6 traffic engineering in IS-IS | [IS-IS settings](protocols/isis.md#settings) |
+| [RFC 6232](https://www.rfc-editor.org/rfc/rfc6232) | IS-IS purge originator identification | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier | [BGP settings](protocols/bgp.md#settings) |
 | [RFC 6549](https://www.rfc-editor.org/rfc/rfc6549) | OSPFv2 multi-instance | [OSPF instances](protocols/ospf.md#identity) |
 | [RFC 6793](https://www.rfc-editor.org/rfc/rfc6793) | Four-octet AS numbers | [BGP routers](protocols/bgp.md#routers), [AS paths](routing-objects.md#as-paths) |

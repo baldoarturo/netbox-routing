@@ -252,6 +252,13 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         label=_('LSP Interval'), min_value=0, required=False
     )
     mesh_group = forms.CharField(label=_('Mesh Group'), required=False)
+    hello_padding = _boolean(_('Hello Padding'))
+    ldp_sync = _boolean(_('LDP-IGP Sync'))
+    prefix_suppression = _boolean(_('Prefix Suppression'))
+    three_way_handshake = _boolean(_('Three-way Handshake'))
+    route_tag = forms.IntegerField(
+        label=_('Route Tag'), min_value=1, max_value=4294967295, required=False
+    )
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -280,6 +287,14 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'mesh_group',
             name='Timers',
         ),
+        FieldSet(
+            'hello_padding',
+            'ldp_sync',
+            'prefix_suppression',
+            'three_way_handshake',
+            'route_tag',
+            name='Options',
+        ),
         FieldSet('description', 'comments'),
     )
     nullable_fields = (
@@ -298,6 +313,11 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         'retransmit_interval',
         'lsp_interval',
         'mesh_group',
+        'hello_padding',
+        'ldp_sync',
+        'prefix_suppression',
+        'three_way_handshake',
+        'route_tag',
     )
 
 
@@ -364,6 +384,12 @@ class ISISInterfaceLevelBulkEditForm(NetBoxModelBulkEditForm):
     hello_multiplier = _integer(_('Hello Multiplier'))
     priority = _integer(_('Priority'))
     passive = _boolean(_('Passive'))
+    hello_auth_type = forms.ChoiceField(
+        label=_('Hello Auth Type'),
+        choices=add_blank_choice(ISISAuthTypeChoices),
+        required=False,
+    )
+    hello_auth_key = forms.CharField(label=_('Hello Auth Key'), required=False)
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -378,6 +404,8 @@ class ISISInterfaceLevelBulkEditForm(NetBoxModelBulkEditForm):
             'hello_multiplier',
             'priority',
             'passive',
+            'hello_auth_type',
+            'hello_auth_key',
             name='Attributes',
         ),
         FieldSet('description', 'comments'),
@@ -388,6 +416,8 @@ class ISISInterfaceLevelBulkEditForm(NetBoxModelBulkEditForm):
         'hello_multiplier',
         'priority',
         'passive',
+        'hello_auth_type',
+        'hello_auth_key',
         'description',
         'comments',
     )

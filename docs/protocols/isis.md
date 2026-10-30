@@ -131,6 +131,11 @@ runs IPv4 and IPv6 has two. The interface must be on the instance's device and i
 | BFD | Use [BFD](../bfd.md) for fast failure detection ([RFC 5882](https://www.rfc-editor.org/rfc/rfc5882)). |
 | FRR, FRR protection | Include the interface in fast reroute (or exclude it), and whether to protect against **link** failure or **node** failure too. |
 | CSNP interval, retransmit interval, LSP interval | Protocol pacing: how often the DIS sends the complete sequence number PDU (s), the LSP retransmission interval (s) and the pacing between LSPs (ms). |
+| Hello padding | Pad hello PDUs to the full MTU so an MTU mismatch prevents the adjacency instead of breaking it later ([RFC 3787](https://www.rfc-editor.org/rfc/rfc3787)). |
+| LDP-IGP sync | Do not use the link for traffic until LDP is up ([RFC 5443](https://www.rfc-editor.org/rfc/rfc5443)). |
+| Prefix suppression | Do not advertise the prefixes of the link ([RFC 6860](https://www.rfc-editor.org/rfc/rfc6860)). |
+| Route tag | Administrative tag (1 to 4294967295) added to the prefixes of the interface ([RFC 5130](https://www.rfc-editor.org/rfc/rfc5130)). |
+| Three-way handshake | Point-to-point adjacency handshake, on by default; *no* disables it ([RFC 5303](https://www.rfc-editor.org/rfc/rfc5303)). |
 | Mesh group | Limit LSP flooding on dense meshes, or `blocked` to stop flooding on the interface ([RFC 2973](https://www.rfc-editor.org/rfc/rfc2973)). |
 
 ### Interface levels
@@ -138,7 +143,7 @@ runs IPv4 and IPv6 has two. The interface must be on the instance's device and i
 Open an interface and use its *Levels* tab (there is no menu entry for this object).
 
 Settings that differ **per level on one interface** (only for levels the interface's circuit type runs): metric, hello interval, hello multiplier (how
-many hellos can be missed), **priority** for the DIS election (higher wins) and passive.
+many hellos can be missed), **priority** for the DIS election (higher wins), passive, and the **hello authentication** of that level (it overrides the one of the interface).
 
 ## Segment routing
 
@@ -249,6 +254,9 @@ IS-IS instance
 │     · LSP-Gen Second Wait (ms) · TE IPv4 Router-ID · TE IPv6 Router-ID · Graceful Restart
 │     · LDP-IGP Sync · Prefix Suppression · Log Adjacency Changes · Advertise Passive Only
 │     · Default Route Tag · Multi-Topology · IGP Shortcut · Hello Padding · RIB Priority
+    │     · Graceful Restart T3 · Graceful Restart Helper · LDP-IGP Sync Hold-down
+    │     · Overload Until BGP Converges · Overload with High Metrics · Maximum Area Addresses
+    │     · Default Route Origination · Adjacency Protocol Check · Purge Originator Identification
 │
 ├─ Level
 │     instance → IS-IS instance · level {Level-1 | Level-2} · disabled?
@@ -272,13 +280,19 @@ IS-IS instance
     │     · hello_auth_key
     ├─ Fast reroute: frr_enabled? · frr_protection {Link protection | Node protection}
     ├─ Timers: csnp_interval · retransmit_interval · lsp_interval · mesh_group
+    ├─ Options: hello_padding? · ldp_sync? · prefix_suppression? · three_way_handshake?
+    │     · route_tag
     ├─ Settings (key / value; the key is one of): SPF Second Wait (ms) · SPF Rapid Runs
     │     · LSP-Gen Second Wait (ms) · TE IPv4 Router-ID · TE IPv6 Router-ID · Graceful Restart
     │     · LDP-IGP Sync · Prefix Suppression · Log Adjacency Changes · Advertise Passive Only
     │     · Default Route Tag · Multi-Topology · IGP Shortcut · Hello Padding · RIB Priority
+    │     · Graceful Restart T3 · Graceful Restart Helper · LDP-IGP Sync Hold-down
+    │     · Overload Until BGP Converges · Overload with High Metrics · Maximum Area Addresses
+    │     · Default Route Origination · Adjacency Protocol Check · Purge Originator Identification
     ├─ Interface level
     │     interface → IS-IS interface · level {Level-1 | Level-2} · metric
     │     · hello_interval · hello_multiplier · priority · passive?
+    │     · hello_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · hello_auth_key
     └─ Prefix SID
           interface → IS-IS interface · algorithm · sid_index · sid_label
           · n_flag? · no_php? · explicit_null? · readvertise?

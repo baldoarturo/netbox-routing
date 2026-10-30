@@ -643,6 +643,41 @@ class ISISInterface(PrimaryModel):
         default='',
         help_text=_("Mesh-group identifier, or 'blocked'."),
     )
+    hello_padding = models.BooleanField(
+        verbose_name=_('Hello padding'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Pad hello PDUs to the full MTU to detect MTU mismatches (RFC 3787).'
+        ),
+    )
+    ldp_sync = models.BooleanField(
+        verbose_name=_('LDP-IGP sync'),
+        blank=True,
+        null=True,
+        help_text=_('Do not use the link for traffic until LDP is up (RFC 5443).'),
+    )
+    prefix_suppression = models.BooleanField(
+        verbose_name=_('Prefix suppression'),
+        blank=True,
+        null=True,
+        help_text=_('Do not advertise the prefixes of this link (RFC 6860).'),
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route tag'),
+        blank=True,
+        null=True,
+        help_text=_('Administrative tag of the prefixes of this interface (RFC 5130).'),
+    )
+    three_way_handshake = models.BooleanField(
+        verbose_name=_('Three-way handshake'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Point-to-point three-way handshake of the adjacency (RFC 5303); '
+            'False disables it.'
+        ),
+    )
     settings = GenericRelation(
         verbose_name=_('Settings'),
         to='netbox_routing_protocols.ISISSetting',
@@ -665,6 +700,11 @@ class ISISInterface(PrimaryModel):
         'retransmit_interval',
         'lsp_interval',
         'mesh_group',
+        'hello_padding',
+        'ldp_sync',
+        'prefix_suppression',
+        'route_tag',
+        'three_way_handshake',
     )
     prerequisite_models = (
         'netbox_routing_protocols.ISISInstance',
@@ -714,6 +754,7 @@ class ISISInterface(PrimaryModel):
                     ('csnp_interval', 1, 65535),
                     ('retransmit_interval', 1, 65535),
                     ('lsp_interval', 1, None),
+                    ('route_tag', 1, 4294967295),
                 ),
             )
         )
@@ -911,6 +952,26 @@ class ISISInterfaceLevel(PrimaryModel):
         verbose_name=_('Priority'), blank=True, null=True
     )
     passive = models.BooleanField(verbose_name=_('Passive'), blank=True, null=True)
+    hello_auth_type = models.CharField(
+        verbose_name=_('Hello auth type'),
+        max_length=16,
+        choices=choices.ISISAuthTypeChoices,
+        blank=True,
+        default='',
+        help_text=_(
+            'Hello (IIH) authentication type of this level; overrides the one of the interface.'
+        ),
+    )
+    hello_auth_key = models.CharField(
+        verbose_name=_('Hello auth key'),
+        max_length=128,
+        blank=True,
+        default='',
+        help_text=_(
+            'Hello (IIH) authentication key of this level (plaintext — '
+            'routing-protocol auth, not config access).'
+        ),
+    )
 
     clone_fields = (
         'interface',
@@ -940,6 +1001,14 @@ class ISISInterfaceLevel(PrimaryModel):
                 ('hello_multiplier', 2, 1000),
                 ('priority', 0, 127),
             ),
+        )
+        errors.update(
+            auth_pair_errors(
+                self.hello_auth_type,
+                self.hello_auth_key,
+                'hello_auth_type',
+                'hello_auth_key',
+            )
         )
         if self.interface_id:
             instance = self.interface.instance
