@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from extras.ui.panels import TagsPanel
 from netbox.object_actions import CloneObject, EditObject, DeleteObject
 from netbox.views.generic import (
+    BulkImportView,
     ObjectView,
     ObjectEditView,
     ObjectListView,
@@ -22,6 +23,12 @@ from netbox_routing_protocols.models.bgp import *
 from netbox_routing_protocols.tables.bgp import *
 
 __all__ = (
+    'BGPInstanceBulkImportView',
+    'BGPAddressFamilyBulkImportView',
+    'BGPPeerGroupBulkImportView',
+    'BGPListenRangeBulkImportView',
+    'BGPPeerBulkImportView',
+    'BGPPeerAddressFamilyBulkImportView',
     'BGPInstanceListView',
     'BGPInstanceView',
     'BGPInstanceEditView',
@@ -699,6 +706,53 @@ class BGPAddressFamilyRedistributionsView(ObjectChildrenView):
 
     def get_children(self, request, parent):
         return self.child_model.objects.filter(address_family=parent)
+
+
+#
+# Bulk import (CSV)
+#
+@register_model_view(BGPInstance, name='bulk_import', detail=False)
+class BGPInstanceBulkImportView(BulkImportView):
+    queryset = BGPInstance.objects.select_related(
+        'device', 'vrf', 'asn', 'import_policy', 'export_policy'
+    )
+    model_form = BGPInstanceImportForm
+
+
+@register_model_view(BGPAddressFamily, name='bulk_import', detail=False)
+class BGPAddressFamilyBulkImportView(BulkImportView):
+    queryset = BGPAddressFamily.objects.select_related(
+        'instance__device', 'instance__vrf'
+    )
+    model_form = BGPAddressFamilyImportForm
+
+
+@register_model_view(BGPPeerGroup, name='bulk_import', detail=False)
+class BGPPeerGroupBulkImportView(BulkImportView):
+    queryset = BGPPeerGroup.objects.select_related('instance__device', 'instance__vrf')
+    model_form = BGPPeerGroupImportForm
+
+
+@register_model_view(BGPListenRange, name='bulk_import', detail=False)
+class BGPListenRangeBulkImportView(BulkImportView):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device', 'peer_group__instance__vrf'
+    )
+    model_form = BGPListenRangeImportForm
+
+
+@register_model_view(BGPPeer, name='bulk_import', detail=False)
+class BGPPeerBulkImportView(BulkImportView):
+    queryset = BGPPeer.objects.select_related('instance__device', 'instance__vrf')
+    model_form = BGPPeerImportForm
+
+
+@register_model_view(BGPPeerAddressFamily, name='bulk_import', detail=False)
+class BGPPeerAddressFamilyBulkImportView(BulkImportView):
+    queryset = BGPPeerAddressFamily.objects.select_related(
+        'peer__instance__device', 'peer_group__instance__device'
+    )
+    model_form = BGPPeerAddressFamilyImportForm
 
 
 #
