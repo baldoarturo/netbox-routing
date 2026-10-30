@@ -359,6 +359,7 @@ def reference_groups(request, objs, references=prefix_list_references):
                     if len(model_pks) == 1
                     else meta.verbose_name_plural
                 ),
+                'model': meta.model_name,
                 'count': len(model_pks),
                 'objects': shown,
                 'more': len(model_pks) - len(shown),
@@ -673,7 +674,7 @@ class RoutePolicyListView(ObjectListView):
 
 
 @register_model_view(RoutePolicy)
-class RoutePolicyView(ObjectView):
+class RoutePolicyView(GetRelatedModelsMixin, ObjectView):
     queryset = RoutePolicy.objects.all()
     template_name = 'generic/object.html'
     actions = (
@@ -717,6 +718,9 @@ class RoutePolicyView(ObjectView):
         return {
             'unreachable': [entry for entry, _stopper in unreachable],
             'stopper': unreachable[0][1] if unreachable else None,
+            # Where the policy is used: the BGP objects, the import and export of the
+            # protocol instances and the entries of other policies that jump to it
+            'related_models': self.get_related_models(request, instance),
         }
 
 

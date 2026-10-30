@@ -14,6 +14,9 @@
           {% endfor %}
           {% if group.more %}{% blocktrans with more=group.more %}and {{ more }} more{% endblocktrans %}{% endif %}
         {% endif %}
+        {% if group.model == 'routepolicyentry' %}
+          <div class="text-danger">{% trans "An entry that has no other condition will match every route." %}</div>
+        {% endif %}
       </li>
     {% endfor %}
   </ul>

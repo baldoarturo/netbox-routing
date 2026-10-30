@@ -131,6 +131,9 @@ class RoutePolicyEntryTable(NetBoxTable):
     action = columns.ChoiceFieldColumn()
     jump_policy = tables.Column(verbose_name=_('Jump to Route Policy'), linkify=True)
     implicit = columns.BooleanColumn(verbose_name=_('Final deny'))
+    matches_everything = columns.BooleanColumn(
+        verbose_name=_('Matches every route'), orderable=False
+    )
     match_prefix_list = columns.ManyToManyColumn(
         linkify_item=True, verbose_name=_('Match Prefix Lists'), orderable=False
     )
@@ -168,6 +171,7 @@ class RoutePolicyEntryTable(NetBoxTable):
             'action',
             'jump_policy',
             'implicit',
+            'matches_everything',
             'match_prefix_list',
             'match_aspath',
             'match_community_list',
