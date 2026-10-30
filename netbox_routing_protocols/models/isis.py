@@ -19,6 +19,7 @@ from netbox_routing_protocols.constants.isis import (
     ISISSETTING_ASSIGNMENT_MODELS,
 )
 from netbox_routing_protocols.helpers.isis import NET_RE, auth_pair_errors
+from netbox_routing_protocols.models.policy import RoutePolicyMixin
 
 __all__ = (
     'ISISInstance',
@@ -155,7 +156,7 @@ class ISISSetting(PrimaryModel):
         return reverse('plugins:netbox_routing_protocols:isissetting', args=[self.pk])
 
 
-class ISISInstance(PrimaryModel):
+class ISISInstance(RoutePolicyMixin, PrimaryModel):
     device = models.ForeignKey(
         verbose_name=_('Device'),
         to='dcim.Device',

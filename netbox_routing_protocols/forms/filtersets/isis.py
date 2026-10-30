@@ -28,6 +28,7 @@ from netbox_routing_protocols.models import (
     ISISPrefixSID,
     ISISSRv6Locator,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'ISISInstanceFilterForm',
@@ -97,6 +98,18 @@ class ISISInstanceFilterForm(NetBoxModelFilterSetForm):
         selector=True,
         label=_('VRF'),
     )
+    import_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
     process_tag = forms.CharField(required=False, label=_('Process Tag'))
     net = forms.CharField(required=False, label=_('NET'))
     is_type = forms.ChoiceField(
@@ -111,6 +124,7 @@ class ISISInstanceFilterForm(NetBoxModelFilterSetForm):
         FieldSet(
             'device_id', 'vrf_id', 'process_tag', 'net', 'is_type', name=_('IS-IS')
         ),
+        FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
     )
     tag = TagFilterField(model)
 

@@ -25,6 +25,7 @@ from netbox_routing_protocols.models import (
     ISISPrefixSID,
     ISISSRv6Locator,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'ISISInstanceForm',
@@ -177,6 +178,19 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
         label=_('VRF'),
     )
 
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
+
     fieldsets = (
         FieldSet('description'),
         FieldSet('device', name=_('Device')),
@@ -204,6 +218,7 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             'lsp_mtu',
             name=_('Timers'),
         ),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('te_enabled', name=_('Traffic Engineering')),
         FieldSet('fast_reroute', 'microloop_avoidance', name=_('Fast Reroute')),
         FieldSet(
@@ -224,6 +239,8 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             'net',
             'is_type',
             'metric_style',
+            'import_policy',
+            'export_policy',
             'overload_bit',
             'overload_on_startup',
             'overload_timeout',

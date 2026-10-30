@@ -146,6 +146,18 @@ class ISISInstanceType(ISISSettingsMixin, PrimaryObjectType):
 
     device: Annotated["DeviceType", strawberry.lazy('dcim.graphql.types')]
     vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
+    import_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    export_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
     process_tag: str
     net: str
     is_type: str

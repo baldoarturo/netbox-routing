@@ -7,6 +7,7 @@ from netbox.models import PrimaryModel
 from netbox_routing_protocols import choices
 from netbox_routing_protocols.choices.eigrp import EIGRPRouterChoices
 from netbox_routing_protocols.fields.ip import IPAddressField
+from netbox_routing_protocols.models.policy import RoutePolicyMixin
 
 __all__ = (
     'EIGRPRouter',
@@ -16,7 +17,7 @@ __all__ = (
 )
 
 
-class EIGRPRouter(PrimaryModel):
+class EIGRPRouter(RoutePolicyMixin, PrimaryModel):
     device = models.ForeignKey(
         verbose_name=_('Device'),
         to='dcim.Device',

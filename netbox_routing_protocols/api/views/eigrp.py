@@ -22,7 +22,9 @@ __all__ = (
 
 
 class EIGRPRouterViewSet(NetBoxModelViewSet):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     serializer_class = EIGRPRouterSerializer
     filterset_class = filtersets.EIGRPRouterFilterSet
 

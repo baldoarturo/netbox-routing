@@ -49,6 +49,7 @@ __all__ = (
 )
 
 from utilities.forms.rendering import FieldSet
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 
 class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
@@ -63,6 +64,18 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
         required=False,
         selector=True,
         label=_('VRF'),
+    )
+    import_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
     )
     router_id = forms.CharField(
         required=False,
@@ -125,6 +138,7 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
             'tag',
         ),
         FieldSet('device_id', 'vrf_id', 'router_id', name=_('Device')),
+        FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
         FieldSet(
             'default_originate',
             'default_originate_always',

@@ -28,6 +28,10 @@ One record per EIGRP process on a device.
 | Name | The name, for named mode. Unique per device. |
 | Process ID | The autonomous system number, for classic mode. |
 | Router ID | Optional, the 32-bit identifier written like an IPv4 address; it has to be unique in the network. |
+| Import policy | Optional [route policy](../routing-objects.md#route-policies) that filters the routes EIGRP **accepts** (Cisco `distribute-list route-map … in`). |
+| Export policy | Optional route policy that filters the routes EIGRP **advertises or takes from other sources** (Cisco `distribute-list route-map … out`, the policy of `redistribute`). |
+
+A route policy that a router uses **cannot be deleted**: choose another one, or clear the field, first.
 
 ## Address families
 
@@ -66,6 +70,7 @@ Every object also has `description`, `comments`, tags and custom fields, which a
 ```text
 EIGRP router
 ├─ device → Device · mode {Classic Router | Named Router} · name · pid · rid
+├─ Route policies: import_policy → Route policy · export_policy → Route policy
 └─ Address family
     ├─ router → EIGRP router · vrf → VRF · family {IPv4 | IPv6} · rid
     ├─ Network: router → EIGRP router · address_family → Address family · network → Prefix

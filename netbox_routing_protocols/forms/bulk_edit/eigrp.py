@@ -16,6 +16,7 @@ from utilities.forms.fields import DynamicModelChoiceField, CommentField
 from utilities.forms.rendering import FieldSet
 
 from netbox_routing_protocols import choices
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'EIGRPRouterBulkEditForm',
@@ -30,6 +31,19 @@ class EIGRPRouterBulkEditForm(NetBoxModelBulkEditForm):
         queryset=Device.objects.all(), label=_('Device'), required=False, selector=True
     )
 
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
+
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -38,11 +52,12 @@ class EIGRPRouterBulkEditForm(NetBoxModelBulkEditForm):
     model = EIGRPRouter
     fieldsets = (
         FieldSet('device', 'mode', name='EIGRP'),
+        FieldSet('import_policy', 'export_policy', name='Route Policy'),
         FieldSet(
             'description',
         ),
     )
-    nullable_fields = ()
+    nullable_fields = ('import_policy', 'export_policy')
 
 
 class EIGRPAddressFamilyBulkEditForm(NetBoxModelBulkEditForm):

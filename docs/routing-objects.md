@@ -216,7 +216,7 @@ The **Resequence** button on the page of the route policy renumbers its entries 
 
 ### Deleting a route policy in use
 
-A route policy that a protocol uses **cannot be deleted**: BGP policy templates and peer address families today, and the import and export policy of every protocol instance later. The delete is refused, in the web interface (single and bulk) and in the API, and the message names the objects that use it. Choose another policy in them, or clear the field, and then delete it. The entries of a policy that is not in use are deleted with it.
+A route policy that a protocol uses **cannot be deleted**: BGP policy templates and peer address families, and the import and export policy of an OSPF instance, an IS-IS instance or an EIGRP router. The delete is refused, in the web interface (single and bulk) and in the API, and the message names the objects that use it. Choose another policy in them, or clear the field, and then delete it. The entries of a policy that is not in use are deleted with it.
 
 ## AS paths
 

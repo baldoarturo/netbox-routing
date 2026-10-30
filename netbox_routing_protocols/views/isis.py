@@ -460,7 +460,9 @@ class ISISSRv6LocatorBulkDeleteView(BulkDeleteView):
 
 @register_model_view(ISISInstance, name='list', path='', detail=False)
 class ISISInstanceListView(ObjectListView):
-    queryset = ISISInstance.objects.select_related('device', 'vrf')
+    queryset = ISISInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     table = ISISInstanceTable
     filterset = ISISInstanceFilterSet
     filterset_form = ISISInstanceFilterForm

@@ -39,6 +39,7 @@ from netbox_routing_protocols.models import (
     OSPFAreaRange,
     OSPFPrefixSID,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'OSPFAreaForm',
@@ -68,6 +69,19 @@ class OSPFInstanceForm(PrimaryModelForm):
         label=_('VRF'),
     )
 
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
+
     fieldsets = (
         FieldSet(
             'name',
@@ -89,6 +103,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             'default_originate_metric_type',
             name=_('Default Information'),
         ),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet(*OSPFInstance.ADVANCED_FIELDS, name=_('Advanced')),
         FieldSet(
             'authentication',
@@ -112,6 +127,8 @@ class OSPFInstanceForm(PrimaryModelForm):
             'default_originate_always',
             'default_originate_metric',
             'default_originate_metric_type',
+            'import_policy',
+            'export_policy',
             *OSPFInstance.ADVANCED_FIELDS,
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             'description',

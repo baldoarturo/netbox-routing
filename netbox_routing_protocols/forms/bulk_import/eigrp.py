@@ -6,6 +6,7 @@ from netbox.forms import NetBoxModelImportForm
 from utilities.forms.fields import CSVModelChoiceField
 
 from netbox_routing_protocols.models import *
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'EIGRPRouterImportForm',
@@ -23,6 +24,19 @@ class EIGRPRouterImportForm(NetBoxModelImportForm):
         help_text=_('Name of device'),
     )
 
+    import_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Name of the import route policy'),
+    )
+    export_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Name of the export route policy'),
+    )
+
     class Meta:
         model = EIGRPRouter
         fields = (
@@ -31,6 +45,8 @@ class EIGRPRouterImportForm(NetBoxModelImportForm):
             'mode',
             'name',
             'pid',
+            'import_policy',
+            'export_policy',
             'description',
             'comments',
             'tags',

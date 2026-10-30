@@ -16,6 +16,12 @@ class EIGRPRouterPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('__str__', label=_('Display Name'))
     process_id = attrs.NumericAttr('process_id', label=_('Process ID'))
     router_id = attrs.TextAttr('router_id', label=_('Router ID'))
+    import_policy = attrs.RelatedObjectAttr(
+        'import_policy', linkify=True, label=_('Import Policy')
+    )
+    export_policy = attrs.RelatedObjectAttr(
+        'export_policy', linkify=True, label=_('Export Policy')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 

@@ -23,6 +23,18 @@ __all__ = (
 @strawberry_django.type(models.EIGRPRouter, fields='__all__', filters=EIGRPRouterFilter)
 class EIGRPRouterType(PrimaryObjectType):
     device: Annotated["DeviceType", strawberry.lazy('dcim.graphql.types')]
+    import_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    export_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
     rid: str
     type: str
     name: str

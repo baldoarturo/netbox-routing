@@ -13,6 +13,7 @@ from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.widgets import HTMXSelect
 
 from netbox_routing_protocols.models import *
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'EIGRPRouterForm',
@@ -30,6 +31,19 @@ class EIGRPRouterForm(PrimaryModelForm):
         label=_('Device'),
     )
 
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
+
     class Meta:
         model = EIGRPRouter
         fields = (
@@ -38,6 +52,8 @@ class EIGRPRouterForm(PrimaryModelForm):
             'name',
             'pid',
             'rid',
+            'import_policy',
+            'export_policy',
             'description',
             'comments',
             'tags',

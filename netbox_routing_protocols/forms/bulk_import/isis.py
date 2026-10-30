@@ -18,6 +18,7 @@ from netbox_routing_protocols.models import (
     ISISPrefixSID,
     ISISSRv6Locator,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'ISISInstanceImportForm',
@@ -199,6 +200,19 @@ class ISISInstanceImportForm(NetBoxModelImportForm):
         help_text=_('Name of VRF'),
     )
 
+    import_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Name of the import route policy'),
+    )
+    export_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Name of the export route policy'),
+    )
+
     class Meta:
         model = ISISInstance
         fields = (
@@ -208,6 +222,8 @@ class ISISInstanceImportForm(NetBoxModelImportForm):
             'net',
             'is_type',
             'metric_style',
+            'import_policy',
+            'export_policy',
             'overload_bit',
             'overload_on_startup',
             'overload_timeout',

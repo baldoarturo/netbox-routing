@@ -71,6 +71,7 @@ __all__ = (
 )
 
 from utilities.forms.rendering import FieldSet
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 
 def _integer(label):
@@ -89,6 +90,19 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     )
     vrf = DynamicModelChoiceField(
         queryset=VRF.objects.all(), label=_('VRF'), required=False, selector=True
+    )
+
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
     )
 
     default_originate = forms.ChoiceField(
@@ -240,6 +254,7 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
             'default_originate_metric_type',
             name='Default Information',
         ),
+        FieldSet('import_policy', 'export_policy', name='Route Policy'),
         FieldSet(
             'description',
         ),
@@ -256,6 +271,8 @@ class OSPFInstanceBulkEditForm(NetBoxModelBulkEditForm):
     )
     nullable_fields = (
         'vrf',
+        'import_policy',
+        'export_policy',
         'default_originate_metric',
         'max_metric_on_startup',
         'max_lsa',
