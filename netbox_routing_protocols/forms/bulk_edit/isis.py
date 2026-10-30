@@ -19,6 +19,7 @@ from netbox_routing_protocols.choices import (
     ISISNetworkTypeChoices,
 )
 from netbox_routing_protocols.models import ISISInstance, ISISInterface, ISISSetting
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'ISISInstanceBulkEditForm',
@@ -44,6 +45,18 @@ class ISISInstanceBulkEditForm(NetBoxModelBulkEditForm):
     )
     vrf = DynamicModelChoiceField(
         queryset=VRF.objects.all(), label=_('VRF'), required=False, selector=True
+    )
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
     )
     process_tag = forms.CharField(label=_('Process Tag'), required=False)
     net = forms.CharField(label=_('NET'), required=False)
@@ -84,6 +97,7 @@ class ISISInstanceBulkEditForm(NetBoxModelBulkEditForm):
             'metric_style',
             name='IS-IS',
         ),
+        FieldSet('import_policy', 'export_policy', name='Route Policy'),
         FieldSet(
             'lsp_lifetime',
             'lsp_refresh_interval',
@@ -96,6 +110,8 @@ class ISISInstanceBulkEditForm(NetBoxModelBulkEditForm):
     )
     nullable_fields = (
         'vrf',
+        'import_policy',
+        'export_policy',
         'description',
         'comments',
         'is_type',

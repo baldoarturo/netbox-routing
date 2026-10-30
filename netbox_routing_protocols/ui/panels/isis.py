@@ -118,6 +118,12 @@ class ISISInstancePanel(panels.ObjectAttributesPanel):
     process_tag = attrs.TextAttr('process_tag', label=_('Process Tag'))
     net = attrs.TextAttr('net', label=_('NET'))
     is_type = attrs.ChoiceAttr('is_type', label=_('IS Type'))
+    import_policy = attrs.RelatedObjectAttr(
+        'import_policy', linkify=True, label=_('Import Policy')
+    )
+    export_policy = attrs.RelatedObjectAttr(
+        'export_policy', linkify=True, label=_('Export Policy')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 

@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import strawberry
 import strawberry_django
@@ -13,6 +13,9 @@ from netbox_routing_protocols.graphql.filter_mixins import (
     InterfaceMixin,
 )
 
+if TYPE_CHECKING:
+    from netbox_routing_protocols.graphql.objects.filters import RoutePolicyFilter
+
 __all__ = (
     'EIGRPRouterFilter',
     'EIGRPAddressFamilyFilter',
@@ -24,6 +27,22 @@ __all__ = (
 @strawberry_django.filter(models.EIGRPRouter, lookups=True)
 class EIGRPRouterFilter(DeviceMixin, PrimaryModelFilter):
     rid: StrFilterLookup | None = strawberry_django.filter_field()
+    import_policy: (
+        Annotated[
+            'RoutePolicyFilter',
+            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    import_policy_id: ID | None = strawberry_django.filter_field()
+    export_policy: (
+        Annotated[
+            'RoutePolicyFilter',
+            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    export_policy_id: ID | None = strawberry_django.filter_field()
 
 
 @strawberry_django.filter(models.EIGRPAddressFamily, lookups=True)

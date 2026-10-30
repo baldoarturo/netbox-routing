@@ -51,6 +51,15 @@ An instance is one OSPF process: "OSPF on this device, in this VRF".
 | Always | Advertise it even when no default route exists locally. |
 | Metric, metric type | Metric of the originated route, and whether it is **Type 1 (E1)** or **Type 2 (E2)** (see [redistribution](#redistribution)). These options require *Default originate*. |
 
+### Route policies
+
+| Field | Meaning |
+| --- | --- |
+| Import policy | Optional [route policy](../routing-objects.md#route-policies) that filters the routes OSPF **installs** in the routing table (Cisco `distribute-list route-map … in`, Juniper `import`). |
+| Export policy | Optional route policy that filters the routes **injected into** OSPF from other sources (Cisco `redistribute … route-map`, Juniper `export`). |
+
+A route policy that an instance uses **cannot be deleted**: choose another one, or clear the field, first.
+
 ### Timers
 
 | Field | Meaning | Default |
@@ -343,6 +352,7 @@ SRGB below an existing index.
 
 | Delete | Result |
 | --- | --- |
+| A route policy | Refused while an OSPF instance uses it as its import or export policy. |
 | An OSPF instance | Refused while it has interfaces. Its unused areas, redistributions, virtual links, summary addresses and Prefix SIDs go with it. |
 | An area | Refused while it has interfaces; its ranges go with it. |
 | An OSPF interface | Its networks and neighbors go with it. |
@@ -362,6 +372,7 @@ OSPF instance
 │     · key_chain
 ├─ Default route: default_originate? · default_originate_always? · default_originate_metric
 │     · default_originate_metric_type {Type 1 (E1) | Type 2 (E2)}
+├─ Route policies: import_policy → Route policy · export_policy → Route policy
 ├─ Timers: spf_initial_delay · spf_short_delay · spf_long_delay · spf_time_to_learn · spf_holddown
 │     · lsa_min_interval · lsa_min_arrival
 ├─ Maintenance: max_metric_router_lsa? · max_metric_on_startup

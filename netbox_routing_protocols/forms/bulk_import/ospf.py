@@ -12,6 +12,7 @@ from netbox_routing_protocols.models import (
     OSPFArea,
     OSPFInterface,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     "OSPFInstanceImportForm",
@@ -34,6 +35,19 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
         help_text=_("Name of VRF"),
     )
 
+    import_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Name of the import route policy'),
+    )
+    export_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Name of the export route policy'),
+    )
+
     class Meta:
         model = OSPFInstance
         fields = (
@@ -45,6 +59,8 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
             "default_originate_always",
             "default_originate_metric",
             "default_originate_metric_type",
+            "import_policy",
+            "export_policy",
             *OSPFInstance.ADVANCED_FIELDS,
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             "description",

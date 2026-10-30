@@ -51,6 +51,15 @@ IS-IS instance (a process on a device, optionally in a VRF)
 | Reference bandwidth | Mbps used to derive default interface metrics. |
 | Traffic engineering | Enable IS-IS TE extensions ([RFC 5305](https://www.rfc-editor.org/rfc/rfc5305)). |
 
+### Route policies
+
+| Field | Meaning |
+| --- | --- |
+| Import policy | Optional [route policy](../routing-objects.md#route-policies) that filters the routes IS-IS **installs** in the routing table. |
+| Export policy | Optional route policy that filters the routes IS-IS **advertises or takes from other sources** (redistribution into IS-IS). |
+
+A route policy that an instance uses **cannot be deleted**: choose another one, or clear the field, first. The policy is per instance; the leaking of routes between levels ([RFC 5302](https://www.rfc-editor.org/rfc/rfc5302)) is not modelled yet.
+
 ### Timers
 
 | Field | Meaning |
@@ -211,6 +220,7 @@ Every object also has `description`, `comments`, tags and custom fields, which a
 ```text
 IS-IS instance
 ├─ Identity: device → Device · vrf → VRF · process_tag · net
+├─ Route policies: import_policy → Route policy · export_policy → Route policy
 ├─ Type: is_type {Level-1 | Level-2 Only | Level-1-2}
 │     · metric_style {Wide | Narrow | Transition}
 ├─ Authentication

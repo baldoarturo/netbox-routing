@@ -63,7 +63,9 @@ __all__ = (
 
 @register_model_view(EIGRPRouter, name='list', path='', detail=False)
 class EIGRPRouterListView(ObjectListView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     table = EIGRPRouterTable
     filterset = EIGRPRouterFilterSet
     filterset_form = EIGRPRouterFilterForm
@@ -71,7 +73,9 @@ class EIGRPRouterListView(ObjectListView):
 
 @register_model_view(EIGRPRouter)
 class EIGRPRouterView(ObjectView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -87,7 +91,9 @@ class EIGRPRouterView(ObjectView):
 
 @register_model_view(EIGRPRouter, name='address_families')
 class EIGRPRouterAddressFamiliesView(ObjectChildrenView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     child_model = EIGRPAddressFamily
     table = EIGRPAddressFamilyTable
     filterset = EIGRPAddressFamilyFilterSet
@@ -103,7 +109,9 @@ class EIGRPRouterAddressFamiliesView(ObjectChildrenView):
 
 @register_model_view(EIGRPRouter, name='interfaces')
 class EIGRPRouterInterfacesView(ObjectChildrenView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     child_model = EIGRPInterface
     table = EIGRPInterfaceTable
     filterset = EIGRPInterfaceFilterSet
@@ -119,7 +127,9 @@ class EIGRPRouterInterfacesView(ObjectChildrenView):
 
 @register_model_view(EIGRPRouter, name='networks')
 class EIGRPRouterNetworksView(ObjectChildrenView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     child_model = EIGRPNetwork
     table = EIGRPNetworkTable
     filterset = EIGRPNetworkFilterSet
@@ -136,18 +146,24 @@ class EIGRPRouterNetworksView(ObjectChildrenView):
 @register_model_view(EIGRPRouter, name='add', detail=False)
 @register_model_view(EIGRPRouter, name='edit')
 class EIGRPRouterEditView(ObjectEditView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     form = EIGRPRouterForm
 
 
 @register_model_view(EIGRPRouter, name='delete')
 class EIGRPRouterDeleteView(ObjectDeleteView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
 
 
 @register_model_view(EIGRPRouter, name='bulk_edit', detail=False)
 class EIGRPRouterBulkEditView(BulkEditView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     filterset = EIGRPRouterFilterSet
     table = EIGRPRouterTable
     form = EIGRPRouterBulkEditForm
@@ -155,14 +171,18 @@ class EIGRPRouterBulkEditView(BulkEditView):
 
 @register_model_view(EIGRPRouter, name='bulk_delete', detail=False)
 class EIGRPRouterBulkDeleteView(BulkDeleteView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     filterset = EIGRPRouterFilterSet
     table = EIGRPRouterTable
 
 
 @register_model_view(EIGRPRouter, name='bulk_import', detail=False)
 class EIGRPRouterImportView(BulkImportView):
-    queryset = EIGRPRouter.objects.select_related('device')
+    queryset = EIGRPRouter.objects.select_related(
+        'device', 'import_policy', 'export_policy'
+    )
     model_form = EIGRPRouterImportForm
 
 

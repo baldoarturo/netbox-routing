@@ -17,6 +17,7 @@ from netbox_routing_protocols.models import (
     EIGRPNetwork,
     EIGRPInterface,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'EIGRPRouterFilterSet',
@@ -48,6 +49,29 @@ class EIGRPRouterFilterSet(RouterMixin, NetBoxModelFilterSet):
         to_field_name='name',
         label='Device',
     )
+    import_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Import Policy (ID)'),
+    )
+    import_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Import Policy (Name)'),
+    )
+    export_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Export Policy (ID)'),
+    )
+    export_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Export Policy (Name)'),
+    )
+
     rid = MultiValueCharFilter(
         method='filter_rid',
         label=_('Router ID'),
@@ -55,7 +79,16 @@ class EIGRPRouterFilterSet(RouterMixin, NetBoxModelFilterSet):
 
     class Meta:
         model = EIGRPRouter
-        fields = ('device_id', 'device', 'mode', 'rid')
+        fields = (
+            'device_id',
+            'device',
+            'mode',
+            'rid',
+            'import_policy_id',
+            'import_policy',
+            'export_policy_id',
+            'export_policy',
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():

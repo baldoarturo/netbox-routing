@@ -124,7 +124,9 @@ __all__ = (
 #
 @register_model_view(OSPFInstance, name='list', path='', detail=False)
 class OSPFInstanceListView(ObjectListView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     table = OSPFInstanceTable
     filterset = OSPFInstanceFilterSet
     filterset_form = OSPFInstanceFilterForm
@@ -132,7 +134,9 @@ class OSPFInstanceListView(ObjectListView):
 
 @register_model_view(OSPFInstance)
 class OSPFInstanceView(ObjectView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -180,7 +184,9 @@ class OSPFInstanceView(ObjectView):
 
 @register_model_view(OSPFInstance, name='interfaces')
 class OSPFInstanceInterfacesView(ObjectChildrenView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     child_model = OSPFInterface
     table = OSPFInterfaceTable
     filterset = OSPFInterfaceFilterSet
@@ -202,18 +208,24 @@ class OSPFInstanceInterfacesView(ObjectChildrenView):
 @register_model_view(OSPFInstance, 'add', detail=False)
 @register_model_view(OSPFInstance, name='edit')
 class OSPFInstanceEditView(ObjectEditView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     form = OSPFInstanceForm
 
 
 @register_model_view(OSPFInstance, name='delete')
 class OSPFInstanceDeleteView(ObjectDeleteView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
 
 
 @register_model_view(OSPFInstance, name='bulk_edit', detail=False)
 class OSPFInstanceBulkEditView(BulkEditView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     filterset = OSPFInstanceFilterSet
     table = OSPFInstanceTable
     form = OSPFInstanceBulkEditForm
@@ -221,14 +233,18 @@ class OSPFInstanceBulkEditView(BulkEditView):
 
 @register_model_view(OSPFInstance, name='bulk_delete', detail=False)
 class OSPFInstanceBulkDeleteView(BulkDeleteView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     filterset = OSPFInstanceFilterSet
     table = OSPFInstanceTable
 
 
 @register_model_view(OSPFInstance, name='bulk_import', detail=False)
 class OSPFInstanceBulkImportView(BulkImportView):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     model_form = OSPFInstanceImportForm
 
 

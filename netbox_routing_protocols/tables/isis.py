@@ -188,10 +188,22 @@ class ISISSettingTable(NetBoxTable):
 class ISISInstanceTable(NetBoxTable):
     device = tables.Column(verbose_name=_('Device'), linkify=True)
     vrf = tables.Column(verbose_name=_('VRF'), linkify=True)
+    import_policy = tables.Column(verbose_name=_('Import Policy'), linkify=True)
+    export_policy = tables.Column(verbose_name=_('Export Policy'), linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = ISISInstance
-        fields = ('pk', 'id', 'device', 'vrf', 'process_tag', 'net', 'is_type')
+        fields = (
+            'pk',
+            'id',
+            'device',
+            'vrf',
+            'process_tag',
+            'net',
+            'is_type',
+            'import_policy',
+            'export_policy',
+        )
         default_columns = ('pk', 'id', 'device', 'process_tag', 'net', 'is_type')
 
 

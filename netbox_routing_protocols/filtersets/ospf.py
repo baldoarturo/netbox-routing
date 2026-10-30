@@ -39,6 +39,7 @@ from netbox_routing_protocols.models import (
     OSPFAreaRange,
     OSPFPrefixSID,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'OSPFAreaFilterSet',
@@ -79,6 +80,29 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
         label='VRF',
     )
 
+    import_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Import Policy (ID)'),
+    )
+    import_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Import Policy (Name)'),
+    )
+    export_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Export Policy (ID)'),
+    )
+    export_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Export Policy (Name)'),
+    )
+
     default_originate_metric_type = django_filters.MultipleChoiceFilter(
         choices=OSPFExternalMetricTypeChoices,
         label=_('Default Originate Metric Type'),
@@ -101,6 +125,10 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             'vrf_id',
             'vrf',
             'router_id',
+            'import_policy_id',
+            'import_policy',
+            'export_policy_id',
+            'export_policy',
             'default_originate',
             'default_originate_always',
             'default_originate_metric',

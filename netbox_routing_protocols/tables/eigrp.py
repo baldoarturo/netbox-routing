@@ -17,9 +17,22 @@ __all__ = (
 
 
 class EIGRPRouterTable(NetBoxTable):
+    import_policy = tables.Column(verbose_name=_('Import Policy'), linkify=True)
+    export_policy = tables.Column(verbose_name=_('Export Policy'), linkify=True)
+
     class Meta(NetBoxTable.Meta):
         model = EIGRPRouter
-        fields = ('pk', 'id', 'name', 'mode', 'pid', 'rid', 'device')
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'mode',
+            'pid',
+            'rid',
+            'device',
+            'import_policy',
+            'export_policy',
+        )
         default_columns = ('pk', 'id', 'name', 'device')
 
 

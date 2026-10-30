@@ -36,6 +36,12 @@ class OSPFInstancePanel(panels.ObjectAttributesPanel):
     default_originate_metric_type = attrs.ChoiceAttr(
         'default_originate_metric_type', label=_('Default Originate Metric Type')
     )
+    import_policy = attrs.RelatedObjectAttr(
+        'import_policy', linkify=True, label=_('Import Policy')
+    )
+    export_policy = attrs.RelatedObjectAttr(
+        'export_policy', linkify=True, label=_('Export Policy')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 

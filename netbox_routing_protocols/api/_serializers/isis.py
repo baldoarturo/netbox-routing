@@ -22,6 +22,7 @@ from netbox_routing_protocols.models import (
     ISISPrefixSID,
     ISISSRv6Locator,
 )
+from netbox_routing_protocols.api._serializers.objects import RoutePolicySerializer
 
 __all__ = (
     'ISISInstanceSerializer',
@@ -251,6 +252,8 @@ class ISISInstanceSerializer(NetBoxModelSerializer):
     )
     device = DeviceSerializer(nested=True)
     vrf = VRFSerializer(nested=True, required=False, allow_null=True)
+    import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
 
     class Meta:
         model = ISISInstance
@@ -264,6 +267,8 @@ class ISISInstanceSerializer(NetBoxModelSerializer):
             'net',
             'is_type',
             'metric_style',
+            'import_policy',
+            'export_policy',
             'overload_bit',
             'overload_on_startup',
             'overload_timeout',

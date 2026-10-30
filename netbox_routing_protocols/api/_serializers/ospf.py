@@ -21,6 +21,7 @@ from netbox_routing_protocols.models import (
     OSPFAreaRange,
     OSPFPrefixSID,
 )
+from netbox_routing_protocols.api._serializers.objects import RoutePolicySerializer
 
 __all__ = (
     'OSPFInstanceSerializer',
@@ -42,6 +43,8 @@ class OSPFInstanceSerializer(NetBoxModelSerializer):
     )
     device = DeviceSerializer(nested=True)
     vrf = VRFSerializer(nested=True, required=False, allow_null=True)
+    import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     passphrase_md5 = serializers.CharField(
         source='md5_digest', read_only=True, allow_null=True
     )
@@ -60,6 +63,8 @@ class OSPFInstanceSerializer(NetBoxModelSerializer):
             'default_originate_always',
             'default_originate_metric',
             'default_originate_metric_type',
+            'import_policy',
+            'export_policy',
             *OSPFInstance.ADVANCED_FIELDS,
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             'passphrase_md5',

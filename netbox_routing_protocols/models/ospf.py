@@ -70,6 +70,7 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_TTL_SECURITY_HOPS_MIN,
 )
 from netbox_routing_protocols.fields.ip import IPAddressField
+from netbox_routing_protocols.models.policy import RoutePolicyMixin
 
 __all__ = (
     'OSPFInstance',
@@ -346,7 +347,7 @@ def _authentication_conflict_error(interfaces, required):
     )
 
 
-class OSPFInstance(OSPFAuthenticationMixin, PrimaryModel):
+class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
     name = models.CharField(max_length=100)
     router_id = IPAddressField(verbose_name=_('Router ID'))
     device = models.ForeignKey(

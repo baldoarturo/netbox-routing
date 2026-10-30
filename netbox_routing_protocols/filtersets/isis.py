@@ -32,6 +32,7 @@ from netbox_routing_protocols.models import (
     ISISPrefixSID,
     ISISSRv6Locator,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'ISISInstanceFilterSet',
@@ -209,6 +210,29 @@ class ISISInstanceFilterSet(NetBoxModelFilterSet):
         to_field_name='name',
         label='VRF',
     )
+    import_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Import Policy (ID)'),
+    )
+    import_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Import Policy (Name)'),
+    )
+    export_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Export Policy (ID)'),
+    )
+    export_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Export Policy (Name)'),
+    )
+
     process_tag = MultiValueCharFilter(label=_('Process Tag'))
     net = MultiValueCharFilter(label=_('NET'))
     is_type = django_filters.MultipleChoiceFilter(
@@ -226,6 +250,10 @@ class ISISInstanceFilterSet(NetBoxModelFilterSet):
             'process_tag',
             'net',
             'is_type',
+            'import_policy_id',
+            'import_policy',
+            'export_policy_id',
+            'export_policy',
         )
 
     def search(self, queryset, name, value):

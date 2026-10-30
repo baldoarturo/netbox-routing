@@ -10,6 +10,7 @@ from netbox_routing_protocols.models import (
     EIGRPNetwork,
     EIGRPInterface,
 )
+from netbox_routing_protocols.api._serializers.objects import RoutePolicySerializer
 
 __all__ = (
     'EIGRPRouterSerializer',
@@ -24,6 +25,8 @@ class EIGRPRouterSerializer(NetBoxModelSerializer):
         view_name='plugins-api:netbox_routing_protocols-api:eigrprouter-detail'
     )
     device = DeviceSerializer(nested=True)
+    import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
 
     class Meta:
         model = EIGRPRouter
@@ -35,6 +38,8 @@ class EIGRPRouterSerializer(NetBoxModelSerializer):
             'pid',
             'rid',
             'device',
+            'import_policy',
+            'export_policy',
             'description',
             'comments',
             'custom_fields',

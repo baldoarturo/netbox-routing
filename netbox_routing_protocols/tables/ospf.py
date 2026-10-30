@@ -32,6 +32,8 @@ __all__ = (
 class OSPFInstanceTable(NetBoxTable):
     device = tables.Column(verbose_name=_('Device'), linkify=True)
     vrf = tables.Column(verbose_name=_('VRF'), linkify=True)
+    import_policy = tables.Column(verbose_name=_('Import Policy'), linkify=True)
+    export_policy = tables.Column(verbose_name=_('Export Policy'), linkify=True)
 
     class Meta(NetBoxTable.Meta):
         model = OSPFInstance
@@ -46,6 +48,8 @@ class OSPFInstanceTable(NetBoxTable):
             'default_originate_always',
             'default_originate_metric',
             'default_originate_metric_type',
+            'import_policy',
+            'export_policy',
             *OSPFInstance.ADVANCED_FIELDS,
             'authentication',
             'authentication_key_id',

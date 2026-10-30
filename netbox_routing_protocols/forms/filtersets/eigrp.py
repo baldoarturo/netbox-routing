@@ -21,6 +21,7 @@ from netbox_routing_protocols.models import (
     EIGRPNetwork,
     EIGRPInterface,
 )
+from netbox_routing_protocols.models.objects import RoutePolicy
 
 __all__ = (
     'EIGRPRouterFilterForm',
@@ -32,13 +33,28 @@ __all__ = (
 
 class EIGRPRouterFilterForm(NetBoxModelFilterSetForm):
     model = EIGRPRouter
-    fieldsets = (FieldSet('q', 'filter_id', 'tag', 'device', 'mode'),)
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag', 'device', 'mode'),
+        FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
+    )
 
     device_id = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(),
         required=False,
         selector=True,
         label=_('Device'),
+    )
+    import_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
     )
     tag = TagFilterField(model)
 

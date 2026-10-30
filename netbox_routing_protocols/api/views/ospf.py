@@ -40,7 +40,9 @@ __all__ = (
 
 
 class OSPFInstanceViewSet(NetBoxModelViewSet):
-    queryset = OSPFInstance.objects.select_related('device', 'vrf')
+    queryset = OSPFInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     serializer_class = OSPFInstanceSerializer
     filterset_class = filtersets.OSPFInstanceFilterSet
 

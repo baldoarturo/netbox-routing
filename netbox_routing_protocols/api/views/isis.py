@@ -70,7 +70,9 @@ class ISISSettingViewSet(NetBoxModelViewSet):
         GenericPrefetch(
             'assigned_object',
             [
-                ISISInstance.objects.select_related('device', 'vrf'),
+                ISISInstance.objects.select_related(
+                    'device', 'vrf', 'import_policy', 'export_policy'
+                ),
                 ISISInterface.objects.select_related(
                     'instance__device', 'instance__vrf', 'interface'
                 ),
@@ -103,7 +105,9 @@ class ISISSegmentRoutingViewSet(NetBoxModelViewSet):
 
 
 class ISISInstanceViewSet(NetBoxModelViewSet):
-    queryset = ISISInstance.objects.select_related('device', 'vrf')
+    queryset = ISISInstance.objects.select_related(
+        'device', 'vrf', 'import_policy', 'export_policy'
+    )
     serializer_class = ISISInstanceSerializer
     filterset_class = filtersets.ISISInstanceFilterSet
 
