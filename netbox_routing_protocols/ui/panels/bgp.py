@@ -10,6 +10,9 @@ __all__ = (
     'BGPNoPolicyPanel',
     'BGPEffectivePolicyPanel',
     'BGPInstancePanel',
+    'BGPInstanceRoutingPanel',
+    'BGPInstanceVRFPanel',
+    'BGPListenRangePanel',
     'BGPAddressFamilyPanel',
     'BGPAddressFamilyOptionsPanel',
     'BGPPeerGroupPanel',
@@ -29,6 +32,37 @@ class BGPInstancePanel(panels.ObjectAttributesPanel):
     router_id = attrs.TextAttr('router_id', label=_('Router ID'))
     asdot = attrs.BooleanAttr('asdot', label=_('AS Dot Notation'))
     tenant = attrs.RelatedObjectAttr('tenant', linkify=True)
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class BGPInstanceRoutingPanel(panels.ObjectAttributesPanel):
+    """Route reflector (RFC 4456) and confederation (RFC 5065)"""
+
+    cluster_id = attrs.TextAttr('cluster_id', label=_('Cluster ID'))
+    confederation_identifier = attrs.RelatedObjectAttr(
+        'confederation_identifier', label=_('Confederation Identifier'), linkify=True
+    )
+    confederation_peers = attrs.RelatedObjectListAttr(
+        'confederation_peers', label=_('Confederation Peers'), linkify=True
+    )
+
+
+class BGPInstanceVRFPanel(panels.ObjectAttributesPanel):
+    """The RD and the route targets come from the VRF (NetBox IPAM, RFC 4364)"""
+
+    rd = attrs.TextAttr('vrf_route_distinguisher', label=_('Route Distinguisher'))
+    import_targets = attrs.TextAttr(
+        'vrf_import_targets_display', label=_('Import Targets')
+    )
+    export_targets = attrs.TextAttr(
+        'vrf_export_targets_display', label=_('Export Targets')
+    )
+
+
+class BGPListenRangePanel(panels.ObjectAttributesPanel):
+    peer_group = attrs.RelatedObjectAttr('peer_group', linkify=True)
+    instance = attrs.RelatedObjectAttr('instance', linkify=True)
+    prefix = attrs.RelatedObjectAttr('prefix', linkify=True)
     description = attrs.TextAttr('description', label=_('Description'))
 
 
@@ -65,6 +99,7 @@ class BGPAddressFamilyOptionsPanel(panels.ObjectAttributesPanel):
 class BGPPeerGroupPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
     instance = attrs.RelatedObjectAttr('instance', linkify=True)
+    listen_limit = attrs.NumericAttr('listen_limit', label=_('Listen Limit'))
     tenant = attrs.RelatedObjectAttr('tenant', linkify=True)
     description = attrs.TextAttr('description', label=_('Description'))
 
@@ -73,6 +108,7 @@ class BGPPeerPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
     instance = attrs.RelatedObjectAttr('instance', linkify=True)
     peer = attrs.RelatedObjectAttr('peer', linkify=True)
+    interface = attrs.RelatedObjectAttr('interface', linkify=True)
     source = attrs.RelatedObjectAttr('source', linkify=True)
     peer_group = attrs.RelatedObjectAttr('peer_group', linkify=True)
     status = attrs.ChoiceAttr('status', label=_('Status'))
@@ -92,7 +128,14 @@ class BGPPeerSessionPanel(panels.ObjectAttributesPanel):
         'ttl_security_hops', label=_('TTL Security Hops')
     )
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
-    password = attrs.TextAttr('password', label=_('Password'))
+    route_reflector_client = attrs.BooleanAttr(
+        'route_reflector_client', label=_('Route Reflector Client')
+    )
+    extended_nexthop = attrs.BooleanAttr(
+        'extended_nexthop', label=_('Extended Next Hop')
+    )
+    passphrase = attrs.TextAttr('passphrase', label=_('Passphrase'))
+    md5_digest = attrs.TextAttr('md5_digest', label=_('MD5 Digest'))
     keepalive = attrs.NumericAttr('keepalive', label=_('Keepalive Time'))
     hold_time = attrs.NumericAttr('hold_time', label=_('Hold Time'))
 

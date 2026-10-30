@@ -45,6 +45,7 @@ __all__ = (
     'BGPInstanceIndex',
     'BGPAddressFamilyIndex',
     'BGPPeerGroupIndex',
+    'BGPListenRangeIndex',
     'BGPPeerIndex',
     'BGPPeerAddressFamilyIndex',
     'CommunityIndex',

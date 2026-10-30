@@ -1,8 +1,8 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device
-from ipam.models import ASN, VRF
+from dcim.models import Device, Interface
+from ipam.models import ASN, VRF, Prefix
 from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing_protocols.models import PrefixList, RoutePolicy
 from tenancy.forms import TenancyFilterForm
@@ -16,6 +16,7 @@ __all__ = (
     'BGPInstanceFilterForm',
     'BGPAddressFamilyFilterForm',
     'BGPPeerGroupFilterForm',
+    'BGPListenRangeFilterForm',
     'BGPPeerFilterForm',
     'BGPPeerAddressFamilyFilterForm',
     'BFDProfileFilterForm',
@@ -187,13 +188,47 @@ class BGPPeerGroupFilterForm(
     tag = TagFilterField(model)
 
 
+class BGPListenRangeFilterForm(NetBoxModelFilterSetForm):
+    model = BGPListenRange
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('instance_id', 'peer_group_id', 'prefix_id', name=_('BGP')),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=BGPInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    peer_group_id = DynamicModelMultipleChoiceField(
+        queryset=BGPPeerGroup.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Peer Group'),
+    )
+    prefix_id = DynamicModelMultipleChoiceField(
+        queryset=Prefix.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Prefix'),
+    )
+    tag = TagFilterField(model)
+
+
 class BGPPeerFilterForm(
     BGPPeerConfigFilterFormMixin, TenancyFilterForm, NetBoxModelFilterSetForm
 ):
     model = BGPPeer
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
-        FieldSet('instance_id', 'device_id', 'peer_group_id', 'status', name=_('BGP')),
+        FieldSet(
+            'instance_id',
+            'device_id',
+            'peer_group_id',
+            'interface_id',
+            'status',
+            name=_('BGP'),
+        ),
         FieldSet('enabled', 'remote_as_id', 'local_as_id', 'bfd_id', name=_('Session')),
         FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
         FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
@@ -203,6 +238,12 @@ class BGPPeerFilterForm(
         required=False,
         selector=True,
         label=_('Peer Group'),
+    )
+    interface_id = DynamicModelMultipleChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Interface'),
     )
     status = forms.MultipleChoiceField(
         choices=BGPStatusChoices, required=False, label=_('Status')

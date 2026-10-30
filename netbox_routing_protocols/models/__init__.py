@@ -41,6 +41,7 @@ __all__ = (
     'BGPInstance',
     'BGPAddressFamily',
     'BGPPeerGroup',
+    'BGPListenRange',
     'BGPPeer',
     'BGPPeerAddressFamily',
     # Communities

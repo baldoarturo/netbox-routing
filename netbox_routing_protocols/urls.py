@@ -247,6 +247,14 @@ urlpatterns = [
     ),
     path('bgp/peer-group/<int:pk>/', include(get_model_urls(app_name, 'bgppeergroup'))),
     path(
+        'bgp/listen-range/',
+        include(get_model_urls(app_name, 'bgplistenrange', detail=False)),
+    ),
+    path(
+        'bgp/listen-range/<int:pk>/',
+        include(get_model_urls(app_name, 'bgplistenrange')),
+    ),
+    path(
         'bgp/address-family/',
         include(get_model_urls(app_name, 'bgpaddressfamily', detail=False)),
     ),

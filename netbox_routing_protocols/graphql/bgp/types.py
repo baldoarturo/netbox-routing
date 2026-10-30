@@ -10,6 +10,7 @@ from netbox_routing_protocols.graphql.bgp.filters import (
     BGPInstanceFilter,
     BGPAddressFamilyFilter,
     BGPPeerGroupFilter,
+    BGPListenRangeFilter,
     BGPPeerFilter,
     BGPPeerAddressFamilyFilter,
     BFDProfileFilter,
@@ -19,6 +20,7 @@ __all__ = (
     'BGPInstanceType',
     'BGPAddressFamilyType',
     'BGPPeerGroupType',
+    'BGPListenRangeType',
     'BGPPeerType',
     'BGPPeerAddressFamilyType',
     'BFDProfileType',
@@ -33,6 +35,13 @@ class BGPInstanceType(PrimaryObjectType):
     asn: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')]
     router_id: str | None
     asdot: bool | None
+    cluster_id: str | None
+    confederation_identifier: (
+        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
+    )
+    confederation_peers: list[
+        Annotated["ASNType", strawberry.lazy('ipam.graphql.types')]
+    ]
     graceful_restart: bool | None
     graceful_restart_time: int | None
     graceful_restart_stale_time: int | None
@@ -98,6 +107,13 @@ class BGPPeerGroupType(PrimaryObjectType):
     instance: Annotated[
         "BGPInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
+    listen_limit: int | None
+    listen_ranges: list[
+        Annotated[
+            "BGPListenRangeType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+    ]
     remote_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
     local_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
     enabled: bool | None
@@ -122,7 +138,10 @@ class BGPPeerGroupType(PrimaryObjectType):
         ]
         | None
     )
-    password: str | None
+    passphrase: str | None
+    show_md5: bool
+    route_reflector_client: bool | None
+    extended_nexthop: bool | None
     keepalive: int | None
     hold_time: int | None
     tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
@@ -139,13 +158,24 @@ class BGPPeerGroupType(PrimaryObjectType):
     ]
 
 
+@strawberry_django.type(
+    models.BGPListenRange, fields='__all__', filters=BGPListenRangeFilter
+)
+class BGPListenRangeType(PrimaryObjectType):
+    peer_group: Annotated[
+        "BGPPeerGroupType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    prefix: Annotated["PrefixType", strawberry.lazy('ipam.graphql.types')]
+
+
 @strawberry_django.type(models.BGPPeer, fields='__all__', filters=BGPPeerFilter)
 class BGPPeerType(PrimaryObjectType):
     name: str | None
     instance: Annotated[
         "BGPInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
-    peer: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')]
+    peer: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')] | None
+    interface: Annotated["InterfaceType", strawberry.lazy('dcim.graphql.types')] | None
     source: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')] | None
     peer_group: (
         Annotated[
@@ -179,7 +209,10 @@ class BGPPeerType(PrimaryObjectType):
         ]
         | None
     )
-    password: str | None
+    passphrase: str | None
+    show_md5: bool
+    route_reflector_client: bool | None
+    extended_nexthop: bool | None
     keepalive: int | None
     hold_time: int | None
     tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None

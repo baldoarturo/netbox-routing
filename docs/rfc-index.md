@@ -25,12 +25,14 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 4364](https://www.rfc-editor.org/rfc/rfc4364) | BGP/MPLS VPNs | [BGP](protocols/bgp.md#address-families) |
 | [RFC 4632](https://www.rfc-editor.org/rfc/rfc4632) | CIDR | [Prefix lists](routing-objects.md#prefix-lists) |
 | [RFC 4659](https://www.rfc-editor.org/rfc/rfc4659) | BGP-MPLS IPv6 VPN | [BGP](protocols/bgp.md#address-families) |
+| [RFC 4456](https://www.rfc-editor.org/rfc/rfc4456) | BGP route reflection | [BGP instances](protocols/bgp.md#instances), [BGP peers](protocols/bgp.md#peers) |
 | [RFC 4486](https://www.rfc-editor.org/rfc/rfc4486) | Subcodes for the BGP Cease notification (maximum number of prefixes) | [BGP peer address families](protocols/bgp.md#peer-address-families) |
 | [RFC 4684](https://www.rfc-editor.org/rfc/rfc4684) | Route-target constrained distribution | [BGP](protocols/bgp.md#address-families) |
 | [RFC 4724](https://www.rfc-editor.org/rfc/rfc4724) | BGP graceful restart | [BGP instances](protocols/bgp.md#instances) |
 | [RFC 4760](https://www.rfc-editor.org/rfc/rfc4760) | BGP multiprotocol extensions | [BGP address families](protocols/bgp.md#address-families) |
 | [RFC 4761](https://www.rfc-editor.org/rfc/rfc4761) | VPLS using BGP | [BGP](protocols/bgp.md#address-families) |
 | [RFC 4861](https://www.rfc-editor.org/rfc/rfc4861) | IPv6 neighbor discovery (link-local next hops need an interface) | [Static routes](protocols/static.md#what-the-plugin-checks) |
+| [RFC 5065](https://www.rfc-editor.org/rfc/rfc5065) | BGP confederations | [BGP instances](protocols/bgp.md#instances) |
 | [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082) | Generalized TTL security | [BGP peers](protocols/bgp.md#peers), [OSPF interfaces](protocols/ospf.md#other-interface-options) |
 | [RFC 5120](https://www.rfc-editor.org/rfc/rfc5120) | IS-IS multi-topology | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 5130](https://www.rfc-editor.org/rfc/rfc5130) | IS-IS administrative tags | [IS-IS interfaces](protocols/isis.md#interfaces), [redistribution](protocols/isis.md#redistribution) |
@@ -42,6 +44,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5308](https://www.rfc-editor.org/rfc/rfc5308) | IS-IS for IPv6 | [IS-IS](protocols/isis.md), [address families](protocols/isis.md#address-families) |
 | [RFC 5310](https://www.rfc-editor.org/rfc/rfc5310) | IS-IS generic cryptographic authentication | [IS-IS](protocols/isis.md#authentication) |
 | [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396) | Textual representation of AS numbers | [BGP instances](protocols/bgp.md#instances), [AS paths](routing-objects.md#as-paths) |
+| [RFC 5549](https://www.rfc-editor.org/rfc/rfc5549) | IPv4 NLRI with an IPv6 next hop | [BGP peers](protocols/bgp.md#peers) |
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization | [OSPF](protocols/ospf.md#advanced-features), [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 5668](https://www.rfc-editor.org/rfc/rfc5668) | 4-octet AS extended communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 5701](https://www.rfc-editor.org/rfc/rfc5701) | IPv6 address specific extended communities | [Routing objects](routing-objects.md#communities) |
@@ -49,7 +52,6 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5709](https://www.rfc-editor.org/rfc/rfc5709) | OSPFv2 HMAC-SHA authentication | [OSPF authentication](protocols/ospf.md#authentication) |
 | [RFC 5880](https://www.rfc-editor.org/rfc/rfc5880) | BFD | [BFD](bfd.md) |
 | [RFC 5882](https://www.rfc-editor.org/rfc/rfc5882) | Generic application of BFD | [IS-IS interfaces](protocols/isis.md#interfaces) |
-| [RFC 5925](https://www.rfc-editor.org/rfc/rfc5925) | TCP authentication option | [BGP peers](protocols/bgp.md#peers) |
 | [RFC 6119](https://www.rfc-editor.org/rfc/rfc6119) | IPv6 traffic engineering in IS-IS | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6232](https://www.rfc-editor.org/rfc/rfc6232) | IS-IS purge originator identification | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier | [BGP instances](protocols/bgp.md#instances) |

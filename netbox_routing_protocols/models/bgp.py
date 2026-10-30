@@ -1,3 +1,6 @@
+import hashlib
+import ipaddress
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
@@ -13,10 +16,14 @@ __all__ = (
     'BGPInstance',
     'BGPAddressFamily',
     'BGPPeerGroup',
+    'BGPListenRange',
     'BGPPeer',
     'BGPPeerAddressFamily',
     'BFDProfile',
 )
+
+# RFC 2385: implementations accept keys of at least 80 characters
+BGP_PASSPHRASE_MAX_LENGTH = 80
 
 # Prefix list family (4 or 6) accepted by each address family. Families that do not
 # carry IP prefixes (EVPN, VPLS, link-state, ...) do not take prefix lists.
@@ -88,8 +95,31 @@ class BGPPeerConfigMixin(RoutePolicyMixin, models.Model):
         null=True,
         help_text=_('Wait for the neighbor to open the TCP connection (RFC 4271)'),
     )
-    password = models.CharField(
-        verbose_name=_('Password'), max_length=255, blank=True, null=True
+    passphrase = models.CharField(
+        verbose_name=_('Passphrase'),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text=_(
+            'The TCP MD5 key (RFC 2385), stored as plain text, up to 80 characters'
+        ),
+    )
+    show_md5 = models.BooleanField(
+        verbose_name=_('MD5 Digest'),
+        help_text=_('Also show the MD5 digest of the key'),
+        default=False,
+    )
+    route_reflector_client = models.BooleanField(
+        verbose_name=_('Route Reflector Client'),
+        blank=True,
+        null=True,
+        help_text=_('The neighbor is a client of this route reflector (RFC 4456)'),
+    )
+    extended_nexthop = models.BooleanField(
+        verbose_name=_('Extended Next Hop'),
+        blank=True,
+        null=True,
+        help_text=_('Advertise IPv4 prefixes with an IPv6 next hop (RFC 5549)'),
     )
     keepalive = models.PositiveIntegerField(
         verbose_name=_('Keepalive Time'),
@@ -109,9 +139,26 @@ class BGPPeerConfigMixin(RoutePolicyMixin, models.Model):
     class Meta:
         abstract = True
 
+    def get_passphrase_md5(self):
+        """The MD5 digest (hex) of the key, or None when there is no key."""
+        if not self.passphrase:
+            return None
+        return hashlib.md5(self.passphrase.encode()).hexdigest()
+
+    @property
+    def md5_digest(self):
+        """The MD5 digest of the key, only when it is set to be shown."""
+        return self.get_passphrase_md5() if self.show_md5 else None
+
     def clean(self):
         super().clean()
         errors = {}
+        if self.passphrase and len(self.passphrase) > BGP_PASSPHRASE_MAX_LENGTH:
+            errors['passphrase'] = _(
+                'The key is longer than %(max)s characters (RFC 2385).'
+            ) % {'max': BGP_PASSPHRASE_MAX_LENGTH}
+        if self.show_md5 and not self.passphrase:
+            errors['show_md5'] = _('There is no key to show the MD5 digest of.')
         if self.ebgp_multihop is not None and self.ttl_security_hops is not None:
             errors['ttl_security_hops'] = _(
                 'TTL security (RFC 5082) and eBGP multihop cannot be used together: '
@@ -177,6 +224,35 @@ class BGPInstance(RoutePolicyMixin, PrimaryModel):
         null=True,
         help_text=_('RFC 4724'),
     )
+    cluster_id = models.CharField(
+        verbose_name=_('Cluster ID'),
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text=_(
+            'Route reflector cluster ID (RFC 4456), typed by hand: a 32-bit number '
+            'or an IPv4 address. Empty uses the router ID'
+        ),
+    )
+    confederation_identifier = models.ForeignKey(
+        verbose_name=_('Confederation Identifier'),
+        to='ipam.ASN',
+        on_delete=models.PROTECT,
+        related_name='bgp_confederation_instances',
+        blank=True,
+        null=True,
+        help_text=_(
+            'The AS the confederation shows to the outside (RFC 5065); the ASN of '
+            'the instance is then its member AS'
+        ),
+    )
+    confederation_peers = models.ManyToManyField(
+        verbose_name=_('Confederation Peers'),
+        to='ipam.ASN',
+        related_name='bgp_confederation_peer_instances',
+        blank=True,
+        help_text=_('The other member ASes of the confederation (RFC 5065)'),
+    )
     graceful_restart_time = models.PositiveSmallIntegerField(
         verbose_name=_('Graceful Restart Time'),
         blank=True,
@@ -218,6 +294,8 @@ class BGPInstance(RoutePolicyMixin, PrimaryModel):
         'graceful_restart_time',
         'graceful_restart_stale_time',
         'graceful_restart_helper_only',
+        'cluster_id',
+        'confederation_identifier',
         'import_policy',
         'export_policy',
     )
@@ -247,9 +325,62 @@ class BGPInstance(RoutePolicyMixin, PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:bgpinstance', args=[self.pk])
 
+    @staticmethod
+    def confederation_errors(asn, identifier, peers):
+        """{field: message} of the confederation settings (RFC 5065). The peers are
+        a many to many relation, so they are checked by the form and the serializer."""
+        errors = {}
+        peers = list(peers or [])
+        if peers and identifier is None:
+            errors['confederation_peers'] = _('Set the confederation identifier first.')
+        if asn is not None and any(peer.pk == asn.pk for peer in peers):
+            errors['confederation_peers'] = _(
+                'The member AS of the instance is not one of its confederation peers.'
+            )
+        if identifier is not None and any(peer.pk == identifier.pk for peer in peers):
+            errors['confederation_peers'] = _(
+                'The confederation identifier is not a member AS.'
+            )
+        return errors
+
+    @property
+    def vrf_route_distinguisher(self):
+        """The route distinguisher of the VRF (RFC 4364), kept in NetBox IPAM"""
+        return self.vrf.rd if self.vrf_id else None
+
+    @property
+    def vrf_import_targets_display(self):
+        if not self.vrf_id:
+            return None
+        return ', '.join(str(target) for target in self.vrf.import_targets.all())
+
+    @property
+    def vrf_export_targets_display(self):
+        if not self.vrf_id:
+            return None
+        return ', '.join(str(target) for target in self.vrf.export_targets.all())
+
     def clean(self):
         super().clean()
         errors = {}
+        if self.cluster_id:
+            cluster_id = str(self.cluster_id).strip()
+            try:
+                if cluster_id.isdigit():
+                    cluster_id = str(ipaddress.IPv4Address(int(cluster_id)))
+                else:
+                    cluster_id = str(ipaddress.IPv4Address(cluster_id))
+                self.cluster_id = cluster_id
+            except ValueError:
+                errors['cluster_id'] = _(
+                    'The cluster ID is a 32-bit number or an IPv4 address (RFC 4456).'
+                )
+        if self.confederation_identifier_id:
+            if self.confederation_identifier_id == self.asn_id:
+                errors['confederation_identifier'] = _(
+                    'The confederation identifier is the AS of the confederation, '
+                    'not the member AS of the instance (RFC 5065).'
+                )
         if self.router_id == '0.0.0.0':
             errors['router_id'] = _('The router ID cannot be 0.0.0.0 (RFC 6286).')
         if not self.graceful_restart:
@@ -392,6 +523,13 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
         on_delete=models.PROTECT,
         related_name='peer_groups',
     )
+    listen_limit = models.PositiveIntegerField(
+        verbose_name=_('Listen Limit'),
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1)],
+        help_text=_('Maximum number of neighbors accepted from the listen ranges'),
+    )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
         to='tenancy.Tenant',
@@ -410,8 +548,11 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
         'ebgp_multihop',
         'ttl_security_hops',
         'passive',
+        'route_reflector_client',
+        'extended_nexthop',
         'keepalive',
         'hold_time',
+        'listen_limit',
         'import_policy',
         'export_policy',
         'tenant',
@@ -438,6 +579,18 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:bgppeergroup', args=[self.pk])
 
+    def clean(self):
+        super().clean()
+        if self.route_reflector_client and self.is_ibgp is False:
+            raise ValidationError(
+                {
+                    'route_reflector_client': _(
+                        'Only an iBGP neighbor can be a route reflector client '
+                        '(RFC 4456).'
+                    )
+                }
+            )
+
     @property
     def is_ibgp(self):
         """True when the neighbors of the group are in the same AS (iBGP), None when
@@ -462,6 +615,79 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
         ]
 
 
+class BGPListenRange(PrimaryModel):
+    """A range of addresses a peer group accepts neighbors from (dynamic neighbors,
+    FRR listen range, Cisco bgp listen range). The range is a prefix of IPAM."""
+
+    peer_group = models.ForeignKey(
+        verbose_name=_('Peer Group'),
+        to='netbox_routing_protocols.BGPPeerGroup',
+        on_delete=models.CASCADE,
+        related_name='listen_ranges',
+    )
+    prefix = models.ForeignKey(
+        verbose_name=_('Prefix'),
+        to='ipam.Prefix',
+        on_delete=models.PROTECT,
+        related_name='bgp_listen_ranges',
+    )
+
+    clone_fields = ('peer_group',)
+    prerequisite_models = ('netbox_routing_protocols.BGPPeerGroup',)
+
+    class Meta:
+        verbose_name = 'BGP Listen Range'
+        verbose_name_plural = 'BGP Listen Ranges'
+        ordering = ('peer_group', 'prefix', 'pk')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('peer_group', 'prefix'),
+                name='%(app_label)s_%(class)s_peer_group_prefix',
+                violation_error_message=_(
+                    'The peer group already listens on this prefix.'
+                ),
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.peer_group}: {self.prefix}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:bgplistenrange', args=[self.pk]
+        )
+
+    @property
+    def instance(self):
+        return self.peer_group.instance
+
+    def clean(self):
+        super().clean()
+        if not (self.peer_group_id and self.prefix_id):
+            return
+        errors = {}
+        group = self.peer_group
+        if self.prefix.vrf_id != group.instance.vrf_id:
+            errors['prefix'] = _('The prefix must be in the VRF of the BGP instance.')
+        elif (
+            BGPListenRange.objects.filter(
+                peer_group__instance=group.instance, prefix=self.prefix
+            )
+            .exclude(pk=self.pk)
+            .exists()
+        ):
+            errors['prefix'] = _(
+                'Another peer group of the instance already listens on this prefix.'
+            )
+        if group.remote_as_id is None:
+            errors['peer_group'] = _(
+                'A peer group that listens needs a remote AS: the neighbors it '
+                'accepts are not known beforehand.'
+            )
+        if errors:
+            raise ValidationError(errors)
+
+
 class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     name = models.CharField(
         verbose_name=_('Name'), max_length=100, blank=True, null=True
@@ -477,6 +703,20 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
         to='ipam.IPAddress',
         on_delete=models.PROTECT,
         related_name='remote_peers',
+        blank=True,
+        null=True,
+    )
+    interface = models.ForeignKey(
+        verbose_name=_('Interface'),
+        to='dcim.Interface',
+        on_delete=models.PROTECT,
+        related_name='bgp_peers',
+        blank=True,
+        null=True,
+        help_text=_(
+            'Unnumbered peer: the session runs over this interface, to the IPv6 '
+            'link-local address of the neighbor (RFC 5549). Instead of the address'
+        ),
     )
     source = models.ForeignKey(
         verbose_name=_('Source Address'),
@@ -520,6 +760,8 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
         'ebgp_multihop',
         'ttl_security_hops',
         'passive',
+        'route_reflector_client',
+        'extended_nexthop',
         'keepalive',
         'hold_time',
         'tenant',
@@ -529,8 +771,26 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     class Meta:
         verbose_name = 'BGP Peer'
         verbose_name_plural = 'BGP Peers'
-        ordering = ('instance', 'peer')
+        ordering = ('instance', 'peer', 'interface', 'pk')
         constraints = [
+            models.CheckConstraint(
+                name='%(app_label)s_%(class)s_peer_xor_interface',
+                condition=(
+                    models.Q(peer__isnull=False, interface__isnull=True)
+                    | models.Q(peer__isnull=True, interface__isnull=False)
+                ),
+                violation_error_message=_(
+                    'Set the address of the neighbor or the interface it is reached '
+                    'through, not both.'
+                ),
+            ),
+            models.UniqueConstraint(
+                fields=('instance', 'interface'),
+                name='%(app_label)s_%(class)s_instance_interface',
+                violation_error_message=_(
+                    'The instance already has a peer on this interface.'
+                ),
+            ),
             models.UniqueConstraint(
                 fields=('instance', 'peer'),
                 name='%(app_label)s_%(class)s_instance_peer',
@@ -542,9 +802,10 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
         ]
 
     def __str__(self):
+        target = self.peer or self.interface
         if self.name:
-            return f'{self.name} ({self.peer})'
-        return f'{self.peer}'
+            return f'{self.name} ({target})'
+        return f'{target}'
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:bgppeer', args=[self.pk])
@@ -606,6 +867,21 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
             address = getattr(self, f'{field}_id') and getattr(self, field)
             if address and address.vrf_id != self.instance.vrf_id:
                 errors[field] = _('The address must be in the VRF of the BGP instance.')
+        if self.interface_id:
+            if self.interface.device_id != self.instance.device_id:
+                errors['interface'] = _(
+                    'The interface is on another device than the BGP instance.'
+                )
+            elif self.interface.vrf_id != self.instance.vrf_id:
+                errors['interface'] = _(
+                    'The interface must be in the VRF of the BGP instance.'
+                )
+            if self.source_id:
+                errors['source'] = _('An unnumbered peer has no source address.')
+        if self.route_reflector_client and self.is_ibgp is False:
+            errors['route_reflector_client'] = _(
+                'Only an iBGP neighbor can be a route reflector client (RFC 4456).'
+            )
         if self.source_id:
             interface = self.source.assigned_object
             device = getattr(interface, 'device', None)

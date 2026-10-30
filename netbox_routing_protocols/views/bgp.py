@@ -40,6 +40,12 @@ __all__ = (
     'BGPPeerGroupDeleteView',
     'BGPPeerGroupBulkEditView',
     'BGPPeerGroupBulkDeleteView',
+    'BGPListenRangeListView',
+    'BGPListenRangeView',
+    'BGPListenRangeEditView',
+    'BGPListenRangeDeleteView',
+    'BGPListenRangeBulkEditView',
+    'BGPListenRangeBulkDeleteView',
     'BGPPeerListView',
     'BGPPeerView',
     'BGPPeerEditView',
@@ -81,6 +87,8 @@ class BGPInstanceView(ObjectView):
     layout = layout.SimpleLayout(
         left_panels=[
             BGPInstancePanel(),
+            BGPInstanceRoutingPanel(title=_('Route reflector and confederation')),
+            BGPInstanceVRFPanel(title=_('VRF')),
             BGPGracefulRestartPanel(title=_('Graceful restart')),
             BGPRoutePolicyPanel(title=_('Route policy')),
             TagsPanel(),
@@ -414,6 +422,109 @@ class BGPPeerGroupPeerAddressFamilysView(ObjectChildrenView):
 
     def get_children(self, request, parent):
         return self.child_model.objects.filter(peer_group=parent)
+
+
+@register_model_view(BGPPeerGroup, name='listen_ranges')
+class BGPPeerGroupListenRangesView(ObjectChildrenView):
+    queryset = BGPPeerGroup.objects.select_related(
+        'instance__device', 'instance__vrf', 'instance__asn'
+    )
+    child_model = BGPListenRange
+    table = BGPListenRangeTable
+    filterset = BGPListenRangeFilterSet
+    filterset_form = BGPListenRangeFilterForm
+    actions = (CloneObject, EditObject, DeleteObject)
+    tab = ViewTab(
+        label='Listen Ranges',
+        badge=lambda obj: BGPListenRange.objects.filter(peer_group=obj).count(),
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.filter(peer_group=parent)
+
+
+#
+# BGPListenRange
+#
+@register_model_view(BGPListenRange, name='list', path='', detail=False)
+class BGPListenRangeListView(ObjectListView):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'prefix',
+    )
+    filterset = BGPListenRangeFilterSet
+    filterset_form = BGPListenRangeFilterForm
+    table = BGPListenRangeTable
+
+
+@register_model_view(BGPListenRange)
+class BGPListenRangeView(ObjectView):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'prefix',
+    )
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            BGPListenRangePanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(BGPListenRange, name='add', detail=False)
+@register_model_view(BGPListenRange, name='edit')
+class BGPListenRangeEditView(ObjectEditView):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'prefix',
+    )
+    form = BGPListenRangeForm
+
+
+@register_model_view(BGPListenRange, name='delete')
+class BGPListenRangeDeleteView(ObjectDeleteView):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'prefix',
+    )
+
+
+@register_model_view(BGPListenRange, name='bulk_edit', detail=False)
+class BGPListenRangeBulkEditView(BulkEditView):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'prefix',
+    )
+    filterset = BGPListenRangeFilterSet
+    form = BGPListenRangeBulkEditForm
+    table = BGPListenRangeTable
+
+
+@register_model_view(BGPListenRange, name='bulk_delete', detail=False)
+class BGPListenRangeBulkDeleteView(BulkDeleteView):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'prefix',
+    )
+    filterset = BGPListenRangeFilterSet
+    table = BGPListenRangeTable
 
 
 #

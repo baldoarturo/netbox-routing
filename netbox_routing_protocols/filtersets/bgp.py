@@ -4,7 +4,8 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.filtersets import NetBoxModelFilterSet
 from dcim.models import Device
-from ipam.models import ASN, VRF, IPAddress
+from dcim.models import Interface
+from ipam.models import ASN, VRF, IPAddress, Prefix
 from netbox_routing_protocols.models import ASPath, PrefixList, RoutePolicy
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filtersets import register_filterset
@@ -16,6 +17,7 @@ __all__ = (
     'BGPInstanceFilterSet',
     'BGPAddressFamilyFilterSet',
     'BGPPeerGroupFilterSet',
+    'BGPListenRangeFilterSet',
     'BGPPeerFilterSet',
     'BGPPeerAddressFamilyFilterSet',
     'BFDProfileFilterSet',
@@ -167,6 +169,7 @@ class BGPInstanceFilterSet(
             'graceful_restart_time',
             'graceful_restart_stale_time',
             'graceful_restart_helper_only',
+            'cluster_id',
             'description',
         )
 
@@ -237,6 +240,7 @@ class BGPPeerGroupFilterSet(
         fields = (
             'id',
             'name',
+            'listen_limit',
             'enabled',
             'ebgp_multihop',
             'ttl_security_hops',
@@ -258,6 +262,38 @@ class BGPPeerGroupFilterSet(
 
 
 @register_filterset
+class BGPListenRangeFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='peer_group__instance',
+        queryset=BGPInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    peer_group_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='peer_group',
+        queryset=BGPPeerGroup.objects.all(),
+        label=_('Peer Group (ID)'),
+    )
+    prefix_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='prefix',
+        queryset=Prefix.objects.all(),
+        label=_('Prefix (ID)'),
+    )
+
+    class Meta:
+        model = BGPListenRange
+        fields = ('id', 'description')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(peer_group__name__icontains=value)
+            | Q(peer_group__instance__name__icontains=value)
+            | Q(description__icontains=value)
+        )
+
+
+@register_filterset
 class BGPPeerFilterSet(
     PeerConfigFilterSetMixin, TenancyFilterSet, NetBoxModelFilterSet
 ):
@@ -265,6 +301,11 @@ class BGPPeerFilterSet(
         field_name='peer',
         queryset=IPAddress.objects.all(),
         label=_('Peer (ID)'),
+    )
+    interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='interface',
+        queryset=Interface.objects.all(),
+        label=_('Interface (ID)'),
     )
     peer_group_id = django_filters.ModelMultipleChoiceFilter(
         field_name='peer_group',
@@ -293,6 +334,7 @@ class BGPPeerFilterSet(
         return queryset.filter(
             Q(name__icontains=value)
             | Q(peer__address__icontains=value)
+            | Q(interface__name__icontains=value)
             | Q(peer_group__name__icontains=value)
             | Q(remote_as__asn__icontains=value)
             | Q(local_as__asn__icontains=value)

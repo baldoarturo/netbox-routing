@@ -105,15 +105,6 @@ The steps below assume NetBox lives in `/opt/netbox`; adjust paths to match your
 
 Plugins in Docker are installed by building a custom image, not with `pip` inside a running container. Follow the [netbox-docker plugin instructions](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins) and use the same git URL as the package, and `netbox_routing_protocols` as the plugin name in `PLUGINS`. Migrations and `collectstatic` run automatically when the container starts.
 
-### Migrating from netbox-bgp
-
-> [!NOTE]
-> This plugin is not compatible with `netbox-bgp`, but there is a built-in migration tool.
->
-> Remove `netbox-bgp` from `PLUGINS`, make sure `netbox-routing-protocols` is installed, then run:
->
-> `python3 /opt/netbox/netbox/manage.py migrate-netbox-bgp`
-
 ## Configuration
 
 None

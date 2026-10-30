@@ -37,6 +37,16 @@ class BGPPeerGroupIndex(SearchIndex):
 
 
 @register_search
+class BGPListenRangeIndex(SearchIndex):
+    model = BGPListenRange
+    fields = (
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('peer_group', 'prefix')
+
+
+@register_search
 class BGPPeerIndex(SearchIndex):
     model = BGPPeer
     fields = (
@@ -44,7 +54,7 @@ class BGPPeerIndex(SearchIndex):
         ('description', 4000),
         ('comments', 5000),
     )
-    display_attrs = ('instance', 'peer', 'peer_group', 'remote_as')
+    display_attrs = ('instance', 'peer', 'interface', 'peer_group', 'remote_as')
 
 
 @register_search

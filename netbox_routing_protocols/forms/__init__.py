@@ -147,11 +147,13 @@ __all__ = (
     'BGPInstanceForm',
     'BGPAddressFamilyForm',
     'BGPPeerGroupForm',
+    'BGPListenRangeForm',
     'BGPPeerForm',
     'BGPPeerAddressFamilyForm',
     'BGPInstanceFilterForm',
     'BGPAddressFamilyFilterForm',
     'BGPPeerGroupFilterForm',
+    'BGPListenRangeFilterForm',
     'BGPPeerFilterForm',
     'BGPPeerAddressFamilyFilterForm',
     # BFD

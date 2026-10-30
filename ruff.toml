@@ -21,7 +21,6 @@ preview = true
 "netbox_routing_protocols/graphql/ospf/types.py" = ["F821", ]
 "netbox_routing_protocols/graphql/static/types.py" = ["F821", ]
 "netbox_routing_protocols/graphql/types_mixin.py" = ["F821", ]
-"netbox_routing_protocols/management/commands/migrate-netbox-bgp.py" = ["N999", "SIM114", "SIM210", "TRY002", "TRY201", ]
 "netbox_routing_protocols/tests/base.py" = ["SIM114", "PLW0127", "BLE001", ]
 "netbox_routing_protocols/migrations/*" = ["E501"]
 
