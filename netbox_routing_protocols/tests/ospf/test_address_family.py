@@ -178,3 +178,22 @@ class OSPFAddressFamilyTestCase(TestCase):
         self._assert_invalid(
             OSPFPrefixSID(instance=self.v6, prefix='10.0.0.1/32', sid=1), 'prefix'
         )
+
+    def test_instance_id_range_by_family(self):
+        self.v4.ospf_instance_id = 128
+        self._assert_invalid(self.v4, 'ospf_instance_id')
+        self.v6.ospf_instance_id = 255
+        self.v6.full_clean()
+        self.v6.ospf_instance_id = 256
+        self._assert_invalid(self.v6, 'ospf_instance_id')
+
+    def test_no_opaque_lsas_on_ipv6(self):
+        self.v6.opaque_capability = True
+        self._assert_invalid(self.v6, 'opaque_capability')
+
+    def test_traffic_engineering_and_sr_do_not_need_opaque_on_ipv6(self):
+        self.v6.te_router_address = '2001:db8::1'
+        self.v6.segment_routing = True
+        self.v6.full_clean()
+        self.v4.segment_routing = True
+        self._assert_invalid(self.v4, 'segment_routing')

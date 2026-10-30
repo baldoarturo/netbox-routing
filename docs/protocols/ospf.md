@@ -45,7 +45,7 @@ An instance is one OSPF process: "OSPF on this device, in this VRF".
 | VRF | Optional. OSPF can run once per VRF. |
 | Address family | IPv4 (OSPFv2, the default) or IPv6 (OSPFv3). A device has **one instance per VRF and address family** (no VRF is the default VRF): it can run OSPFv2 and OSPFv3 side by side, but not two OSPFv2 in the same VRF. **It cannot be changed** once the instance exists, because everything under it (networks, neighbors, ranges, SIDs) depends on it: create another instance. |
 | Router ID | The 32-bit identifier of the router in the OSPF domain ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) §C.1), written like an IPv4 address. It must be a valid IPv4 address, not `0.0.0.0` and without a mask, and it should be unique in the network. |
-| Instance ID | Lets several OSPF processes run over the same link: routers form an adjacency only with a neighbor that has the same ID ([RFC 6549](https://www.rfc-editor.org/rfc/rfc6549)). Default 0. |
+| Instance ID | Lets several OSPF processes run over the same link: routers form an adjacency only with a neighbor that has the same ID ([RFC 6549](https://www.rfc-editor.org/rfc/rfc6549)). Default 0. It goes from 0 to 127 in OSPFv2 and from 0 to 255 in OSPFv3 (an 8-bit field, [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) §2.4). |
 
 ### Default route
 
@@ -111,6 +111,12 @@ Empty optional fields mean "use the platform default".
 | TE router address | Stable address of the router in traffic-engineering LSAs, usually a loopback. Empty uses the router ID. | [RFC 3630](https://www.rfc-editor.org/rfc/rfc3630) |
 | Segment routing, SRGB start/size | Advertise segment routing and the label block (SRGB) the router uses. Requires opaque LSAs. | [RFC 8665](https://www.rfc-editor.org/rfc/rfc8665), [RFC 7684](https://www.rfc-editor.org/rfc/rfc7684) |
 | LDP sync, hold-down | Advertise the maximum metric on interfaces until LDP is up on them, so traffic never takes a path without labels. | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) |
+
+**By address family.** Opaque LSAs are an OSPFv2 mechanism ([RFC 5250](https://www.rfc-editor.org/rfc/rfc5250)):
+OSPFv3 carries the flooding scope in the LSA type ([RFC 5340](https://www.rfc-editor.org/rfc/rfc5340)
+A.4.2.1), so on an IPv6 instance the *Opaque capability* cannot be set and traffic engineering and
+segment routing do not ask for it. The TE router address and the prefix SIDs must be of the family of
+the instance. LDP sync, TTL security and fast reroute apply to both families.
 
 The instance's **authentication** is described in [Authentication](#authentication).
 

@@ -6,6 +6,8 @@ OSPF_COST_MAX = 65535
 # RFC 6549: instance IDs of an OSPFv2 instance carried in the packets
 OSPF_INSTANCE_ID_MIN = 0
 OSPF_INSTANCE_ID_MAX = 127
+# RFC 5340 2.4: the OSPFv3 Instance ID is an 8-bit field
+OSPF_V3_INSTANCE_ID_MAX = 255
 
 # RFC 5443: seconds to keep the maximum link metric while LDP is not operational
 OSPF_LDP_SYNC_HOLDDOWN_MIN = 1

@@ -42,6 +42,7 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_GRACEFUL_RESTART_PERIOD_MIN,
     OSPF_INSTANCE_ID_MAX,
     OSPF_INSTANCE_ID_MIN,
+    OSPF_V3_INSTANCE_ID_MAX,
     OSPF_INTERFACE_TIMERS,
     OSPF_LDP_SYNC_HOLDDOWN_MAX,
     OSPF_LDP_SYNC_HOLDDOWN_MIN,
@@ -761,13 +762,13 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
         verbose_name=_('Instance ID'),
         help_text=_(
             'Identifies the instance in the packets, so several can run over the '
-            'same link; routers only form adjacencies with the same ID (RFC 6549). '
-            'The default is 0'
+            'same link; routers only form adjacencies with the same ID (RFC 6549, '
+            'RFC 5340 2.4). OSPFv2: 0 to 127; OSPFv3: 0 to 255. The default is 0'
         ),
         default=OSPF_INSTANCE_ID_MIN,
         validators=[
             MinValueValidator(OSPF_INSTANCE_ID_MIN),
-            MaxValueValidator(OSPF_INSTANCE_ID_MAX),
+            MaxValueValidator(OSPF_V3_INSTANCE_ID_MAX),
         ],
     )
     ADVANCED_FIELDS = (
@@ -852,6 +853,36 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
     def ip_version(self):
         """The IP version (4 or 6) the instance routes."""
         return 6 if self.address_family == OSPFAddressFamilyChoices.IPV6 else 4
+
+    @property
+    def uses_opaque_lsas(self):
+        """Traffic engineering and segment routing travel in opaque LSAs in OSPFv2
+        only: OSPFv3 carries the flooding scope in the LSA type (RFC 5340 A.4.2.1)."""
+        return self.ip_version == 4
+
+    def _clean_instance_id(self):
+        if (
+            self.ip_version == 4
+            and self.ospf_instance_id is not None
+            and self.ospf_instance_id > OSPF_INSTANCE_ID_MAX
+        ):
+            raise ValidationError(
+                {
+                    'ospf_instance_id': _(
+                        'An OSPFv2 instance ID goes up to {max} (RFC 6549); OSPFv3 '
+                        'up to {v3} (RFC 5340 2.4).'
+                    ).format(max=OSPF_INSTANCE_ID_MAX, v3=OSPF_V3_INSTANCE_ID_MAX)
+                }
+            )
+        if self.ip_version == 6 and self.opaque_capability:
+            raise ValidationError(
+                {
+                    'opaque_capability': _(
+                        'OSPFv3 has no opaque LSAs: the scope is part of the LSA '
+                        'type (RFC 5340 A.4.2.1).'
+                    )
+                }
+            )
 
     def _clean_address_family(self):
         """The family is fixed when the instance is created (a new one is needed)."""
@@ -946,7 +977,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
                         )
                     }
                 )
-            if not self.opaque_capability:
+            if self.uses_opaque_lsas and not self.opaque_capability:
                 raise ValidationError(
                     {
                         'te_router_address': _(
@@ -956,6 +987,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
                 )
         if (
             self.pk
+            and self.uses_opaque_lsas
             and not self.opaque_capability
             and self.areas.filter(traffic_engineering=True).exists()
         ):
@@ -980,7 +1012,11 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
 
     def _clean_segment_routing(self):
         errors = {}
-        if self.segment_routing and not self.opaque_capability:
+        if (
+            self.segment_routing
+            and self.uses_opaque_lsas
+            and not self.opaque_capability
+        ):
             errors['segment_routing'] = _('Segment routing needs the opaque LSAs.')
         if (self.srgb_start is None) != (self.srgb_size is None):
             errors['srgb_size'] = _('Set both the start and the size of the SRGB.')
@@ -1016,6 +1052,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
     def clean(self):
         super().clean()
         self._clean_address_family()
+        self._clean_instance_id()
         self._clean_traffic_engineering()
         self._clean_segment_routing()
         self._clean_ldp_sync()
@@ -1191,6 +1228,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         if (
             self.traffic_engineering
             and self.instance_id
+            and self.instance.uses_opaque_lsas
             and not self.instance.opaque_capability
         ):
             raise ValidationError(
