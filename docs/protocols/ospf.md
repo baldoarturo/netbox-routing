@@ -374,6 +374,22 @@ prefix LSA of [RFC 7684](https://www.rfc-editor.org/rfc/rfc7684)). It needs segm
 One SID per prefix and algorithm. You cannot disable segment routing while SIDs exist, nor shrink the
 SRGB below an existing index.
 
+## Changes that would break OSPF objects
+
+OSPF objects are checked when they are saved, and the objects they depend on are checked when *they*
+change:
+
+- An **area** cannot change to a stub or NSSA type while virtual links cross it, nor leave the NSSA type
+  while it has type 7 to type 5 ranges.
+- The **router ID** of an instance cannot be the remote router of one of its virtual links.
+- A NetBox **interface** with an OSPF interface cannot move to another device or VRF so that it no
+  longer matches the instance, and an **IP address** used by an OSPF network cannot be moved to another
+  interface or changed so that the network stops being valid. The change is refused and the message
+  names the OSPF objects it would break.
+
+In lists and selects, an OSPF interface is shown as `device interface` and an area as
+`area (instance)`, so equal names on different devices or instances can be told apart.
+
 ## What happens when you delete things
 
 | Delete | Result |

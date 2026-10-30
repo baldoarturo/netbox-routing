@@ -55,7 +55,7 @@ class OSPFAreaViewSet(NetBoxModelViewSet):
 
 class OSPFInterfaceViewSet(NetBoxModelViewSet):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
     serializer_class = OSPFInterfaceSerializer
     filterset_class = filtersets.OSPFInterfaceFilterSet
@@ -65,7 +65,7 @@ class OSPFNetworkViewSet(NetBoxModelViewSet):
     queryset = OSPFNetwork.objects.select_related(
         'ospf_interface__instance__device',
         'ospf_interface__instance__vrf',
-        'ospf_interface__area',
+        'ospf_interface__area__instance',
         'ospf_interface__interface__device',
         'ip_address',
     )
@@ -106,7 +106,7 @@ class OSPFNeighborViewSet(NetBoxModelViewSet):
     queryset = OSPFNeighbor.objects.select_related(
         'ospf_interface__instance__device',
         'ospf_interface__instance__vrf',
-        'ospf_interface__area',
+        'ospf_interface__area__instance',
         'ospf_interface__interface__device',
     )
     serializer_class = OSPFNeighborSerializer
