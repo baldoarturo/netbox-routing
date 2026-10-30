@@ -54,6 +54,8 @@ __all__ = (
     'BGPPeerGroupBulkEditForm',
     'BGPListenRangeBulkEditForm',
     'BGPRedistributionBulkEditForm',
+    'BGPOriginatedNetworkBulkEditForm',
+    'BGPAggregateBulkEditForm',
     'BGPPeerBulkEditForm',
     'BGPPeerAddressFamilyBulkEditForm',
 )

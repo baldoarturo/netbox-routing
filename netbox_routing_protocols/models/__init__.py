@@ -43,6 +43,8 @@ __all__ = (
     'BGPPeerGroup',
     'BGPListenRange',
     'BGPRedistribution',
+    'BGPOriginatedNetwork',
+    'BGPAggregate',
     'BGPPeer',
     'BGPPeerAddressFamily',
     # Communities

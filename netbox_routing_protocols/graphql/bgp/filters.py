@@ -9,6 +9,8 @@ __all__ = (
     'BGPPeerGroupFilter',
     'BGPListenRangeFilter',
     'BGPRedistributionFilter',
+    'BGPOriginatedNetworkFilter',
+    'BGPAggregateFilter',
     'BGPPeerFilter',
     'BGPPeerAddressFamilyFilter',
     'BFDProfileFilter',
@@ -37,6 +39,16 @@ class BGPListenRangeFilter(PrimaryModelFilter):
 
 @strawberry_django.filter(models.BGPRedistribution, lookups=True)
 class BGPRedistributionFilter(PrimaryModelFilter):
+    pass
+
+
+@strawberry_django.filter(models.BGPOriginatedNetwork, lookups=True)
+class BGPOriginatedNetworkFilter(PrimaryModelFilter):
+    pass
+
+
+@strawberry_django.filter(models.BGPAggregate, lookups=True)
+class BGPAggregateFilter(PrimaryModelFilter):
     pass
 
 

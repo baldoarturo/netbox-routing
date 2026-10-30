@@ -60,6 +60,20 @@ __all__ = (
     'BGPRedistributionBulkEditView',
     'BGPRedistributionBulkDeleteView',
     'BGPAddressFamilyRedistributionsView',
+    'BGPOriginatedNetworkListView',
+    'BGPOriginatedNetworkView',
+    'BGPOriginatedNetworkEditView',
+    'BGPOriginatedNetworkDeleteView',
+    'BGPOriginatedNetworkBulkEditView',
+    'BGPOriginatedNetworkBulkDeleteView',
+    'BGPAggregateListView',
+    'BGPAggregateView',
+    'BGPAggregateEditView',
+    'BGPAggregateDeleteView',
+    'BGPAggregateBulkEditView',
+    'BGPAggregateBulkDeleteView',
+    'BGPAddressFamilyOriginatedNetworksView',
+    'BGPAddressFamilyAggregatesView',
     'BGPPeerListView',
     'BGPPeerView',
     'BGPPeerEditView',
@@ -759,6 +773,226 @@ class BGPPeerAddressFamilyBulkImportView(BulkImportView):
         'peer__instance__device', 'peer_group__instance__device'
     )
     model_form = BGPPeerAddressFamilyImportForm
+
+
+#
+# BGPOriginatedNetwork
+#
+@register_model_view(BGPOriginatedNetwork, name='list', path='', detail=False)
+class BGPOriginatedNetworkListView(ObjectListView):
+    queryset = BGPOriginatedNetwork.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    filterset = BGPOriginatedNetworkFilterSet
+    filterset_form = BGPOriginatedNetworkFilterForm
+    table = BGPOriginatedNetworkTable
+
+
+@register_model_view(BGPOriginatedNetwork)
+class BGPOriginatedNetworkView(ObjectView):
+    queryset = BGPOriginatedNetwork.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            BGPOriginatedNetworkPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(BGPOriginatedNetwork, name='add', detail=False)
+@register_model_view(BGPOriginatedNetwork, name='edit')
+class BGPOriginatedNetworkEditView(ObjectEditView):
+    queryset = BGPOriginatedNetwork.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    form = BGPOriginatedNetworkForm
+
+
+@register_model_view(BGPOriginatedNetwork, name='delete')
+class BGPOriginatedNetworkDeleteView(ObjectDeleteView):
+    queryset = BGPOriginatedNetwork.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+
+
+@register_model_view(BGPOriginatedNetwork, name='bulk_edit', detail=False)
+class BGPOriginatedNetworkBulkEditView(BulkEditView):
+    queryset = BGPOriginatedNetwork.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    filterset = BGPOriginatedNetworkFilterSet
+    form = BGPOriginatedNetworkBulkEditForm
+    table = BGPOriginatedNetworkTable
+
+
+@register_model_view(BGPOriginatedNetwork, name='bulk_delete', detail=False)
+class BGPOriginatedNetworkBulkDeleteView(BulkDeleteView):
+    queryset = BGPOriginatedNetwork.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    filterset = BGPOriginatedNetworkFilterSet
+    table = BGPOriginatedNetworkTable
+
+
+@register_model_view(BGPAddressFamily, name='originated_networks')
+class BGPAddressFamilyOriginatedNetworksView(ObjectChildrenView):
+    queryset = BGPAddressFamily.objects.select_related(
+        'instance__device', 'instance__asn'
+    )
+    child_model = BGPOriginatedNetwork
+    table = BGPOriginatedNetworkTable
+    filterset = BGPOriginatedNetworkFilterSet
+    filterset_form = BGPOriginatedNetworkFilterForm
+    actions = (CloneObject, EditObject, DeleteObject)
+    tab = ViewTab(
+        label='Originated networks',
+        badge=lambda obj: BGPOriginatedNetwork.objects.filter(
+            address_family=obj
+        ).count(),
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.filter(address_family=parent)
+
+
+#
+# BGPAggregate
+#
+@register_model_view(BGPAggregate, name='list', path='', detail=False)
+class BGPAggregateListView(ObjectListView):
+    queryset = BGPAggregate.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    filterset = BGPAggregateFilterSet
+    filterset_form = BGPAggregateFilterForm
+    table = BGPAggregateTable
+
+
+@register_model_view(BGPAggregate)
+class BGPAggregateView(ObjectView):
+    queryset = BGPAggregate.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            BGPAggregatePanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(BGPAggregate, name='add', detail=False)
+@register_model_view(BGPAggregate, name='edit')
+class BGPAggregateEditView(ObjectEditView):
+    queryset = BGPAggregate.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    form = BGPAggregateForm
+
+
+@register_model_view(BGPAggregate, name='delete')
+class BGPAggregateDeleteView(ObjectDeleteView):
+    queryset = BGPAggregate.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+
+
+@register_model_view(BGPAggregate, name='bulk_edit', detail=False)
+class BGPAggregateBulkEditView(BulkEditView):
+    queryset = BGPAggregate.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    filterset = BGPAggregateFilterSet
+    form = BGPAggregateBulkEditForm
+    table = BGPAggregateTable
+
+
+@register_model_view(BGPAggregate, name='bulk_delete', detail=False)
+class BGPAggregateBulkDeleteView(BulkDeleteView):
+    queryset = BGPAggregate.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    filterset = BGPAggregateFilterSet
+    table = BGPAggregateTable
+
+
+@register_model_view(BGPAddressFamily, name='aggregates')
+class BGPAddressFamilyAggregatesView(ObjectChildrenView):
+    queryset = BGPAddressFamily.objects.select_related(
+        'instance__device', 'instance__asn'
+    )
+    child_model = BGPAggregate
+    table = BGPAggregateTable
+    filterset = BGPAggregateFilterSet
+    filterset_form = BGPAggregateFilterForm
+    actions = (CloneObject, EditObject, DeleteObject)
+    tab = ViewTab(
+        label='Aggregates',
+        badge=lambda obj: BGPAggregate.objects.filter(address_family=obj).count(),
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.filter(address_family=parent)
 
 
 #

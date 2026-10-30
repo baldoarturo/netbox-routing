@@ -27,6 +27,8 @@ __all__ = (
     'BGPPeerGroupSerializer',
     'BGPListenRangeSerializer',
     'BGPRedistributionSerializer',
+    'BGPOriginatedNetworkSerializer',
+    'BGPAggregateSerializer',
     'BGPPeerSerializer',
     'BGPPeerAddressFamilySerializer',
     'BFDProfileSerializer',
@@ -243,6 +245,52 @@ class BGPRedistributionSerializer(NetBoxModelSerializer):
             *_COMMON,
         )
         brief_fields = ('url', 'id', 'display', 'address_family', 'protocol')
+
+
+class BGPOriginatedNetworkSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:bgporiginatednetwork-detail'
+    )
+    address_family = BGPAddressFamilySerializer(nested=True)
+    prefix = PrefixSerializer(nested=True)
+    tenant = TenantSerializer(nested=True, required=False, allow_null=True)
+
+    class Meta:
+        model = BGPOriginatedNetwork
+        fields = (
+            'url',
+            'id',
+            'display',
+            'address_family',
+            'prefix',
+            'tenant',
+            *_COMMON,
+        )
+        brief_fields = ('url', 'id', 'display', 'address_family', 'prefix')
+
+
+class BGPAggregateSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:bgpaggregate-detail'
+    )
+    address_family = BGPAddressFamilySerializer(nested=True)
+    prefix = PrefixSerializer(nested=True)
+    tenant = TenantSerializer(nested=True, required=False, allow_null=True)
+
+    class Meta:
+        model = BGPAggregate
+        fields = (
+            'url',
+            'id',
+            'display',
+            'address_family',
+            'prefix',
+            'summary_only',
+            'as_set',
+            'tenant',
+            *_COMMON,
+        )
+        brief_fields = ('url', 'id', 'display', 'address_family', 'prefix')
 
 
 class BGPPeerSerializer(NetBoxModelSerializer):

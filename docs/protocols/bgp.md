@@ -81,6 +81,22 @@ An instance can have each family once. Options of the family:
 | Additional paths (send / receive / install) | Advertise or accept more than one path per prefix ([RFC 7911](https://www.rfc-editor.org/rfc/rfc7911)). |
 | Long-lived stale time | Seconds the routes of a neighbor that went down are kept, marked `LLGR_STALE` (long-lived graceful restart, [RFC 9494](https://www.rfc-editor.org/rfc/rfc9494), up to 16777215; it needs *Graceful restart* on the instance). |
 
+## Originated networks and aggregates
+
+**BGP → Originated Networks** and **BGP → Aggregates**, or the tabs of an address family. Both use prefixes of
+**IPAM** (**IPAM → Prefixes**), so the plugin does not copy them.
+
+- An **originated network** is a prefix the address family announces, as a `network` statement does on the vendors.
+- An **aggregate** is a summary the address family announces in place of the more specific prefixes it covers
+  ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) section 9.2.2.2). The summary is a prefix of IPAM too, which can
+  be a container. *Summary only* withholds the more specific prefixes, and *AS set* adds the AS path of the routes it
+  covers as an AS set.
+
+A prefix must be in the **VRF of the instance** (the global table for a global instance) and be of the **IP version
+of the address family** (IPv4 for `ipv4-*` and `vpnv4-*`, IPv6 for `ipv6-*` and `vpnv6-*`). A family without IP
+prefixes announces nothing. One prefix is announced once per family. A prefix that is originated or aggregated
+cannot be deleted from IPAM: remove it here first.
+
 ## Redistribution
 
 **BGP → Redistribution**, or the *Redistribution* tab of an address family. It takes routes from another protocol
@@ -240,6 +256,8 @@ BGP instance
 │     protocol {Connected | Static | OSPF | IS-IS | EIGRP} · ospf_source → OSPF instance
 │     · isis_source → IS-IS instance · eigrp_source → EIGRP router · ospf_match · metric
 │     · route_policy → Route policy
+├─ Originated networks (per address family): prefix → Prefix (IPAM)
+├─ Aggregates (per address family): prefix → Prefix (IPAM) · summary_only · as_set
 ├─ Peer group
 │     name · instance → BGP instance · tenant → Tenant · listen_limit
 │     · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · passphrase · show_md5

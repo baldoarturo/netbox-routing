@@ -20,6 +20,8 @@ __all__ = (
     'BGPPeerGroup',
     'BGPListenRange',
     'BGPRedistribution',
+    'BGPOriginatedNetwork',
+    'BGPAggregate',
     'BGPPeer',
     'BGPPeerAddressFamily',
     'BFDProfile',
@@ -933,6 +935,159 @@ class BGPRedistribution(PrimaryModel):
             errors[self.SOURCE_FIELDS[self.protocol]] = problem
         if errors:
             raise ValidationError(errors)
+
+
+def _prefix_problem(address_family, prefix):
+    """Why a prefix of IPAM cannot be originated or aggregated by an address family, as
+    a {field: message} dict (empty when it can). Same rules as the redistribution: the
+    VRF of the instance, and the IP version of the family."""
+    family = BGP_FAMILY_OF_AF.get(address_family.address_family)
+    if family is None:
+        return {
+            'address_family': _(
+                'This address family carries no IP prefixes: nothing can be originated '
+                'in it.'
+            )
+        }
+    instance = address_family.instance
+    if prefix.vrf_id != instance.vrf_id:
+        return {'prefix': _('The prefix must be in the VRF of the BGP instance.')}
+    if prefix.family != (4 if family == 'ipv4' else 6):
+        return {
+            'prefix': _(
+                'The prefix is IPv%(prefix)s and the address family is IPv%(family)s.'
+            )
+            % {'prefix': prefix.family, 'family': 4 if family == 'ipv4' else 6}
+        }
+    return {}
+
+
+class BGPOriginatedNetwork(PrimaryModel):
+    """A prefix of IPAM that an address family announces, as a network statement does
+    on the vendors. The prefix must be in the VRF of the instance and of the IP version
+    of the family; it cannot be deleted while it is originated (PROTECT)."""
+
+    address_family = models.ForeignKey(
+        verbose_name=_('Address Family'),
+        to='netbox_routing_protocols.BGPAddressFamily',
+        on_delete=models.CASCADE,
+        related_name='originated_networks',
+    )
+    prefix = models.ForeignKey(
+        verbose_name=_('Prefix'),
+        to='ipam.Prefix',
+        on_delete=models.PROTECT,
+        related_name='bgp_originated_networks',
+    )
+
+    tenant = models.ForeignKey(
+        verbose_name=_('Tenant'),
+        to='tenancy.Tenant',
+        on_delete=models.PROTECT,
+        related_name='bgp_originated_networks',
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = ('address_family',)
+    prerequisite_models = ('netbox_routing_protocols.BGPAddressFamily',)
+
+    class Meta:
+        verbose_name = 'BGP Originated Network'
+        verbose_name_plural = 'BGP Originated Networks'
+        ordering = ('address_family', 'prefix', 'pk')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('address_family', 'prefix'),
+                name='%(app_label)s_%(class)s_address_family_prefix',
+                violation_error_message=_(
+                    'The address family already originates this prefix.'
+                ),
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.prefix}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:bgporiginatednetwork', args=[self.pk]
+        )
+
+    def clean(self):
+        super().clean()
+        if self.address_family_id and self.prefix_id:
+            errors = _prefix_problem(self.address_family, self.prefix)
+            if errors:
+                raise ValidationError(errors)
+
+
+class BGPAggregate(PrimaryModel):
+    """A summary the address family announces in place of the more specific prefixes
+    it covers (RFC 4271 section 9.2.2.2). The summary is a prefix of IPAM, in the VRF of
+    the instance and of the IP version of the family."""
+
+    address_family = models.ForeignKey(
+        verbose_name=_('Address Family'),
+        to='netbox_routing_protocols.BGPAddressFamily',
+        on_delete=models.CASCADE,
+        related_name='aggregates',
+    )
+    prefix = models.ForeignKey(
+        verbose_name=_('Prefix'),
+        to='ipam.Prefix',
+        on_delete=models.PROTECT,
+        related_name='bgp_aggregates',
+    )
+    summary_only = models.BooleanField(
+        verbose_name=_('Summary Only'),
+        default=False,
+        help_text=_('Do not announce the more specific prefixes it covers'),
+    )
+    as_set = models.BooleanField(
+        verbose_name=_('AS Set'),
+        default=False,
+        help_text=_('Add the AS path of the routes it covers, as an AS set (RFC 4271)'),
+    )
+
+    tenant = models.ForeignKey(
+        verbose_name=_('Tenant'),
+        to='tenancy.Tenant',
+        on_delete=models.PROTECT,
+        related_name='bgp_aggregates',
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = ('address_family', 'summary_only', 'as_set')
+    prerequisite_models = ('netbox_routing_protocols.BGPAddressFamily',)
+
+    class Meta:
+        verbose_name = 'BGP Aggregate'
+        verbose_name_plural = 'BGP Aggregates'
+        ordering = ('address_family', 'prefix', 'pk')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('address_family', 'prefix'),
+                name='%(app_label)s_%(class)s_address_family_prefix',
+                violation_error_message=_(
+                    'The address family already has an aggregate of this prefix.'
+                ),
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.prefix}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing_protocols:bgpaggregate', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if self.address_family_id and self.prefix_id:
+            errors = _prefix_problem(self.address_family, self.prefix)
+            if errors:
+                raise ValidationError(errors)
 
 
 class BGPPeer(BGPPeerConfigMixin, PrimaryModel):

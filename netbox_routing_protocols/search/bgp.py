@@ -57,6 +57,26 @@ class BGPRedistributionIndex(SearchIndex):
 
 
 @register_search
+class BGPOriginatedNetworkIndex(SearchIndex):
+    model = BGPOriginatedNetwork
+    fields = (
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('address_family', 'prefix')
+
+
+@register_search
+class BGPAggregateIndex(SearchIndex):
+    model = BGPAggregate
+    fields = (
+        ('description', 4000),
+        ('comments', 5000),
+    )
+    display_attrs = ('address_family', 'prefix', 'summary_only', 'as_set')
+
+
+@register_search
 class BGPPeerIndex(SearchIndex):
     model = BGPPeer
     fields = (

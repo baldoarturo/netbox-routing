@@ -27,6 +27,8 @@ __all__ = (
     'BGPPeerGroupFilterSet',
     'BGPListenRangeFilterSet',
     'BGPRedistributionFilterSet',
+    'BGPOriginatedNetworkFilterSet',
+    'BGPAggregateFilterSet',
     'BGPPeerFilterSet',
     'BGPPeerAddressFamilyFilterSet',
     'BFDProfileFilterSet',
@@ -371,6 +373,52 @@ class BGPRedistributionFilterSet(NetBoxModelFilterSet):
             | Q(isis_source__process_tag__icontains=value)
             | Q(description__icontains=value)
         ).distinct()
+
+
+class _PrefixFilterSetMixin:
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='address_family__instance',
+        queryset=BGPInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='address_family__instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    address_family_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='address_family',
+        queryset=BGPAddressFamily.objects.all(),
+        label=_('Address Family (ID)'),
+    )
+    prefix_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='prefix',
+        queryset=Prefix.objects.all(),
+        label=_('Prefix (ID)'),
+    )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(
+            Q(address_family__instance__name__icontains=value)
+            | Q(address_family__instance__device__name__icontains=value)
+            | Q(description__icontains=value)
+        ).distinct()
+
+
+@register_filterset
+class BGPOriginatedNetworkFilterSet(_PrefixFilterSetMixin, NetBoxModelFilterSet):
+    class Meta:
+        model = BGPOriginatedNetwork
+        fields = ('id', 'description')
+
+
+@register_filterset
+class BGPAggregateFilterSet(_PrefixFilterSetMixin, NetBoxModelFilterSet):
+    class Meta:
+        model = BGPAggregate
+        fields = ('id', 'summary_only', 'as_set', 'description')
 
 
 @register_filterset

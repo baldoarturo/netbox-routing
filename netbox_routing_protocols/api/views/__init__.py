@@ -47,6 +47,8 @@ __all__ = (
     'BGPPeerGroupViewSet',
     'BGPListenRangeViewSet',
     'BGPRedistributionViewSet',
+    'BGPOriginatedNetworkViewSet',
+    'BGPAggregateViewSet',
     'BGPPeerViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',

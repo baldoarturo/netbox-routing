@@ -9,6 +9,8 @@ __all__ = (
     'BGPPeerGroupViewSet',
     'BGPListenRangeViewSet',
     'BGPRedistributionViewSet',
+    'BGPOriginatedNetworkViewSet',
+    'BGPAggregateViewSet',
     'BGPPeerViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',
@@ -78,6 +80,30 @@ class BGPRedistributionViewSet(NetBoxModelViewSet):
     )
     serializer_class = BGPRedistributionSerializer
     filterset_class = filtersets.BGPRedistributionFilterSet
+
+
+class BGPOriginatedNetworkViewSet(NetBoxModelViewSet):
+    queryset = BGPOriginatedNetwork.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    serializer_class = BGPOriginatedNetworkSerializer
+    filterset_class = filtersets.BGPOriginatedNetworkFilterSet
+
+
+class BGPAggregateViewSet(NetBoxModelViewSet):
+    queryset = BGPAggregate.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'prefix',
+        'tenant',
+    )
+    serializer_class = BGPAggregateSerializer
+    filterset_class = filtersets.BGPAggregateFilterSet
 
 
 class BGPPeerViewSet(NetBoxModelViewSet):

@@ -14,6 +14,8 @@ def build_menus():
         ('bgppeergroup', 'Peer Groups'),
         ('bgplistenrange', 'Listen Ranges'),
         ('bgpredistribution', 'Redistribution'),
+        ('bgporiginatednetwork', 'Originated Networks'),
+        ('bgpaggregate', 'Aggregates'),
         ('bgppeer', 'Peers'),
         ('bgppeeraddressfamily', 'Peer Address Families'),
     )

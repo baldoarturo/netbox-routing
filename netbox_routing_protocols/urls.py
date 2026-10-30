@@ -247,6 +247,22 @@ urlpatterns = [
     ),
     path('bgp/peer-group/<int:pk>/', include(get_model_urls(app_name, 'bgppeergroup'))),
     path(
+        'bgp/originated-network/',
+        include(get_model_urls(app_name, 'bgporiginatednetwork', detail=False)),
+    ),
+    path(
+        'bgp/originated-network/<int:pk>/',
+        include(get_model_urls(app_name, 'bgporiginatednetwork')),
+    ),
+    path(
+        'bgp/aggregate/',
+        include(get_model_urls(app_name, 'bgpaggregate', detail=False)),
+    ),
+    path(
+        'bgp/aggregate/<int:pk>/',
+        include(get_model_urls(app_name, 'bgpaggregate')),
+    ),
+    path(
         'bgp/redistribution/',
         include(get_model_urls(app_name, 'bgpredistribution', detail=False)),
     ),

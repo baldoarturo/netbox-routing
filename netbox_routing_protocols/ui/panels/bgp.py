@@ -14,6 +14,8 @@ __all__ = (
     'BGPInstanceVRFPanel',
     'BGPListenRangePanel',
     'BGPRedistributionPanel',
+    'BGPOriginatedNetworkPanel',
+    'BGPAggregatePanel',
     'BGPAddressFamilyPanel',
     'BGPAddressFamilyOptionsPanel',
     'BGPPeerGroupPanel',
@@ -70,6 +72,20 @@ class BGPRedistributionPanel(panels.ObjectAttributesPanel):
     )
     ospf_match = attrs.TextAttr('ospf_match_display', label=_('OSPF Route Types'))
     tenant = attrs.RelatedObjectAttr('tenant', linkify=True)
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class BGPOriginatedNetworkPanel(panels.ObjectAttributesPanel):
+    address_family = attrs.RelatedObjectAttr('address_family', linkify=True)
+    prefix = attrs.RelatedObjectAttr('prefix', linkify=True)
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class BGPAggregatePanel(panels.ObjectAttributesPanel):
+    address_family = attrs.RelatedObjectAttr('address_family', linkify=True)
+    prefix = attrs.RelatedObjectAttr('prefix', linkify=True)
+    summary_only = attrs.BooleanAttr('summary_only', label=_('Summary Only'))
+    as_set = attrs.BooleanAttr('as_set', label=_('AS Set'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
