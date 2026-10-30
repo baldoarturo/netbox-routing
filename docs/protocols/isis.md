@@ -166,6 +166,8 @@ Flags: **Node SID** (the prefix identifies a single node, a /32 or /128), **No P
 label at the penultimate hop), **Explicit null** (use explicit null instead), **Readvertise** (the
 SID is leaked from another level or protocol). One SID per interface and algorithm.
 
+Checked when you save ([RFC 8667](https://www.rfc-editor.org/rfc/rfc8667)): *No PHP* and *Explicit null* cannot both be set; an absolute label is 16 to 1048575 (20 bits, 0-15 are reserved); an index must fit in the instance's SRGB; a Flex-Algo SID needs that Flex-Algo defined on the instance; the *Node SID* flag needs a /32 (IPv4) or /128 (IPv6) address when the interface has addresses of that family. The SRGB and SRLB must be within 16 to 1048575 and cannot overlap.
+
 ### Flex-Algo
 
 **IS-IS → Flex-Algos**
@@ -176,8 +178,8 @@ avoiding links of colour red" ([RFC 9350](https://www.rfc-editor.org/rfc/rfc9350
 | Field | Meaning |
 | --- | --- |
 | Algorithm ID | 128 to 255. |
-| Metric type | `igp-metric`, `delay-metric` or `te-metric`. |
-| Priority | Used when routers define the same algorithm differently; the highest priority wins. |
+| Metric type | IGP metric, minimum unidirectional delay or TE metric, the three types of RFC 9350 (`igp-metric`, `delay-metric`, `te-metric`). |
+| Priority | 0 to 255. Used when routers define the same algorithm differently; the highest priority wins (RFC 9350 default is 128 when empty). |
 | Admin groups: exclude / include any / include all | The affinities (link colours) the paths must avoid or use. Comma-separated names. |
 
 ### SRv6 locators
@@ -190,8 +192,8 @@ the router, split into *block* and *node* parts (`LOC = Block:Node` in RFC 8986)
 
 | Field | Meaning |
 | --- | --- |
-| Name, prefix | The locator and its IPv6 prefix. Unique name per instance. |
-| Algorithm | 0 (SPF) or a Flex-Algo (128 to 255). |
+| Name, prefix | The locator and its IPv6 prefix (IPv4 is refused). Unique name per instance. When block and node length are set, they add up to the prefix length. |
+| Algorithm | 0 (SPF) or a Flex-Algo (128 to 255) that is defined on the instance. |
 | Anycast | The locator is shared by several nodes. |
 | Micro-segment (uSID) | A compressed-SID locator. |
 | Flavor | The END behaviour flavours, for example `psp usd`. |

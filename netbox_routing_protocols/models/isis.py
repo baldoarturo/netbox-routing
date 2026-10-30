@@ -28,6 +28,10 @@ from netbox_routing_protocols.helpers.isis import (
 )
 from netbox_routing_protocols.models.policy import RoutePolicyMixin
 
+# Label space of segment routing (RFC 8660, RFC 8667): 20 bits, 0-15 are reserved
+SR_MIN_LABEL = 16
+SR_MAX_LABEL = 1048575
+
 __all__ = (
     'ISISInstance',
     'ISISInterface',
@@ -1033,6 +1037,24 @@ class ISISSegmentRouting(PrimaryModel):
                 errors[missing] = _(
                     '%(block)s start and range must be set together.'
                 ) % {'block': label}
+        blocks = []
+        for start_field, range_field, label in (
+            ('srgb_start', 'srgb_range', 'SRGB'),
+            ('srlb_start', 'srlb_range', 'SRLB'),
+        ):
+            start, size = getattr(self, start_field), getattr(self, range_field)
+            if start is None or size is None:
+                continue
+            if start < SR_MIN_LABEL or size < 1 or start + size - 1 > SR_MAX_LABEL:
+                errors[start_field] = _(
+                    '%(block)s labels must be within %(min)s-%(max)s (20 bits, labels 0-15 are reserved).'
+                ) % {'block': label, 'min': SR_MIN_LABEL, 'max': SR_MAX_LABEL}
+            else:
+                blocks.append((start, start + size - 1))
+        if len(blocks) == 2 and not (
+            blocks[0][1] < blocks[1][0] or blocks[1][1] < blocks[0][0]
+        ):
+            errors['srlb_start'] = _('The SRGB and the SRLB cannot overlap.')
         if errors:
             raise ValidationError(errors)
 
@@ -1070,10 +1092,11 @@ class ISISFlexAlgo(PrimaryModel):
     metric_type = models.CharField(
         verbose_name=_('Metric type'),
         max_length=40,
+        choices=choices.ISISFlexAlgoMetricTypeChoices,
         blank=True,
         default='',
         help_text=_(
-            'Flex-Algo metric type (e.g. igp-metric, delay-metric, te-metric).'
+            'Flex-Algo metric type (RFC 9350): IGP, minimum delay or TE metric.'
         ),
     )
     priority = models.PositiveSmallIntegerField(
@@ -1119,6 +1142,12 @@ class ISISFlexAlgo(PrimaryModel):
                 name='netbox_routing_protocols_isisflexalgo_algo_id_range',
             ),
         ]
+
+    def clean(self):
+        super().clean()
+        errors = range_errors(self, (('priority', 0, 255),))
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         return f'{self.instance} flex-algo {self.algo_id}'
@@ -1234,6 +1263,52 @@ class ISISPrefixSID(PrimaryModel):
                 'A prefix-SID takes either an index or an absolute label, not both.'
             )
             raise ValidationError({'sid_index': msg, 'sid_label': msg})
+        errors = {}
+        if self.no_php and self.explicit_null:
+            msg = _(
+                'The no-PHP (P) and explicit-null (E) flags cannot be set together: '
+                'explicit-null already keeps the label (RFC 8667).'
+            )
+            errors['no_php'] = errors['explicit_null'] = msg
+        errors.update(range_errors(self, (('sid_label', SR_MIN_LABEL, SR_MAX_LABEL),)))
+        errors.update(range_errors(self, (('sid_index', 0, SR_MAX_LABEL),)))
+        if self.interface_id:
+            instance = self.interface.instance
+            if (
+                self.algorithm
+                and 'algorithm' not in errors
+                and not instance.flex_algos.filter(algo_id=self.algorithm).exists()
+            ):
+                errors['algorithm'] = _('The instance has no Flex-Algo %(algo)s.') % {
+                    'algo': self.algorithm
+                }
+            sr = getattr(instance, 'segment_routing', None)
+            if (
+                self.sid_index is not None
+                and sr is not None
+                and sr.srgb_range
+                and self.sid_index >= sr.srgb_range
+            ):
+                errors['sid_index'] = _(
+                    'The index is outside the SRGB (range size %(size)s).'
+                ) % {'size': sr.srgb_range}
+            if self.n_flag and self._has_only_wide_prefixes():
+                errors['n_flag'] = _(
+                    'The node flag needs a host prefix (/32 or /128) on the interface.'
+                )
+        if errors:
+            raise ValidationError(errors)
+
+    def _has_only_wide_prefixes(self):
+        """The interface has addresses of the family and none of them is a host prefix."""
+        version = 4 if self.interface.address_family == 'ipv4' else 6
+        host = 32 if version == 4 else 128
+        masks = [
+            address.address.prefixlen
+            for address in self.interface.interface.ip_addresses.all()
+            if address.address.version == version
+        ]
+        return bool(masks) and all(mask != host for mask in masks)
 
     def __str__(self):
         return f'{self.interface} SID (algo {self.algorithm})'
@@ -1391,6 +1466,37 @@ class ISISSRv6Locator(PrimaryModel):
                     'algorithm': _(
                         'Algorithm must be 0 (SPF) or a Flex-Algo value in 128-255.'
                     )
+                }
+            )
+        if self.prefix:
+            network = netaddr.IPNetwork(str(self.prefix))
+            if network.version != 6:
+                raise ValidationError(
+                    {'prefix': _('An SRv6 locator is an IPv6 prefix.')}
+                )
+            if (
+                self.block_length is not None
+                and self.node_length is not None
+                and self.block_length + self.node_length != network.prefixlen
+            ):
+                raise ValidationError(
+                    {
+                        'prefix': _(
+                            'The locator prefix length must equal block + node length '
+                            '(RFC 8986).'
+                        )
+                    }
+                )
+        if (
+            self.algorithm
+            and self.instance_id
+            and 128 <= self.algorithm <= 255
+            and not self.instance.flex_algos.filter(algo_id=self.algorithm).exists()
+        ):
+            raise ValidationError(
+                {
+                    'algorithm': _('The instance has no Flex-Algo %(algo)s.')
+                    % {'algo': self.algorithm}
                 }
             )
         # RFC 8986: L + F + A <= 128 (L = block + node). Validate only when the
