@@ -14,6 +14,8 @@ __all__ = (
     'BGPPeerGroupFilter',
     'BGPListenRangeFilter',
     'BGPRedistributionFilter',
+    'BGPOriginatedNetworkFilter',
+    'BGPAggregateFilter',
     'BGPPeerFilter',
     'BGPPeerAddressFamilyFilter',
     'CommunityFilter',

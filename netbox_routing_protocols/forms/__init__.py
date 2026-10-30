@@ -149,6 +149,8 @@ __all__ = (
     'BGPPeerGroupForm',
     'BGPListenRangeForm',
     'BGPRedistributionForm',
+    'BGPOriginatedNetworkForm',
+    'BGPAggregateForm',
     'BGPPeerForm',
     'BGPPeerAddressFamilyForm',
     'BGPInstanceFilterForm',
@@ -156,6 +158,8 @@ __all__ = (
     'BGPPeerGroupFilterForm',
     'BGPListenRangeFilterForm',
     'BGPRedistributionFilterForm',
+    'BGPOriginatedNetworkFilterForm',
+    'BGPAggregateFilterForm',
     'BGPPeerFilterForm',
     'BGPPeerAddressFamilyFilterForm',
     # BFD

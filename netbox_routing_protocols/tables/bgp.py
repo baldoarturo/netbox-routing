@@ -1,7 +1,7 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable
+from netbox.tables import NetBoxTable, columns
 from tenancy.tables import TenancyColumnsMixin
 from netbox_routing_protocols.models.bgp import *
 
@@ -11,6 +11,8 @@ __all__ = (
     'BGPPeerGroupTable',
     'BGPListenRangeTable',
     'BGPRedistributionTable',
+    'BGPOriginatedNetworkTable',
+    'BGPAggregateTable',
     'BGPPeerTable',
     'BGPPeerAddressFamilyTable',
     'BFDProfileTable',
@@ -175,6 +177,62 @@ class BGPRedistributionTable(TenancyColumnsMixin, NetBoxTable):
             'source',
             'metric',
             'route_policy',
+        )
+
+
+class BGPOriginatedNetworkTable(TenancyColumnsMixin, NetBoxTable):
+    instance = tables.Column(
+        linkify=True, accessor='address_family__instance', verbose_name=_('Instance')
+    )
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+    prefix = tables.Column(linkify=True, verbose_name=_('Prefix'))
+
+    class Meta(NetBoxTable.Meta):
+        model = BGPOriginatedNetwork
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'address_family',
+            'prefix',
+            'tenant_group',
+            'tenant',
+            'description',
+        )
+        default_columns = ('pk', 'id', 'instance', 'address_family', 'prefix')
+
+
+class BGPAggregateTable(TenancyColumnsMixin, NetBoxTable):
+    instance = tables.Column(
+        linkify=True, accessor='address_family__instance', verbose_name=_('Instance')
+    )
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+    prefix = tables.Column(linkify=True, verbose_name=_('Prefix'))
+    summary_only = columns.BooleanColumn(verbose_name=_('Summary Only'))
+    as_set = columns.BooleanColumn(verbose_name=_('AS Set'))
+
+    class Meta(NetBoxTable.Meta):
+        model = BGPAggregate
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'address_family',
+            'prefix',
+            'summary_only',
+            'as_set',
+            'tenant_group',
+            'tenant',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'address_family',
+            'prefix',
+            'summary_only',
+            'as_set',
         )
 
 

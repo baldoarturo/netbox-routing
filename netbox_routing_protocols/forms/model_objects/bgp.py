@@ -28,6 +28,8 @@ __all__ = (
     'BGPPeerGroupForm',
     'BGPListenRangeForm',
     'BGPRedistributionForm',
+    'BGPOriginatedNetworkForm',
+    'BGPAggregateForm',
     'BGPPeerForm',
     'BGPPeerAddressFamilyForm',
     'BFDProfileForm',
@@ -349,6 +351,63 @@ class BGPRedistributionForm(TenancyForm, PrimaryModelForm):
             'metric',
             'route_policy',
             'ospf_match',
+            'tenant_group',
+            'tenant',
+            *_COMMON_FIELDS,
+        )
+
+
+class _PrefixAddressFamilyFormMixin(forms.Form):
+    address_family = DynamicModelChoiceField(
+        queryset=BGPAddressFamily.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Address Family'),
+    )
+    prefix = DynamicModelChoiceField(
+        queryset=Prefix.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Prefix'),
+        help_text=_('A prefix of IPAM, in the VRF of the instance of the family'),
+    )
+
+
+class BGPOriginatedNetworkForm(
+    _PrefixAddressFamilyFormMixin, TenancyForm, PrimaryModelForm
+):
+    fieldsets = (
+        FieldSet(
+            'address_family', 'prefix', 'description', name=_('Originated network')
+        ),
+        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
+    )
+
+    class Meta:
+        model = BGPOriginatedNetwork
+        fields = ('address_family', 'prefix', 'tenant_group', 'tenant', *_COMMON_FIELDS)
+
+
+class BGPAggregateForm(_PrefixAddressFamilyFormMixin, TenancyForm, PrimaryModelForm):
+    fieldsets = (
+        FieldSet(
+            'address_family',
+            'prefix',
+            'summary_only',
+            'as_set',
+            'description',
+            name=_('Aggregate'),
+        ),
+        FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
+    )
+
+    class Meta:
+        model = BGPAggregate
+        fields = (
+            'address_family',
+            'prefix',
+            'summary_only',
+            'as_set',
             'tenant_group',
             'tenant',
             *_COMMON_FIELDS,

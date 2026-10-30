@@ -14,6 +14,8 @@ __all__ = (
     'BGPPeerGroupType',
     'BGPListenRangeType',
     'BGPRedistributionType',
+    'BGPOriginatedNetworkType',
+    'BGPAggregateType',
     'BGPPeerType',
     'BGPPeerAddressFamilyType',
     'CommunityType',

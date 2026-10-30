@@ -7,6 +7,8 @@ from .bgp.types import (
     BGPPeerGroupType,
     BGPListenRangeType,
     BGPRedistributionType,
+    BGPOriginatedNetworkType,
+    BGPAggregateType,
     BGPPeerType,
     BGPPeerAddressFamilyType,
     BFDProfileType,
@@ -242,6 +244,20 @@ class BGPRedistributionQuery:
 
 
 @strawberry.type(name="Query")
+class BGPOriginatedNetworkQuery:
+    bgp_originated_network: BGPOriginatedNetworkType = strawberry_django.field()
+    bgp_originated_network_list: list[BGPOriginatedNetworkType] = (
+        strawberry_django.field()
+    )
+
+
+@strawberry.type(name="Query")
+class BGPAggregateQuery:
+    bgp_aggregate: BGPAggregateType = strawberry_django.field()
+    bgp_aggregate_list: list[BGPAggregateType] = strawberry_django.field()
+
+
+@strawberry.type(name="Query")
 class BGPAddressFamilyQuery:
     bgp_address_family: BGPAddressFamilyType = strawberry_django.field()
     bgp_address_family_list: list[BGPAddressFamilyType] = strawberry_django.field()
@@ -286,6 +302,8 @@ schema = [
     BGPPeerGroupQuery,
     BGPListenRangeQuery,
     BGPRedistributionQuery,
+    BGPOriginatedNetworkQuery,
+    BGPAggregateQuery,
     BGPPeerQuery,
     BGPPeerAddressFamilyQuery,
     BFDProfileQuery,

@@ -19,6 +19,8 @@ from netbox_routing_protocols.choices.bgp import *
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
+    'BGPOriginatedNetworkFilterForm',
+    'BGPAggregateFilterForm',
     'BGPRedistributionFilterForm',
     'BGPInstanceFilterForm',
     'BGPAddressFamilyFilterForm',
@@ -281,6 +283,67 @@ class BGPRedistributionFilterForm(NetBoxModelFilterSetForm):
         choices=BGPRedistributionProtocolChoices,
         required=False,
         label=_('Protocol'),
+    )
+    tag = TagFilterField(model)
+
+
+class _PrefixFilterFormMixin(forms.Form):
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(), required=False, selector=True, label=_('Device')
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=BGPInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    address_family_id = DynamicModelMultipleChoiceField(
+        queryset=BGPAddressFamily.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Address Family'),
+    )
+    prefix_id = DynamicModelMultipleChoiceField(
+        queryset=Prefix.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Prefix'),
+    )
+
+
+class BGPOriginatedNetworkFilterForm(_PrefixFilterFormMixin, NetBoxModelFilterSetForm):
+    model = BGPOriginatedNetwork
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet(
+            'device_id', 'instance_id', 'address_family_id', 'prefix_id', name=_('BGP')
+        ),
+    )
+    tag = TagFilterField(model)
+
+
+class BGPAggregateFilterForm(_PrefixFilterFormMixin, NetBoxModelFilterSetForm):
+    model = BGPAggregate
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet(
+            'device_id', 'instance_id', 'address_family_id', 'prefix_id', name=_('BGP')
+        ),
+        FieldSet('summary_only', 'as_set', name=_('Aggregate')),
+    )
+    summary_only = forms.NullBooleanField(
+        required=False,
+        label=_('Summary Only'),
+        widget=forms.Select(
+            choices=((None, '---------'), (True, _('Yes')), (False, _('No')))
+        ),
+    )
+    as_set = forms.NullBooleanField(
+        required=False,
+        label=_('AS Set'),
+        widget=forms.Select(
+            choices=((None, '---------'), (True, _('Yes')), (False, _('No')))
+        ),
     )
     tag = TagFilterField(model)
 

@@ -20,6 +20,8 @@ __all__ = (
     'BGPPeerGroupBulkEditForm',
     'BGPListenRangeBulkEditForm',
     'BGPRedistributionBulkEditForm',
+    'BGPOriginatedNetworkBulkEditForm',
+    'BGPAggregateBulkEditForm',
     'BGPPeerBulkEditForm',
     'BGPPeerAddressFamilyBulkEditForm',
     'BFDProfileBulkEditForm',
@@ -261,6 +263,24 @@ class BGPRedistributionBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditFor
         FieldSet('tenant', name=_('Tenancy')),
     )
     nullable_fields = ('metric', 'route_policy', 'ospf_match', 'description', 'tenant')
+
+
+class BGPOriginatedNetworkBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
+    model = BGPOriginatedNetwork
+    fieldsets = (FieldSet('description'), FieldSet('tenant', name=_('Tenancy')))
+    nullable_fields = ('description', 'tenant')
+
+
+class BGPAggregateBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
+    model = BGPAggregate
+    summary_only = _tristate(_('Summary Only'))
+    as_set = _tristate(_('AS Set'))
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('summary_only', 'as_set', name=_('Aggregate')),
+        FieldSet('tenant', name=_('Tenancy')),
+    )
+    nullable_fields = ('description', 'tenant')
 
 
 class BGPListenRangeBulkEditForm(PrimaryModelBulkEditForm):

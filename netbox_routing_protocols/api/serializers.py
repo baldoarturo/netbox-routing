@@ -52,6 +52,8 @@ __all__ = (
     'BGPPeerGroupSerializer',
     'BGPListenRangeSerializer',
     'BGPRedistributionSerializer',
+    'BGPOriginatedNetworkSerializer',
+    'BGPAggregateSerializer',
     'BGPPeerSerializer',
     'BGPPeerAddressFamilySerializer',
 )
