@@ -335,6 +335,7 @@ class RoutePolicyEntrySerializer(PrimaryModelSerializer):
         nested=True, many=True, required=False
     )
     match_aspath = ASPathSerializer(nested=True, many=True, required=False)
+    jump_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     match_next_hop = IPAddressSerializer(nested=True, required=False, allow_null=True)
     match_origin = ChoiceField(choices=OriginChoices, required=False)
     set_next_hop = IPAddressSerializer(nested=True, required=False, allow_null=True)
@@ -348,6 +349,7 @@ class RoutePolicyEntrySerializer(PrimaryModelSerializer):
     class Meta:
         model = RoutePolicyEntry
         extra_kwargs = {'sequence': {'required': False, 'allow_null': True}}
+        read_only_fields = ('implicit',)
         fields = (
             'url',
             'id',
@@ -355,7 +357,8 @@ class RoutePolicyEntrySerializer(PrimaryModelSerializer):
             'route_policy',
             'sequence',
             'action',
-            'flow_control',
+            'jump_policy',
+            'implicit',
             'match_prefix_list',
             'match_aspath',
             'match_community_list',

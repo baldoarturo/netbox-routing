@@ -1,7 +1,7 @@
 import netaddr
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -663,7 +663,9 @@ class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
 @register_model_view(RoutePolicy, name='list', path='', detail=False)
 class RoutePolicyListView(ObjectListView):
     queryset = RoutePolicy.objects.annotate(
-        entry_count=count_related(RoutePolicyEntry, 'route_policy')
+        entry_count=Count(
+            'route_policy_entries', filter=Q(route_policy_entries__implicit=False)
+        )
     )
     table = RoutePolicyTable
     filterset = RoutePolicyFilterSet
@@ -691,6 +693,7 @@ class RoutePolicyView(ObjectView):
             panels.RelatedObjectsPanel(),
         ],
         bottom_panels=[
+            UnreachablePanel(title=_('Entries never evaluated')),
             panels.ObjectsTablePanel(
                 model='netbox_routing_protocols.RoutePolicyEntry',
                 title=_('Entries'),
@@ -707,6 +710,15 @@ class RoutePolicyView(ObjectView):
         ],
     )
 
+    def get_extra_context(self, request, instance):
+        # An entry without conditions decides every route that reaches it: the ones below it
+        # are never evaluated. Allowed, but the user is told
+        unreachable = instance.unreachable_entries()
+        return {
+            'unreachable': [entry for entry, _stopper in unreachable],
+            'stopper': unreachable[0][1] if unreachable else None,
+        }
+
 
 @register_model_view(RoutePolicy, name='entries')
 class RoutePolicyEntriesView(ObjectChildrenView):
@@ -716,7 +728,7 @@ class RoutePolicyEntriesView(ObjectChildrenView):
     filterset = RoutePolicyEntryFilterSet
     tab = ViewTab(
         label='Entries',
-        badge=lambda obj: RoutePolicyEntry.objects.filter(route_policy=obj).count(),
+        badge=lambda obj: route_policy_helpers.user_entries(obj).count(),
     )
 
     def get_children(self, request, parent):
@@ -770,7 +782,7 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             {
                 'object': source,
                 'form': form,
-                'count': source.route_policy_entries.count(),
+                'count': route_policy_helpers.user_entries(source).count(),
             },
         )
 
@@ -794,7 +806,14 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             return self._render(request, source, form)
 
         # Everything an entry has but its identity; the lists are copied apart
-        skip = {'id', 'route_policy', 'created', 'last_updated', 'custom_field_data'}
+        skip = {
+            'id',
+            'route_policy',
+            'implicit',
+            'created',
+            'last_updated',
+            'custom_field_data',
+        }
         copied = [
             field.name
             for field in RoutePolicyEntry._meta.concrete_fields
@@ -811,7 +830,7 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             copy.full_clean()
             copy.save()
             copy.tags.set(source.tags.all())
-            for entry in source.route_policy_entries.all():
+            for entry in route_policy_helpers.user_entries(source):
                 new_entry = RoutePolicyEntry(
                     route_policy=copy,
                     **{name: getattr(entry, name) for name in copied},
@@ -827,7 +846,7 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             % {
                 'source': source,
                 'copy': copy,
-                'count': source.route_policy_entries.count(),
+                'count': route_policy_helpers.user_entries(source).count(),
             },
         )
         return redirect(copy.get_absolute_url())
@@ -854,7 +873,7 @@ class RoutePolicyResequenceView(ContentTypePermissionRequiredMixin, View):
             {
                 'object': route_policy,
                 'form': form,
-                'count': route_policy.route_policy_entries.count(),
+                'count': route_policy_helpers.user_entries(route_policy).count(),
             },
         )
 
@@ -989,7 +1008,10 @@ class RoutePolicyEntryBulkImportView(BulkImportView):
 
 @register_model_view(RoutePolicyEntry, name='bulk_edit', detail=False)
 class RoutePolicyEntryBulkEditView(BulkEditView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    # the final deny of a policy is not chosen nor changed in bulk
+    queryset = RoutePolicyEntry.objects.select_related('route_policy').filter(
+        implicit=False
+    )
     filterset = RoutePolicyEntryFilterSet
     table = RoutePolicyEntryTable
     form = RoutePolicyEntryBulkEditForm
@@ -997,7 +1019,10 @@ class RoutePolicyEntryBulkEditView(BulkEditView):
 
 @register_model_view(RoutePolicyEntry, name='bulk_delete', detail=False)
 class RoutePolicyEntryBulkDeleteView(BulkDeleteView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    # the final deny of a policy is not chosen nor changed in bulk
+    queryset = RoutePolicyEntry.objects.select_related('route_policy').filter(
+        implicit=False
+    )
     filterset = RoutePolicyEntryFilterSet
     table = RoutePolicyEntryTable
 

@@ -129,7 +129,8 @@ class RoutePolicyTable(NetBoxTable):
 class RoutePolicyEntryTable(NetBoxTable):
     route_policy = tables.Column(verbose_name=_('Route Policy'), linkify=True)
     action = columns.ChoiceFieldColumn()
-    flow_control = tables.Column(verbose_name=_('Flow Control (Continue)'))
+    jump_policy = tables.Column(verbose_name=_('Jump to Route Policy'), linkify=True)
+    implicit = columns.BooleanColumn(verbose_name=_('Final deny'))
     match_prefix_list = columns.ManyToManyColumn(
         linkify_item=True, verbose_name=_('Match Prefix Lists'), orderable=False
     )
@@ -165,7 +166,8 @@ class RoutePolicyEntryTable(NetBoxTable):
             'route_policy',
             'sequence',
             'action',
-            'flow_control',
+            'jump_policy',
+            'implicit',
             'match_prefix_list',
             'match_aspath',
             'match_community_list',

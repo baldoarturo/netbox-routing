@@ -8,6 +8,7 @@ from users.models import User
 from utilities.testing import APITestCase
 
 from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
+from netbox_routing_protocols.models.objects import IMPLICIT_SEQUENCE
 from netbox_routing_protocols.models import (
     ASPath,
     CommunityList,
@@ -86,12 +87,9 @@ class RoutePolicyDeleteTestCase(SuperuserMixin, TestCase):
         self.assertTrue(RoutePolicy.objects.filter(pk=self.used.pk).exists())
 
 
-def make_entry(route_policy, sequence, flow_control=None):
+def make_entry(route_policy, sequence, **fields):
     return RoutePolicyEntry.objects.create(
-        route_policy=route_policy,
-        sequence=sequence,
-        action='permit',
-        flow_control=flow_control,
+        route_policy=route_policy, sequence=sequence, action='permit', **fields
     )
 
 
@@ -101,34 +99,31 @@ class RoutePolicyResequenceTestCase(SuperuserMixin, TestCase):
         cls.policy = RoutePolicy.objects.create(name='Policy')
         cls.other = RoutePolicy.objects.create(name='Other')
 
-    def pairs(self, policy=None):
+    def sequences(self, policy=None):
         return list(
             (policy or self.policy)
             .route_policy_entries.order_by('sequence')
-            .values_list('sequence', 'flow_control')
+            .values_list('sequence', flat=True)
         )
 
-    def test_the_continue_follows_the_entry_it_points_to(self):
-        make_entry(self.policy, 3, flow_control=4)
-        make_entry(self.policy, 4, flow_control=0)
-        make_entry(self.policy, 7, flow_control=99)
-        changed = route_policy_helpers.resequence(self.policy)
-        self.assertEqual(changed, 3)
-        # 0 is "next entry" and 99 points nowhere: both are kept
-        self.assertEqual(self.pairs(), [(10, 20), (20, 0), (30, 99)])
+    def test_the_final_deny_stays_at_the_end(self):
+        make_entry(self.policy, 3)
+        make_entry(self.policy, 7)
+        self.assertEqual(route_policy_helpers.resequence(self.policy), 2)
+        self.assertEqual(self.sequences(), [10, 20, IMPLICIT_SEQUENCE])
 
     def test_another_policy_is_not_touched(self):
         make_entry(self.policy, 1)
-        make_entry(self.other, 5, flow_control=5)
+        make_entry(self.other, 5)
         route_policy_helpers.resequence(self.policy)
-        self.assertEqual(self.pairs(self.other), [(5, 5)])
+        self.assertEqual(self.sequences(self.other), [5, IMPLICIT_SEQUENCE])
 
     def test_out_of_range_changes_nothing(self):
-        make_entry(self.policy, 3, flow_control=4)
+        make_entry(self.policy, 3)
         make_entry(self.policy, 4)
         with self.assertRaises(ValidationError):
             route_policy_helpers.resequence(self.policy, start=4294967294, step=10)
-        self.assertEqual(self.pairs(), [(3, 4), (4, None)])
+        self.assertEqual(self.sequences(), [3, 4, IMPLICIT_SEQUENCE])
 
     def test_the_view_renumbers_and_the_button_is_shown(self):
         make_entry(self.policy, 3)
@@ -140,14 +135,14 @@ class RoutePolicyResequenceTestCase(SuperuserMixin, TestCase):
         self.assertEqual(self.client.get(url).status_code, 200)
         response = self.client.post(url, {'start': 100, 'step': 50})
         self.assertEqual(response.status_code, 302)
-        self.assertEqual([s for s, _f in self.pairs()], [100, 150])
+        self.assertEqual(self.sequences(), [100, 150, IMPLICIT_SEQUENCE])
 
 
 class RoutePolicyResequenceAPITestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.policy = RoutePolicy.objects.create(name='Policy')
-        make_entry(self.policy, 3, flow_control=4)
+        make_entry(self.policy, 3)
         make_entry(self.policy, 4)
         self.url = reverse(
             'plugins-api:netbox_routing_protocols-api:routepolicy-resequence',
@@ -158,10 +153,10 @@ class RoutePolicyResequenceAPITestCase(APITestCase):
             'netbox_routing_protocols.view_routepolicy',
         )
 
-    def pairs(self):
+    def sequences(self):
         return list(
             self.policy.route_policy_entries.order_by('sequence').values_list(
-                'sequence', 'flow_control'
+                'sequence', flat=True
             )
         )
 
@@ -172,11 +167,11 @@ class RoutePolicyResequenceAPITestCase(APITestCase):
         response = self.client.patch(self.url, {}, format='json', **self.header)
         self.assertHttpStatus(response, 200)
         self.assertEqual(response.data, {'changed': 2})
-        self.assertEqual(self.pairs(), [(10, 20), (20, None)])
+        self.assertEqual(self.sequences(), [10, 20, IMPLICIT_SEQUENCE])
         self.client.patch(
             self.url, {'start': 100, 'step': 50}, format='json', **self.header
         )
-        self.assertEqual(self.pairs(), [(100, 150), (150, None)])
+        self.assertEqual(self.sequences(), [100, 150, IMPLICIT_SEQUENCE])
 
     def test_invalid_values(self):
         self.add_permissions(
@@ -188,13 +183,13 @@ class RoutePolicyResequenceAPITestCase(APITestCase):
                     self.url, data, format='json', **self.header
                 )
                 self.assertHttpStatus(response, 400)
-        self.assertEqual(self.pairs(), [(3, 4), (4, None)])
+        self.assertEqual(self.sequences(), [3, 4, IMPLICIT_SEQUENCE])
 
     def test_it_needs_the_permission_to_change_entries(self):
         self.add_permissions(*self.permissions)
         response = self.client.patch(self.url, {}, format='json', **self.header)
         self.assertHttpStatus(response, 403)
-        self.assertEqual(self.pairs(), [(3, 4), (4, None)])
+        self.assertEqual(self.sequences(), [3, 4, IMPLICIT_SEQUENCE])
 
 
 class RoutePolicyEntryQueriesTestCase(SuperuserMixin, TestCase):
@@ -261,7 +256,7 @@ class RoutePolicyEntryPagesTestCase(SuperuserMixin, TestCase):
         response = self.client.get(self.entry.get_absolute_url())
         self.assertContains(response, self.aspath.get_absolute_url())
 
-    def test_the_form_saves_the_match_lists_and_validates_the_continue(self):
+    def test_the_form_saves_the_match_lists_and_validates_the_jump(self):
         self.login()
         community_list = CommunityList.objects.create(name='List')
         data = {
@@ -272,13 +267,15 @@ class RoutePolicyEntryPagesTestCase(SuperuserMixin, TestCase):
             'match_community_list': [community_list.pk],
         }
         url = reverse('plugins:netbox_routing_protocols:routepolicyentry_add')
-        response = self.client.post(url, {**data, 'flow_control': -1})
+        other = RoutePolicy.objects.create(name='Other')
+        # a jump to the policy itself would be a loop
+        response = self.client.post(url, {**data, 'jump_policy': self.policy.pk})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(RoutePolicyEntry.objects.filter(sequence=20).exists())
-        response = self.client.post(url, {**data, 'flow_control': 30})
+        response = self.client.post(url, {**data, 'jump_policy': other.pk})
         self.assertEqual(response.status_code, 302)
         entry = RoutePolicyEntry.objects.get(sequence=20)
-        self.assertEqual(entry.flow_control, 30)
+        self.assertEqual(entry.jump_policy, other)
         self.assertEqual(list(entry.match_aspath.all()), [self.aspath])
         self.assertEqual(list(entry.match_community_list.all()), [community_list])
 
@@ -290,10 +287,11 @@ class RoutePolicyGraphQLTestCase(SuperuserMixin, TestCase):
         cls.lists = [
             PrefixList.objects.create(name=f'List {i}', family=4) for i in range(2)
         ]
-        cls.first = make_entry(cls.policy, 10)
+        cls.other = RoutePolicy.objects.create(name='Other')
+        cls.first = make_entry(cls.policy, 10, jump_policy=cls.other)
         cls.first.match_prefix_list.set(cls.lists)
         cls.second = RoutePolicyEntry.objects.create(
-            route_policy=cls.policy, sequence=20, action='deny', flow_control=30
+            route_policy=cls.policy, sequence=20, action='deny'
         )
 
     def query(self, text):
@@ -316,23 +314,34 @@ class RoutePolicyGraphQLTestCase(SuperuserMixin, TestCase):
         self.assertEqual(by_sequence[20], [])
 
     def test_a_policy_has_its_entries(self):
-        data = self.query('{route_policy_list{route_policy_entries{sequence}}}')
-        rows = data['route_policy_list'][0]['route_policy_entries']
-        self.assertEqual(sorted(int(r['sequence']) for r in rows), [10, 20])
+        data = self.query('{route_policy_list{name route_policy_entries{sequence}}}')
+        rows = next(
+            p['route_policy_entries']
+            for p in data['route_policy_list']
+            if p['name'] == 'Policy'
+        )
+        self.assertEqual(
+            sorted(int(r['sequence']) for r in rows), [10, 20, IMPLICIT_SEQUENCE]
+        )
 
     def test_the_entries_can_be_filtered(self):
+        policy = self.policy.pk
         for text, expected in (
             (
-                '{route_policy_entry_list(filters:{action:{exact:"deny"}}){sequence}}',
-                [20],
+                '{route_policy_entry_list(filters:{route_policy_id:"POLICY",action:{exact:"deny"}}){sequence}}',
+                [20, IMPLICIT_SEQUENCE],
             ),
             (
-                '{route_policy_entry_list(filters:{sequence:{comparison_lookup:{gte:15}}}){sequence}}',
-                [20],
+                '{route_policy_entry_list(filters:{route_policy_id:"POLICY",sequence:{comparison_lookup:{gte:15}}}){sequence}}',
+                [20, IMPLICIT_SEQUENCE],
             ),
             (
-                '{route_policy_entry_list(filters:{flow_control:{filter_lookup:{exact:30}}}){sequence}}',
-                [20],
+                '{route_policy_entry_list(filters:{implicit:true,route_policy_id:"POLICY"}){sequence}}',
+                [IMPLICIT_SEQUENCE],
+            ),
+            (
+                '{route_policy_entry_list(filters:{jump_policy_id:"OTHER"}){sequence}}',
+                [10],
             ),
             (
                 '{route_policy_entry_list(filters:{match_prefix_list:{name:{exact:"List 0"}}}){sequence}}',
@@ -340,8 +349,12 @@ class RoutePolicyGraphQLTestCase(SuperuserMixin, TestCase):
             ),
         ):
             with self.subTest(text):
-                data = self.query(text)
+                data = self.query(
+                    text.replace('POLICY', str(policy)).replace(
+                        'OTHER', str(self.other.pk)
+                    )
+                )
                 self.assertEqual(
-                    [int(r['sequence']) for r in data['route_policy_entry_list']],
+                    sorted(int(r['sequence']) for r in data['route_policy_entry_list']),
                     expected,
                 )
