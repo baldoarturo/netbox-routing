@@ -110,7 +110,14 @@ class OSPFRedistributionFilter(PrimaryModelFilter):
     ) = strawberry_django.filter_field()
     instance_id: ID | None = strawberry_django.filter_field()
     protocol: StrFilterLookup | None = strawberry_django.filter_field()
-    route_policy: StrFilterLookup | None = strawberry_django.filter_field()
+    route_policy: (
+        Annotated[
+            'RoutePolicyFilter',
+            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
+        ]
+        | None
+    ) = strawberry_django.filter_field()
+    route_policy_id: ID | None = strawberry_django.filter_field()
 
 
 @strawberry_django.filter(models.OSPFVirtualLink, lookups=True)

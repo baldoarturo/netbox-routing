@@ -616,8 +616,11 @@ class OSPFRedistributionBulkEditForm(NetBoxModelBulkEditForm):
         choices=choices.OSPFRouteTypeChoices,
         required=False,
     )
-    route_policy = forms.CharField(
-        label=_('Route Policy'), max_length=100, required=False
+    route_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        selector=True,
+        required=False,
+        label=_('Route Policy'),
     )
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False

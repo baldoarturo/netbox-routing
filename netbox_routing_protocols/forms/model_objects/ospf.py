@@ -560,6 +560,12 @@ class OSPFRedistributionForm(PrimaryModelForm):
         label=_('OSPF Route Types'),
         help_text=_('Empty uses the platform default'),
     )
+    route_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Route Policy'),
+    )
 
     fieldsets = (
         FieldSet(

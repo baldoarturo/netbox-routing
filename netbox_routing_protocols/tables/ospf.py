@@ -215,6 +215,7 @@ class OSPFRedistributionTable(NetBoxTable):
     )
     protocol = tables.Column(verbose_name=_('Protocol'))
     source = tables.Column(verbose_name=_('Source'), orderable=False, empty_values=())
+    route_policy = tables.Column(verbose_name=_('Route Policy'), linkify=True)
     subnets = tables.BooleanColumn(verbose_name=_('Subnets'))
     ospf_match = tables.Column(
         verbose_name=_('OSPF Route Types'), orderable=False, empty_values=()

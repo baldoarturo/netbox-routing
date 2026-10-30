@@ -494,6 +494,7 @@ REDISTRIBUTION_SELECT_RELATED = (
     'eigrp_source__device',
     'bgp_source__asn',
     'isis_source__device',
+    'route_policy',
 )
 REDISTRIBUTION_QUERYSET = OSPFRedistribution.objects.select_related(
     *REDISTRIBUTION_SELECT_RELATED
