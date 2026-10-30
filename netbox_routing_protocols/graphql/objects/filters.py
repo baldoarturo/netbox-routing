@@ -5,13 +5,12 @@ import strawberry_django
 from strawberry import ID
 from strawberry_django import StrFilterLookup
 
-from netbox.graphql.filter_lookups import BigIntegerLookup
+from netbox.graphql.filter_lookups import BigIntegerLookup, IntegerLookup
 from netbox.graphql.filters import PrimaryModelFilter
 from netbox_routing_protocols import models
 
 if TYPE_CHECKING:
     from netbox_routing_protocols.graphql.community.filters import (
-        CommunityFilter,
         CommunityListFilter,
     )
 
@@ -96,13 +95,6 @@ class RoutePolicyEntryFilter(PrimaryModelFilter):
         ]
         | None
     ) = strawberry_django.filter_field()
-    match_community: (
-        Annotated[
-            'CommunityFilter',
-            strawberry.lazy('netbox_routing_protocols.graphql.filters'),
-        ]
-        | None
-    ) = strawberry_django.filter_field()
     match_aspath: (
         Annotated[
             'ASPathFilter',
@@ -110,3 +102,14 @@ class RoutePolicyEntryFilter(PrimaryModelFilter):
         ]
         | None
     ) = strawberry_django.filter_field()
+    match_metric: BigIntegerLookup | None = strawberry_django.filter_field()
+    match_tag: BigIntegerLookup | None = strawberry_django.filter_field()
+    set_local_preference: BigIntegerLookup | None = strawberry_django.filter_field()
+    set_metric: BigIntegerLookup | None = strawberry_django.filter_field()
+    set_tag: BigIntegerLookup | None = strawberry_django.filter_field()
+    match_weight: IntegerLookup | None = strawberry_django.filter_field()
+    set_weight: IntegerLookup | None = strawberry_django.filter_field()
+    match_origin: StrFilterLookup | None = strawberry_django.filter_field()
+    set_origin: StrFilterLookup | None = strawberry_django.filter_field()
+    set_community_mode: StrFilterLookup | None = strawberry_django.filter_field()
+    set_metric_mode: StrFilterLookup | None = strawberry_django.filter_field()

@@ -112,10 +112,46 @@ class RoutePolicyEntryTable(NetBoxTable):
     route_policy = tables.Column(verbose_name=_('Route Policy'), linkify=True)
     action = columns.ChoiceFieldColumn()
     flow_control = tables.Column(verbose_name=_('Flow Control (Continue)'))
+    match_next_hop = tables.Column(verbose_name=_('Match Next Hop'), linkify=True)
+    match_origin = tables.Column(verbose_name=_('Match Origin'))
+    set_next_hop = tables.Column(verbose_name=_('Set Next Hop'), linkify=True)
+    set_aspath_prepend = tables.Column(
+        accessor='aspath_prepend_text',
+        orderable=False,
+        verbose_name=_('Set AS-Path Prepend'),
+    )
+    set_community_list = tables.Column(
+        verbose_name=_('Set Community List'), linkify=True
+    )
+    set_community_mode = tables.Column(verbose_name=_('Set Community Mode'))
+    set_metric_mode = tables.Column(verbose_name=_('Set Metric Mode'))
+    set_origin = tables.Column(verbose_name=_('Set Origin'))
 
     class Meta(NetBoxTable.Meta):
         model = RoutePolicyEntry
-        fields = ('pk', 'id', 'route_policy', 'sequence', 'action', 'flow_control')
+        fields = (
+            'pk',
+            'id',
+            'route_policy',
+            'sequence',
+            'action',
+            'flow_control',
+            'match_next_hop',
+            'match_metric',
+            'match_origin',
+            'match_tag',
+            'match_weight',
+            'set_local_preference',
+            'set_next_hop',
+            'set_aspath_prepend',
+            'set_community_list',
+            'set_community_mode',
+            'set_metric',
+            'set_metric_mode',
+            'set_origin',
+            'set_tag',
+            'set_weight',
+        )
         default_columns = ('pk', 'id', 'route_policy', 'sequence', 'action')
 
 

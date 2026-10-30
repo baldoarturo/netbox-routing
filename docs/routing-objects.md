@@ -167,8 +167,48 @@ attributes and *set* others.
 | Sequence | Evaluation order, 1 to 4294967294 (the range routers accept; 0 is not valid). |
 | Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route policies and BGP policies that use the list only decide *where* it is applied. |
 | Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`; 0 means the next entry. It can go up to 4294967294, like the sequence. |
-| Match prefix list / community list / community / AS path | Link the entry to the NetBox objects it matches on. |
-| Match parameters / Set parameters | Free-form **JSON** for everything the links do not cover (for example a local preference to set). The plugin stores it as written; it does not interpret it. |
+
+### What an entry matches
+
+An entry can have any of these conditions; **all of them must hold** (AND), and inside a list
+(several prefix lists, say) **any one is enough** (OR), as on the routers. An entry without
+conditions matches every route. They follow the BGP path attributes of RFC 4271 section 5.1
+(the names are the ones the vendors use, Cisco `match ...` among them).
+
+| Field | Meaning |
+| --- | --- |
+| Match prefix list | Prefix lists the route's prefix must match. |
+| Match AS path | AS-path lists (patterns) the AS_PATH must match (RFC 4271 section 5.1.2). |
+| Match community list | Community lists the communities and extended communities of the route must match (RFC 1997, RFC 4360). |
+| Match next hop | NEXT_HOP of the route (RFC 4271 section 5.1.3): an **IPv4 or IPv6 address of IPAM**. |
+| Match metric | MULTI_EXIT_DISC (RFC 4271 section 5.1.4), 0 to 4294967295. |
+| Match origin | ORIGIN (RFC 4271 section 5.1.1): IGP, EGP or Incomplete. |
+| Match tag | Route tag, 0 to 4294967295. **Not a BGP attribute**: only some vendors have it (for example Cisco and FRR). |
+| Match weight | 0 to 65535. **Not a BGP attribute**: only some vendors have it (for example Cisco and FRR), and it never leaves the router. |
+
+### What an entry sets
+
+What the entry changes in the routes it permits. **A deny entry only denies**: it cannot set
+anything and cannot continue, and the form and the API refuse it.
+
+| Field | Meaning |
+| --- | --- |
+| Set local preference | LOCAL_PREF (RFC 4271 section 5.1.5), 0 to 4294967295. |
+| Set next hop | NEXT_HOP (RFC 4271 section 5.1.3): an **IPv4 or IPv6 address of IPAM**. |
+| Set AS-path prepend | AS numbers added at the start of the AS_PATH, in the order written (a number repeated is prepended several times), each 0 to 4294967295. Written as numbers separated by commas. |
+| Set community list and mode | The communities and extended communities that the **permit** entries of the list hold, and what to do with them: **Replace** the communities of the route, or **Additive** (add them to the ones it has). No mode, no list, nothing is done. |
+| Set metric and mode | MULTI_EXIT_DISC, 0 to 4294967295, and how: **Set** (the default), **Add** the value or **Subtract** it. |
+| Set origin | ORIGIN: IGP, EGP or Incomplete. |
+| Set tag | Route tag, 0 to 4294967295. **Not a BGP attribute**: only some vendors have it. |
+| Set weight | 0 to 65535. **Not a BGP attribute**: only some vendors have it. |
+
+An IP address that an entry uses as a next hop **cannot be deleted** from IPAM until the entry
+stops using it. A community list used by a *set* can be deleted: the entry then keeps the mode
+and sets nothing, until you choose another list.
+
+Not modelled, because they are not BGP path attributes: source protocol, interface, route type,
+metric type, and the vendor specific ones that follow them. Extended communities go through the
+community lists, as the same list can hold both kinds.
 
 ### Resequencing a route policy
 
@@ -442,9 +482,10 @@ entries that match it, with a link to the filtered list. **Duplicate** copies a 
 entries under a new name (suggested: `<name> copy`); the copy keeps the type, tenant, tags and
 comments.
 
-The page of a **community** shows where it is used: the community lists that contain it and the
-route policy entries that match it, each with a link to the filtered list. The lists show how many
-entries and route policy entries use each community or list, with the same link.
+The page of a **community** shows where it is used: the community lists that contain it, with a
+link to the filtered list. The tables of communities show how many list entries use each one, and the
+tables of community lists how many route policy entries match them, with the same link. A route
+policy reaches a community only through a community list.
 
 The tables have the edit, delete and changelog buttons, and can be filtered (also in GraphQL) by
 name, type, status, role, tenant, value, list, community, sequence and action; the description, tags, comments and
@@ -486,8 +527,7 @@ The page is a tool of the web interface, like *Search Prefix Match*; it has no A
 
 ### Deleting
 
-A **community** that is in a community list or matched by a route policy entry cannot be deleted:
-the error says where it is used. A **community list** can be deleted; the confirmation page, and the
+A **community** that is in a community list cannot be deleted: the error says where it is used. A **community list** can be deleted; the confirmation page, and the
 page of a bulk delete, list every object that refers to it (for example the route policy entries
 that match it), which lose the reference.
 
@@ -529,7 +569,12 @@ Route policy
 └─ Entry
     ├─ route_policy → Route policy
     ├─ Result: sequence · action {Permit | Deny} · flow_control
-    ├─ Match: match · match_prefix_list → Prefix list · match_community_list → Community list
-    │         · match_community → Community · match_aspath → AS path
-    └─ Set: set
+    ├─ Match: match_prefix_list → Prefix list · match_aspath → AS path
+    │         · match_community_list → Community list · match_next_hop → IP address (IPAM)
+    │         · match_metric · match_origin {IGP | EGP | Incomplete} · match_tag · match_weight
+    └─ Set (not on a Deny): set_local_preference · set_next_hop → IP address (IPAM)
+              · set_aspath_prepend (AS numbers) · set_community_list → Community list
+              · set_community_mode {Replace | Additive} · set_metric
+              · set_metric_mode {Set | Add | Subtract} · set_origin {IGP | EGP | Incomplete}
+              · set_tag · set_weight
 ```

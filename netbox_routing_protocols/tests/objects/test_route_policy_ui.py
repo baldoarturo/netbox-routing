@@ -10,7 +10,7 @@ from utilities.testing import APITestCase
 from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.models import (
     ASPath,
-    Community,
+    CommunityList,
     PrefixList,
     BGPPolicyTemplate,
     RoutePolicy,
@@ -263,13 +263,13 @@ class RoutePolicyEntryPagesTestCase(SuperuserMixin, TestCase):
 
     def test_the_form_saves_the_match_lists_and_validates_the_continue(self):
         self.login()
-        community = Community.objects.create(community='65000:1')
+        community_list = CommunityList.objects.create(name='List')
         data = {
             'route_policy': self.policy.pk,
             'sequence': 20,
             'action': 'permit',
             'match_aspath': [self.aspath.pk],
-            'match_community': [community.pk],
+            'match_community_list': [community_list.pk],
         }
         url = reverse('plugins:netbox_routing_protocols:routepolicyentry_add')
         response = self.client.post(url, {**data, 'flow_control': -1})
@@ -280,7 +280,7 @@ class RoutePolicyEntryPagesTestCase(SuperuserMixin, TestCase):
         entry = RoutePolicyEntry.objects.get(sequence=20)
         self.assertEqual(entry.flow_control, 30)
         self.assertEqual(list(entry.match_aspath.all()), [self.aspath])
-        self.assertEqual(list(entry.match_community.all()), [community])
+        self.assertEqual(list(entry.match_community_list.all()), [community_list])
 
 
 class RoutePolicyGraphQLTestCase(SuperuserMixin, TestCase):

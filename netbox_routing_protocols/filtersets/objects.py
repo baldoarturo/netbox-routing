@@ -2,10 +2,15 @@ import django_filters
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from ipam.models import Prefix
+from ipam.models import IPAddress, Prefix
 from netbox.filtersets import NetBoxModelFilterSet
 from utilities.filtersets import register_filterset
 
+from netbox_routing_protocols.choices import (
+    CommunityModeChoices,
+    MetricModeChoices,
+    OriginChoices,
+)
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.models.community import *
 
@@ -206,17 +211,6 @@ class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
         to_field_name='name',
         label=_('Community List (Name)'),
     )
-    match_community_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='match_community',
-        queryset=Community.objects.all(),
-        label=_('Community (ID)'),
-    )
-    match_community = django_filters.ModelMultipleChoiceFilter(
-        field_name='match_community__community',
-        queryset=Community.objects.all(),
-        to_field_name='community',
-        label=_('Community (Community)'),
-    )
     match_aspath_id = django_filters.ModelMultipleChoiceFilter(
         field_name='match_aspath',
         queryset=ASPath.objects.all(),
@@ -227,6 +221,33 @@ class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
         queryset=ASPath.objects.all(),
         to_field_name='name',
         label=_('AS Path List (Name)'),
+    )
+    match_next_hop_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='match_next_hop',
+        queryset=IPAddress.objects.all(),
+        label=_('Match Next Hop (ID)'),
+    )
+    match_origin = django_filters.MultipleChoiceFilter(
+        choices=OriginChoices, label=_('Match Origin')
+    )
+    set_next_hop_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='set_next_hop',
+        queryset=IPAddress.objects.all(),
+        label=_('Set Next Hop (ID)'),
+    )
+    set_community_list_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='set_community_list',
+        queryset=CommunityList.objects.all(),
+        label=_('Set Community List (ID)'),
+    )
+    set_community_mode = django_filters.MultipleChoiceFilter(
+        choices=CommunityModeChoices, label=_('Set Community Mode')
+    )
+    set_metric_mode = django_filters.MultipleChoiceFilter(
+        choices=MetricModeChoices, label=_('Set Metric Mode')
+    )
+    set_origin = django_filters.MultipleChoiceFilter(
+        choices=OriginChoices, label=_('Set Origin')
     )
 
     class Meta:
@@ -240,16 +261,28 @@ class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
             'match_prefix_list',
             'match_community_list_id',
             'match_community_list',
-            'match_community_id',
-            'match_community',
             'match_aspath_id',
             'match_aspath',
+            'match_next_hop_id',
+            'match_metric',
+            'match_origin',
+            'match_tag',
+            'match_weight',
+            'flow_control',
+            'set_local_preference',
+            'set_next_hop_id',
+            'set_community_list_id',
+            'set_community_mode',
+            'set_metric',
+            'set_metric_mode',
+            'set_origin',
+            'set_tag',
+            'set_weight',
         )
 
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
         qs_filter = Q(route_policy__name__icontains=value)
-        qs_filter |= Q(match__icontains=value)
-        qs_filter |= Q(set__icontains=value)
+        qs_filter |= Q(description__icontains=value)
         return queryset.filter(qs_filter).distinct()

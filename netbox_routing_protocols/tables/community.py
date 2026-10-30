@@ -27,11 +27,6 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
         url_params={'community_id': 'pk'},
         verbose_name=_('List entries'),
     )
-    route_policy_entry_count = columns.LinkedCountColumn(
-        viewname='plugins:netbox_routing_protocols:routepolicyentry_list',
-        url_params={'match_community_id': 'pk'},
-        verbose_name=_('Route policy entries'),
-    )
     tags = columns.TagColumn(url_name='plugins:netbox_routing_protocols:community_list')
 
     class Meta(NetBoxTable.Meta):
@@ -49,7 +44,6 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
             'tenant_group',
             'tenant',
             'entry_count',
-            'route_policy_entry_count',
             'comments',
             'tags',
             'created',

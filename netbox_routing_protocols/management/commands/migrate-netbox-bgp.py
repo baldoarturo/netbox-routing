@@ -13,6 +13,38 @@ from users.models import User
 from utilities.request import NetBoxFakeRequest
 
 
+def route_policy_settings(action, set_actions):
+    """
+    The set_actions of a netbox-bgp rule as fields of a route policy entry, and what could
+    not be mapped (a key without a field, a bad value, anything on a deny rule, which only
+    denies): (fields, unmapped dict).
+    """
+    fields, unmapped = {}, {}
+    numbers = {
+        'local_preference': ('set_local_preference', 4294967295),
+        'metric': ('set_metric', 4294967295),
+        'tag': ('set_tag', 4294967295),
+        'weight': ('set_weight', 65535),
+    }
+    for key, value in (set_actions or {}).items():
+        field = None
+        if action == 'permit':
+            if key in numbers and str(value).isdigit():
+                if int(value) <= numbers[key][1]:
+                    field = numbers[key][0], int(value)
+            elif key == 'origin' and value in ('igp', 'egp', 'incomplete'):
+                field = 'set_origin', value
+            elif key in ('as_path_prepend', 'prepend'):
+                asns = value.split() if isinstance(value, str) else value
+                if isinstance(asns, list) and all(str(a).isdigit() for a in asns):
+                    field = 'set_aspath_prepend', [int(a) for a in asns]
+        if field:
+            fields[field[0]] = field[1]
+        else:
+            unmapped[key] = value
+    return fields, unmapped
+
+
 def resolve_assigned_object(item):
     if getattr(item, 'device', None):
         return item.device
@@ -391,12 +423,6 @@ class Command(BaseCommand):
                             'communitylist_id', flat=True
                         )
                     ]
-                    community = [
-                        mapping['community'][c].pk
-                        for c in item.match_community.values_list(
-                            'community_id', flat=True
-                        )
-                    ]
                     aspath = [
                         mapping['aspath'][asp].pk
                         for asp in item.match_aspath_list.values_list(
@@ -417,9 +443,15 @@ class Command(BaseCommand):
                             )
                         ]
                     )
-                    match = item.match_custom
-                    if not match:
-                        match = {}
+                    set_fields, unmapped = route_policy_settings(
+                        item.action, item.set_actions
+                    )
+                    if item.match_custom or unmapped:
+                        # The custom match and the settings that have no field are lost
+                        print(
+                            f'Route policy {route_policy.name} rule {item.index}: '
+                            f'not migrated: {item.match_custom or ""} {unmapped or ""}'
+                        )
                     try:
                         entry = RoutePolicyEntry.objects.get(
                             route_policy=route_policy, sequence=item.index
@@ -431,8 +463,7 @@ class Command(BaseCommand):
                             route_policy=route_policy,
                             sequence=item.index,
                             action=item.action,
-                            match=match,
-                            set=item.set_actions,
+                            **set_fields,
                             description=item.description,
                             comments=item.comments,
                         )
@@ -440,7 +471,6 @@ class Command(BaseCommand):
                         entry.save()
                         entry.match_prefix_list.set(prefix_list)
                         entry.match_community_list.set(community_list)
-                        entry.match_community.set(community)
                         entry.match_aspath.set(aspath)
                         mapping['route_policy_entry'][item.pk] = entry
 

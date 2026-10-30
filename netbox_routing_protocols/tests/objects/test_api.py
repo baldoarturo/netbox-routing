@@ -612,22 +612,19 @@ class RoutePolicyEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestC
                 route_policy=cls.route_policy[0],
                 action='permit',
                 sequence=1,
-                match={'tags': 1},
-                set={},
+                match_tag=1,
             ),
             cls.model(
                 route_policy=cls.route_policy[0],
                 action='permit',
                 sequence=2,
-                match={'tags': 2},
-                set={},
+                match_tag=2,
             ),
             cls.model(
                 route_policy=cls.route_policy[1],
                 action='permit',
                 sequence=1,
-                match={'tags': 3},
-                set={},
+                match_tag=3,
             ),
         )
         cls.model.objects.bulk_create(cls.route_policy_entry)
@@ -638,13 +635,13 @@ class RoutePolicyEntryTestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestC
                 'action': 'permit',
                 'sequence': 3,
                 'flow_control': 4,
-                'match': {'tags': 4},
+                'match_tag': 4,
             },
             {
                 'route_policy': cls.route_policy[0].pk,
                 'action': 'permit',
                 'sequence': 4,
-                'match': {'tags': 5},
+                'match_tag': 5,
             },
         ]
 

@@ -6,7 +6,6 @@ from django.db.models import ProtectedError
 from django.test import TestCase
 
 from netbox_routing_protocols.helpers import community as helpers
-from netbox_routing_protocols.models import RoutePolicy, RoutePolicyEntry
 from netbox_routing_protocols.models.community import *
 
 __all__ = (
@@ -113,18 +112,6 @@ class CommunityModelTestCase(TestCase):
         with self.assertRaises(ProtectedError):
             Community.objects.filter(pk=community.pk).delete()
         self.assertTrue(Community.objects.filter(pk=community.pk).exists())
-
-    def test_delete_is_blocked_by_a_route_policy_entry(self):
-        community = Community.objects.create(community='65000:1')
-        policy = RoutePolicy.objects.create(name='P')
-        entry = RoutePolicyEntry.objects.create(
-            route_policy=policy, sequence=10, action='permit'
-        )
-        entry.match_community.add(community)
-        with self.assertRaises(ProtectedError):
-            community.delete()
-        entry.match_community.clear()
-        community.delete()
 
     def test_unused_community_and_list_can_be_deleted(self):
         community = Community.objects.create(community='65000:1')
