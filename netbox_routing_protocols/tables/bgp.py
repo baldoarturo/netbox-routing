@@ -20,11 +20,25 @@ __all__ = (
 
 
 class BGPInstanceTable(TenancyColumnsMixin, NetBoxTable):
+    router_id = tables.Column(verbose_name=_('Router ID'), linkify=True)
+    address_family = tables.Column(
+        accessor='pk',
+        verbose_name=_('Address Family'),
+        linkify=True,
+        orderable=False,
+        empty_values=(),
+    )
+
+    def render_address_family(self, record):
+        return ', '.join(
+            af.get_address_family_display() for af in record.address_families.all()
+        )
+
     name = tables.Column(linkify=True, verbose_name=_('Name'))
     import_policy = tables.Column(linkify=True, verbose_name=_('Import Policy'))
     export_policy = tables.Column(linkify=True, verbose_name=_('Export Policy'))
     device = tables.Column(linkify=True, verbose_name=_('Device'))
-    vrf = tables.Column(linkify=True, verbose_name=_('VRF'))
+    vrf = tables.Column(accessor='pk', linkify=True, verbose_name=_('VRF'))
     asn = tables.Column(linkify=True, verbose_name=_('ASN'))
 
     class Meta(NetBoxTable.Meta):
@@ -51,7 +65,14 @@ class BGPInstanceTable(TenancyColumnsMixin, NetBoxTable):
             'description',
             'comments',
         )
-        default_columns = ('pk', 'name', 'device', 'vrf', 'asn', 'router_id')
+        default_columns = (
+            'name',
+            'device',
+            'router_id',
+            'vrf',
+            'address_family',
+            'asn',
+        )
 
 
 class BGPAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):

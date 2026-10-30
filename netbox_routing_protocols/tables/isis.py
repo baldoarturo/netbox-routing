@@ -200,8 +200,25 @@ class ISISSettingTable(NetBoxTable):
 
 
 class ISISInstanceTable(NetBoxTable):
+    name = tables.Column(accessor='process_tag', verbose_name=_('Name'), linkify=True)
+    router_id = tables.Column(
+        accessor='net', verbose_name=_('Router ID (NET)'), linkify=True
+    )
+    address_family = tables.Column(
+        accessor='pk',
+        verbose_name=_('Address Family'),
+        linkify=True,
+        orderable=False,
+        empty_values=(),
+    )
+
+    def render_address_family(self, record):
+        return ', '.join(
+            af.get_address_family_display() for af in record.address_families.all()
+        )
+
     device = tables.Column(verbose_name=_('Device'), linkify=True)
-    vrf = tables.Column(verbose_name=_('VRF'), linkify=True)
+    vrf = tables.Column(accessor='pk', verbose_name=_('VRF'), linkify=True)
     import_policy = tables.Column(verbose_name=_('Import Policy'), linkify=True)
     export_policy = tables.Column(verbose_name=_('Export Policy'), linkify=True)
 
@@ -218,7 +235,13 @@ class ISISInstanceTable(NetBoxTable):
             'import_policy',
             'export_policy',
         )
-        default_columns = ('pk', 'id', 'device', 'process_tag', 'net', 'is_type')
+        default_columns = (
+            'name',
+            'device',
+            'router_id',
+            'vrf',
+            'address_family',
+        )
 
 
 class ISISInterfaceTable(NetBoxTable):

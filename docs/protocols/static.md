@@ -49,8 +49,8 @@ refuse any next hop, interface or next hop VRF.
 * **Summary or black-hole route.** Choose *Blackhole* instead of pointing at `Null0` by hand.
 * **Leak a route between VRFs.** Set the *VRF* of the route and the *Next hop VRF* where the next hop lives.
 * **Route in a VRF.** Select the *VRF*; the same prefix can then exist in several VRFs.
-* **Seeing a device's routes.** Open the device and use the **Static Routes** tab, which shows the
-  routes assigned to it and how many there are.
+* **Seeing a device's routes.** Open the device and use the **Routing** tab: its *Static routes* section lists
+  the routes assigned to it, next to the protocols of the device.
 
 ## Finding routes
 

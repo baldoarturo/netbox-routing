@@ -102,14 +102,16 @@ __all__ = (
 #
 @register_model_view(BGPInstance, name='list', path='', detail=False)
 class BGPInstanceListView(ObjectListView):
-    queryset = BGPInstance.objects.select_related(
-        'device',
-        'vrf',
-        'asn',
-        'confederation_identifier',
-        'import_policy',
-        'export_policy',
-        'tenant',
+    queryset = (
+        BGPInstance.objects.select_related(
+            'device',
+            'vrf',
+            'asn',
+            'confederation_identifier',
+            'import_policy',
+            'export_policy',
+            'tenant',
+        ).prefetch_related('address_families')
     ).prefetch_related('confederation_peers')
     filterset = BGPInstanceFilterSet
     filterset_form = BGPInstanceFilterForm

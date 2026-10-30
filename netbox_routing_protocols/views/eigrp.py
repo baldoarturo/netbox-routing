@@ -65,7 +65,7 @@ __all__ = (
 class EIGRPRouterListView(ObjectListView):
     queryset = EIGRPRouter.objects.select_related(
         'device', 'import_policy', 'export_policy'
-    )
+    ).prefetch_related('eigrpaddressfamily_set__vrf')
     table = EIGRPRouterTable
     filterset = EIGRPRouterFilterSet
     filterset_form = EIGRPRouterFilterForm

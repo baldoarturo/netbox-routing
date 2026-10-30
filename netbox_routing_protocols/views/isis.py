@@ -586,7 +586,7 @@ class ISISSRv6LocatorBulkDeleteView(BulkDeleteView):
 class ISISInstanceListView(ObjectListView):
     queryset = ISISInstance.objects.select_related(
         'device', 'vrf', 'import_policy', 'export_policy'
-    )
+    ).prefetch_related('address_families')
     table = ISISInstanceTable
     filterset = ISISInstanceFilterSet
     filterset_form = ISISInstanceFilterForm
