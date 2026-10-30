@@ -38,7 +38,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5303](https://www.rfc-editor.org/rfc/rfc5303) | IS-IS three-way handshake for point-to-point | [IS-IS interfaces](protocols/isis.md#interfaces) |
 | [RFC 5304](https://www.rfc-editor.org/rfc/rfc5304) | IS-IS cryptographic authentication (MD5) | [IS-IS](protocols/isis.md#authentication) |
 | [RFC 5305](https://www.rfc-editor.org/rfc/rfc5305) | IS-IS traffic engineering | [IS-IS](protocols/isis.md) |
-| [RFC 5308](https://www.rfc-editor.org/rfc/rfc5308) | IS-IS for IPv6 | [IS-IS](protocols/isis.md) |
+| [RFC 5308](https://www.rfc-editor.org/rfc/rfc5308) | IS-IS for IPv6 | [IS-IS](protocols/isis.md), [address families](protocols/isis.md#address-families) |
 | [RFC 5310](https://www.rfc-editor.org/rfc/rfc5310) | IS-IS generic cryptographic authentication | [IS-IS](protocols/isis.md#authentication) |
 | [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396) | Textual representation of AS numbers | [BGP settings](protocols/bgp.md#settings), [AS paths](routing-objects.md#as-paths) |
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization | [OSPF](protocols/ospf.md#advanced-features), [IS-IS settings](protocols/isis.md#settings) |
