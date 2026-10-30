@@ -19,6 +19,8 @@ from netbox_routing_protocols.choices import (
     ISISFlexAlgoMetricTypeChoices,
     ISISFrrProtectionChoices,
     ISISLevelChoices,
+    ISISLevelScopeChoices,
+    ISISRedistributionMetricTypeChoices,
     ISISIsTypeChoices,
     ISISMetricStyleChoices,
     ISISNetworkTypeChoices,
@@ -33,6 +35,9 @@ from netbox_routing_protocols.models import (
     ISISSegmentRouting,
     ISISSetting,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.models.objects import RoutePolicy
 
@@ -46,6 +51,9 @@ __all__ = (
     'ISISFlexAlgoBulkEditForm',
     'ISISPrefixSIDBulkEditForm',
     'ISISSRv6LocatorBulkEditForm',
+    'ISISRedistributionBulkEditForm',
+    'ISISSummaryAddressBulkEditForm',
+    'ISISRouteLeakBulkEditForm',
 )
 
 
@@ -600,3 +608,84 @@ class ISISSRv6LocatorBulkEditForm(NetBoxModelBulkEditForm):
         'description',
         'comments',
     )
+
+
+class ISISRedistributionBulkEditForm(NetBoxModelBulkEditForm):
+    address_family = forms.ChoiceField(
+        label=_('Address Family'),
+        choices=add_blank_choice(ISISAddressFamilyChoices),
+        required=False,
+    )
+    level = forms.ChoiceField(
+        label=_('Level'),
+        choices=add_blank_choice(ISISLevelScopeChoices),
+        required=False,
+    )
+    metric = forms.IntegerField(label=_('Metric'), min_value=1, required=False)
+    metric_type = forms.ChoiceField(
+        label=_('Metric Type'),
+        choices=add_blank_choice(ISISRedistributionMetricTypeChoices),
+        required=False,
+    )
+    route_tag = forms.IntegerField(
+        label=_('Route Tag'), min_value=1, max_value=4294967295, required=False
+    )
+    route_policy = forms.CharField(
+        label=_('Route Policy'), max_length=100, required=False
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = ISISRedistribution
+    fieldsets = (
+        FieldSet(
+            'address_family',
+            'level',
+            'metric',
+            'metric_type',
+            'route_tag',
+            'route_policy',
+        ),
+        FieldSet('description'),
+    )
+    nullable_fields = ('metric', 'route_tag', 'route_policy', 'description')
+
+
+class ISISSummaryAddressBulkEditForm(NetBoxModelBulkEditForm):
+    level = forms.ChoiceField(
+        label=_('Level'),
+        choices=add_blank_choice(ISISLevelScopeChoices),
+        required=False,
+    )
+    not_advertise = _boolean(_('Do Not Advertise'))
+    metric = forms.IntegerField(label=_('Metric'), min_value=1, required=False)
+    route_tag = forms.IntegerField(
+        label=_('Route Tag'), min_value=1, max_value=4294967295, required=False
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = ISISSummaryAddress
+    fieldsets = (
+        FieldSet('level', 'not_advertise', 'metric', 'route_tag'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('metric', 'route_tag', 'description')
+
+
+class ISISRouteLeakBulkEditForm(NetBoxModelBulkEditForm):
+    route_policy = forms.CharField(
+        label=_('Route Policy'), max_length=100, required=False
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = ISISRouteLeak
+    fieldsets = (FieldSet('route_policy'), FieldSet('description'))
+    nullable_fields = ('route_policy', 'description')

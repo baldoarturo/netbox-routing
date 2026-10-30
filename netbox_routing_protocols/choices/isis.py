@@ -13,6 +13,9 @@ __all__ = (
     'ISISMetricStyleChoices',
     'ISISNetworkTypeChoices',
     'ISISLevelChoices',
+    'ISISLevelScopeChoices',
+    'ISISRedistributionMetricTypeChoices',
+    'ISISRedistributionProtocolChoices',
     'ISISSettingChoices',
 )
 
@@ -245,3 +248,47 @@ class ISISSettingChoices(ChoiceSet):
         ADJACENCY_CHECK: 'boolean',
         PURGE_ORIGINATOR_ID: 'boolean',
     }
+
+
+class ISISLevelScopeChoices(ChoiceSet):
+    """Level a redistribution or summary applies to (RFC 1195, RFC 5302)."""
+
+    LEVEL1 = 'level-1'
+    LEVEL2 = 'level-2'
+    LEVEL12 = 'level-1-2'
+
+    CHOICES = (
+        (LEVEL1, 'Level-1'),
+        (LEVEL2, 'Level-2'),
+        (LEVEL12, 'Level-1-2'),
+    )
+
+
+class ISISRedistributionProtocolChoices(ChoiceSet):
+    CONNECTED = 'connected'
+    STATIC = 'static'
+    EIGRP = 'eigrp'
+    BGP = 'bgp'
+    OSPF = 'ospf'
+    ISIS = 'isis'
+
+    CHOICES = (
+        (CONNECTED, 'Connected'),
+        (STATIC, 'Static'),
+        (EIGRP, 'EIGRP'),
+        (BGP, 'BGP'),
+        (OSPF, 'OSPF'),
+        (ISIS, 'IS-IS'),
+    )
+
+
+class ISISRedistributionMetricTypeChoices(ChoiceSet):
+    """Internal and external metrics of ISO 10589 and RFC 1195 section 3.3."""
+
+    INTERNAL = 'internal'
+    EXTERNAL = 'external'
+
+    CHOICES = (
+        (INTERNAL, 'Internal'),
+        (EXTERNAL, 'External'),
+    )

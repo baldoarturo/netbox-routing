@@ -22,6 +22,9 @@ def build_menus():
         ('isislevel', 'Levels'),
         ('isissegmentrouting', 'Segment Routing'),
         ('isisflexalgo', 'Flex-Algos'),
+        ('isisredistribution', 'Redistribution'),
+        ('isissummaryaddress', 'Summary Addresses'),
+        ('isisrouteleak', 'Route Leaking'),
         ('isisprefixsid', 'Prefix-SIDs'),
         ('isissrv6locator', 'SRv6 Locators'),
     )

@@ -9,6 +9,9 @@ from ipam.models import VRF
 from utilities.testing import ViewTestCases, create_test_device
 
 from netbox_routing_protocols.models import (
+    ISISRedistribution,
+    ISISRouteLeak,
+    ISISSummaryAddress,
     ISISFlexAlgo,
     ISISInstance,
     ISISInterface,
@@ -266,6 +269,28 @@ class ISISBulkEditViewsTestCase(TestCase):
                 'enabled',
                 '2',
                 True,
+            ),
+            (
+                ISISRedistribution.objects.create(
+                    instance=instance, protocol='connected'
+                ),
+                'metric',
+                '10',
+                10,
+            ),
+            (
+                ISISSummaryAddress.objects.create(
+                    instance=instance, prefix='10.0.0.0/8'
+                ),
+                'metric',
+                '10',
+                10,
+            ),
+            (
+                ISISRouteLeak.objects.create(instance=instance),
+                'route_policy',
+                'LEAK',
+                'LEAK',
             ),
         )
 

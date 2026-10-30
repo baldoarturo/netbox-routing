@@ -12,6 +12,7 @@ from utilities.testing import create_test_device
 
 from netbox_routing_protocols.helpers.isis import net_error
 from netbox_routing_protocols.models import (
+    OSPFInstance,
     ISISFlexAlgo,
     ISISInstance,
     ISISInterface,
@@ -19,6 +20,9 @@ from netbox_routing_protocols.models import (
     ISISLevel,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
     ISISSegmentRouting,
     ISISSetting,
 )
@@ -33,6 +37,7 @@ __all__ = (
     'ISISSRv6LocatorModelTestCase',
     'ISISMigrationStateTestCase',
     'ISISConsistencyTestCase',
+    'ISISRoutingModelsTestCase',
     'ISISNetTestCase',
     'ISISRangeTestCase',
     'ISISSegmentRoutingRulesTestCase',
@@ -1035,3 +1040,146 @@ class ISISInterfaceOptionsTestCase(TestCase):
         self.assertIn('hello_auth_key', ctx.exception.message_dict)
         level.hello_auth_key = 'secret'
         level.clean()
+
+
+class ISISRoutingModelsTestCase(TestCase):
+    """Redistribution, summary addresses and route leaking (#443, #444)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(
+            device=cls.device, process_tag='CORE', metric_style='wide'
+        )
+
+    def assertRejects(self, obj, field):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.full_clean()
+        self.assertIn(field, ctx.exception.error_dict)
+
+    def test_redistribution_connected_needs_no_source(self):
+        ISISRedistribution(instance=self.instance, protocol='connected').full_clean()
+
+    def test_redistribution_isis_requires_source(self):
+        self.assertRejects(
+            ISISRedistribution(instance=self.instance, protocol='isis'), 'isis_source'
+        )
+
+    def test_redistribution_rejects_source_of_other_protocol(self):
+        other = ISISInstance.objects.create(device=self.device, process_tag='B')
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='connected', isis_source=other
+            ),
+            'isis_source',
+        )
+
+    def test_redistribution_isis_not_into_itself(self):
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='isis', isis_source=self.instance
+            ),
+            'isis_source',
+        )
+
+    def test_redistribution_source_on_instance_device(self):
+        other_device = create_test_device(name='Device 2')
+        ospf = OSPFInstance.objects.create(
+            device=other_device, name='1', router_id='10.0.0.1'
+        )
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='ospf', ospf_source=ospf
+            ),
+            'ospf_source',
+        )
+        same = OSPFInstance.objects.create(
+            device=self.device, name='2', router_id='10.0.0.2'
+        )
+        ISISRedistribution(
+            instance=self.instance, protocol='ospf', ospf_source=same
+        ).full_clean()
+
+    def test_redistribution_level_must_be_run_by_instance(self):
+        l1 = ISISInstance.objects.create(
+            device=self.device, process_tag='L1', is_type='level-1'
+        )
+        self.assertRejects(
+            ISISRedistribution(instance=l1, protocol='static', level='level-2'),
+            'level',
+        )
+        ISISRedistribution(
+            instance=l1, protocol='static', level='level-1-2'
+        ).full_clean()
+
+    def test_redistribution_metric_follows_metric_style(self):
+        narrow = ISISInstance.objects.create(
+            device=self.device, process_tag='N', metric_style='narrow'
+        )
+        self.assertRejects(
+            ISISRedistribution(instance=narrow, protocol='static', metric=64), 'metric'
+        )
+        ISISRedistribution(
+            instance=self.instance, protocol='static', metric=64
+        ).full_clean()
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='static', metric=16777215
+            ),
+            'metric',
+        )
+
+    def test_redistribution_unique_per_family_and_level(self):
+        ISISRedistribution.objects.create(instance=self.instance, protocol='static')
+        self.assertRejects(
+            ISISRedistribution(instance=self.instance, protocol='static'),
+            '__all__',
+        )
+        ISISRedistribution(
+            instance=self.instance, protocol='static', address_family='ipv6'
+        ).full_clean()
+
+    def test_summary_address_rejects_host_bits(self):
+        self.assertRejects(
+            ISISSummaryAddress(instance=self.instance, prefix='10.0.0.1/8'), 'prefix'
+        )
+
+    def test_summary_address_accepts_both_families(self):
+        ISISSummaryAddress(instance=self.instance, prefix='10.0.0.0/8').full_clean()
+        ISISSummaryAddress(instance=self.instance, prefix='2001:db8::/32').full_clean()
+
+    def test_summary_address_level_and_metric(self):
+        l2 = ISISInstance.objects.create(
+            device=self.device, process_tag='L2', is_type='level-2-only'
+        )
+        self.assertRejects(
+            ISISSummaryAddress(instance=l2, prefix='10.0.0.0/8', level='level-1'),
+            'level',
+        )
+        self.assertRejects(
+            ISISSummaryAddress(
+                instance=self.instance, prefix='10.0.0.0/8', metric=16777215
+            ),
+            'metric',
+        )
+
+    def test_summary_address_unique_per_level(self):
+        ISISSummaryAddress.objects.create(instance=self.instance, prefix='10.0.0.0/8')
+        self.assertRejects(
+            ISISSummaryAddress(instance=self.instance, prefix='10.0.0.0/8'), '__all__'
+        )
+        ISISSummaryAddress(
+            instance=self.instance, prefix='10.0.0.0/8', level='level-1'
+        ).full_clean()
+
+    def test_route_leak_needs_both_levels(self):
+        ISISRouteLeak(instance=self.instance).full_clean()
+        l2 = ISISInstance.objects.create(
+            device=self.device, process_tag='L2', is_type='level-2-only'
+        )
+        self.assertRejects(ISISRouteLeak(instance=l2), 'instance')
+
+    def test_route_leak_unique_per_family(self):
+        ISISRouteLeak.objects.create(instance=self.instance)
+        self.assertRejects(ISISRouteLeak(instance=self.instance), '__all__')
+        ISISRouteLeak(instance=self.instance, address_family='ipv6').full_clean()

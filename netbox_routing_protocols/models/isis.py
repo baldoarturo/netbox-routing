@@ -13,7 +13,12 @@ from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
 from netbox_routing_protocols import choices
-from netbox_routing_protocols.choices.isis import ISISSettingChoices
+from netbox_routing_protocols.choices.isis import (
+    ISISLevelScopeChoices,
+    ISISRedistributionMetricTypeChoices,
+    ISISRedistributionProtocolChoices,
+    ISISSettingChoices,
+)
 from netbox_routing_protocols.constants.isis import (
     ISISSETTING_ASSIGNMENT_MODEL_NAMES,
     ISISSETTING_ASSIGNMENT_MODELS,
@@ -24,6 +29,7 @@ from netbox_routing_protocols.helpers.isis import (
     net_error,
     range_errors,
     router_id_error,
+    scope_levels,
     type_levels,
 )
 from netbox_routing_protocols.models.policy import RoutePolicyMixin
@@ -1611,3 +1617,352 @@ class ISISSRv6Locator(PrimaryModel):
         return reverse(
             'plugins:netbox_routing_protocols:isissrv6locator', args=[self.pk]
         )
+
+
+class ISISRedistribution(PrimaryModel):
+    """
+    Redistribution of routes into an IS-IS instance, for one address family and
+    level (ISO 10589, RFC 1195 section 3.3 for external routes). Connected and
+    static routes have no source; for the other protocols, which are the ones
+    modelled by the plugin, the source is the process routes are taken from.
+    """
+
+    SOURCE_FIELDS = {
+        ISISRedistributionProtocolChoices.OSPF: 'ospf_source',
+        ISISRedistributionProtocolChoices.EIGRP: 'eigrp_source',
+        ISISRedistributionProtocolChoices.BGP: 'bgp_source',
+        ISISRedistributionProtocolChoices.ISIS: 'isis_source',
+    }
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    address_family = models.CharField(
+        verbose_name=_('Address Family'),
+        choices=choices.ISISAddressFamilyChoices,
+        default=choices.ISISAddressFamilyChoices.IPV4,
+        max_length=4,
+    )
+    protocol = models.CharField(
+        verbose_name=_('Protocol'),
+        choices=ISISRedistributionProtocolChoices,
+        max_length=20,
+    )
+    ospf_source = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFInstance',
+        related_name='isis_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('OSPF Source'),
+        blank=True,
+        null=True,
+    )
+    eigrp_source = models.ForeignKey(
+        to='netbox_routing_protocols.EIGRPRouter',
+        related_name='isis_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('EIGRP Source'),
+        blank=True,
+        null=True,
+    )
+    bgp_source = models.ForeignKey(
+        to='netbox_routing_protocols.BGPRouter',
+        related_name='isis_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('BGP Source'),
+        blank=True,
+        null=True,
+    )
+    isis_source = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='isis_redistributed_into',
+        on_delete=models.CASCADE,
+        verbose_name=_('IS-IS Source'),
+        blank=True,
+        null=True,
+    )
+    level = models.CharField(
+        verbose_name=_('Level'),
+        help_text=_('Level the routes are advertised into'),
+        choices=ISISLevelScopeChoices,
+        default=ISISLevelScopeChoices.LEVEL2,
+        max_length=9,
+    )
+    metric = models.PositiveIntegerField(
+        verbose_name=_('Metric'),
+        help_text=_('Metric of the redistributed routes'),
+        blank=True,
+        null=True,
+    )
+    metric_type = models.CharField(
+        verbose_name=_('Metric Type'),
+        choices=ISISRedistributionMetricTypeChoices,
+        default=ISISRedistributionMetricTypeChoices.INTERNAL,
+        max_length=8,
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route Tag'),
+        help_text=_('Tag set on the redistributed routes (RFC 5130)'),
+        validators=[MinValueValidator(1), MaxValueValidator(4294967295)],
+        blank=True,
+        null=True,
+    )
+    route_policy = models.CharField(
+        verbose_name=_('Route Policy'),
+        help_text=_('Name of the route policy applied to the redistributed routes'),
+        max_length=100,
+        blank=True,
+    )
+
+    clone_fields = (
+        'instance',
+        'address_family',
+        'protocol',
+        'level',
+        'metric',
+        'metric_type',
+        'route_tag',
+        'route_policy',
+    )
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Redistribution'
+        ordering = ('instance', 'address_family', 'protocol', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'instance',
+                    'address_family',
+                    'protocol',
+                    'level',
+                    'ospf_source',
+                    'eigrp_source',
+                    'bgp_source',
+                    'isis_source',
+                ),
+                name='%(app_label)s_%(class)s_unique_instance_source',
+                violation_error_message=_(
+                    'This source is already redistributed into the IS-IS instance '
+                    'for this address family and level.'
+                ),
+                nulls_distinct=False,
+            ),
+        )
+
+    def __str__(self):
+        if self.source is None:
+            return self.get_protocol_display()
+        return f'{self.get_protocol_display()} {self.source}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isisredistribution', args=[self.pk]
+        )
+
+    @property
+    def source(self):
+        field = self.SOURCE_FIELDS.get(self.protocol)
+        return getattr(self, field) if field else None
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        for protocol, field in self.SOURCE_FIELDS.items():
+            is_set = getattr(self, f'{field}_id') is not None
+            if protocol == self.protocol and not is_set:
+                errors[field] = _('A source is required for this protocol.')
+            elif protocol != self.protocol and is_set:
+                errors[field] = _(
+                    'Only the source of the selected protocol is allowed.'
+                )
+        if errors:
+            raise ValidationError(errors)
+        if not self.instance_id:
+            return
+
+        instance = self.instance
+        if (
+            self.protocol == ISISRedistributionProtocolChoices.ISIS
+            and self.isis_source_id == self.instance_id
+        ):
+            errors['isis_source'] = _(
+                'An IS-IS instance cannot be redistributed into itself.'
+            )
+        elif self.source is not None and not self._source_is_on_instance_device():
+            errors[self.SOURCE_FIELDS[self.protocol]] = _(
+                'The source must be on the same device as the IS-IS instance.'
+            )
+        if not scope_levels(self.level) & type_levels(instance.is_type):
+            errors['level'] = _('The instance does not run this level.')
+        errors.update(metric_errors(self, ('metric',), instance.metric_style))
+        if errors:
+            raise ValidationError(errors)
+
+    def _source_is_on_instance_device(self):
+        source = self.source
+        if self.protocol == ISISRedistributionProtocolChoices.BGP:
+            # A BGP router is assigned to a generic object (device, site, ...)
+            device = self.instance.device
+            return (
+                source.assigned_object_type_id
+                == ContentType.objects.get_for_model(device).pk
+                and source.assigned_object_id == device.pk
+            )
+        return source.device_id == self.instance.device_id
+
+
+class ISISSummaryAddress(PrimaryModel):
+    """
+    Summarization of the routes of an IS-IS instance into one prefix, for a level
+    (RFC 1195 section 3.3, RFC 5302): the prefix is advertised instead of the
+    routes it covers, whose advertisement can also be suppressed.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='summary_addresses',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    prefix = IPNetworkField(
+        verbose_name=_('Prefix'),
+        help_text=_('IPv4 or IPv6 prefix that summarizes the routes'),
+    )
+    level = models.CharField(
+        verbose_name=_('Level'),
+        help_text=_('Level the summary is advertised into'),
+        choices=ISISLevelScopeChoices,
+        default=ISISLevelScopeChoices.LEVEL2,
+        max_length=9,
+    )
+    not_advertise = models.BooleanField(
+        verbose_name=_('Do Not Advertise'),
+        help_text=_(
+            'Suppress the routes covered by the prefix instead of summarizing them'
+        ),
+        default=False,
+    )
+    metric = models.PositiveIntegerField(
+        verbose_name=_('Metric'),
+        help_text=_('Metric of the summary route; empty takes the best covered route'),
+        blank=True,
+        null=True,
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route Tag'),
+        help_text=_('Tag set on the summary route (RFC 5130)'),
+        validators=[MinValueValidator(1), MaxValueValidator(4294967295)],
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = ('instance', 'level', 'not_advertise', 'metric', 'route_tag')
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Summary Address'
+        verbose_name_plural = 'IS-IS Summary Addresses'
+        ordering = ('instance', 'prefix', 'level', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'prefix', 'level'),
+                name='%(app_label)s_%(class)s_unique_instance_prefix_level',
+                violation_error_message=_(
+                    'This prefix is already summarized in the IS-IS instance '
+                    'for this level.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return str(self.prefix)
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isissummaryaddress', args=[self.pk]
+        )
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.prefix not in (None, ''):
+            try:
+                prefix = netaddr.IPNetwork(str(self.prefix))
+            except (netaddr.AddrFormatError, ValueError):
+                prefix = None  # reported by the field's own validation
+            if prefix is not None and prefix.ip != prefix.cidr.ip:
+                errors['prefix'] = _(
+                    'The prefix has host bits set: use {cidr}.'
+                ).format(cidr=prefix.cidr)
+        if self.instance_id:
+            if not scope_levels(self.level) & type_levels(self.instance.is_type):
+                errors['level'] = _('The instance does not run this level.')
+            errors.update(metric_errors(self, ('metric',), self.instance.metric_style))
+        if errors:
+            raise ValidationError(errors)
+
+
+class ISISRouteLeak(PrimaryModel):
+    """
+    Leaking of Level-2 routes into Level 1 (RFC 5302 section 3), for an address
+    family. The routes are leaked with the up/down bit set; routes of Level 1 are
+    always advertised into Level 2. Only an instance running both levels leaks.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='route_leaks',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    address_family = models.CharField(
+        verbose_name=_('Address Family'),
+        choices=choices.ISISAddressFamilyChoices,
+        default=choices.ISISAddressFamilyChoices.IPV4,
+        max_length=4,
+    )
+    route_policy = models.CharField(
+        verbose_name=_('Route Policy'),
+        help_text=_(
+            'Name of the route policy that selects the routes leaked; empty leaks all'
+        ),
+        max_length=100,
+        blank=True,
+    )
+
+    clone_fields = ('instance', 'address_family', 'route_policy')
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Route Leak'
+        ordering = ('instance', 'address_family', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'address_family'),
+                name='%(app_label)s_%(class)s_unique_instance_family',
+                violation_error_message=_(
+                    'The IS-IS instance already leaks routes for this address family.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.instance} {self.get_address_family_display()} L2 → L1'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing_protocols:isisrouteleak', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if self.instance_id and type_levels(self.instance.is_type) != {1, 2}:
+            raise ValidationError(
+                {
+                    'instance': _(
+                        'Routes are leaked between levels only by an instance of '
+                        'type Level-1-2.'
+                    )
+                }
+            )

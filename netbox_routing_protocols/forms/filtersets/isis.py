@@ -18,7 +18,10 @@ from netbox_routing_protocols.choices import (
     ISISFrrProtectionChoices,
     ISISMetricStyleChoices,
     ISISIsTypeChoices,
+    ISISLevelScopeChoices,
     ISISNetworkTypeChoices,
+    ISISRedistributionMetricTypeChoices,
+    ISISRedistributionProtocolChoices,
 )
 from netbox_routing_protocols.models import (
     ISISInstance,
@@ -30,6 +33,9 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.models.objects import RoutePolicy
 
@@ -43,6 +49,9 @@ __all__ = (
     'ISISFlexAlgoFilterForm',
     'ISISPrefixSIDFilterForm',
     'ISISSRv6LocatorFilterForm',
+    'ISISRedistributionFilterForm',
+    'ISISSummaryAddressFilterForm',
+    'ISISRouteLeakFilterForm',
 )
 
 
@@ -242,4 +251,113 @@ class ISISInterfaceFilterForm(NetBoxModelFilterSetForm):
         choices=ISISFrrProtectionChoices, required=False, label=_('FRR Protection')
     )
     mesh_group = forms.CharField(required=False, label=_('Mesh Group'))
+    tag = TagFilterField(model)
+
+
+class ISISRedistributionFilterForm(NetBoxModelFilterSetForm):
+    model = ISISRedistribution
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('IS-IS')),
+        FieldSet(
+            'address_family',
+            'protocol',
+            'level',
+            'metric_type',
+            'route_tag',
+            name=_('Redistribution'),
+        ),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    address_family = forms.MultipleChoiceField(
+        choices=ISISAddressFamilyChoices,
+        required=False,
+        label=_('Address Family'),
+    )
+    protocol = forms.MultipleChoiceField(
+        choices=ISISRedistributionProtocolChoices,
+        required=False,
+        label=_('Protocol'),
+    )
+    level = forms.MultipleChoiceField(
+        choices=ISISLevelScopeChoices, required=False, label=_('Level')
+    )
+    metric_type = forms.MultipleChoiceField(
+        choices=ISISRedistributionMetricTypeChoices,
+        required=False,
+        label=_('Metric Type'),
+    )
+    route_tag = forms.IntegerField(required=False, label=_('Route Tag'))
+    tag = TagFilterField(model)
+
+
+class ISISSummaryAddressFilterForm(NetBoxModelFilterSetForm):
+    model = ISISSummaryAddress
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('IS-IS')),
+        FieldSet(
+            'prefix', 'level', 'not_advertise', 'route_tag', name=_('Summary Address')
+        ),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    prefix = forms.CharField(required=False, label=_('Prefix'))
+    level = forms.MultipleChoiceField(
+        choices=ISISLevelScopeChoices, required=False, label=_('Level')
+    )
+    not_advertise = forms.NullBooleanField(
+        required=False,
+        label=_('Do Not Advertise'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    route_tag = forms.IntegerField(required=False, label=_('Route Tag'))
+    tag = TagFilterField(model)
+
+
+class ISISRouteLeakFilterForm(NetBoxModelFilterSetForm):
+    model = ISISRouteLeak
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('IS-IS')),
+        FieldSet('address_family', name=_('Route Leak')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    address_family = forms.MultipleChoiceField(
+        choices=ISISAddressFamilyChoices,
+        required=False,
+        label=_('Address Family'),
+    )
     tag = TagFilterField(model)

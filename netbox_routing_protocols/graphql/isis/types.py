@@ -17,6 +17,9 @@ from netbox_routing_protocols.graphql.isis.filters import (
     ISISFlexAlgoFilter,
     ISISPrefixSIDFilter,
     ISISSRv6LocatorFilter,
+    ISISRedistributionFilter,
+    ISISSummaryAddressFilter,
+    ISISRouteLeakFilter,
 )
 
 __all__ = (
@@ -29,6 +32,9 @@ __all__ = (
     'ISISFlexAlgoType',
     'ISISPrefixSIDType',
     'ISISSRv6LocatorType',
+    'ISISRedistributionType',
+    'ISISSummaryAddressType',
+    'ISISRouteLeakType',
 )
 
 
@@ -188,3 +194,70 @@ class ISISInterfaceType(ISISSettingsMixin, PrimaryObjectType):
     passive: bool | None
     hello_auth_type: str | None
     bfd_enabled: bool | None
+
+
+@strawberry_django.type(
+    models.ISISRedistribution, fields='__all__', filters=ISISRedistributionFilter
+)
+class ISISRedistributionType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    address_family: str
+    protocol: str
+    ospf_source: (
+        Annotated[
+            "OSPFInstanceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    eigrp_source: (
+        Annotated[
+            "EIGRPRouterType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    bgp_source: (
+        Annotated[
+            "BGPRouterType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    isis_source: (
+        Annotated[
+            "ISISInstanceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    level: str
+    metric: int | None
+    metric_type: str
+    route_tag: int | None
+    route_policy: str
+
+
+@strawberry_django.type(
+    models.ISISSummaryAddress, fields='__all__', filters=ISISSummaryAddressFilter
+)
+class ISISSummaryAddressType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    prefix: str
+    level: str
+    not_advertise: bool
+    metric: int | None
+    route_tag: int | None
+
+
+@strawberry_django.type(
+    models.ISISRouteLeak, fields='__all__', filters=ISISRouteLeakFilter
+)
+class ISISRouteLeakType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    address_family: str
+    route_policy: str

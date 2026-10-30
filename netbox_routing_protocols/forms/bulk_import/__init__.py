@@ -25,6 +25,9 @@ __all__ = (
     'ISISFlexAlgoImportForm',
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
+    'ISISRedistributionImportForm',
+    'ISISSummaryAddressImportForm',
+    'ISISRouteLeakImportForm',
     # Prefix lists
     'ASPathImportForm',
     'ASPathEntryImportForm',
