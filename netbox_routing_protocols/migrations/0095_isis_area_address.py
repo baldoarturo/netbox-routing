@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('extras', '0145_taggeditem_object_id_bigint'),
-        ('netbox_routing_protocols', '0091_staticroute_distance_and_field_types'),
+        ('netbox_routing_protocols', '0094_remove_staticroute_interface_next_hop'),
         ('users', '0016_default_ordering_indexes'),
     ]
 
