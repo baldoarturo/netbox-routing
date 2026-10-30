@@ -45,6 +45,13 @@ a route with neither.
 * **Seeing a device's routes.** Open the device and use the **Static Routes** tab, which shows the
   routes assigned to it and how many there are.
 
+## Finding routes
+
+The list filters by device, VRF, prefix, next hop, interface next hop, name, address family, distance, route tag and
+*Permanent*. The REST API also takes `within`, `within_include` and `contains` for the prefix, `distance__gte`/`__lte`
+and `route_tag` (the route tag; `tag` is NetBox's own tag). The search box and the global search look at the prefix,
+next hop, interface next hop, name, description and tag.
+
 ## Where static routes connect to other protocols
 
 OSPF can redistribute static routes ([OSPF redistribution](ospf.md#redistribution)); the *Tag* is the
