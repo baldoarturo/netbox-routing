@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('netbox_routing_protocols', '0088_ospfinstance_address_family'),
+        ('netbox_routing_protocols', '0099_ospfinstance_address_family'),
     ]
 
     operations = [

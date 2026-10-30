@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
         ('dcim', '0251_fix_ltree_cascade_triggers'),
         ('extras', '0145_taggeditem_object_id_bigint'),
         ('ipam', '0097_merge_ipaddress_host_index_and_multi_protocol_services'),
-        ('netbox_routing_protocols', '0087_protocol_route_policies'),
+        ('netbox_routing_protocols', '0098_isis_address_family'),
         ('users', '0016_default_ordering_indexes'),
     ]
 
