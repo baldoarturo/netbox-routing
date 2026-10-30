@@ -4,7 +4,7 @@ from utilities.urls import get_model_urls
 
 from . import views  # noqa F401
 from .views.community import CommunityMatchView
-from .views.objects import ASPathMatchView, PrefixMatchView
+from .views.objects import ASPathMatchView, PrefixMatchView, RoutePolicyMatchView
 
 app_name = 'netbox_routing_protocols'
 
@@ -12,6 +12,11 @@ urlpatterns = [
     # Tools
     path('tools/prefix-match/', PrefixMatchView.as_view(), name='prefix_match'),
     path('tools/as-path-match/', ASPathMatchView.as_view(), name='aspath_match'),
+    path(
+        'tools/route-policy-match/',
+        RoutePolicyMatchView.as_view(),
+        name='routepolicy_match',
+    ),
     path(
         'tools/community-match/',
         CommunityMatchView.as_view(),

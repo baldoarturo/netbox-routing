@@ -62,6 +62,9 @@ class RoutePolicyEntryPanel(panels.ObjectAttributesPanel):
     jump_policy = attrs.RelatedObjectAttr(
         'jump_policy', linkify=True, label=_('Jump to Route Policy')
     )
+    matches_everything = attrs.BooleanAttr(
+        'matches_everything', label=_('Matches every route')
+    )
     implicit = attrs.BooleanAttr('implicit', label=_('Final deny'))
     description = attrs.TextAttr('description', label=_('Description'))
 

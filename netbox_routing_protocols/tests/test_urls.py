@@ -443,6 +443,7 @@ class URLTestCase(TestCase):
                 'prefixlistentry_journal',
                 'prefix_match',
                 'aspath_match',
+                'routepolicy_match',
                 'community_match',
                 'routepolicy_list',
                 'routepolicy_add',
