@@ -32,6 +32,8 @@ __all__ = (
     'ISISFlexAlgoFilterSet',
     'ISISPrefixSIDFilterSet',
     'ISISSRv6LocatorFilterSet',
+    'ISISSRMappingEntryFilterSet',
+    'ISISAdjacencySIDFilterSet',
     'ISISAreaAddressFilterSet',
     'ISISRedistributionFilterSet',
     'ISISSummaryAddressFilterSet',

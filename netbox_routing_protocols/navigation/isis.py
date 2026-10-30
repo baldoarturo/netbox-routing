@@ -27,6 +27,8 @@ def build_menus():
         ('isissummaryaddress', 'Summary Addresses'),
         ('isisrouteleak', 'Route Leaking'),
         ('isisprefixsid', 'Prefix-SIDs'),
+        ('isissrmappingentry', 'SR Mapping Entries'),
+        ('isisadjacencysid', 'Adjacency-SIDs'),
         ('isissrv6locator', 'SRv6 Locators'),
     )
     for model, name in menu_items:

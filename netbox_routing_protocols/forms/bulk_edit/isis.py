@@ -35,6 +35,8 @@ from netbox_routing_protocols.models import (
     ISISSegmentRouting,
     ISISSetting,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
@@ -51,6 +53,8 @@ __all__ = (
     'ISISFlexAlgoBulkEditForm',
     'ISISPrefixSIDBulkEditForm',
     'ISISSRv6LocatorBulkEditForm',
+    'ISISSRMappingEntryBulkEditForm',
+    'ISISAdjacencySIDBulkEditForm',
     'ISISRedistributionBulkEditForm',
     'ISISSummaryAddressBulkEditForm',
     'ISISRouteLeakBulkEditForm',
@@ -271,6 +275,15 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
     ldp_sync = _boolean(_('LDP-IGP Sync'))
     prefix_suppression = _boolean(_('Prefix Suppression'))
     three_way_handshake = _boolean(_('Three-way Handshake'))
+    admin_group = forms.CharField(
+        label=_('Admin Group'), max_length=100, required=False
+    )
+    te_metric = forms.IntegerField(
+        label=_('TE Metric'), min_value=0, max_value=4294967295, required=False
+    )
+    delay_metric = forms.IntegerField(
+        label=_('Delay Metric'), min_value=0, max_value=16777215, required=False
+    )
     route_tag = forms.IntegerField(
         label=_('Route Tag'), min_value=1, max_value=4294967295, required=False
     )
@@ -310,6 +323,9 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'ldp_sync',
             'prefix_suppression',
             'three_way_handshake',
+            'admin_group',
+            'te_metric',
+            'delay_metric',
             'route_tag',
             name='Options',
         ),
@@ -337,6 +353,9 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         'ldp_sync',
         'prefix_suppression',
         'three_way_handshake',
+        'admin_group',
+        'te_metric',
+        'delay_metric',
         'route_tag',
     )
 
@@ -725,3 +744,38 @@ class ISISRouteLeakBulkEditForm(NetBoxModelBulkEditForm):
     model = ISISRouteLeak
     fieldsets = (FieldSet('route_policy'), FieldSet('description'))
     nullable_fields = ('route_policy', 'description')
+
+
+class ISISSRMappingEntryBulkEditForm(NetBoxModelBulkEditForm):
+    range_size = forms.IntegerField(
+        label=_('Range Size'), min_value=1, max_value=65535, required=False
+    )
+    algorithm = forms.IntegerField(label=_('Algorithm'), min_value=0, required=False)
+    level = forms.ChoiceField(
+        label=_('Level'),
+        choices=add_blank_choice(ISISLevelScopeChoices),
+        required=False,
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = ISISSRMappingEntry
+    fieldsets = (
+        FieldSet('range_size', 'algorithm', 'level'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('description',)
+
+
+class ISISAdjacencySIDBulkEditForm(NetBoxModelBulkEditForm):
+    protected = _boolean(_('Protected'))
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = ISISAdjacencySID
+    fieldsets = (FieldSet('protected'), FieldSet('description'))
+    nullable_fields = ('description',)

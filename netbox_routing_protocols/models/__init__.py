@@ -13,6 +13,8 @@ from .isis import (
     ISISAreaAddress,
     ISISRedistribution,
     ISISRouteLeak,
+    ISISAdjacencySID,
+    ISISSRMappingEntry,
     ISISSRv6Locator,
     ISISSummaryAddress,
 )
@@ -76,6 +78,8 @@ __all__ = (
     'ISISAreaAddress',
     'ISISRedistribution',
     'ISISRouteLeak',
+    'ISISAdjacencySID',
+    'ISISSRMappingEntry',
     'ISISSRv6Locator',
     'ISISSummaryAddress',
     # Objects -> AS Path

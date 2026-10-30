@@ -12,6 +12,8 @@ from netbox_routing_protocols.models.isis import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -28,6 +30,8 @@ __all__ = (
     'ISISFlexAlgoIndex',
     'ISISPrefixSIDIndex',
     'ISISSRv6LocatorIndex',
+    'ISISSRMappingEntryIndex',
+    'ISISAdjacencySIDIndex',
     'ISISAreaAddressIndex',
     'ISISRedistributionIndex',
     'ISISSummaryAddressIndex',
@@ -154,3 +158,24 @@ class ISISAreaAddressIndex(SearchIndex):
         ('comments', 5000),
     )
     display_attrs = ('instance', 'net')
+
+
+@register_search
+class ISISSRMappingEntryIndex(SearchIndex):
+    model = ISISSRMappingEntry
+    fields = (
+        ('prefix', 100),
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'prefix', 'level')
+
+
+@register_search
+class ISISAdjacencySIDIndex(SearchIndex):
+    model = ISISAdjacencySID
+    fields = (
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('interface', 'sid_label')

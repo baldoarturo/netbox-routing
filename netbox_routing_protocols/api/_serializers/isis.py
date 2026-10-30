@@ -21,6 +21,8 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
 )
 from netbox_routing_protocols.api._serializers.objects import RoutePolicySerializer
@@ -35,6 +37,8 @@ __all__ = (
     'ISISFlexAlgoSerializer',
     'ISISPrefixSIDSerializer',
     'ISISSRv6LocatorSerializer',
+    'ISISSRMappingEntrySerializer',
+    'ISISAdjacencySIDSerializer',
     'ISISAreaAddressSerializer',
 )
 
@@ -361,6 +365,9 @@ class ISISInterfaceSerializer(NetBoxModelSerializer):
             'prefix_suppression',
             'route_tag',
             'three_way_handshake',
+            'admin_group',
+            'te_metric',
+            'delay_metric',
             'description',
             'comments',
             'tags',
@@ -398,3 +405,53 @@ class ISISAreaAddressSerializer(NetBoxModelSerializer):
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'instance', 'net')
+
+
+class ISISSRMappingEntrySerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:isissrmappingentry-detail'
+    )
+    instance = ISISInstanceSerializer(nested=True)
+
+    class Meta:
+        model = ISISSRMappingEntry
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'instance', 'prefix')
+
+
+class ISISAdjacencySIDSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:isisadjacencysid-detail'
+    )
+    interface = ISISInterfaceSerializer(nested=True)
+
+    class Meta:
+        model = ISISAdjacencySID
+        fields = (
+            'url',
+            'id',
+            'display',
+            'interface',
+            'sid_label',
+            'protected',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'interface', 'sid_label')

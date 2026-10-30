@@ -33,6 +33,8 @@ __all__ = (
     'ISISFlexAlgoType',
     'ISISPrefixSIDType',
     'ISISSRv6LocatorType',
+    'ISISSRMappingEntryType',
+    'ISISAdjacencySIDType',
     'ISISAreaAddressType',
     'ISISRedistributionType',
     'ISISSummaryAddressType',

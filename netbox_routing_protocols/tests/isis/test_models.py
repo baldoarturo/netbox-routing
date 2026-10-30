@@ -20,6 +20,8 @@ from netbox_routing_protocols.models import (
     ISISLevel,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -41,6 +43,7 @@ __all__ = (
     'ISISRoutingModelsTestCase',
     'ISISAreaAddressTestCase',
     'ISISAuthenticationTestCase',
+    'ISISSegmentRoutingExtrasTestCase',
     'ISISNetTestCase',
     'ISISRangeTestCase',
     'ISISSegmentRoutingRulesTestCase',
@@ -1361,3 +1364,96 @@ class ISISAuthenticationTestCase(TestCase):
                 self.assertRejects(obj, f'{prefix}_send_only')
                 self.set_auth(obj, prefix, type='text', key='pw')
                 obj.full_clean()
+
+
+class ISISSegmentRoutingExtrasTestCase(TestCase):
+    """SR mapping entries, adjacency-SIDs and the link attributes of Flex-Algo (#450)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(device=cls.device)
+        cls.interface = ISISInterface.objects.create(
+            instance=cls.instance,
+            interface=Interface.objects.create(
+                name='Eth1', device=cls.device, type='virtual'
+            ),
+            address_family='ipv4',
+        )
+        ISISSegmentRouting.objects.create(
+            instance=cls.instance,
+            srgb_start=16000,
+            srgb_range=8000,
+            srlb_start=15000,
+            srlb_range=1000,
+        )
+
+    def assertRejects(self, obj, field):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.full_clean()
+        self.assertIn(field, ctx.exception.error_dict)
+
+    def entry(self, **kwargs):
+        values = {'instance': self.instance, 'prefix': '10.0.0.0/24', 'sid_index': 100}
+        values.update(kwargs)
+        return ISISSRMappingEntry(**values)
+
+    def test_mapping_entry_valid(self):
+        self.entry().full_clean()
+        self.entry(prefix='2001:db8::/64', sid_index=None, sid_label=17000).full_clean()
+
+    def test_mapping_entry_needs_index_or_label(self):
+        self.assertRejects(self.entry(sid_index=None), 'sid_index')
+        self.assertRejects(self.entry(sid_label=17000), 'sid_label')
+
+    def test_mapping_entry_prefix_and_range(self):
+        self.assertRejects(self.entry(prefix='10.0.0.1/24'), 'prefix')
+        self.assertRejects(self.entry(range_size=0), 'range_size')
+        self.assertRejects(self.entry(range_size=65536), 'range_size')
+
+    def test_mapping_entry_range_inside_srgb(self):
+        self.entry(sid_index=7990, range_size=10).full_clean()
+        self.assertRejects(self.entry(sid_index=7995, range_size=10), 'sid_index')
+
+    def test_mapping_entry_algorithm_and_level(self):
+        self.assertRejects(self.entry(algorithm=128), 'algorithm')
+        ISISFlexAlgo.objects.create(instance=self.instance, algo_id=128)
+        self.entry(algorithm=128).full_clean()
+        self.assertRejects(self.entry(algorithm=5), 'algorithm')
+        l2 = ISISInstance.objects.create(
+            device=self.device, process_tag='L2', is_type='level-2-only'
+        )
+        self.assertRejects(self.entry(instance=l2, level='level-1'), 'level')
+
+    def test_mapping_entry_unique(self):
+        self.entry().save()
+        self.assertRejects(self.entry(), '__all__')
+        self.entry(level='level-1').full_clean()
+
+    def test_adjacency_sid_inside_srlb(self):
+        ISISAdjacencySID(interface=self.interface, sid_label=15500).full_clean()
+        self.assertRejects(
+            ISISAdjacencySID(interface=self.interface, sid_label=16500), 'sid_label'
+        )
+        self.assertRejects(
+            ISISAdjacencySID(interface=self.interface, sid_label=10), 'sid_label'
+        )
+
+    def test_adjacency_sid_without_srlb(self):
+        self.instance.segment_routing.delete()
+        interface = ISISInterface.objects.get(pk=self.interface.pk)
+        ISISAdjacencySID(interface=interface, sid_label=24000).full_clean()
+
+    def test_adjacency_sid_unique_label(self):
+        ISISAdjacencySID.objects.create(interface=self.interface, sid_label=15500)
+        self.assertRejects(
+            ISISAdjacencySID(interface=self.interface, sid_label=15500), '__all__'
+        )
+
+    def test_link_attributes(self):
+        self.interface.admin_group = 'RED,BLUE'
+        self.interface.te_metric = 10
+        self.interface.delay_metric = 2500
+        self.interface.full_clean()
+        self.interface.delay_metric = 16777216
+        self.assertRejects(self.interface, 'delay_metric')

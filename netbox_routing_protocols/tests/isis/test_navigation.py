@@ -27,6 +27,8 @@ class ISISNavigationTestCase(SimpleTestCase):
         'isissummaryaddress',
         'isisrouteleak',
         'isisprefixsid',
+        'isissrmappingentry',
+        'isisadjacencysid',
         'isissrv6locator',
     )
 

@@ -14,6 +14,8 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
     ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
@@ -30,6 +32,8 @@ __all__ = (
     'ISISFlexAlgoTable',
     'ISISPrefixSIDTable',
     'ISISSRv6LocatorTable',
+    'ISISSRMappingEntryTable',
+    'ISISAdjacencySIDTable',
     'ISISAreaAddressTable',
     'ISISRedistributionTable',
     'ISISSummaryAddressTable',
@@ -375,3 +379,49 @@ class ISISAreaAddressTable(NetBoxTable):
             'description',
         )
         default_columns = ('pk', 'id', 'net', 'instance', 'area', 'system_id')
+
+
+class ISISSRMappingEntryTable(NetBoxTable):
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISSRMappingEntry
+        fields = (
+            'pk',
+            'id',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'instance',
+            'device',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'instance',
+        )
+
+
+class ISISAdjacencySIDTable(NetBoxTable):
+    sid_label = tables.Column(verbose_name=_('SID Label'), linkify=True)
+    interface = tables.Column(verbose_name=_('Interface'), linkify=True)
+    protected = tables.BooleanColumn(verbose_name=_('Protected'))
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISAdjacencySID
+        fields = ('pk', 'id', 'sid_label', 'interface', 'protected', 'description')
+        default_columns = ('pk', 'id', 'sid_label', 'interface', 'protected')
