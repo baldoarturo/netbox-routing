@@ -514,6 +514,8 @@ vendors keep a list per kind of community (`ip community-list`, `ip extcommunity
 of a list cannot change while it has entries of another type. Only **standard lists** (exact
 communities) are modelled; expanded lists (regular expressions) are not.
 
+![The list of community lists, with their type and the number of entries of each one](images/communitylist-list.png)
+
 Each **entry** has a sequence (`1` to `4294967294`), an action (permit or deny) and a community.
 Entries are evaluated in sequence order and the first match wins, like a prefix list. Leave the
 sequence empty and the entry takes the next multiple of 10 above the last one of the list (the form,
