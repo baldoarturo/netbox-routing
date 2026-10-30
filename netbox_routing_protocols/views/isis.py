@@ -30,6 +30,7 @@ from netbox_routing_protocols.filtersets.isis import (
     ISISRedistributionFilterSet,
     ISISSummaryAddressFilterSet,
     ISISRouteLeakFilterSet,
+    ISISAreaAddressFilterSet,
 )
 from netbox_routing_protocols.forms import *
 from netbox_routing_protocols.models import (
@@ -45,6 +46,7 @@ from netbox_routing_protocols.models import (
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
+    ISISAreaAddress,
 )
 from netbox_routing_protocols.tables.isis import (
     ISISInstanceTable,
@@ -56,6 +58,7 @@ from netbox_routing_protocols.tables.isis import (
     ISISFlexAlgoTable,
     ISISPrefixSIDTable,
     ISISSRv6LocatorTable,
+    ISISAreaAddressTable,
     ISISRedistributionTable,
     ISISSummaryAddressTable,
     ISISRouteLeakTable,
@@ -106,6 +109,13 @@ __all__ = (
     'ISISSRv6LocatorDeleteView',
     'ISISSRv6LocatorBulkDeleteView',
     'ISISSRv6LocatorBulkImportView',
+    'ISISAreaAddressListView',
+    'ISISAreaAddressView',
+    'ISISAreaAddressEditView',
+    'ISISAreaAddressDeleteView',
+    'ISISAreaAddressBulkDeleteView',
+    'ISISAreaAddressBulkImportView',
+    'ISISInstanceAreaAddressesView',
     'ISISRedistributionListView',
     'ISISRedistributionView',
     'ISISRedistributionEditView',
@@ -993,3 +1003,65 @@ class ISISInstanceRouteLeaksView(ObjectChildrenView):
 
     def get_children(self, request, parent):
         return ISISROUTELEAK_QUERYSET.filter(instance=parent)
+
+
+AREA_ADDRESS_QUERYSET = ISISAreaAddress.objects.select_related('instance__device')
+
+
+@register_model_view(ISISAreaAddress, name='list', path='', detail=False)
+class ISISAreaAddressListView(ObjectListView):
+    queryset = AREA_ADDRESS_QUERYSET
+    filterset = ISISAreaAddressFilterSet
+    filterset_form = ISISAreaAddressFilterForm
+    table = ISISAreaAddressTable
+
+
+@register_model_view(ISISAreaAddress)
+class ISISAreaAddressView(ObjectView):
+    queryset = AREA_ADDRESS_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[ISISAreaAddressPanel(), TagsPanel()],
+        right_panels=[panels.CommentsPanel(), panels.RelatedObjectsPanel()],
+    )
+
+
+@register_model_view(ISISAreaAddress, name='add', detail=False)
+@register_model_view(ISISAreaAddress, name='edit')
+class ISISAreaAddressEditView(ObjectEditView):
+    queryset = AREA_ADDRESS_QUERYSET
+    form = ISISAreaAddressForm
+
+
+@register_model_view(ISISAreaAddress, name='delete')
+class ISISAreaAddressDeleteView(ObjectDeleteView):
+    queryset = AREA_ADDRESS_QUERYSET
+
+
+@register_model_view(ISISAreaAddress, name='bulk_import', detail=False)
+class ISISAreaAddressBulkImportView(BulkImportView):
+    queryset = AREA_ADDRESS_QUERYSET
+    model_form = ISISAreaAddressImportForm
+
+
+@register_model_view(ISISAreaAddress, name='bulk_delete', detail=False)
+class ISISAreaAddressBulkDeleteView(BulkDeleteView):
+    queryset = AREA_ADDRESS_QUERYSET
+    filterset = ISISAreaAddressFilterSet
+    table = ISISAreaAddressTable
+
+
+@register_model_view(ISISInstance, name='area-addresses')
+class ISISInstanceAreaAddressesView(ObjectChildrenView):
+    queryset = ISISInstance.objects.all()
+    child_model = ISISAreaAddress
+    table = ISISAreaAddressTable
+    filterset = ISISAreaAddressFilterSet
+    tab = ViewTab(
+        label=_('Area Addresses'),
+        badge=lambda obj: ISISAreaAddress.objects.filter(instance=obj).count(),
+        hide_if_empty=False,
+    )
+
+    def get_children(self, request, parent):
+        return AREA_ADDRESS_QUERYSET.filter(instance=parent)

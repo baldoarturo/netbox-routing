@@ -40,6 +40,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
@@ -56,6 +57,7 @@ __all__ = (
     'ISISFlexAlgoFilterSet',
     'ISISPrefixSIDFilterSet',
     'ISISSRv6LocatorFilterSet',
+    'ISISAreaAddressFilterSet',
     'ISISRedistributionFilterSet',
     'ISISSummaryAddressFilterSet',
     'ISISRouteLeakFilterSet',
@@ -582,3 +584,26 @@ class ISISRouteLeakFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         return queryset.filter(route_policy__icontains=value)
+
+
+@register_filterset
+class ISISAreaAddressFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+
+    class Meta:
+        model = ISISAreaAddress
+        fields = ('instance_id', 'net')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(net__icontains=value)

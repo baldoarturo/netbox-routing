@@ -20,6 +20,7 @@ from netbox_routing_protocols.models import (
     ISISLevel,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
@@ -38,6 +39,7 @@ __all__ = (
     'ISISMigrationStateTestCase',
     'ISISConsistencyTestCase',
     'ISISRoutingModelsTestCase',
+    'ISISAreaAddressTestCase',
     'ISISNetTestCase',
     'ISISRangeTestCase',
     'ISISSegmentRoutingRulesTestCase',
@@ -1183,3 +1185,79 @@ class ISISRoutingModelsTestCase(TestCase):
         ISISRouteLeak.objects.create(instance=self.instance)
         self.assertRejects(ISISRouteLeak(instance=self.instance), '__all__')
         ISISRouteLeak(instance=self.instance, address_family='ipv6').full_clean()
+
+
+class ISISAreaAddressTestCase(TestCase):
+    """Several area addresses on one instance (#446, ISO 10589 7.1.4)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(
+            device=cls.device, process_tag='CORE', net='49.0001.0000.0000.0001.00'
+        )
+
+    def assertRejects(self, obj, field='net'):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.full_clean()
+        self.assertIn(field, ctx.exception.error_dict)
+
+    def test_splits_area_and_system_id(self):
+        extra = ISISAreaAddress(instance=self.instance, net='49.0002.0000.0000.0001.00')
+        extra.full_clean()
+        self.assertEqual(extra.area, '49.0002')
+        self.assertEqual(extra.system_id, '0000.0000.0001')
+
+    def test_rejects_malformed_net(self):
+        self.assertRejects(ISISAreaAddress(instance=self.instance, net='zz'))
+
+    def test_must_share_system_id(self):
+        self.assertRejects(
+            ISISAreaAddress(instance=self.instance, net='49.0002.0000.0000.0009.00')
+        )
+
+    def test_rejects_the_area_already_in_use(self):
+        self.assertRejects(
+            ISISAreaAddress(instance=self.instance, net='49.0001.0000.0000.0001.00')
+        )
+
+    def test_at_most_three_area_addresses(self):
+        for area in ('0002', '0003'):
+            ISISAreaAddress.objects.create(
+                instance=self.instance, net=f'49.{area}.0000.0000.0001.00'
+            )
+        self.assertRejects(
+            ISISAreaAddress(instance=self.instance, net='49.0004.0000.0000.0001.00')
+        )
+
+    def test_instance_system_id_must_match_area_addresses(self):
+        ISISAreaAddress.objects.create(
+            instance=self.instance, net='49.0002.0000.0000.0001.00'
+        )
+        self.instance.net = '49.0001.0000.0000.0007.00'
+        with self.assertRaises(ValidationError) as ctx:
+            self.instance.full_clean()
+        self.assertIn('net', ctx.exception.error_dict)
+
+    def test_duplicate_system_id_is_listed(self):
+        other = ISISInstance.objects.create(
+            device=create_test_device(name='Device 2'),
+            process_tag='X',
+            net='49.0001.0000.0000.0001.00',
+        )
+        self.assertEqual(self.instance.duplicate_system_ids, [other])
+        self.assertIn('Device 2', self.instance.duplicate_system_ids_display)
+        other.net = '49.0001.0000.0000.0005.00'
+        other.save()
+        self.assertEqual(self.instance.duplicate_system_ids, [])
+        self.assertEqual(self.instance.duplicate_system_ids_display, '—')
+
+    def test_duplicate_through_a_shared_added_area(self):
+        other = ISISInstance.objects.create(
+            device=create_test_device(name='Device 2'),
+            process_tag='X',
+            net='49.0005.0000.0000.0001.00',
+        )
+        self.assertEqual(self.instance.duplicate_system_ids, [])
+        ISISAreaAddress.objects.create(instance=other, net='49.0001.0000.0000.0001.00')
+        self.assertEqual(self.instance.duplicate_system_ids, [other])

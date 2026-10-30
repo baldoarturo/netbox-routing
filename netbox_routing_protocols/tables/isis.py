@@ -14,6 +14,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAreaAddress,
     ISISRedistribution,
     ISISSummaryAddress,
     ISISRouteLeak,
@@ -29,6 +30,7 @@ __all__ = (
     'ISISFlexAlgoTable',
     'ISISPrefixSIDTable',
     'ISISSRv6LocatorTable',
+    'ISISAreaAddressTable',
     'ISISRedistributionTable',
     'ISISSummaryAddressTable',
     'ISISRouteLeakTable',
@@ -349,3 +351,27 @@ class ISISRouteLeakTable(NetBoxTable):
 
     def render_address_family(self, record):
         return record.get_address_family_display()
+
+
+class ISISAreaAddressTable(NetBoxTable):
+    net = tables.Column(verbose_name=_('NET'), linkify=True)
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    area = tables.Column(verbose_name=_('Area'), orderable=False)
+    system_id = tables.Column(verbose_name=_('System ID'), orderable=False)
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISAreaAddress
+        fields = (
+            'pk',
+            'id',
+            'net',
+            'instance',
+            'device',
+            'area',
+            'system_id',
+            'description',
+        )
+        default_columns = ('pk', 'id', 'net', 'instance', 'area', 'system_id')

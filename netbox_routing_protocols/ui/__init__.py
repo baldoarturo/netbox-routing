@@ -63,6 +63,7 @@ __all__ = (
     'ISISFlexAlgoPanel',
     'ISISPrefixSIDPanel',
     'ISISSRv6LocatorPanel',
+    'ISISAreaAddressPanel',
     'ISISRedistributionPanel',
     'ISISSummaryAddressPanel',
     'ISISRouteLeakPanel',

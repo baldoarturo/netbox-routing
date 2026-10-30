@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 __all__ = (
     'metric_errors',
     'net_error',
+    'net_parts',
     'range_errors',
     'router_id_error',
     'auth_pair_errors',
@@ -50,6 +51,22 @@ def net_error(value):
     if digits[-2:] != '00':
         return _('The N-selector (last byte) of a router NET must be 00.')
     return None
+
+
+def net_parts(value):
+    """The (area address, system ID) of a valid NET as lowercase dotted hex, or None.
+    The last byte is the selector and the 6 bytes before it the system ID
+    (ISO 10589), whatever the length of the area address."""
+    if not value or net_error(value):
+        return None
+    digits = value.replace('.', '').lower()
+    area, system_id = digits[:-14], digits[-14:-2]
+    # the AFI is the first byte, then groups of two bytes
+    area = '.'.join([area[:2], *(area[i : i + 4] for i in range(2, len(area), 4))])
+    return (
+        area,
+        '.'.join(system_id[i : i + 4] for i in range(0, 12, 4)),
+    )
 
 
 def range_errors(obj, rules):

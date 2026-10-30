@@ -28,6 +28,7 @@ __all__ = (
     'ISISFlexAlgoFilter',
     'ISISPrefixSIDFilter',
     'ISISSRv6LocatorFilter',
+    'ISISAreaAddressFilter',
     'ISISRedistributionFilter',
     'ISISSummaryAddressFilter',
     'ISISRouteLeakFilter',
@@ -126,3 +127,9 @@ class ISISRouteLeakFilter(PrimaryModelFilter):
     instance_id: ID | None = strawberry_django.filter_field()
     address_family: StrFilterLookup | None = strawberry_django.filter_field()
     route_policy: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISAreaAddress, lookups=True)
+class ISISAreaAddressFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    net: StrFilterLookup | None = strawberry_django.filter_field()
