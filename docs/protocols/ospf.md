@@ -13,7 +13,8 @@ below says which RFC it comes from.
 > and IPv6 is OSPFv3 ([RFC 5340](https://www.rfc-editor.org/rfc/rfc5340)). What the family does not allow is
 > refused, and the forms offer only what applies. Not supported yet: the IPv4 address family inside OSPFv3
 > ([RFC 5838](https://www.rfc-editor.org/rfc/rfc5838)) and IPsec authentication of OSPFv3
-> ([RFC 4552](https://www.rfc-editor.org/rfc/rfc4552)).
+> ([RFC 4552](https://www.rfc-editor.org/rfc/rfc4552)), and OSPF as the PE-CE protocol of a BGP/MPLS VPN
+> ([RFC 4577](https://www.rfc-editor.org/rfc/rfc4577): domain ID, DN bit and sham links).
 
 ## How it is organized
 
