@@ -1,7 +1,9 @@
 import django_tables2 as tables
+from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable, columns
+from netbox_routing_protocols.helpers.route_policy import describe_settings
 from netbox_routing_protocols.models.objects import *
 
 __all__ = (
@@ -131,6 +133,9 @@ class RoutePolicyEntryTable(NetBoxTable):
     action = columns.ChoiceFieldColumn()
     jump_policy = tables.Column(verbose_name=_('Jump to Route Policy'), linkify=True)
     implicit = columns.BooleanColumn(verbose_name=_('Final deny'))
+    matches_everything = columns.BooleanColumn(
+        verbose_name=_('Matches every route'), orderable=False
+    )
     match_prefix_list = columns.ManyToManyColumn(
         linkify_item=True, verbose_name=_('Match Prefix Lists'), orderable=False
     )
@@ -157,6 +162,53 @@ class RoutePolicyEntryTable(NetBoxTable):
     set_community_mode = tables.Column(verbose_name=_('Set Community Mode'))
     set_metric_mode = tables.Column(verbose_name=_('Set Metric Mode'))
     set_origin = tables.Column(verbose_name=_('Set Origin'))
+    match = tables.Column(empty_values=(), orderable=False, verbose_name=_('Match'))
+    set = tables.Column(empty_values=(), orderable=False, verbose_name=_('Set'))
+
+    @staticmethod
+    def _lines(lines):
+        return format_html_join('', '<div>{}</div>', ((line,) for line in lines))
+
+    def render_match(self, record):
+        lines = []
+        for label, objects in (
+            (_('Prefix list'), record.match_prefix_list.all()),
+            (_('AS path'), record.match_aspath.all()),
+            (_('Community list'), record.match_community_list.all()),
+        ):
+            if objects:
+                lines.append(
+                    format_html(
+                        '{}: {}',
+                        label,
+                        format_html_join(
+                            ', ',
+                            '<a href="{}">{}</a>',
+                            ((o.get_absolute_url(), o) for o in objects),
+                        ),
+                    )
+                )
+        if record.match_next_hop_id:
+            lines.append(
+                format_html(
+                    '{}: <a href="{}">{}</a>',
+                    _('Next hop'),
+                    record.match_next_hop.get_absolute_url(),
+                    record.match_next_hop.address.ip,
+                )
+            )
+        for label, value in (
+            (_('Metric'), record.match_metric),
+            (_('Origin'), record.match_origin),
+            (_('Tag'), record.match_tag),
+            (_('Weight'), record.match_weight),
+        ):
+            if value not in (None, ''):
+                lines.append(format_html('{}: {}', label, value))
+        return self._lines(lines or [_('any')])
+
+    def render_set(self, record):
+        return self._lines(describe_settings(record) or ['—'])
 
     class Meta(NetBoxTable.Meta):
         model = RoutePolicyEntry
@@ -168,6 +220,9 @@ class RoutePolicyEntryTable(NetBoxTable):
             'action',
             'jump_policy',
             'implicit',
+            'matches_everything',
+            'match',
+            'set',
             'match_prefix_list',
             'match_aspath',
             'match_community_list',
@@ -198,6 +253,9 @@ class RoutePolicyEntryTable(NetBoxTable):
             'route_policy',
             'sequence',
             'action',
+            'jump_policy',
+            'match',
+            'set',
             'description',
             'actions',
         )

@@ -1,18 +1,33 @@
 # SPDX-License-Identifier: Apache-2.0
 
-from django.test import SimpleTestCase
+from django.contrib.auth import get_user_model
+from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
 
 from dcim.models import Interface
 from ipam.models import VRF
 from utilities.testing import ViewTestCases, create_test_device
 
-from netbox_routing_protocols.models import ISISInstance, ISISInterface
+from netbox_routing_protocols.models import (
+    ISISRedistribution,
+    ISISRouteLeak,
+    ISISSummaryAddress,
+    ISISFlexAlgo,
+    ISISInstance,
+    ISISInterface,
+    ISISInterfaceLevel,
+    ISISLevel,
+    ISISPrefixSID,
+    ISISSegmentRouting,
+    ISISSRv6Locator,
+)
 from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
 __all__ = (
     'ISISInstanceViewTestCase',
     'ISISInterfaceViewTestCase',
     'ISISViewExportsTestCase',
+    'ISISBulkEditViewsTestCase',
 )
 
 
@@ -196,3 +211,99 @@ class ISISInterfaceViewTestCase(
 
     def _get_base_url(self):
         return 'plugins:netbox_routing_protocols:isisinterface_{}'
+
+
+class ISISBulkEditViewsTestCase(TestCase):
+    """Every IS-IS model can be edited in bulk (#442)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        user = get_user_model().objects.create_user(
+            username='bulk', password='x', is_superuser=True
+        )
+        cls.user = user
+        device = create_test_device(name='Device 1')
+        instance = ISISInstance.objects.create(device=device)
+        interface = ISISInterface.objects.create(
+            instance=instance,
+            interface=Interface.objects.create(
+                name='lo0', device=device, type='virtual'
+            ),
+            address_family='ipv4',
+        )
+        cls.cases = (
+            (
+                ISISLevel.objects.create(instance=instance, level=1),
+                'default_metric',
+                '10',
+                10,
+            ),
+            (
+                ISISInterfaceLevel.objects.create(interface=interface, level=1),
+                'priority',
+                '5',
+                5,
+            ),
+            (
+                ISISSegmentRouting.objects.create(instance=instance),
+                'maximum_sid_depth',
+                '5',
+                5,
+            ),
+            (
+                ISISFlexAlgo.objects.create(instance=instance, algo_id=128),
+                'priority',
+                '100',
+                100,
+            ),
+            (
+                ISISPrefixSID.objects.create(interface=interface, sid_index=1),
+                'no_php',
+                '2',
+                True,
+            ),
+            (
+                ISISSRv6Locator.objects.create(
+                    instance=instance, name='L', prefix='2001:db8::/32'
+                ),
+                'enabled',
+                '2',
+                True,
+            ),
+            (
+                ISISRedistribution.objects.create(
+                    instance=instance, protocol='connected'
+                ),
+                'metric',
+                '10',
+                10,
+            ),
+            (
+                ISISSummaryAddress.objects.create(
+                    instance=instance, prefix='10.0.0.0/8'
+                ),
+                'metric',
+                '10',
+                10,
+            ),
+            (
+                ISISRouteLeak.objects.create(instance=instance),
+                'route_policy',
+                'LEAK',
+                'LEAK',
+            ),
+        )
+
+    def test_bulk_edit(self):
+        self.client.force_login(self.user)
+        for obj, field, posted, expected in self.cases:
+            with self.subTest(model=type(obj).__name__):
+                url = reverse(
+                    f'plugins:netbox_routing_protocols:{obj._meta.model_name}_bulk_edit'
+                )
+                response = self.client.post(
+                    url, {'pk': [obj.pk], '_apply': '', field: posted}
+                )
+                self.assertEqual(response.status_code, 302, response.content[:300])
+                obj.refresh_from_db()
+                self.assertEqual(getattr(obj, field), expected)

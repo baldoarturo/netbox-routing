@@ -561,6 +561,22 @@ class RoutePolicyEntryForm(PrimaryModelForm):
                 except ValidationError:
                     pass
 
+    def save(self, commit=True):
+        entry = super().save(commit)
+        # An entry without conditions decides every route that reaches it: allowed, but the
+        # user is told (the lists are saved with the form, so ask after)
+        request = current_request.get()
+        if commit and request is not None and entry.matches_everything:
+            messages.warning(
+                request,
+                _(
+                    'Entry %(sequence)s has no conditions: it matches every route, so '
+                    'the entries after it are never evaluated.'
+                )
+                % {'sequence': entry.sequence},
+            )
+        return entry
+
     def clean(self):
         super().clean()
         cleaned = self.cleaned_data

@@ -13,13 +13,30 @@ from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
 from netbox_routing_protocols import choices
-from netbox_routing_protocols.choices.isis import ISISSettingChoices
+from netbox_routing_protocols.choices.isis import (
+    ISISLevelScopeChoices,
+    ISISRedistributionMetricTypeChoices,
+    ISISRedistributionProtocolChoices,
+    ISISSettingChoices,
+)
 from netbox_routing_protocols.constants.isis import (
     ISISSETTING_ASSIGNMENT_MODEL_NAMES,
     ISISSETTING_ASSIGNMENT_MODELS,
 )
-from netbox_routing_protocols.helpers.isis import NET_RE, auth_pair_errors
+from netbox_routing_protocols.helpers.isis import (
+    auth_pair_errors,
+    metric_errors,
+    net_error,
+    range_errors,
+    router_id_error,
+    scope_levels,
+    type_levels,
+)
 from netbox_routing_protocols.models.policy import RoutePolicyMixin
+
+# Label space of segment routing (RFC 8660, RFC 8667): 20 bits, 0-15 are reserved
+SR_MIN_LABEL = 16
+SR_MAX_LABEL = 1048575
 
 __all__ = (
     'ISISInstance',
@@ -136,6 +153,18 @@ class ISISSetting(PrimaryModel):
                 raise ValidationError(
                     {'value': _('This setting requires a non-negative integer value.')}
                 )
+            if self.key == 'max_area_addresses' and parsed > 254:
+                raise ValidationError(
+                    {
+                        'value': _(
+                            'The maximum area addresses is at most 254 (ISO 10589).'
+                        )
+                    }
+                )
+        elif self.key in ('te_ipv4_router_id', 'te_ipv6_router_id'):
+            message = router_id_error(self.value, 4 if self.key[6] == '4' else 6)
+            if message:
+                raise ValidationError({'value': message})
         elif field_type == 'boolean':
             if str(self.value).strip().lower() not in (
                 'true',
@@ -432,10 +461,71 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
             )
         # Reject a malformed NET at the model layer (form/API/import all run full_clean)
         # rather than letting it fail downstream when pushed to the device.
-        if self.net and not NET_RE.match(self.net):
-            errors['net'] = _('Enter a valid NET, e.g. 49.0001.0000.0000.0001.00.')
+        if self.net and (message := net_error(self.net)):
+            errors['net'] = message
+        errors.update(self._range_errors())
         if errors:
             raise ValidationError(errors)
+        self._clean_children()
+
+    def _range_errors(self):
+        """Limits of the timers and counters (ISO 10589 7.3, vendor documentation) and
+        the pairs that must stay in order."""
+        errors = range_errors(
+            self,
+            (
+                ('lsp_lifetime', 1, 65535),
+                ('lsp_refresh_interval', 1, 65535),
+                ('lsp_mtu', 512, None),
+                ('distance', 1, 255),
+                ('maximum_paths', 1, None),
+                ('reference_bandwidth', 1, None),
+            ),
+        )
+        for low, high in (
+            ('spf_initial_wait', 'spf_max_wait'),
+            ('lsp_initial_wait', 'lsp_max_wait'),
+        ):
+            first, last = getattr(self, low), getattr(self, high)
+            if first is not None and last is not None and first > last:
+                errors[high] = _(
+                    'The maximum wait cannot be less than the initial wait.'
+                )
+        if (
+            self.lsp_refresh_interval is not None
+            and self.lsp_lifetime is not None
+            and self.lsp_refresh_interval >= self.lsp_lifetime
+        ):
+            errors['lsp_refresh_interval'] = _(
+                'The refresh interval must be less than the LSP lifetime.'
+            )
+        if self.overload_timeout is not None and not self.overload_on_startup:
+            errors['overload_timeout'] = _(
+                'The overload timeout needs overload on startup.'
+            )
+        return errors
+
+    def _clean_children(self):
+        """A change of device, VRF, IS type or metric style must not leave interfaces
+        or levels that the new values make invalid."""
+        if self.pk is None:
+            return
+        problems = []
+        children = [
+            *self.interfaces.select_related('interface'),
+            *self.levels.all(),
+        ]
+        for child in children:
+            child.instance = self
+            try:
+                child.clean()
+            except ValidationError as e:
+                problems.append(f'{child} ({"; ".join(e.messages)})')
+        if problems:
+            raise ValidationError(
+                _('This change makes related objects invalid: %(problems)s.')
+                % {'problems': ', '.join(problems[:5])}
+            )
 
     def __str__(self):
         tag = self.process_tag or 'default'
@@ -559,6 +649,41 @@ class ISISInterface(PrimaryModel):
         default='',
         help_text=_("Mesh-group identifier, or 'blocked'."),
     )
+    hello_padding = models.BooleanField(
+        verbose_name=_('Hello padding'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Pad hello PDUs to the full MTU to detect MTU mismatches (RFC 3787).'
+        ),
+    )
+    ldp_sync = models.BooleanField(
+        verbose_name=_('LDP-IGP sync'),
+        blank=True,
+        null=True,
+        help_text=_('Do not use the link for traffic until LDP is up (RFC 5443).'),
+    )
+    prefix_suppression = models.BooleanField(
+        verbose_name=_('Prefix suppression'),
+        blank=True,
+        null=True,
+        help_text=_('Do not advertise the prefixes of this link (RFC 6860).'),
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route tag'),
+        blank=True,
+        null=True,
+        help_text=_('Administrative tag of the prefixes of this interface (RFC 5130).'),
+    )
+    three_way_handshake = models.BooleanField(
+        verbose_name=_('Three-way handshake'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Point-to-point three-way handshake of the adjacency (RFC 5303); '
+            'False disables it.'
+        ),
+    )
     settings = GenericRelation(
         verbose_name=_('Settings'),
         to='netbox_routing_protocols.ISISSetting',
@@ -581,6 +706,11 @@ class ISISInterface(PrimaryModel):
         'retransmit_interval',
         'lsp_interval',
         'mesh_group',
+        'hello_padding',
+        'ldp_sync',
+        'prefix_suppression',
+        'route_tag',
+        'three_way_handshake',
     )
     prerequisite_models = (
         'netbox_routing_protocols.ISISInstance',
@@ -611,6 +741,40 @@ class ISISInterface(PrimaryModel):
             msg = _('IS-IS Instance Device and Interface Device must match.')
             errors['instance'] = msg
             errors['interface'] = msg
+        elif (
+            self.instance_id
+            and self.interface_id
+            and self.interface.vrf_id != self.instance.vrf_id
+        ):
+            errors['interface'] = _(
+                'The interface is in {interface_vrf} but the IS-IS instance '
+                'is in {instance_vrf}.'
+            ).format(
+                interface_vrf=self.interface.vrf or _('the global routing table'),
+                instance_vrf=self.instance.vrf or _('the global routing table'),
+            )
+        errors.update(
+            range_errors(
+                self,
+                (
+                    ('csnp_interval', 1, 65535),
+                    ('retransmit_interval', 1, 65535),
+                    ('lsp_interval', 1, None),
+                    ('route_tag', 1, 4294967295),
+                ),
+            )
+        )
+        if self.instance_id:
+            errors.update(metric_errors(self, ('metric',), self.instance.metric_style))
+        # The circuit type must share a level with the IS type of the instance.
+        if (
+            self.instance_id
+            and self.circuit_type
+            and not type_levels(self.circuit_type) & type_levels(self.instance.is_type)
+        ):
+            errors['circuit_type'] = _(
+                'The circuit type does not run any level of the instance IS type.'
+            )
         # Hello auth type and key are only meaningful together (mirrors ISISInstance).
         errors.update(
             auth_pair_errors(
@@ -622,6 +786,23 @@ class ISISInterface(PrimaryModel):
         )
         if errors:
             raise ValidationError(errors)
+        self._clean_levels()
+
+    def _clean_levels(self):
+        """Interface levels must be levels the circuit (or, by default, the instance) runs."""
+        if self.pk is None or not self.instance_id:
+            return
+        allowed = type_levels(self.circuit_type) & type_levels(self.instance.is_type)
+        bad = [str(lv.level) for lv in self.levels.all() if lv.level not in allowed]
+        if bad:
+            raise ValidationError(
+                {
+                    'circuit_type': _(
+                        'Interface levels exist for levels this circuit does not run: %(levels)s.'
+                    )
+                    % {'levels': ', '.join(bad)}
+                }
+            )
 
     def __str__(self):
         return f'{self.interface} ({self.address_family})'
@@ -720,6 +901,21 @@ class ISISLevel(PrimaryModel):
         errors = auth_pair_errors(
             self.auth_type, self.auth_key, 'auth_type', 'auth_key'
         )
+        if self.instance_id:
+            if (
+                self.level not in type_levels(self.instance.is_type)
+                and not self.disabled
+            ):
+                errors['level'] = _(
+                    'The instance IS type does not run this level; mark it disabled.'
+                )
+            errors.update(
+                metric_errors(self, ('default_metric',), self.instance.metric_style)
+            )
+            if self.wide_metrics_only and self.instance.metric_style == 'narrow':
+                errors['wide_metrics_only'] = _(
+                    'Wide metrics only conflicts with the narrow metric style of the instance.'
+                )
         if errors:
             raise ValidationError(errors)
 
@@ -762,6 +958,26 @@ class ISISInterfaceLevel(PrimaryModel):
         verbose_name=_('Priority'), blank=True, null=True
     )
     passive = models.BooleanField(verbose_name=_('Passive'), blank=True, null=True)
+    hello_auth_type = models.CharField(
+        verbose_name=_('Hello auth type'),
+        max_length=16,
+        choices=choices.ISISAuthTypeChoices,
+        blank=True,
+        default='',
+        help_text=_(
+            'Hello (IIH) authentication type of this level; overrides the one of the interface.'
+        ),
+    )
+    hello_auth_key = models.CharField(
+        verbose_name=_('Hello auth key'),
+        max_length=128,
+        blank=True,
+        default='',
+        help_text=_(
+            'Hello (IIH) authentication key of this level (plaintext — '
+            'routing-protocol auth, not config access).'
+        ),
+    )
 
     clone_fields = (
         'interface',
@@ -781,6 +997,37 @@ class ISISInterfaceLevel(PrimaryModel):
                 name='netbox_routing_protocols_isisinterfacelevel_interface_level_unique',
             ),
         ]
+
+    def clean(self):
+        super().clean()
+        errors = range_errors(
+            self,
+            (
+                ('hello_interval', 1, 65535),
+                ('hello_multiplier', 2, 1000),
+                ('priority', 0, 127),
+            ),
+        )
+        errors.update(
+            auth_pair_errors(
+                self.hello_auth_type,
+                self.hello_auth_key,
+                'hello_auth_type',
+                'hello_auth_key',
+            )
+        )
+        if self.interface_id:
+            instance = self.interface.instance
+            errors.update(metric_errors(self, ('metric',), instance.metric_style))
+            allowed = type_levels(self.interface.circuit_type) & type_levels(
+                instance.is_type
+            )
+            if self.level not in allowed:
+                errors['level'] = _(
+                    'The circuit of this interface does not run this level.'
+                )
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         return f'{self.interface} L{self.level}'
@@ -873,6 +1120,24 @@ class ISISSegmentRouting(PrimaryModel):
                 errors[missing] = _(
                     '%(block)s start and range must be set together.'
                 ) % {'block': label}
+        blocks = []
+        for start_field, range_field, label in (
+            ('srgb_start', 'srgb_range', 'SRGB'),
+            ('srlb_start', 'srlb_range', 'SRLB'),
+        ):
+            start, size = getattr(self, start_field), getattr(self, range_field)
+            if start is None or size is None:
+                continue
+            if start < SR_MIN_LABEL or size < 1 or start + size - 1 > SR_MAX_LABEL:
+                errors[start_field] = _(
+                    '%(block)s labels must be within %(min)s-%(max)s (20 bits, labels 0-15 are reserved).'
+                ) % {'block': label, 'min': SR_MIN_LABEL, 'max': SR_MAX_LABEL}
+            else:
+                blocks.append((start, start + size - 1))
+        if len(blocks) == 2 and not (
+            blocks[0][1] < blocks[1][0] or blocks[1][1] < blocks[0][0]
+        ):
+            errors['srlb_start'] = _('The SRGB and the SRLB cannot overlap.')
         if errors:
             raise ValidationError(errors)
 
@@ -910,10 +1175,11 @@ class ISISFlexAlgo(PrimaryModel):
     metric_type = models.CharField(
         verbose_name=_('Metric type'),
         max_length=40,
+        choices=choices.ISISFlexAlgoMetricTypeChoices,
         blank=True,
         default='',
         help_text=_(
-            'Flex-Algo metric type (e.g. igp-metric, delay-metric, te-metric).'
+            'Flex-Algo metric type (RFC 9350): IGP, minimum delay or TE metric.'
         ),
     )
     priority = models.PositiveSmallIntegerField(
@@ -959,6 +1225,12 @@ class ISISFlexAlgo(PrimaryModel):
                 name='netbox_routing_protocols_isisflexalgo_algo_id_range',
             ),
         ]
+
+    def clean(self):
+        super().clean()
+        errors = range_errors(self, (('priority', 0, 255),))
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         return f'{self.instance} flex-algo {self.algo_id}'
@@ -1074,6 +1346,52 @@ class ISISPrefixSID(PrimaryModel):
                 'A prefix-SID takes either an index or an absolute label, not both.'
             )
             raise ValidationError({'sid_index': msg, 'sid_label': msg})
+        errors = {}
+        if self.no_php and self.explicit_null:
+            msg = _(
+                'The no-PHP (P) and explicit-null (E) flags cannot be set together: '
+                'explicit-null already keeps the label (RFC 8667).'
+            )
+            errors['no_php'] = errors['explicit_null'] = msg
+        errors.update(range_errors(self, (('sid_label', SR_MIN_LABEL, SR_MAX_LABEL),)))
+        errors.update(range_errors(self, (('sid_index', 0, SR_MAX_LABEL),)))
+        if self.interface_id:
+            instance = self.interface.instance
+            if (
+                self.algorithm
+                and 'algorithm' not in errors
+                and not instance.flex_algos.filter(algo_id=self.algorithm).exists()
+            ):
+                errors['algorithm'] = _('The instance has no Flex-Algo %(algo)s.') % {
+                    'algo': self.algorithm
+                }
+            sr = getattr(instance, 'segment_routing', None)
+            if (
+                self.sid_index is not None
+                and sr is not None
+                and sr.srgb_range
+                and self.sid_index >= sr.srgb_range
+            ):
+                errors['sid_index'] = _(
+                    'The index is outside the SRGB (range size %(size)s).'
+                ) % {'size': sr.srgb_range}
+            if self.n_flag and self._has_only_wide_prefixes():
+                errors['n_flag'] = _(
+                    'The node flag needs a host prefix (/32 or /128) on the interface.'
+                )
+        if errors:
+            raise ValidationError(errors)
+
+    def _has_only_wide_prefixes(self):
+        """The interface has addresses of the family and none of them is a host prefix."""
+        version = 4 if self.interface.address_family == 'ipv4' else 6
+        host = 32 if version == 4 else 128
+        masks = [
+            address.address.prefixlen
+            for address in self.interface.interface.ip_addresses.all()
+            if address.address.version == version
+        ]
+        return bool(masks) and all(mask != host for mask in masks)
 
     def __str__(self):
         return f'{self.interface} SID (algo {self.algorithm})'
@@ -1233,6 +1551,37 @@ class ISISSRv6Locator(PrimaryModel):
                     )
                 }
             )
+        if self.prefix:
+            network = netaddr.IPNetwork(str(self.prefix))
+            if network.version != 6:
+                raise ValidationError(
+                    {'prefix': _('An SRv6 locator is an IPv6 prefix.')}
+                )
+            if (
+                self.block_length is not None
+                and self.node_length is not None
+                and self.block_length + self.node_length != network.prefixlen
+            ):
+                raise ValidationError(
+                    {
+                        'prefix': _(
+                            'The locator prefix length must equal block + node length '
+                            '(RFC 8986).'
+                        )
+                    }
+                )
+        if (
+            self.algorithm
+            and self.instance_id
+            and 128 <= self.algorithm <= 255
+            and not self.instance.flex_algos.filter(algo_id=self.algorithm).exists()
+        ):
+            raise ValidationError(
+                {
+                    'algorithm': _('The instance has no Flex-Algo %(algo)s.')
+                    % {'algo': self.algorithm}
+                }
+            )
         # RFC 8986: L + F + A <= 128 (L = block + node). Validate only when the
         # relevant lengths are pinned; otherwise the device derives them. When
         # block and node are both unpinned the locator length is the prefix length,
@@ -1268,3 +1617,352 @@ class ISISSRv6Locator(PrimaryModel):
         return reverse(
             'plugins:netbox_routing_protocols:isissrv6locator', args=[self.pk]
         )
+
+
+class ISISRedistribution(PrimaryModel):
+    """
+    Redistribution of routes into an IS-IS instance, for one address family and
+    level (ISO 10589, RFC 1195 section 3.3 for external routes). Connected and
+    static routes have no source; for the other protocols, which are the ones
+    modelled by the plugin, the source is the process routes are taken from.
+    """
+
+    SOURCE_FIELDS = {
+        ISISRedistributionProtocolChoices.OSPF: 'ospf_source',
+        ISISRedistributionProtocolChoices.EIGRP: 'eigrp_source',
+        ISISRedistributionProtocolChoices.BGP: 'bgp_source',
+        ISISRedistributionProtocolChoices.ISIS: 'isis_source',
+    }
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    address_family = models.CharField(
+        verbose_name=_('Address Family'),
+        choices=choices.ISISAddressFamilyChoices,
+        default=choices.ISISAddressFamilyChoices.IPV4,
+        max_length=4,
+    )
+    protocol = models.CharField(
+        verbose_name=_('Protocol'),
+        choices=ISISRedistributionProtocolChoices,
+        max_length=20,
+    )
+    ospf_source = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFInstance',
+        related_name='isis_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('OSPF Source'),
+        blank=True,
+        null=True,
+    )
+    eigrp_source = models.ForeignKey(
+        to='netbox_routing_protocols.EIGRPRouter',
+        related_name='isis_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('EIGRP Source'),
+        blank=True,
+        null=True,
+    )
+    bgp_source = models.ForeignKey(
+        to='netbox_routing_protocols.BGPRouter',
+        related_name='isis_redistributions',
+        on_delete=models.CASCADE,
+        verbose_name=_('BGP Source'),
+        blank=True,
+        null=True,
+    )
+    isis_source = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='isis_redistributed_into',
+        on_delete=models.CASCADE,
+        verbose_name=_('IS-IS Source'),
+        blank=True,
+        null=True,
+    )
+    level = models.CharField(
+        verbose_name=_('Level'),
+        help_text=_('Level the routes are advertised into'),
+        choices=ISISLevelScopeChoices,
+        default=ISISLevelScopeChoices.LEVEL2,
+        max_length=9,
+    )
+    metric = models.PositiveIntegerField(
+        verbose_name=_('Metric'),
+        help_text=_('Metric of the redistributed routes'),
+        blank=True,
+        null=True,
+    )
+    metric_type = models.CharField(
+        verbose_name=_('Metric Type'),
+        choices=ISISRedistributionMetricTypeChoices,
+        default=ISISRedistributionMetricTypeChoices.INTERNAL,
+        max_length=8,
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route Tag'),
+        help_text=_('Tag set on the redistributed routes (RFC 5130)'),
+        validators=[MinValueValidator(1), MaxValueValidator(4294967295)],
+        blank=True,
+        null=True,
+    )
+    route_policy = models.CharField(
+        verbose_name=_('Route Policy'),
+        help_text=_('Name of the route policy applied to the redistributed routes'),
+        max_length=100,
+        blank=True,
+    )
+
+    clone_fields = (
+        'instance',
+        'address_family',
+        'protocol',
+        'level',
+        'metric',
+        'metric_type',
+        'route_tag',
+        'route_policy',
+    )
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Redistribution'
+        ordering = ('instance', 'address_family', 'protocol', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=(
+                    'instance',
+                    'address_family',
+                    'protocol',
+                    'level',
+                    'ospf_source',
+                    'eigrp_source',
+                    'bgp_source',
+                    'isis_source',
+                ),
+                name='%(app_label)s_%(class)s_unique_instance_source',
+                violation_error_message=_(
+                    'This source is already redistributed into the IS-IS instance '
+                    'for this address family and level.'
+                ),
+                nulls_distinct=False,
+            ),
+        )
+
+    def __str__(self):
+        if self.source is None:
+            return self.get_protocol_display()
+        return f'{self.get_protocol_display()} {self.source}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isisredistribution', args=[self.pk]
+        )
+
+    @property
+    def source(self):
+        field = self.SOURCE_FIELDS.get(self.protocol)
+        return getattr(self, field) if field else None
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        for protocol, field in self.SOURCE_FIELDS.items():
+            is_set = getattr(self, f'{field}_id') is not None
+            if protocol == self.protocol and not is_set:
+                errors[field] = _('A source is required for this protocol.')
+            elif protocol != self.protocol and is_set:
+                errors[field] = _(
+                    'Only the source of the selected protocol is allowed.'
+                )
+        if errors:
+            raise ValidationError(errors)
+        if not self.instance_id:
+            return
+
+        instance = self.instance
+        if (
+            self.protocol == ISISRedistributionProtocolChoices.ISIS
+            and self.isis_source_id == self.instance_id
+        ):
+            errors['isis_source'] = _(
+                'An IS-IS instance cannot be redistributed into itself.'
+            )
+        elif self.source is not None and not self._source_is_on_instance_device():
+            errors[self.SOURCE_FIELDS[self.protocol]] = _(
+                'The source must be on the same device as the IS-IS instance.'
+            )
+        if not scope_levels(self.level) & type_levels(instance.is_type):
+            errors['level'] = _('The instance does not run this level.')
+        errors.update(metric_errors(self, ('metric',), instance.metric_style))
+        if errors:
+            raise ValidationError(errors)
+
+    def _source_is_on_instance_device(self):
+        source = self.source
+        if self.protocol == ISISRedistributionProtocolChoices.BGP:
+            # A BGP router is assigned to a generic object (device, site, ...)
+            device = self.instance.device
+            return (
+                source.assigned_object_type_id
+                == ContentType.objects.get_for_model(device).pk
+                and source.assigned_object_id == device.pk
+            )
+        return source.device_id == self.instance.device_id
+
+
+class ISISSummaryAddress(PrimaryModel):
+    """
+    Summarization of the routes of an IS-IS instance into one prefix, for a level
+    (RFC 1195 section 3.3, RFC 5302): the prefix is advertised instead of the
+    routes it covers, whose advertisement can also be suppressed.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='summary_addresses',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    prefix = IPNetworkField(
+        verbose_name=_('Prefix'),
+        help_text=_('IPv4 or IPv6 prefix that summarizes the routes'),
+    )
+    level = models.CharField(
+        verbose_name=_('Level'),
+        help_text=_('Level the summary is advertised into'),
+        choices=ISISLevelScopeChoices,
+        default=ISISLevelScopeChoices.LEVEL2,
+        max_length=9,
+    )
+    not_advertise = models.BooleanField(
+        verbose_name=_('Do Not Advertise'),
+        help_text=_(
+            'Suppress the routes covered by the prefix instead of summarizing them'
+        ),
+        default=False,
+    )
+    metric = models.PositiveIntegerField(
+        verbose_name=_('Metric'),
+        help_text=_('Metric of the summary route; empty takes the best covered route'),
+        blank=True,
+        null=True,
+    )
+    route_tag = models.PositiveBigIntegerField(
+        verbose_name=_('Route Tag'),
+        help_text=_('Tag set on the summary route (RFC 5130)'),
+        validators=[MinValueValidator(1), MaxValueValidator(4294967295)],
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = ('instance', 'level', 'not_advertise', 'metric', 'route_tag')
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Summary Address'
+        verbose_name_plural = 'IS-IS Summary Addresses'
+        ordering = ('instance', 'prefix', 'level', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'prefix', 'level'),
+                name='%(app_label)s_%(class)s_unique_instance_prefix_level',
+                violation_error_message=_(
+                    'This prefix is already summarized in the IS-IS instance '
+                    'for this level.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return str(self.prefix)
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isissummaryaddress', args=[self.pk]
+        )
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.prefix not in (None, ''):
+            try:
+                prefix = netaddr.IPNetwork(str(self.prefix))
+            except (netaddr.AddrFormatError, ValueError):
+                prefix = None  # reported by the field's own validation
+            if prefix is not None and prefix.ip != prefix.cidr.ip:
+                errors['prefix'] = _(
+                    'The prefix has host bits set: use {cidr}.'
+                ).format(cidr=prefix.cidr)
+        if self.instance_id:
+            if not scope_levels(self.level) & type_levels(self.instance.is_type):
+                errors['level'] = _('The instance does not run this level.')
+            errors.update(metric_errors(self, ('metric',), self.instance.metric_style))
+        if errors:
+            raise ValidationError(errors)
+
+
+class ISISRouteLeak(PrimaryModel):
+    """
+    Leaking of Level-2 routes into Level 1 (RFC 5302 section 3), for an address
+    family. The routes are leaked with the up/down bit set; routes of Level 1 are
+    always advertised into Level 2. Only an instance running both levels leaks.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='route_leaks',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    address_family = models.CharField(
+        verbose_name=_('Address Family'),
+        choices=choices.ISISAddressFamilyChoices,
+        default=choices.ISISAddressFamilyChoices.IPV4,
+        max_length=4,
+    )
+    route_policy = models.CharField(
+        verbose_name=_('Route Policy'),
+        help_text=_(
+            'Name of the route policy that selects the routes leaked; empty leaks all'
+        ),
+        max_length=100,
+        blank=True,
+    )
+
+    clone_fields = ('instance', 'address_family', 'route_policy')
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Route Leak'
+        ordering = ('instance', 'address_family', 'pk')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'address_family'),
+                name='%(app_label)s_%(class)s_unique_instance_family',
+                violation_error_message=_(
+                    'The IS-IS instance already leaks routes for this address family.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.instance} {self.get_address_family_display()} L2 → L1'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing_protocols:isisrouteleak', args=[self.pk])
+
+    def clean(self):
+        super().clean()
+        if self.instance_id and type_levels(self.instance.is_type) != {1, 2}:
+            raise ValidationError(
+                {
+                    'instance': _(
+                        'Routes are leaked between levels only by an instance of '
+                        'type Level-1-2.'
+                    )
+                }
+            )

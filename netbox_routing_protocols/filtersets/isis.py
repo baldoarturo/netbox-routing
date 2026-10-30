@@ -16,12 +16,21 @@ from netbox_routing_protocols.choices import (
     ISISAddressFamilyChoices,
     ISISAuthTypeChoices,
     ISISCircuitTypeChoices,
+    ISISFastRerouteChoices,
+    ISISFrrProtectionChoices,
+    ISISMetricStyleChoices,
     ISISIsTypeChoices,
+    ISISLevelScopeChoices,
     ISISNetworkTypeChoices,
+    ISISRedistributionMetricTypeChoices,
+    ISISRedistributionProtocolChoices,
     ISISSettingChoices,
 )
 from netbox_routing_protocols.constants.isis import ISISSETTING_ASSIGNMENT_MODELS
 from netbox_routing_protocols.models import (
+    BGPRouter,
+    EIGRPRouter,
+    OSPFInstance,
     ISISInstance,
     ISISInterface,
     ISISSetting,
@@ -31,6 +40,9 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.models.objects import RoutePolicy
 
@@ -44,6 +56,9 @@ __all__ = (
     'ISISFlexAlgoFilterSet',
     'ISISPrefixSIDFilterSet',
     'ISISSRv6LocatorFilterSet',
+    'ISISRedistributionFilterSet',
+    'ISISSummaryAddressFilterSet',
+    'ISISRouteLeakFilterSet',
 )
 
 
@@ -57,7 +72,7 @@ class ISISFlexAlgoFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ISISFlexAlgo
-        fields = ('instance_id', 'algo_id', 'metric_type')
+        fields = ('instance_id', 'algo_id', 'metric_type', 'priority')
 
     def search(self, queryset, name, value):
         return queryset
@@ -73,7 +88,16 @@ class ISISPrefixSIDFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ISISPrefixSID
-        fields = ('interface_id', 'algorithm')
+        fields = (
+            'interface_id',
+            'algorithm',
+            'sid_index',
+            'sid_label',
+            'n_flag',
+            'no_php',
+            'explicit_null',
+            'readvertise',
+        )
 
     def search(self, queryset, name, value):
         return queryset
@@ -92,13 +116,22 @@ class ISISSRv6LocatorFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ISISSRv6Locator
-        fields = ('instance_id', 'name', 'prefix', 'algorithm', 'enabled')
+        fields = (
+            'instance_id',
+            'name',
+            'prefix',
+            'algorithm',
+            'enabled',
+            'is_anycast',
+            'is_micro_segment',
+            'isis_level',
+        )
 
     def search(self, queryset, name, value):
         value = (value or '').strip()
         if not value:
             return queryset
-        return queryset.filter(name__icontains=value).distinct()
+        return queryset.filter(name__icontains=value)
 
     def filter_prefix(self, queryset, name, value):
         value = (value or '').strip()
@@ -135,7 +168,7 @@ class ISISSettingFilterSet(NetBoxModelFilterSet):
         if not value:
             return queryset
         qs_filter = Q(key__icontains=value) | Q(value__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
 
 @register_filterset
@@ -148,7 +181,16 @@ class ISISLevelFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ISISLevel
-        fields = ('instance_id', 'level')
+        fields = (
+            'instance_id',
+            'level',
+            'default_metric',
+            'wide_metrics_only',
+            'preference',
+            'labeled_preference',
+            'disabled',
+            'auth_type',
+        )
 
     def search(self, queryset, name, value):
         return queryset
@@ -164,7 +206,15 @@ class ISISInterfaceLevelFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ISISInterfaceLevel
-        fields = ('interface_id', 'level')
+        fields = (
+            'interface_id',
+            'level',
+            'metric',
+            'hello_interval',
+            'hello_multiplier',
+            'priority',
+            'passive',
+        )
 
     def search(self, queryset, name, value):
         return queryset
@@ -180,7 +230,18 @@ class ISISSegmentRoutingFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ISISSegmentRouting
-        fields = ('instance_id', 'enabled')
+        fields = (
+            'instance_id',
+            'enabled',
+            'srv6_enabled',
+            'prefix_sid_range',
+            'srgb_start',
+            'srgb_range',
+            'srlb_start',
+            'srlb_range',
+            'maximum_sid_depth',
+            'tunnel_table_pref',
+        )
 
     def search(self, queryset, name, value):
         return queryset
@@ -240,9 +301,42 @@ class ISISInstanceFilterSet(NetBoxModelFilterSet):
         label=_('IS Type'),
     )
 
+    metric_style = django_filters.MultipleChoiceFilter(
+        choices=ISISMetricStyleChoices,
+        label=_('Metric Style'),
+    )
+    fast_reroute = django_filters.MultipleChoiceFilter(
+        choices=ISISFastRerouteChoices,
+        label=_('Fast Reroute'),
+    )
+    area_auth_type = django_filters.MultipleChoiceFilter(
+        choices=ISISAuthTypeChoices,
+        label=_('Area Auth Type'),
+    )
+    domain_auth_type = django_filters.MultipleChoiceFilter(
+        choices=ISISAuthTypeChoices,
+        label=_('Domain Auth Type'),
+    )
+
     class Meta:
         model = ISISInstance
         fields = (
+            'metric_style',
+            'fast_reroute',
+            'area_auth_type',
+            'domain_auth_type',
+            'overload_bit',
+            'overload_on_startup',
+            'suppress_attached_bit',
+            'ignore_attached_bit',
+            'te_enabled',
+            'microloop_avoidance',
+            'distance',
+            'maximum_paths',
+            'reference_bandwidth',
+            'lsp_lifetime',
+            'lsp_refresh_interval',
+            'lsp_mtu',
             'device_id',
             'device',
             'vrf_id',
@@ -265,7 +359,7 @@ class ISISInstanceFilterSet(NetBoxModelFilterSet):
             | Q(device__name__icontains=value)
             | Q(net__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
 
 @register_filterset
@@ -324,10 +418,21 @@ class ISISInterfaceFilterSet(NetBoxModelFilterSet):
         choices=ISISAuthTypeChoices,
         label=_('Hello Auth Type'),
     )
+    frr_protection = django_filters.MultipleChoiceFilter(
+        choices=ISISFrrProtectionChoices,
+        label=_('FRR Protection'),
+    )
 
     class Meta:
         model = ISISInterface
         fields = (
+            'bfd_enabled',
+            'frr_enabled',
+            'frr_protection',
+            'mesh_group',
+            'csnp_interval',
+            'retransmit_interval',
+            'lsp_interval',
             'instance_id',
             'vrf_id',
             'vrf',
@@ -354,4 +459,126 @@ class ISISInterfaceFilterSet(NetBoxModelFilterSet):
             | Q(interface__label__icontains=value)
             | Q(interface__device__name__icontains=value)
         )
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
+
+
+@register_filterset
+class ISISRedistributionFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    address_family = django_filters.MultipleChoiceFilter(
+        choices=ISISAddressFamilyChoices,
+        label=_('Address Family'),
+    )
+    protocol = django_filters.MultipleChoiceFilter(
+        choices=ISISRedistributionProtocolChoices,
+        label=_('Protocol'),
+    )
+    level = django_filters.MultipleChoiceFilter(
+        choices=ISISLevelScopeChoices,
+        label=_('Level'),
+    )
+    metric_type = django_filters.MultipleChoiceFilter(
+        choices=ISISRedistributionMetricTypeChoices,
+        label=_('Metric Type'),
+    )
+    ospf_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_source',
+        queryset=OSPFInstance.objects.all(),
+        label=_('OSPF Source (ID)'),
+    )
+    eigrp_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='eigrp_source',
+        queryset=EIGRPRouter.objects.all(),
+        label=_('EIGRP Source (ID)'),
+    )
+    bgp_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='bgp_source',
+        queryset=BGPRouter.objects.all(),
+        label=_('BGP Source (ID)'),
+    )
+    isis_source_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='isis_source',
+        queryset=ISISInstance.objects.all(),
+        label=_('IS-IS Source (ID)'),
+    )
+
+    class Meta:
+        model = ISISRedistribution
+        fields = ('instance_id', 'metric', 'route_tag')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(route_policy__icontains=value)
+
+
+@register_filterset
+class ISISSummaryAddressFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    level = django_filters.MultipleChoiceFilter(
+        choices=ISISLevelScopeChoices,
+        label=_('Level'),
+    )
+    prefix = django_filters.CharFilter(method='filter_prefix', label=_('Prefix'))
+
+    class Meta:
+        model = ISISSummaryAddress
+        fields = ('instance_id', 'prefix', 'not_advertise', 'metric', 'route_tag')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(prefix__icontains=value)
+
+    def filter_prefix(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        try:
+            return queryset.filter(prefix=str(netaddr.IPNetwork(value).cidr))
+        except (netaddr.AddrFormatError, ValueError):
+            return queryset.none()
+
+
+@register_filterset
+class ISISRouteLeakFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    address_family = django_filters.MultipleChoiceFilter(
+        choices=ISISAddressFamilyChoices,
+        label=_('Address Family'),
+    )
+
+    class Meta:
+        model = ISISRouteLeak
+        fields = ('instance_id',)
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(route_policy__icontains=value)

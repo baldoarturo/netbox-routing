@@ -27,6 +27,9 @@ from netbox_routing_protocols.filtersets.isis import (
     ISISFlexAlgoFilterSet,
     ISISPrefixSIDFilterSet,
     ISISSRv6LocatorFilterSet,
+    ISISRedistributionFilterSet,
+    ISISSummaryAddressFilterSet,
+    ISISRouteLeakFilterSet,
 )
 from netbox_routing_protocols.forms import *
 from netbox_routing_protocols.models import (
@@ -39,6 +42,9 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.tables.isis import (
     ISISInstanceTable,
@@ -50,6 +56,9 @@ from netbox_routing_protocols.tables.isis import (
     ISISFlexAlgoTable,
     ISISPrefixSIDTable,
     ISISSRv6LocatorTable,
+    ISISRedistributionTable,
+    ISISSummaryAddressTable,
+    ISISRouteLeakTable,
 )
 from netbox_routing_protocols.ui import *
 
@@ -97,8 +106,32 @@ __all__ = (
     'ISISSRv6LocatorDeleteView',
     'ISISSRv6LocatorBulkDeleteView',
     'ISISSRv6LocatorBulkImportView',
+    'ISISRedistributionListView',
+    'ISISRedistributionView',
+    'ISISRedistributionEditView',
+    'ISISRedistributionBulkEditView',
+    'ISISRedistributionDeleteView',
+    'ISISRedistributionBulkDeleteView',
+    'ISISRedistributionBulkImportView',
+    'ISISSummaryAddressListView',
+    'ISISSummaryAddressView',
+    'ISISSummaryAddressEditView',
+    'ISISSummaryAddressBulkEditView',
+    'ISISSummaryAddressDeleteView',
+    'ISISSummaryAddressBulkDeleteView',
+    'ISISSummaryAddressBulkImportView',
+    'ISISRouteLeakListView',
+    'ISISRouteLeakView',
+    'ISISRouteLeakEditView',
+    'ISISRouteLeakBulkEditView',
+    'ISISRouteLeakDeleteView',
+    'ISISRouteLeakBulkDeleteView',
+    'ISISRouteLeakBulkImportView',
     'ISISInstanceLevelsView',
     'ISISInstanceFlexAlgosView',
+    'ISISInstanceRedistributionsView',
+    'ISISInstanceSummaryAddressesView',
+    'ISISInstanceRouteLeaksView',
     'ISISInstanceSRv6LocatorsView',
     'ISISInterfaceLevelsView',
     'ISISInterfacePrefixSidsView',
@@ -221,6 +254,14 @@ class ISISLevelBulkImportView(BulkImportView):
     model_form = ISISLevelImportForm
 
 
+@register_model_view(ISISLevel, name='bulk_edit', detail=False)
+class ISISLevelBulkEditView(BulkEditView):
+    queryset = ISISLevel.objects.all()
+    filterset = ISISLevelFilterSet
+    table = ISISLevelTable
+    form = ISISLevelBulkEditForm
+
+
 @register_model_view(ISISLevel, name='bulk_delete', detail=False)
 class ISISLevelBulkDeleteView(BulkDeleteView):
     queryset = ISISLevel.objects.all()
@@ -265,6 +306,14 @@ class ISISInterfaceLevelDeleteView(ObjectDeleteView):
 class ISISInterfaceLevelBulkImportView(BulkImportView):
     queryset = ISISInterfaceLevel.objects.all()
     model_form = ISISInterfaceLevelImportForm
+
+
+@register_model_view(ISISInterfaceLevel, name='bulk_edit', detail=False)
+class ISISInterfaceLevelBulkEditView(BulkEditView):
+    queryset = ISISInterfaceLevel.objects.all()
+    filterset = ISISInterfaceLevelFilterSet
+    table = ISISInterfaceLevelTable
+    form = ISISInterfaceLevelBulkEditForm
 
 
 @register_model_view(ISISInterfaceLevel, name='bulk_delete', detail=False)
@@ -313,6 +362,14 @@ class ISISSegmentRoutingBulkImportView(BulkImportView):
     model_form = ISISSegmentRoutingImportForm
 
 
+@register_model_view(ISISSegmentRouting, name='bulk_edit', detail=False)
+class ISISSegmentRoutingBulkEditView(BulkEditView):
+    queryset = ISISSegmentRouting.objects.all()
+    filterset = ISISSegmentRoutingFilterSet
+    table = ISISSegmentRoutingTable
+    form = ISISSegmentRoutingBulkEditForm
+
+
 @register_model_view(ISISSegmentRouting, name='bulk_delete', detail=False)
 class ISISSegmentRoutingBulkDeleteView(BulkDeleteView):
     queryset = ISISSegmentRouting.objects.all()
@@ -357,6 +414,14 @@ class ISISFlexAlgoDeleteView(ObjectDeleteView):
 class ISISFlexAlgoBulkImportView(BulkImportView):
     queryset = ISISFlexAlgo.objects.all()
     model_form = ISISFlexAlgoImportForm
+
+
+@register_model_view(ISISFlexAlgo, name='bulk_edit', detail=False)
+class ISISFlexAlgoBulkEditView(BulkEditView):
+    queryset = ISISFlexAlgo.objects.all()
+    filterset = ISISFlexAlgoFilterSet
+    table = ISISFlexAlgoTable
+    form = ISISFlexAlgoBulkEditForm
 
 
 @register_model_view(ISISFlexAlgo, name='bulk_delete', detail=False)
@@ -405,6 +470,14 @@ class ISISPrefixSIDBulkImportView(BulkImportView):
     model_form = ISISPrefixSIDImportForm
 
 
+@register_model_view(ISISPrefixSID, name='bulk_edit', detail=False)
+class ISISPrefixSIDBulkEditView(BulkEditView):
+    queryset = ISISPrefixSID.objects.all()
+    filterset = ISISPrefixSIDFilterSet
+    table = ISISPrefixSIDTable
+    form = ISISPrefixSIDBulkEditForm
+
+
 @register_model_view(ISISPrefixSID, name='bulk_delete', detail=False)
 class ISISPrefixSIDBulkDeleteView(BulkDeleteView):
     queryset = ISISPrefixSID.objects.all()
@@ -449,6 +522,14 @@ class ISISSRv6LocatorDeleteView(ObjectDeleteView):
 class ISISSRv6LocatorBulkImportView(BulkImportView):
     queryset = ISISSRv6Locator.objects.all()
     model_form = ISISSRv6LocatorImportForm
+
+
+@register_model_view(ISISSRv6Locator, name='bulk_edit', detail=False)
+class ISISSRv6LocatorBulkEditView(BulkEditView):
+    queryset = ISISSRv6Locator.objects.all()
+    filterset = ISISSRv6LocatorFilterSet
+    table = ISISSRv6LocatorTable
+    form = ISISSRv6LocatorBulkEditForm
 
 
 @register_model_view(ISISSRv6Locator, name='bulk_delete', detail=False)
@@ -691,3 +772,224 @@ class ISISInterfaceBulkDeleteView(BulkDeleteView):
     queryset = ISISInterface.objects.all()
     filterset = ISISInterfaceFilterSet
     table = ISISInterfaceTable
+
+
+ISISREDISTRIBUTION_QUERYSET = ISISRedistribution.objects.select_related(
+    'instance__device',
+    'instance__vrf',
+    'ospf_source__device',
+    'eigrp_source__device',
+    'bgp_source__asn',
+    'isis_source__device',
+).prefetch_related('bgp_source__assigned_object')
+
+
+@register_model_view(ISISRedistribution, name='list', path='', detail=False)
+class ISISRedistributionListView(ObjectListView):
+    queryset = ISISREDISTRIBUTION_QUERYSET
+    filterset = ISISRedistributionFilterSet
+    filterset_form = ISISRedistributionFilterForm
+    table = ISISRedistributionTable
+
+
+@register_model_view(ISISRedistribution)
+class ISISRedistributionView(ObjectView):
+    queryset = ISISREDISTRIBUTION_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[ISISRedistributionPanel(), TagsPanel()],
+        right_panels=[panels.CommentsPanel(), panels.RelatedObjectsPanel()],
+    )
+
+
+@register_model_view(ISISRedistribution, name='add', detail=False)
+@register_model_view(ISISRedistribution, name='edit')
+class ISISRedistributionEditView(ObjectEditView):
+    queryset = ISISREDISTRIBUTION_QUERYSET
+    form = ISISRedistributionForm
+
+
+@register_model_view(ISISRedistribution, name='delete')
+class ISISRedistributionDeleteView(ObjectDeleteView):
+    queryset = ISISREDISTRIBUTION_QUERYSET
+
+
+@register_model_view(ISISRedistribution, name='bulk_import', detail=False)
+class ISISRedistributionBulkImportView(BulkImportView):
+    queryset = ISISREDISTRIBUTION_QUERYSET
+    model_form = ISISRedistributionImportForm
+
+
+@register_model_view(ISISRedistribution, name='bulk_edit', detail=False)
+class ISISRedistributionBulkEditView(BulkEditView):
+    queryset = ISISREDISTRIBUTION_QUERYSET
+    filterset = ISISRedistributionFilterSet
+    table = ISISRedistributionTable
+    form = ISISRedistributionBulkEditForm
+
+
+@register_model_view(ISISRedistribution, name='bulk_delete', detail=False)
+class ISISRedistributionBulkDeleteView(BulkDeleteView):
+    queryset = ISISREDISTRIBUTION_QUERYSET
+    filterset = ISISRedistributionFilterSet
+    table = ISISRedistributionTable
+
+
+ISISSUMMARYADDRESS_QUERYSET = ISISSummaryAddress.objects.select_related(
+    'instance__device', 'instance__vrf'
+)
+
+
+@register_model_view(ISISSummaryAddress, name='list', path='', detail=False)
+class ISISSummaryAddressListView(ObjectListView):
+    queryset = ISISSUMMARYADDRESS_QUERYSET
+    filterset = ISISSummaryAddressFilterSet
+    filterset_form = ISISSummaryAddressFilterForm
+    table = ISISSummaryAddressTable
+
+
+@register_model_view(ISISSummaryAddress)
+class ISISSummaryAddressView(ObjectView):
+    queryset = ISISSUMMARYADDRESS_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[ISISSummaryAddressPanel(), TagsPanel()],
+        right_panels=[panels.CommentsPanel(), panels.RelatedObjectsPanel()],
+    )
+
+
+@register_model_view(ISISSummaryAddress, name='add', detail=False)
+@register_model_view(ISISSummaryAddress, name='edit')
+class ISISSummaryAddressEditView(ObjectEditView):
+    queryset = ISISSUMMARYADDRESS_QUERYSET
+    form = ISISSummaryAddressForm
+
+
+@register_model_view(ISISSummaryAddress, name='delete')
+class ISISSummaryAddressDeleteView(ObjectDeleteView):
+    queryset = ISISSUMMARYADDRESS_QUERYSET
+
+
+@register_model_view(ISISSummaryAddress, name='bulk_import', detail=False)
+class ISISSummaryAddressBulkImportView(BulkImportView):
+    queryset = ISISSUMMARYADDRESS_QUERYSET
+    model_form = ISISSummaryAddressImportForm
+
+
+@register_model_view(ISISSummaryAddress, name='bulk_edit', detail=False)
+class ISISSummaryAddressBulkEditView(BulkEditView):
+    queryset = ISISSUMMARYADDRESS_QUERYSET
+    filterset = ISISSummaryAddressFilterSet
+    table = ISISSummaryAddressTable
+    form = ISISSummaryAddressBulkEditForm
+
+
+@register_model_view(ISISSummaryAddress, name='bulk_delete', detail=False)
+class ISISSummaryAddressBulkDeleteView(BulkDeleteView):
+    queryset = ISISSUMMARYADDRESS_QUERYSET
+    filterset = ISISSummaryAddressFilterSet
+    table = ISISSummaryAddressTable
+
+
+ISISROUTELEAK_QUERYSET = ISISRouteLeak.objects.select_related(
+    'instance__device', 'instance__vrf'
+)
+
+
+@register_model_view(ISISRouteLeak, name='list', path='', detail=False)
+class ISISRouteLeakListView(ObjectListView):
+    queryset = ISISROUTELEAK_QUERYSET
+    filterset = ISISRouteLeakFilterSet
+    filterset_form = ISISRouteLeakFilterForm
+    table = ISISRouteLeakTable
+
+
+@register_model_view(ISISRouteLeak)
+class ISISRouteLeakView(ObjectView):
+    queryset = ISISROUTELEAK_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[ISISRouteLeakPanel(), TagsPanel()],
+        right_panels=[panels.CommentsPanel(), panels.RelatedObjectsPanel()],
+    )
+
+
+@register_model_view(ISISRouteLeak, name='add', detail=False)
+@register_model_view(ISISRouteLeak, name='edit')
+class ISISRouteLeakEditView(ObjectEditView):
+    queryset = ISISROUTELEAK_QUERYSET
+    form = ISISRouteLeakForm
+
+
+@register_model_view(ISISRouteLeak, name='delete')
+class ISISRouteLeakDeleteView(ObjectDeleteView):
+    queryset = ISISROUTELEAK_QUERYSET
+
+
+@register_model_view(ISISRouteLeak, name='bulk_import', detail=False)
+class ISISRouteLeakBulkImportView(BulkImportView):
+    queryset = ISISROUTELEAK_QUERYSET
+    model_form = ISISRouteLeakImportForm
+
+
+@register_model_view(ISISRouteLeak, name='bulk_edit', detail=False)
+class ISISRouteLeakBulkEditView(BulkEditView):
+    queryset = ISISROUTELEAK_QUERYSET
+    filterset = ISISRouteLeakFilterSet
+    table = ISISRouteLeakTable
+    form = ISISRouteLeakBulkEditForm
+
+
+@register_model_view(ISISRouteLeak, name='bulk_delete', detail=False)
+class ISISRouteLeakBulkDeleteView(BulkDeleteView):
+    queryset = ISISROUTELEAK_QUERYSET
+    filterset = ISISRouteLeakFilterSet
+    table = ISISRouteLeakTable
+
+
+@register_model_view(ISISInstance, name='redistributions')
+class ISISInstanceRedistributionsView(ObjectChildrenView):
+    queryset = ISISInstance.objects.all()
+    child_model = ISISRedistribution
+    table = ISISRedistributionTable
+    filterset = ISISRedistributionFilterSet
+    tab = ViewTab(
+        label=_('Redistribution'),
+        badge=lambda obj: ISISRedistribution.objects.filter(instance=obj).count(),
+        hide_if_empty=False,
+    )
+
+    def get_children(self, request, parent):
+        return ISISREDISTRIBUTION_QUERYSET.filter(instance=parent)
+
+
+@register_model_view(ISISInstance, name='summary-addresses')
+class ISISInstanceSummaryAddressesView(ObjectChildrenView):
+    queryset = ISISInstance.objects.all()
+    child_model = ISISSummaryAddress
+    table = ISISSummaryAddressTable
+    filterset = ISISSummaryAddressFilterSet
+    tab = ViewTab(
+        label=_('Summary Addresses'),
+        badge=lambda obj: ISISSummaryAddress.objects.filter(instance=obj).count(),
+        hide_if_empty=False,
+    )
+
+    def get_children(self, request, parent):
+        return ISISSUMMARYADDRESS_QUERYSET.filter(instance=parent)
+
+
+@register_model_view(ISISInstance, name='route-leaks')
+class ISISInstanceRouteLeaksView(ObjectChildrenView):
+    queryset = ISISInstance.objects.all()
+    child_model = ISISRouteLeak
+    table = ISISRouteLeakTable
+    filterset = ISISRouteLeakFilterSet
+    tab = ViewTab(
+        label=_('Route Leaking'),
+        badge=lambda obj: ISISRouteLeak.objects.filter(instance=obj).count(),
+        hide_if_empty=False,
+    )
+
+    def get_children(self, request, parent):
+        return ISISROUTELEAK_QUERYSET.filter(instance=parent)

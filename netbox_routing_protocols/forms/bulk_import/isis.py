@@ -8,6 +8,9 @@ from netbox.forms import NetBoxModelImportForm
 from utilities.forms.fields import CSVModelChoiceField
 
 from netbox_routing_protocols.models import (
+    BGPRouter,
+    EIGRPRouter,
+    OSPFInstance,
     ISISInstance,
     ISISInterface,
     ISISSetting,
@@ -17,6 +20,9 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.models.objects import RoutePolicy
 
@@ -30,6 +36,9 @@ __all__ = (
     'ISISFlexAlgoImportForm',
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
+    'ISISRedistributionImportForm',
+    'ISISSummaryAddressImportForm',
+    'ISISRouteLeakImportForm',
 )
 
 
@@ -154,6 +163,8 @@ class ISISInterfaceLevelImportForm(NetBoxModelImportForm):
             'hello_multiplier',
             'priority',
             'passive',
+            'hello_auth_type',
+            'hello_auth_key',
             'description',
             'comments',
             'tags',
@@ -302,6 +313,11 @@ class ISISInterfaceImportForm(NetBoxModelImportForm):
             'retransmit_interval',
             'lsp_interval',
             'mesh_group',
+            'hello_padding',
+            'ldp_sync',
+            'prefix_suppression',
+            'route_tag',
+            'three_way_handshake',
             'description',
             'comments',
             'tags',
@@ -316,6 +332,95 @@ class ISISSettingImportForm(NetBoxModelImportForm):
             'assigned_object_id',
             'key',
             'value',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISRedistributionImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+    ospf_source = CSVModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        help_text=_('Primary key of OSPF Instance'),
+    )
+    eigrp_source = CSVModelChoiceField(
+        queryset=EIGRPRouter.objects.all(),
+        required=False,
+        help_text=_('Primary key of EIGRP Router'),
+    )
+    bgp_source = CSVModelChoiceField(
+        queryset=BGPRouter.objects.all(),
+        required=False,
+        help_text=_('Primary key of BGP Router'),
+    )
+    isis_source = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISRedistribution
+        fields = (
+            'instance',
+            'address_family',
+            'protocol',
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            'level',
+            'metric',
+            'metric_type',
+            'route_tag',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISSummaryAddressImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISSummaryAddress
+        fields = (
+            'instance',
+            'prefix',
+            'level',
+            'not_advertise',
+            'metric',
+            'route_tag',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISRouteLeakImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISRouteLeak
+        fields = (
+            'instance',
+            'address_family',
+            'route_policy',
             'description',
             'comments',
             'tags',

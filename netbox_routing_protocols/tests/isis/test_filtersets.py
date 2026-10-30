@@ -8,13 +8,21 @@ from ipam.models import VRF
 from utilities.testing import create_test_device
 
 from netbox_routing_protocols.filtersets import (
+    ISISRedistributionFilterSet,
+    ISISRouteLeakFilterSet,
+    ISISSummaryAddressFilterSet,
     ISISInstanceFilterSet,
     ISISInterfaceFilterSet,
+    ISISPrefixSIDFilterSet,
     ISISSettingFilterSet,
     ISISSRv6LocatorFilterSet,
 )
 from netbox_routing_protocols.models import (
+    ISISRedistribution,
+    ISISRouteLeak,
+    ISISSummaryAddress,
     ISISInstance,
+    ISISPrefixSID,
     ISISInterface,
     ISISSetting,
     ISISSRv6Locator,
@@ -22,6 +30,8 @@ from netbox_routing_protocols.models import (
 
 __all__ = (
     'ISISInstanceFilterSetTestCase',
+    'ISISAttributeFilterSetTestCase',
+    'ISISRoutingFilterSetTestCase',
     'ISISInterfaceFilterSetTestCase',
     'ISISSettingFilterSetTestCase',
     'ISISSRv6LocatorFilterSetTestCase',
@@ -344,3 +354,156 @@ class ISISSettingFilterSetTestCase(TestCase):
     def test_search_ignores_blank(self):
         # A blank/whitespace term must not filter anything out.
         self.assertEqual(self.filterset().search(self.queryset, 'q', '   ').count(), 2)
+
+
+class ISISAttributeFilterSetTestCase(TestCase):
+    """Filters on the attributes of the instance, interface and prefix-SID (#441)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        devices = [create_test_device(name=f'Device {i}') for i in (1, 2)]
+        cls.instances = [
+            ISISInstance.objects.create(
+                device=devices[0],
+                metric_style='wide',
+                overload_bit=True,
+                fast_reroute='ti-lfa',
+                distance=115,
+            ),
+            ISISInstance.objects.create(
+                device=devices[1], metric_style='narrow', te_enabled=True
+            ),
+        ]
+        cls.interfaces = [
+            ISISInterface.objects.create(
+                instance=cls.instances[0],
+                interface=Interface.objects.create(
+                    name='eth0', device=devices[0], type='virtual'
+                ),
+                address_family='ipv4',
+                bfd_enabled=True,
+                frr_protection='node',
+                mesh_group='blocked',
+            ),
+            ISISInterface.objects.create(
+                instance=cls.instances[1],
+                interface=Interface.objects.create(
+                    name='eth0', device=devices[1], type='virtual'
+                ),
+                address_family='ipv4',
+                bfd_enabled=False,
+            ),
+        ]
+        ISISPrefixSID.objects.create(
+            interface=cls.interfaces[0], sid_index=1, no_php=True
+        )
+        ISISPrefixSID.objects.create(
+            interface=cls.interfaces[1], sid_index=2, no_php=False
+        )
+
+    def _ids(self, filterset, params, queryset):
+        return set(filterset(params, queryset).qs.values_list('pk', flat=True))
+
+    def test_instance_filters(self):
+        qs = ISISInstance.objects.all()
+        first, second = self.instances
+        for params, expected in (
+            ({'metric_style': ['wide']}, first),
+            ({'overload_bit': True}, first),
+            ({'fast_reroute': ['ti-lfa']}, first),
+            ({'distance': [115]}, first),
+            ({'te_enabled': True}, second),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self._ids(ISISInstanceFilterSet, params, qs), {expected.pk}
+                )
+
+    def test_interface_filters(self):
+        qs = ISISInterface.objects.all()
+        first, second = self.interfaces
+        for params, expected in (
+            ({'bfd_enabled': True}, first),
+            ({'bfd_enabled': False}, second),
+            ({'frr_protection': ['node']}, first),
+            ({'mesh_group': ['blocked']}, first),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(
+                    self._ids(ISISInterfaceFilterSet, params, qs), {expected.pk}
+                )
+
+    def test_prefix_sid_flag_filter(self):
+        qs = ISISPrefixSID.objects.all()
+        self.assertEqual(ISISPrefixSIDFilterSet({'no_php': True}, qs).qs.count(), 1)
+
+
+class ISISRoutingFilterSetTestCase(TestCase):
+    """Filters of redistribution, summary addresses and route leaking (#443, #444)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        devices = [create_test_device(name=f'Device {i}') for i in (1, 2)]
+        cls.instances = [
+            ISISInstance.objects.create(device=devices[0], process_tag='A'),
+            ISISInstance.objects.create(device=devices[1], process_tag='B'),
+        ]
+        ISISRedistribution.objects.create(
+            instance=cls.instances[0], protocol='connected', level='level-1'
+        )
+        ISISRedistribution.objects.create(
+            instance=cls.instances[0],
+            protocol='static',
+            address_family='ipv6',
+            route_policy='TO-L2',
+        )
+        ISISRedistribution.objects.create(
+            instance=cls.instances[1],
+            protocol='isis',
+            isis_source=cls.instances[0],
+            metric=50,
+        )
+        ISISSummaryAddress.objects.create(
+            instance=cls.instances[0], prefix='10.0.0.0/8', not_advertise=True
+        )
+        ISISSummaryAddress.objects.create(
+            instance=cls.instances[1], prefix='2001:db8::/32', level='level-1'
+        )
+        ISISRouteLeak.objects.create(instance=cls.instances[0])
+        ISISRouteLeak.objects.create(
+            instance=cls.instances[0], address_family='ipv6', route_policy='LEAK'
+        )
+
+    def count(self, filterset, queryset, params):
+        return filterset(params, queryset).qs.count()
+
+    def test_redistribution(self):
+        qs = ISISRedistribution.objects.all()
+        f = ISISRedistributionFilterSet
+        self.assertEqual(self.count(f, qs, {'protocol': ['static']}), 1)
+        self.assertEqual(self.count(f, qs, {'address_family': ['ipv6']}), 1)
+        self.assertEqual(self.count(f, qs, {'level': ['level-1']}), 1)
+        self.assertEqual(self.count(f, qs, {'metric': [50]}), 1)
+        self.assertEqual(
+            self.count(f, qs, {'isis_source_id': [self.instances[0].pk]}), 1
+        )
+        self.assertEqual(
+            self.count(f, qs, {'device_id': [self.instances[0].device_id]}), 2
+        )
+        self.assertEqual(self.count(f, qs, {'q': 'TO-L2'}), 1)
+
+    def test_summary_address(self):
+        qs = ISISSummaryAddress.objects.all()
+        f = ISISSummaryAddressFilterSet
+        self.assertEqual(self.count(f, qs, {'prefix': '10.0.0.0/8'}), 1)
+        self.assertEqual(self.count(f, qs, {'level': ['level-1']}), 1)
+        self.assertEqual(self.count(f, qs, {'not_advertise': True}), 1)
+        self.assertEqual(self.count(f, qs, {'instance_id': [self.instances[1].pk]}), 1)
+        self.assertEqual(self.count(f, qs, {'prefix': 'invalid'}), 0)
+
+    def test_route_leak(self):
+        qs = ISISRouteLeak.objects.all()
+        f = ISISRouteLeakFilterSet
+        self.assertEqual(self.count(f, qs, {'address_family': ['ipv6']}), 1)
+        self.assertEqual(self.count(f, qs, {'q': 'LEAK'}), 1)
+        self.assertEqual(self.count(f, qs, {'instance_id': [self.instances[0].pk]}), 2)

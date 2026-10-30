@@ -3,17 +3,26 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from dcim.models import Interface
+from ipam.models import VRF
+from utilities.exceptions import AbortRequest
 from utilities.testing import create_test_device
 
+from netbox_routing_protocols.helpers.isis import net_error
 from netbox_routing_protocols.models import (
+    OSPFInstance,
     ISISFlexAlgo,
     ISISInstance,
     ISISInterface,
+    ISISInterfaceLevel,
+    ISISLevel,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
     ISISSegmentRouting,
     ISISSetting,
 )
@@ -27,6 +36,13 @@ __all__ = (
     'ISISSegmentRoutingCleanTestCase',
     'ISISSRv6LocatorModelTestCase',
     'ISISMigrationStateTestCase',
+    'ISISConsistencyTestCase',
+    'ISISRoutingModelsTestCase',
+    'ISISNetTestCase',
+    'ISISRangeTestCase',
+    'ISISSegmentRoutingRulesTestCase',
+    'ISISLongTailSettingTestCase',
+    'ISISInterfaceOptionsTestCase',
 )
 
 
@@ -381,6 +397,8 @@ class ISISPrefixSIDModelTestCase(TestCase):
         instance = ISISInstance.objects.create(
             device=device, process_tag='CORE', net='49.0001.0000.0000.0001.00'
         )
+        for algo_id in (128, 255):
+            ISISFlexAlgo.objects.create(instance=instance, algo_id=algo_id)
         loopback = Interface.objects.create(
             name='Loopback0', device=device, type='virtual'
         )
@@ -493,6 +511,8 @@ class ISISSRv6LocatorModelTestCase(TestCase):
         cls.instance = ISISInstance.objects.create(
             device=device, process_tag='CORE', net='49.0001.0000.0000.0001.00'
         )
+        for algo_id in (128, 255):
+            ISISFlexAlgo.objects.create(instance=cls.instance, algo_id=algo_id)
 
     def test_clean_rejects_oversized_sid_structure(self):
         # 40 + 24 + 48 + 32 = 144 > 128
@@ -625,3 +645,541 @@ class ISISMigrationStateTestCase(TestCase):
         self.assertEqual(
             dropped, [], f'CreateModel bases dropped DeleteMixin for: {dropped}'
         )
+
+
+class ISISConsistencyTestCase(TestCase):
+    """Rules between the instance, its interfaces and its levels (#419, #420, #421)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.other_device = create_test_device(name='Device 2')
+        cls.vrf = VRF.objects.create(name='VRF 1')
+        cls.instance = ISISInstance.objects.create(
+            device=cls.device, process_tag='CORE', is_type='level-1-2'
+        )
+
+    def _interface(self, **kwargs):
+        kwargs.setdefault('device', self.device)
+        return Interface.objects.create(name='eth0', type='virtual', **kwargs)
+
+    def test_interface_vrf_must_match_instance(self):
+        entry = ISISInterface(
+            instance=self.instance,
+            interface=self._interface(vrf=self.vrf),
+            address_family='ipv4',
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            entry.clean()
+        self.assertIn('interface', ctx.exception.message_dict)
+
+    def test_interface_vrf_matching_is_accepted(self):
+        instance = ISISInstance.objects.create(
+            device=self.device, process_tag='VRF', vrf=self.vrf
+        )
+        ISISInterface(
+            instance=instance,
+            interface=self._interface(vrf=self.vrf),
+            address_family='ipv4',
+        ).clean()
+
+    def test_moving_interface_to_another_vrf_is_refused(self):
+        interface = self._interface()
+        ISISInterface.objects.create(
+            instance=self.instance, interface=interface, address_family='ipv4'
+        )
+        interface.vrf = self.vrf
+        with self.assertRaises(AbortRequest):
+            interface.save()
+
+    def test_changing_instance_device_is_refused_with_interfaces(self):
+        ISISInterface.objects.create(
+            instance=self.instance,
+            interface=self._interface(),
+            address_family='ipv4',
+        )
+        self.instance.device = self.other_device
+        with self.assertRaises(ValidationError):
+            self.instance.clean()
+
+    def test_circuit_type_must_share_a_level_with_is_type(self):
+        self.instance.is_type = 'level-1'
+        entry = ISISInterface(
+            instance=self.instance,
+            interface=self._interface(),
+            address_family='ipv4',
+            circuit_type='level-2-only',
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            entry.clean()
+        self.assertIn('circuit_type', ctx.exception.message_dict)
+
+    def test_interface_level_must_be_run_by_circuit(self):
+        entry = ISISInterface.objects.create(
+            instance=self.instance,
+            interface=self._interface(),
+            address_family='ipv4',
+            circuit_type='level-1',
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            ISISInterfaceLevel(interface=entry, level=2).clean()
+        self.assertIn('level', ctx.exception.message_dict)
+        ISISInterfaceLevel(interface=entry, level=1).clean()
+
+    def test_changing_is_type_is_refused_with_existing_level(self):
+        ISISLevel.objects.create(instance=self.instance, level=1)
+        self.instance.is_type = 'level-2-only'
+        with self.assertRaises(ValidationError):
+            self.instance.clean()
+
+    def test_level_not_run_is_accepted_when_disabled(self):
+        self.instance.is_type = 'level-2-only'
+        ISISLevel(instance=self.instance, level=1, disabled=True).clean()
+
+    def test_wide_metrics_only_conflicts_with_narrow_style(self):
+        self.instance.metric_style = 'narrow'
+        level = ISISLevel(instance=self.instance, level=1, wide_metrics_only=True)
+        with self.assertRaises(ValidationError) as ctx:
+            level.clean()
+        self.assertIn('wide_metrics_only', ctx.exception.message_dict)
+
+
+class ISISNetTestCase(SimpleTestCase):
+    """NET format (ISO 10589, RFC 1195) (#422)."""
+
+    def test_valid_nets(self):
+        for net in (
+            '49.0001.1921.6800.1001.00',
+            '49.01.1921.6800.1001.00',  # one-byte area
+            '47.0005.80ff.f800.0000.0001.0000.0000.0001.00',  # long area
+            '490001192168001001.00',
+        ):
+            with self.subTest(net=net):
+                self.assertIsNone(net_error(net))
+
+    def test_invalid_nets(self):
+        for net in (
+            '49.0001.1921.6800.1001.01',  # selector
+            '49.0001.1921.6800.1001.0',  # odd digits
+            '49.0001.zzzz.6800.1001.00',
+            '1921.6800.1001.00',  # no area
+            '49.' + '0001.' * 10 + '00',  # more than 20 bytes
+        ):
+            with self.subTest(net=net):
+                self.assertIsNotNone(net_error(net))
+
+
+class ISISRangeTestCase(TestCase):
+    """Limits and ordering of the timers, counters and metrics (#425)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(device=cls.device)
+
+    def _errors(self, obj):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.clean()
+        return ctx.exception.message_dict
+
+    def test_instance_refresh_must_be_below_lifetime(self):
+        self.instance.lsp_lifetime = 1200
+        self.instance.lsp_refresh_interval = 1200
+        self.assertIn('lsp_refresh_interval', self._errors(self.instance))
+        self.instance.lsp_refresh_interval = 900
+        self.instance.clean()
+
+    def test_instance_max_wait_not_below_initial_wait(self):
+        self.instance.spf_initial_wait = 500
+        self.instance.spf_max_wait = 100
+        self.assertIn('spf_max_wait', self._errors(self.instance))
+
+    def test_instance_ranges(self):
+        for field, value in (
+            ('distance', 0),
+            ('distance', 256),
+            ('maximum_paths', 0),
+            ('lsp_mtu', 100),
+            ('lsp_lifetime', 70000),
+        ):
+            with self.subTest(field=field, value=value):
+                instance = ISISInstance(device=self.device, process_tag='X')
+                setattr(instance, field, value)
+                self.assertIn(field, self._errors(instance))
+
+    def test_overload_timeout_needs_overload_on_startup(self):
+        self.instance.overload_timeout = 300
+        self.assertIn('overload_timeout', self._errors(self.instance))
+        self.instance.overload_on_startup = True
+        self.instance.clean()
+
+    def test_interface_metric_depends_on_metric_style(self):
+        interface = Interface.objects.create(
+            name='eth0', device=self.device, type='virtual'
+        )
+        entry = ISISInterface(
+            instance=self.instance,
+            interface=interface,
+            address_family='ipv4',
+            metric=100,
+        )
+        entry.clean()  # wide
+        self.instance.metric_style = 'narrow'
+        self.assertIn('metric', self._errors(entry))
+        self.instance.metric_style = 'wide'
+        entry.metric = 16777215
+        self.assertIn('metric', self._errors(entry))
+
+    def test_interface_level_ranges(self):
+        interface = Interface.objects.create(
+            name='eth0', device=self.device, type='virtual'
+        )
+        entry = ISISInterface.objects.create(
+            instance=self.instance, interface=interface, address_family='ipv4'
+        )
+        for field, value in (
+            ('priority', 128),
+            ('hello_multiplier', 1),
+            ('hello_interval', 0),
+        ):
+            with self.subTest(field=field):
+                level = ISISInterfaceLevel(interface=entry, level=1)
+                setattr(level, field, value)
+                self.assertIn(field, self._errors(level))
+
+    def test_te_router_id_family(self):
+        setting = ISISSetting(
+            assigned_object=self.instance,
+            key='te_ipv4_router_id',
+            value='2001:db8::1',
+        )
+        with self.assertRaises(ValidationError):
+            setting.clean()
+        setting.value = 'Loopback0'  # Cisco interface reference
+        setting.clean()
+        setting.value = '192.0.2.1'
+        setting.clean()
+
+
+class ISISSegmentRoutingRulesTestCase(TestCase):
+    """RFC 8667, RFC 8986 and RFC 9350 rules of the segment routing models (#431, #436, #440)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(device=cls.device)
+        interface = Interface.objects.create(
+            name='lo0', device=cls.device, type='virtual'
+        )
+        cls.isis_interface = ISISInterface.objects.create(
+            instance=cls.instance, interface=interface, address_family='ipv4'
+        )
+
+    def _errors(self, obj):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.clean()
+        return ctx.exception.message_dict
+
+    def test_no_php_and_explicit_null_are_exclusive(self):
+        sid = ISISPrefixSID(
+            interface=self.isis_interface, sid_index=1, no_php=True, explicit_null=True
+        )
+        self.assertIn('no_php', self._errors(sid))
+
+    def test_label_range(self):
+        for label in (15, 1048576):
+            with self.subTest(label=label):
+                sid = ISISPrefixSID(interface=self.isis_interface, sid_label=label)
+                self.assertIn('sid_label', self._errors(sid))
+        ISISPrefixSID(interface=self.isis_interface, sid_label=16).clean()
+
+    def test_flex_algo_sid_needs_the_flex_algo(self):
+        sid = ISISPrefixSID(interface=self.isis_interface, algorithm=128, sid_index=1)
+        self.assertIn('algorithm', self._errors(sid))
+        ISISFlexAlgo.objects.create(instance=self.instance, algo_id=128)
+        sid.clean()
+
+    def test_index_must_fit_the_srgb(self):
+        ISISSegmentRouting.objects.create(
+            instance=self.instance, srgb_start=16000, srgb_range=8000
+        )
+        sid = ISISPrefixSID(interface=self.isis_interface, sid_index=8000)
+        self.assertIn('sid_index', self._errors(sid))
+        sid.sid_index = 7999
+        sid.clean()
+
+    def test_node_flag_needs_a_host_prefix(self):
+        from ipam.models import IPAddress
+
+        IPAddress.objects.create(
+            address='192.0.2.1/24', assigned_object=self.isis_interface.interface
+        )
+        sid = ISISPrefixSID(interface=self.isis_interface, sid_index=1, n_flag=True)
+        self.assertIn('n_flag', self._errors(sid))
+        IPAddress.objects.create(
+            address='192.0.2.2/32', assigned_object=self.isis_interface.interface
+        )
+        sid.clean()
+
+    def test_srgb_and_srlb_limits_and_overlap(self):
+        sr = ISISSegmentRouting(instance=self.instance, srgb_start=8, srgb_range=100)
+        self.assertIn('srgb_start', self._errors(sr))
+        sr = ISISSegmentRouting(
+            instance=self.instance, srgb_start=1048000, srgb_range=1000
+        )
+        self.assertIn('srgb_start', self._errors(sr))
+        sr = ISISSegmentRouting(
+            instance=self.instance,
+            srgb_start=16000,
+            srgb_range=8000,
+            srlb_start=20000,
+            srlb_range=1000,
+        )
+        self.assertIn('srlb_start', self._errors(sr))
+        sr.srlb_start = 15000
+        sr.srlb_range = 1000
+        sr.clean()
+
+    def test_srv6_locator_prefix_rules(self):
+        locator = ISISSRv6Locator(
+            instance=self.instance, name='L', prefix='192.0.2.0/24'
+        )
+        self.assertIn('prefix', self._errors(locator))
+        locator = ISISSRv6Locator(
+            instance=self.instance,
+            name='L',
+            prefix='2001:db8:1::/48',
+            block_length=32,
+            node_length=8,
+        )
+        self.assertIn('prefix', self._errors(locator))
+        locator.node_length = 16
+        locator.clean()
+
+    def test_srv6_locator_flex_algo_must_exist(self):
+        locator = ISISSRv6Locator(
+            instance=self.instance, name='L', prefix='2001:db8:1::/48', algorithm=130
+        )
+        self.assertIn('algorithm', self._errors(locator))
+
+    def test_flex_algo_priority_range(self):
+        algo = ISISFlexAlgo(instance=self.instance, algo_id=128, priority=256)
+        self.assertIn('priority', self._errors(algo))
+
+    def test_flex_algo_metric_type_is_a_choice(self):
+        algo = ISISFlexAlgo(instance=self.instance, algo_id=128, metric_type='cost')
+        with self.assertRaises(ValidationError) as ctx:
+            algo.full_clean(exclude=['instance'])
+        self.assertIn('metric_type', ctx.exception.message_dict)
+
+
+class ISISLongTailSettingTestCase(TestCase):
+    """The graceful restart, overload and limit settings (#449)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.instance = ISISInstance.objects.create(
+            device=create_test_device(name='Device 1')
+        )
+
+    def _setting(self, key, value):
+        return ISISSetting(assigned_object=self.instance, key=key, value=value)
+
+    def test_new_keys_are_typed(self):
+        self._setting('graceful_restart_t3', '120').clean()
+        self._setting('overload_wait_for_bgp', 'true').clean()
+        with self.assertRaises(ValidationError):
+            self._setting('graceful_restart_t3', 'soon').clean()
+        with self.assertRaises(ValidationError):
+            self._setting('adjacency_check', 'maybe').clean()
+
+    def test_max_area_addresses_limit(self):
+        self._setting('max_area_addresses', '3').clean()
+        with self.assertRaises(ValidationError):
+            self._setting('max_area_addresses', '255').clean()
+
+
+class ISISInterfaceOptionsTestCase(TestCase):
+    """Per-interface options and per-level hello authentication (#448)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Device 1')
+        instance = ISISInstance.objects.create(device=device)
+        cls.isis_interface = ISISInterface.objects.create(
+            instance=instance,
+            interface=Interface.objects.create(
+                name='eth0', device=device, type='virtual'
+            ),
+            address_family='ipv4',
+            hello_padding=False,
+            ldp_sync=True,
+            three_way_handshake=False,
+            route_tag=100,
+        )
+
+    def test_options_are_saved(self):
+        self.isis_interface.refresh_from_db()
+        self.assertIs(self.isis_interface.hello_padding, False)
+        self.assertIs(self.isis_interface.ldp_sync, True)
+        self.assertIsNone(self.isis_interface.prefix_suppression)
+        self.assertEqual(self.isis_interface.route_tag, 100)
+
+    def test_route_tag_range(self):
+        self.isis_interface.route_tag = 4294967296
+        with self.assertRaises(ValidationError) as ctx:
+            self.isis_interface.clean()
+        self.assertIn('route_tag', ctx.exception.message_dict)
+
+    def test_level_hello_auth_needs_type_and_key(self):
+        level = ISISInterfaceLevel(
+            interface=self.isis_interface, level=1, hello_auth_type='md5'
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            level.clean()
+        self.assertIn('hello_auth_key', ctx.exception.message_dict)
+        level.hello_auth_key = 'secret'
+        level.clean()
+
+
+class ISISRoutingModelsTestCase(TestCase):
+    """Redistribution, summary addresses and route leaking (#443, #444)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(
+            device=cls.device, process_tag='CORE', metric_style='wide'
+        )
+
+    def assertRejects(self, obj, field):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.full_clean()
+        self.assertIn(field, ctx.exception.error_dict)
+
+    def test_redistribution_connected_needs_no_source(self):
+        ISISRedistribution(instance=self.instance, protocol='connected').full_clean()
+
+    def test_redistribution_isis_requires_source(self):
+        self.assertRejects(
+            ISISRedistribution(instance=self.instance, protocol='isis'), 'isis_source'
+        )
+
+    def test_redistribution_rejects_source_of_other_protocol(self):
+        other = ISISInstance.objects.create(device=self.device, process_tag='B')
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='connected', isis_source=other
+            ),
+            'isis_source',
+        )
+
+    def test_redistribution_isis_not_into_itself(self):
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='isis', isis_source=self.instance
+            ),
+            'isis_source',
+        )
+
+    def test_redistribution_source_on_instance_device(self):
+        other_device = create_test_device(name='Device 2')
+        ospf = OSPFInstance.objects.create(
+            device=other_device, name='1', router_id='10.0.0.1'
+        )
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='ospf', ospf_source=ospf
+            ),
+            'ospf_source',
+        )
+        same = OSPFInstance.objects.create(
+            device=self.device, name='2', router_id='10.0.0.2'
+        )
+        ISISRedistribution(
+            instance=self.instance, protocol='ospf', ospf_source=same
+        ).full_clean()
+
+    def test_redistribution_level_must_be_run_by_instance(self):
+        l1 = ISISInstance.objects.create(
+            device=self.device, process_tag='L1', is_type='level-1'
+        )
+        self.assertRejects(
+            ISISRedistribution(instance=l1, protocol='static', level='level-2'),
+            'level',
+        )
+        ISISRedistribution(
+            instance=l1, protocol='static', level='level-1-2'
+        ).full_clean()
+
+    def test_redistribution_metric_follows_metric_style(self):
+        narrow = ISISInstance.objects.create(
+            device=self.device, process_tag='N', metric_style='narrow'
+        )
+        self.assertRejects(
+            ISISRedistribution(instance=narrow, protocol='static', metric=64), 'metric'
+        )
+        ISISRedistribution(
+            instance=self.instance, protocol='static', metric=64
+        ).full_clean()
+        self.assertRejects(
+            ISISRedistribution(
+                instance=self.instance, protocol='static', metric=16777215
+            ),
+            'metric',
+        )
+
+    def test_redistribution_unique_per_family_and_level(self):
+        ISISRedistribution.objects.create(instance=self.instance, protocol='static')
+        self.assertRejects(
+            ISISRedistribution(instance=self.instance, protocol='static'),
+            '__all__',
+        )
+        ISISRedistribution(
+            instance=self.instance, protocol='static', address_family='ipv6'
+        ).full_clean()
+
+    def test_summary_address_rejects_host_bits(self):
+        self.assertRejects(
+            ISISSummaryAddress(instance=self.instance, prefix='10.0.0.1/8'), 'prefix'
+        )
+
+    def test_summary_address_accepts_both_families(self):
+        ISISSummaryAddress(instance=self.instance, prefix='10.0.0.0/8').full_clean()
+        ISISSummaryAddress(instance=self.instance, prefix='2001:db8::/32').full_clean()
+
+    def test_summary_address_level_and_metric(self):
+        l2 = ISISInstance.objects.create(
+            device=self.device, process_tag='L2', is_type='level-2-only'
+        )
+        self.assertRejects(
+            ISISSummaryAddress(instance=l2, prefix='10.0.0.0/8', level='level-1'),
+            'level',
+        )
+        self.assertRejects(
+            ISISSummaryAddress(
+                instance=self.instance, prefix='10.0.0.0/8', metric=16777215
+            ),
+            'metric',
+        )
+
+    def test_summary_address_unique_per_level(self):
+        ISISSummaryAddress.objects.create(instance=self.instance, prefix='10.0.0.0/8')
+        self.assertRejects(
+            ISISSummaryAddress(instance=self.instance, prefix='10.0.0.0/8'), '__all__'
+        )
+        ISISSummaryAddress(
+            instance=self.instance, prefix='10.0.0.0/8', level='level-1'
+        ).full_clean()
+
+    def test_route_leak_needs_both_levels(self):
+        ISISRouteLeak(instance=self.instance).full_clean()
+        l2 = ISISInstance.objects.create(
+            device=self.device, process_tag='L2', is_type='level-2-only'
+        )
+        self.assertRejects(ISISRouteLeak(instance=l2), 'instance')
+
+    def test_route_leak_unique_per_family(self):
+        ISISRouteLeak.objects.create(instance=self.instance)
+        self.assertRejects(ISISRouteLeak(instance=self.instance), '__all__')
+        ISISRouteLeak(instance=self.instance, address_family='ipv6').full_clean()

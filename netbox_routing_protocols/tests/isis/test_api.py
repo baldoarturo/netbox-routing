@@ -20,6 +20,9 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.tests.base import LeanCoreTestsMixin
 
@@ -31,6 +34,9 @@ __all__ = (
     'ISISInterfaceLevelAPITestCase',
     'ISISSegmentRoutingAPITestCase',
     'ISISFlexAlgoAPITestCase',
+    'ISISRedistributionAPITestCase',
+    'ISISSummaryAddressAPITestCase',
+    'ISISRouteLeakAPITestCase',
     'ISISPrefixSIDAPITestCase',
     'ISISSRv6LocatorAPITestCase',
     'ISISSettingPrefetchAPITestCase',
@@ -420,6 +426,7 @@ class ISISPrefixSIDAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestC
     def setUpTestData(cls):
         device = create_test_device(name='Test Device')
         inst = ISISInstance.objects.create(device=device, process_tag='0')
+        ISISFlexAlgo.objects.create(instance=inst, algo_id=128)
         ifaces = [
             Interface.objects.create(
                 device=device, name=f'Loopback {n}', type='virtual'
@@ -457,6 +464,7 @@ class ISISSRv6LocatorAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTes
             ISISInstance.objects.create(device=device, process_tag=str(n))
             for n in range(2)
         ]
+        ISISFlexAlgo.objects.create(instance=insts[1], algo_id=128)
         ISISSRv6Locator.objects.create(
             instance=insts[0], name='LOC1', prefix='2001:db8:0:a1::/64', enabled=True
         )
@@ -697,3 +705,84 @@ class ISISSettingAssignmentAPITestCase(APITestCase):
         )
         self.assertEqual(response.status_code, 400, response.content)
         self.assertEqual(ISISSetting.objects.count(), 0)
+
+
+class ISISRedistributionAPITestCase(
+    LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
+):
+    model = ISISRedistribution
+    view_namespace = 'plugins-api:netbox_routing_protocols'
+    graphql_base_name = 'isis_redistribution'
+    brief_fields = ['display', 'id', 'instance', 'protocol', 'url']
+    user_permissions = ('netbox_routing_protocols.view_isisinstance',)
+    bulk_update_data = {'route_policy': 'POLICY-X'}
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        inst = ISISInstance.objects.create(device=device, process_tag='0')
+        ISISRedistribution.objects.create(instance=inst, protocol='connected')
+        ISISRedistribution.objects.create(
+            instance=inst, protocol='static', address_family='ipv6', metric=20
+        )
+        ISISRedistribution.objects.create(
+            instance=inst, protocol='connected', address_family='ipv6'
+        )
+        cls.create_data = [
+            {
+                'instance': inst.pk,
+                'protocol': 'static',
+                'level': 'level-1',
+                'metric': 100,
+                'metric_type': 'external',
+            },
+        ]
+
+
+class ISISSummaryAddressAPITestCase(
+    LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
+):
+    model = ISISSummaryAddress
+    view_namespace = 'plugins-api:netbox_routing_protocols'
+    graphql_base_name = 'isis_summary_address'
+    brief_fields = ['display', 'id', 'instance', 'prefix', 'url']
+    user_permissions = ('netbox_routing_protocols.view_isisinstance',)
+    bulk_update_data = {'metric': 50}
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        inst = ISISInstance.objects.create(device=device, process_tag='0')
+        ISISSummaryAddress.objects.create(instance=inst, prefix='10.0.0.0/8')
+        ISISSummaryAddress.objects.create(instance=inst, prefix='10.1.0.0/16')
+        ISISSummaryAddress.objects.create(instance=inst, prefix='2001:db8::/32')
+        cls.create_data = [
+            {'instance': inst.pk, 'prefix': '192.168.0.0/16', 'level': 'level-1-2'},
+        ]
+
+
+class ISISRouteLeakAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase):
+    model = ISISRouteLeak
+    view_namespace = 'plugins-api:netbox_routing_protocols'
+    graphql_base_name = 'isis_route_leak'
+    brief_fields = ['address_family', 'display', 'id', 'instance', 'url']
+    user_permissions = ('netbox_routing_protocols.view_isisinstance',)
+    bulk_update_data = {'route_policy': 'LEAK'}
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        insts = [
+            ISISInstance.objects.create(device=device, process_tag=str(n))
+            for n in range(3)
+        ]
+        ISISRouteLeak.objects.create(instance=insts[0], address_family='ipv4')
+        ISISRouteLeak.objects.create(instance=insts[0], address_family='ipv6')
+        ISISRouteLeak.objects.create(instance=insts[1], address_family='ipv4')
+        cls.create_data = [
+            {
+                'instance': insts[2].pk,
+                'address_family': 'ipv4',
+                'route_policy': 'LEAK-L2',
+            },
+        ]

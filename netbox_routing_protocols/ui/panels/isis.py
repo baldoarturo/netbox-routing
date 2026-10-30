@@ -17,6 +17,9 @@ __all__ = (
     'ISISFlexAlgoPanel',
     'ISISPrefixSIDPanel',
     'ISISSRv6LocatorPanel',
+    'ISISRedistributionPanel',
+    'ISISSummaryAddressPanel',
+    'ISISRouteLeakPanel',
 )
 
 
@@ -93,6 +96,7 @@ class ISISInterfaceLevelPanel(panels.ObjectAttributesPanel):
     )
     priority = attrs.NumericAttr('priority', label=_('Priority'))
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
+    hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
 
 
 class ISISSegmentRoutingPanel(panels.ObjectAttributesPanel):
@@ -192,6 +196,15 @@ class ISISInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     )
     lsp_interval = attrs.NumericAttr('lsp_interval', label=_('LSP Interval'))
     mesh_group = attrs.TextAttr('mesh_group', label=_('Mesh Group'))
+    hello_padding = attrs.BooleanAttr('hello_padding', label=_('Hello Padding'))
+    ldp_sync = attrs.BooleanAttr('ldp_sync', label=_('LDP-IGP Sync'))
+    prefix_suppression = attrs.BooleanAttr(
+        'prefix_suppression', label=_('Prefix Suppression')
+    )
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    three_way_handshake = attrs.BooleanAttr(
+        'three_way_handshake', label=_('Three-way Handshake')
+    )
     hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
     hello_auth_key = attrs.TextAttr('hello_auth_key', label=_('Hello Auth Key'))
     description = attrs.TextAttr('description', label=_('Description'))
@@ -202,3 +215,33 @@ class ISISSettingPanel(panels.ObjectAttributesPanel):
     assigned_object = attrs.RelatedObjectAttr('assigned_object', linkify=True)
     name = attrs.TextAttr('key', label=_('Name'))
     value = attrs.TextAttr('value', label=_('Value'))
+
+
+class ISISRedistributionPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    protocol = attrs.ChoiceAttr('protocol', label=_('Protocol'))
+    source = attrs.TextAttr('source', label=_('Source'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    metric_type = attrs.ChoiceAttr('metric_type', label=_('Metric Type'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISSummaryAddressPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    not_advertise = attrs.BooleanAttr('not_advertise', label=_('Do Not Advertise'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISRouteLeakPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))
