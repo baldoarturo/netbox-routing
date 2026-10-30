@@ -1,10 +1,11 @@
-# OSPF
+# OSPF (OSPFv2 and OSPFv3)
 
 **Routing → OSPF**
 
 OSPF (Open Shortest Path First) is a link-state interior routing protocol: every router floods
 descriptions of its links, and each one computes the shortest paths on its own. The plugin models
-**OSPF version 2 for IPv4**, defined in [RFC 2328](https://www.rfc-editor.org/rfc/rfc2328), and the
+**OSPF version 2 for IPv4**, defined in [RFC 2328](https://www.rfc-editor.org/rfc/rfc2328), and
+**OSPF version 3 for IPv6**, defined in [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340), and the
 extensions that real networks use on top of it. Defaults and ranges follow the RFC, and each feature
 below says which RFC it comes from.
 
@@ -373,6 +374,29 @@ prefix LSA of [RFC 7684](https://www.rfc-editor.org/rfc/rfc7684)). It needs segm
 
 One SID per prefix and algorithm. You cannot disable segment routing while SIDs exist, nor shrink the
 SRGB below an existing index.
+
+## Bulk import (CSV)
+
+Every OSPF object can be imported from a CSV file (**Import** button of each menu entry). The first
+column is always the **device** (its name), because the names of instances and the area IDs are only
+unique inside a device: the other columns are looked up on that device. Columns with a default can be
+left out. Choices are written as in the forms (`point_to_point`, `static`, ...); a list such as the OSPF
+route types is separated by commas.
+
+| Import | Columns that identify the row (besides the fields of the object) |
+| --- | --- |
+| Instance | `device`, `name`, `router_id`, `vrf` (optional), `address_family` (`ipv4` by default) |
+| Area | `device`, `instance` (name), `area_id` |
+| Interface | `device`, `instance`, `area` (the area ID), `interface` (name), `network_type` |
+| Network | `device`, `ospf_interface` (name of the interface), `ip_address` (with its mask) |
+| Neighbor | `device`, `ospf_interface`, `ip_address`, `priority`, `poll_interval` |
+| Redistribution | `device`, `instance`, `protocol`, and the source: `ospf_source`, `eigrp_source`, `bgp_source` or `isis_source` (names); `route_policy` (name) |
+| Virtual link | `device`, `instance`, `transit_area` (the area ID), `remote_router_id` |
+| Summary address | `device`, `instance`, `prefix` |
+| Area range | `device`, `instance`, `area` (the area ID), `prefix`, `range_type` |
+| Prefix SID | `device`, `instance`, `prefix`, `sid`, `sid_type`, `algorithm` |
+
+The same validations as in the forms apply, row by row.
 
 ## Changes that would break OSPF objects
 

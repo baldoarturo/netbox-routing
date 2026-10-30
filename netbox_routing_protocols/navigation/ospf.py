@@ -74,6 +74,12 @@ ospf_networks = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_ospfnetwork'],
         ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfnetwork_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfnetwork'],
+        ),
     ),
 )
 
@@ -87,6 +93,12 @@ ospf_redistributions = PluginMenuItem(
             title='Add',
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_ospfredistribution'],
+        ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfredistribution_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfredistribution'],
         ),
     ),
 )
@@ -102,6 +114,12 @@ ospf_virtual_links = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_ospfvirtuallink'],
         ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfvirtuallink_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfvirtuallink'],
+        ),
     ),
 )
 
@@ -115,6 +133,12 @@ ospf_summary_addresses = PluginMenuItem(
             title='Add',
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_ospfsummaryaddress'],
+        ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfsummaryaddress_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfsummaryaddress'],
         ),
     ),
 )
@@ -130,6 +154,12 @@ ospf_neighbors = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_ospfneighbor'],
         ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfneighbor_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfneighbor'],
+        ),
     ),
 )
 
@@ -144,6 +174,12 @@ ospf_area_ranges = PluginMenuItem(
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_ospfarearange'],
         ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfarearange_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfarearange'],
+        ),
     ),
 )
 
@@ -157,6 +193,12 @@ ospf_prefix_sids = PluginMenuItem(
             title='Add',
             icon_class=COL_ADD,
             permissions=['netbox_routing_protocols.add_ospfprefixsid'],
+        ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfprefixsid_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfprefixsid'],
         ),
     ),
 )

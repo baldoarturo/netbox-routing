@@ -41,6 +41,13 @@ __all__ = (
     'OSPFInstanceImportForm',
     'OSPFAreaImportForm',
     'OSPFInterfaceImportForm',
+    'OSPFNetworkImportForm',
+    'OSPFRedistributionImportForm',
+    'OSPFVirtualLinkImportForm',
+    'OSPFSummaryAddressImportForm',
+    'OSPFNeighborImportForm',
+    'OSPFAreaRangeImportForm',
+    'OSPFPrefixSIDImportForm',
     # Static
     'StaticRouteImportForm',
 )
