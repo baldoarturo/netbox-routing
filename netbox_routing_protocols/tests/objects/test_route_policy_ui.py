@@ -37,7 +37,7 @@ class RoutePolicyDeleteTestCase(SuperuserMixin, TestCase):
         RoutePolicyEntry.objects.create(
             route_policy=cls.used, sequence=10, action='permit'
         )
-        cls.template = create_peer_address_family(routepolicy_in=cls.used)
+        cls.template = create_peer_address_family(import_policy=cls.used)
 
     def test_the_single_delete_is_refused_and_names_the_user(self):
         self.login()

@@ -37,6 +37,8 @@ An instance is "this AS, on this device, in this routing table". A device has **
 | Router ID | The BGP identifier, a 32-bit value written as an IPv4 address and never `0.0.0.0` ([RFC 6286](https://www.rfc-editor.org/rfc/rfc6286)). |
 | AS dot notation | Write four-octet ASNs as `high.low` ([RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)). |
 | Graceful restart | Keep forwarding while the neighbor's BGP restarts ([RFC 4724](https://www.rfc-editor.org/rfc/rfc4724)). |
+| Restart time, Stale paths time, Helper only | The timers of graceful restart (they need *Graceful restart*): the restart time is advertised to the neighbors (0 to 4095 seconds, 12 bits), the stale paths time is how long the routes of a restarting neighbor are kept, *helper only* helps the neighbors to restart without restarting gracefully itself. |
+| Import policy, Export policy | A [route policy](../routing-objects.md#route-policies) for every neighbor of the instance, see [Route policy](#route-policy). |
 | Tenant | Optional owner. |
 
 ## Address families
@@ -69,6 +71,7 @@ An instance can have each family once. Options of the family:
 | Auto summary | Summarize routes at classful boundaries (legacy; disabled on modern platforms). |
 | eBGP / iBGP distance | Administrative distance of the routes learned from each kind of session (vendor feature). |
 | Additional paths (send / receive / install) | Advertise or accept more than one path per prefix ([RFC 7911](https://www.rfc-editor.org/rfc/rfc7911)). |
+| Long-lived stale time | Seconds the routes of a neighbor that went down are kept, marked `LLGR_STALE` (long-lived graceful restart, [RFC 9494](https://www.rfc-editor.org/rfc/rfc9494), up to 16777215; it needs *Graceful restart* on the instance). |
 
 ## Peer groups
 
@@ -107,7 +110,10 @@ Session options, on a peer and on a peer group (the peer needs a remote AS, its 
 | Local AS | Optional, a different ASN to present to this neighbor (used in AS migrations; a vendor feature). |
 | Enabled | Administratively enable or disable the session. |
 | BFD profile | Detect failure fast, see [BFD](../bfd.md). |
-| TTL | The TTL of the session's packets. For directly connected eBGP set **255** to apply the *Generalized TTL Security Mechanism*, [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082). |
+| eBGP multihop | Maximum hops to a neighbor that is not directly connected (an eBGP neighbor is expected one hop away). |
+| TTL security hops | *Generalized TTL Security Mechanism*, [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082): the neighbor is at most this many hops away and packets with a lower TTL are dropped. It cannot be used together with *eBGP multihop*. |
+| Passive | Wait for the neighbor to open the TCP connection instead of opening it ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) section 8). |
+| Import policy, Export policy | See [Route policy](#route-policy). |
 | Password | The shared secret of the TCP session, stored as plain text. The TCP MD5 option, [RFC 2385](https://www.rfc-editor.org/rfc/rfc2385), is superseded by TCP-AO ([RFC 5925](https://www.rfc-editor.org/rfc/rfc5925)). |
 | Keepalive time, Hold time | Seconds. The hold time is negotiated in the OPEN message: zero (no keepalives) or at least 3; keepalives are sent about every third of it ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271)). |
 
@@ -124,7 +130,24 @@ address family of the instance (for example IPv4 unicast) plus the filters appli
 | Address family | One of the instance's address families. |
 | Enabled | Activate the family for the neighbor. |
 | Prefix list in / out | Prefix lists ([routing objects](../routing-objects.md#prefix-lists)) that filter what is received from and sent to the neighbor. Their family (IPv4 or IPv6) must match the address family; families that carry no IP prefixes (EVPN, VPLS, link-state...) take none. |
-| Route policy in / out | Route policies that filter or modify routes in each direction. |
+| Import policy, Export policy | Route policies that filter or modify the routes received from and sent to the neighbor, see [Route policy](#route-policy). |
+| Send community | Which communities are sent to the neighbor: standard ([RFC 1997](https://www.rfc-editor.org/rfc/rfc1997)), extended ([RFC 4360](https://www.rfc-editor.org/rfc/rfc4360)) and/or large ([RFC 8092](https://www.rfc-editor.org/rfc/rfc8092)). Cisco, Arista and FRR send none unless it is configured; Juniper sends them all. Empty uses the one of the peer group, else the platform default. |
+| Next hop self, Remove private AS, Allow AS in | Advertise this router as the next hop; remove private ASNs from the AS path; accept routes with the local AS in the AS path up to that many times (vendor features). |
+| Maximum prefixes | The number of prefixes accepted from the neighbor in this family. When exceeded the session is ceased ([RFC 4486](https://www.rfc-editor.org/rfc/rfc4486), subcode *Maximum Number of Prefixes Reached*). *Warning* is the percentage of the limit that logs a warning; *Action* is **Cease, restart after a time** (with the minutes to wait), **Cease, until cleared** or **Warning only**. |
+## Route policy
+
+A [route policy](../routing-objects.md#route-policies) can be set at five levels: the **instance** (for every
+neighbor), the **peer group**, the **peer**, the **peer group's address family** and the **peer's address family**.
+*Import* is what is accepted from the neighbor and *export* what is advertised to it
+([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) section 9). The **most specific wins**: the peer address
+family, then the same family of the peer's group, then the peer, then its peer group, then the instance. The page
+of a peer address family shows the *effective* policy and the level it comes from. A route policy in use cannot be
+deleted.
+
+**eBGP without policy (RFC 8212).** An eBGP speaker must not accept or advertise any route on a session that has
+no explicit import and export policy ([RFC 8212](https://www.rfc-editor.org/rfc/rfc8212)). The page of a peer
+or a peer group whose remote AS differs from the instance's lists, in a warning, the enabled address families
+with no policy at any level. Nothing is blocked: the plugin only documents.
 
 ## Migrating from netbox-bgp
 
@@ -139,7 +162,8 @@ Every object also has `description`, `comments`, tags and custom fields, which a
 ```text
 BGP instance
 ├─ name · device → Device · vrf → VRF · asn → ASN · tenant → Tenant
-├─ router_id · asdot? · graceful_restart?
+├─ router_id · asdot? · graceful_restart? · graceful_restart_time · graceful_restart_stale_time
+│     · graceful_restart_helper_only? · import_policy → Route policy · export_policy → Route policy
 │
 ├─ Address family
 │     instance → BGP instance · tenant → Tenant
@@ -148,22 +172,28 @@ BGP instance
 │     · maximum_paths · default_metric · default_originate? · auto_summary?
 │     · distance_ebgp · distance_ibgp
 │     · additional_paths_send? · additional_paths_receive? · additional_paths_install?
+│     · long_lived_stale_time
 │
 ├─ Peer group
 │     name · instance → BGP instance · tenant → Tenant
-│     · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · ttl · password
-│     · keepalive · hold_time
+│     · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · password
+│     · ebgp_multihop · ttl_security_hops · passive? · keepalive · hold_time
+│     · import_policy → Route policy · export_policy → Route policy
 │     └─ Peer address family (see below)
 │
 └─ Peer
       name · instance → BGP instance · tenant → Tenant
       · peer → IP address · source → IP address · peer_group → Peer group
       · status {Active | Planned | Offline | Failed}
-      · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · ttl · password
-      · keepalive · hold_time
+      · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · password
+      · ebgp_multihop · ttl_security_hops · passive? · keepalive · hold_time
+      · import_policy → Route policy · export_policy → Route policy
       └─ Peer address family
             peer → Peer, or peer_group → Peer group · address_family → Address family
             · enabled? · tenant → Tenant
             · prefixlist_in → Prefix list · prefixlist_out → Prefix list
-            · routepolicy_in → Route policy · routepolicy_out → Route policy
+            · import_policy → Route policy · export_policy → Route policy
+            · send_community {Standard | Extended | Large} · next_hop_self? · remove_private_as? · allowas_in
+            · maximum_prefix · maximum_prefix_warning · maximum_prefix_action {Cease, restart | Cease, until cleared | Warning only}
+            · maximum_prefix_restart
 ```

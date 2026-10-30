@@ -1188,7 +1188,7 @@ class ASPathView(GetRelatedModelsMixin, ObjectView):
         policies = RoutePolicy.objects.filter(
             route_policy_entries__match_aspath=instance
         )
-        in_use = Q(routepolicy_in__in=policies) | Q(routepolicy_out__in=policies)
+        in_use = Q(import_policy__in=policies) | Q(export_policy__in=policies)
         return {
             'related_models': self.get_related_models(
                 request,

@@ -81,6 +81,8 @@ class BGPInstanceView(ObjectView):
     layout = layout.SimpleLayout(
         left_panels=[
             BGPInstancePanel(),
+            BGPGracefulRestartPanel(title=_('Graceful restart')),
+            BGPRoutePolicyPanel(title=_('Route policy')),
             TagsPanel(),
         ],
         right_panels=[
@@ -289,8 +291,10 @@ class BGPPeerGroupView(ObjectView):
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
+            BGPNoPolicyPanel(title=_('No explicit policy')),
             BGPPeerGroupPanel(),
             BGPPeerSessionPanel(title=_('Session')),
+            BGPRoutePolicyPanel(title=_('Route policy')),
             TagsPanel(),
         ],
         right_panels=[
@@ -298,6 +302,9 @@ class BGPPeerGroupView(ObjectView):
             panels.RelatedObjectsPanel(),
         ],
     )
+
+    def get_extra_context(self, request, instance):
+        return {'sessions_without_policy': instance.sessions_without_policy()}
 
 
 @register_model_view(BGPPeerGroup, name='add', detail=False)
@@ -448,8 +455,10 @@ class BGPPeerView(ObjectView):
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
+            BGPNoPolicyPanel(title=_('No explicit policy')),
             BGPPeerPanel(),
             BGPPeerSessionPanel(title=_('Session')),
+            BGPRoutePolicyPanel(title=_('Route policy')),
             TagsPanel(),
         ],
         right_panels=[
@@ -457,6 +466,9 @@ class BGPPeerView(ObjectView):
             panels.RelatedObjectsPanel(),
         ],
     )
+
+    def get_extra_context(self, request, instance):
+        return {'sessions_without_policy': instance.sessions_without_policy()}
 
 
 @register_model_view(BGPPeer, name='add', detail=False)
@@ -570,8 +582,8 @@ class BGPPeerAddressFamilyListView(ObjectListView):
         'address_family__instance',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerAddressFamilyFilterSet
@@ -588,15 +600,17 @@ class BGPPeerAddressFamilyView(ObjectView):
         'address_family__instance',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
             BGPPeerAddressFamilyPanel(),
+            BGPEffectivePolicyPanel(title=_('Effective route policy')),
             BGPPolicyFilteringPanel(title=_('Filtering')),
+            BGPPeerAddressFamilyOptionsPanel(title=_('Options')),
             TagsPanel(),
         ],
         right_panels=[
@@ -616,8 +630,8 @@ class BGPPeerAddressFamilyEditView(ObjectEditView):
         'address_family__instance',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     form = BGPPeerAddressFamilyForm
@@ -632,8 +646,8 @@ class BGPPeerAddressFamilyDeleteView(ObjectDeleteView):
         'address_family__instance',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
 
@@ -647,8 +661,8 @@ class BGPPeerAddressFamilyBulkEditView(BulkEditView):
         'address_family__instance',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerAddressFamilyFilterSet
@@ -665,8 +679,8 @@ class BGPPeerAddressFamilyBulkDeleteView(BulkDeleteView):
         'address_family__instance',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerAddressFamilyFilterSet

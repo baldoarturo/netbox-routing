@@ -49,7 +49,7 @@ class RoutePolicyUsedByTestCase(TestCase):
             rid='1.1.1.1',
             import_policy=self.policy,
         )
-        create_peer_address_family(routepolicy_in=self.policy)
+        create_peer_address_family(import_policy=self.policy)
         RoutePolicyEntry.objects.create(
             route_policy=self.other,
             sequence=10,
@@ -60,7 +60,7 @@ class RoutePolicyUsedByTestCase(TestCase):
         for param in (
             f'import_policy_id={self.policy.pk}',
             f'export_policy_id={self.policy.pk}',
-            f'routepolicy_in_id={self.policy.pk}',
+            f'import_policy_id={self.policy.pk}',
             f'jump_policy_id={self.policy.pk}',
         ):
             with self.subTest(param):

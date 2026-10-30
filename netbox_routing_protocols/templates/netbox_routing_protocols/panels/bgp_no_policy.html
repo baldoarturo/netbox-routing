@@ -1,0 +1,17 @@
+{% extends 'ui/panels/_base.html' %}
+{% load i18n %}
+
+{% block panel_content %}
+  <div class="alert alert-warning mb-0" role="alert">
+    <p class="mb-2">
+      {% blocktrans trimmed %}
+        An eBGP session without an explicit import or export policy must not accept or advertise any route (RFC 8212). Set a route policy on the address family, the peer, the peer group or the instance.
+      {% endblocktrans %}
+    </p>
+    <ul class="mb-0">
+      {% for peer_af, direction in sessions_without_policy %}
+        <li><a href="{{ peer_af.get_absolute_url }}">{{ peer_af }}</a>: {{ direction }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endblock panel_content %}

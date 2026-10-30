@@ -43,7 +43,25 @@ class BGPPeerConfigBulkEditMixin(forms.Form):
         required=False,
         selector=True,
     )
-    ttl = forms.IntegerField(label=_('TTL'), required=False, min_value=1, max_value=255)
+    ebgp_multihop = forms.IntegerField(
+        label=_('eBGP Multihop'), required=False, min_value=1, max_value=255
+    )
+    ttl_security_hops = forms.IntegerField(
+        label=_('TTL Security Hops'), required=False, min_value=1, max_value=254
+    )
+    passive = _tristate(_('Passive'))
+    import_policy = DynamicModelChoiceField(
+        label=_('Import Policy'),
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+    )
+    export_policy = DynamicModelChoiceField(
+        label=_('Export Policy'),
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+    )
     keepalive = forms.IntegerField(
         label=_('Keepalive Time'), required=False, min_value=0, max_value=21845
     )
@@ -57,7 +75,11 @@ _CONFIG_NULLABLE = (
     'local_as',
     'enabled',
     'bfd',
-    'ttl',
+    'ebgp_multihop',
+    'ttl_security_hops',
+    'passive',
+    'import_policy',
+    'export_policy',
     'keepalive',
     'hold_time',
     'description',
@@ -75,13 +97,34 @@ class BGPInstanceBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
     )
     asdot = _tristate(_('AS Dot Notation'))
     graceful_restart = _tristate(_('Graceful Restart'))
+    import_policy = DynamicModelChoiceField(
+        label=_('Import Policy'),
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+    )
+    export_policy = DynamicModelChoiceField(
+        label=_('Export Policy'),
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+    )
 
     fieldsets = (
         FieldSet('description'),
         FieldSet('vrf', 'asn', 'asdot', 'graceful_restart', name=_('BGP')),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant', name=_('Tenancy')),
     )
-    nullable_fields = ('vrf', 'asdot', 'graceful_restart', 'description', 'tenant')
+    nullable_fields = (
+        'vrf',
+        'asdot',
+        'graceful_restart',
+        'import_policy',
+        'export_policy',
+        'description',
+        'tenant',
+    )
 
 
 class BGPAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
@@ -103,6 +146,12 @@ class BGPAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm
     additional_paths_send = _tristate(_('Additional Paths (send)'))
     additional_paths_receive = _tristate(_('Additional Paths (receive)'))
     additional_paths_install = _tristate(_('Additional Paths (install)'))
+    long_lived_stale_time = forms.IntegerField(
+        label=_('Long-Lived Graceful Restart Stale Time'),
+        required=False,
+        min_value=0,
+        max_value=16777215,
+    )
 
     fieldsets = (
         FieldSet('description'),
@@ -119,6 +168,7 @@ class BGPAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm
             'additional_paths_send',
             'additional_paths_receive',
             'additional_paths_install',
+            'long_lived_stale_time',
             name=_('Additional paths'),
         ),
         FieldSet('tenant', name=_('Tenancy')),
@@ -133,6 +183,7 @@ class BGPAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm
         'additional_paths_send',
         'additional_paths_receive',
         'additional_paths_install',
+        'long_lived_stale_time',
         'description',
         'tenant',
     )
@@ -149,11 +200,14 @@ class BGPPeerGroupBulkEditForm(
             'local_as',
             'enabled',
             'bfd',
-            'ttl',
+            'ebgp_multihop',
+            'ttl_security_hops',
+            'passive',
             'keepalive',
             'hold_time',
             name=_('Session'),
         ),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant', name=_('Tenancy')),
     )
     nullable_fields = _CONFIG_NULLABLE
@@ -186,11 +240,14 @@ class BGPPeerBulkEditForm(
             'local_as',
             'enabled',
             'bfd',
-            'ttl',
+            'ebgp_multihop',
+            'ttl_security_hops',
+            'passive',
             'keepalive',
             'hold_time',
             name=_('Session'),
         ),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant', name=_('Tenancy')),
     )
     nullable_fields = _CONFIG_NULLABLE + ('peer_group', 'source', 'status')
@@ -211,35 +268,60 @@ class BGPPeerAddressFamilyBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEdit
         required=False,
         selector=True,
     )
-    routepolicy_in = DynamicModelChoiceField(
-        label=_('Route Policy (in)'),
+    import_policy = DynamicModelChoiceField(
+        label=_('Import Policy'),
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
     )
-    routepolicy_out = DynamicModelChoiceField(
-        label=_('Route Policy (out)'),
+    export_policy = DynamicModelChoiceField(
+        label=_('Export Policy'),
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
+    )
+    send_community = forms.MultipleChoiceField(
+        label=_('Send Community'),
+        choices=BGPCommunityTypeChoices,
+        required=False,
+    )
+    next_hop_self = _tristate(_('Next Hop Self'))
+    remove_private_as = _tristate(_('Remove Private AS'))
+    allowas_in = forms.IntegerField(
+        label=_('Allow AS In'), required=False, min_value=1, max_value=10
+    )
+    maximum_prefix = forms.IntegerField(
+        label=_('Maximum Prefixes'), required=False, min_value=1
     )
     fieldsets = (
         FieldSet('description', 'enabled'),
         FieldSet(
+            'send_community',
+            'next_hop_self',
+            'remove_private_as',
+            'allowas_in',
+            'maximum_prefix',
+            name=_('Options'),
+        ),
+        FieldSet(
             'prefixlist_in',
             'prefixlist_out',
-            'routepolicy_in',
-            'routepolicy_out',
+            'import_policy',
+            'export_policy',
             name=_('Filtering'),
         ),
         FieldSet('tenant', name=_('Tenancy')),
     )
     nullable_fields = (
         'enabled',
+        'next_hop_self',
+        'remove_private_as',
+        'allowas_in',
+        'maximum_prefix',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'description',
         'tenant',
     )
