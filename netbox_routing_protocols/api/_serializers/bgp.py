@@ -2,8 +2,11 @@ from rest_framework import serializers
 
 from dcim.api.serializers_.devices import DeviceSerializer
 from ipam.api.serializers_.asns import ASNSerializer
-from ipam.api.serializers_.ip import IPAddressSerializer
+from dcim.api.serializers_.device_components import InterfaceSerializer
+from ipam.api.serializers_.ip import IPAddressSerializer, PrefixSerializer
 from ipam.api.serializers_.vrfs import VRFSerializer
+from ipam.models import ASN
+from netbox.api.fields import SerializedPKRelatedField
 from netbox.api.serializers import NetBoxModelSerializer
 from tenancy.api.serializers_.tenants import TenantSerializer
 
@@ -17,6 +20,7 @@ __all__ = (
     'BGPInstanceSerializer',
     'BGPAddressFamilySerializer',
     'BGPPeerGroupSerializer',
+    'BGPListenRangeSerializer',
     'BGPPeerSerializer',
     'BGPPeerAddressFamilySerializer',
     'BFDProfileSerializer',
@@ -40,7 +44,11 @@ _SESSION = (
     'passive',
     'import_policy',
     'export_policy',
-    'password',
+    'passphrase',
+    'passphrase_md5',
+    'show_md5',
+    'route_reflector_client',
+    'extended_nexthop',
     'keepalive',
     'hold_time',
 )
@@ -53,6 +61,16 @@ class BGPInstanceSerializer(NetBoxModelSerializer):
     device = DeviceSerializer(nested=True)
     vrf = VRFSerializer(nested=True, required=False, allow_null=True)
     asn = ASNSerializer(nested=True)
+    confederation_identifier = ASNSerializer(
+        nested=True, required=False, allow_null=True
+    )
+    confederation_peers = SerializedPKRelatedField(
+        queryset=ASN.objects.all(),
+        serializer=ASNSerializer,
+        nested=True,
+        required=False,
+        many=True,
+    )
     import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     tenant = TenantSerializer(nested=True, required=False, allow_null=True)
@@ -69,6 +87,9 @@ class BGPInstanceSerializer(NetBoxModelSerializer):
             'asn',
             'router_id',
             'asdot',
+            'cluster_id',
+            'confederation_identifier',
+            'confederation_peers',
             'graceful_restart',
             'graceful_restart_time',
             'graceful_restart_stale_time',
@@ -79,6 +100,25 @@ class BGPInstanceSerializer(NetBoxModelSerializer):
             *_COMMON,
         )
         brief_fields = ('url', 'id', 'display', 'name', 'device', 'vrf', 'asn')
+
+    def validate(self, data):
+        data = super().validate(data)
+        instance = self.instance
+        peers = data.get(
+            'confederation_peers',
+            instance.confederation_peers.all() if instance else [],
+        )
+        errors = BGPInstance.confederation_errors(
+            data.get('asn', instance.asn if instance else None),
+            data.get(
+                'confederation_identifier',
+                instance.confederation_identifier if instance else None,
+            ),
+            peers,
+        )
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
 
 
 class BGPAddressFamilySerializer(NetBoxModelSerializer):
@@ -122,6 +162,9 @@ class BGPPeerGroupSerializer(NetBoxModelSerializer):
     bfd = serializers.PrimaryKeyRelatedField(
         queryset=BFDProfile.objects.all(), required=False, allow_null=True
     )
+    passphrase_md5 = serializers.CharField(
+        source='md5_digest', read_only=True, allow_null=True
+    )
     import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     tenant = TenantSerializer(nested=True, required=False, allow_null=True)
@@ -134,6 +177,7 @@ class BGPPeerGroupSerializer(NetBoxModelSerializer):
             'display',
             'name',
             'instance',
+            'listen_limit',
             *_SESSION,
             'tenant',
             *_COMMON,
@@ -141,18 +185,35 @@ class BGPPeerGroupSerializer(NetBoxModelSerializer):
         brief_fields = ('url', 'id', 'display', 'name', 'instance')
 
 
+class BGPListenRangeSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:bgplistenrange-detail'
+    )
+    peer_group = BGPPeerGroupSerializer(nested=True)
+    prefix = PrefixSerializer(nested=True)
+
+    class Meta:
+        model = BGPListenRange
+        fields = ('url', 'id', 'display', 'peer_group', 'prefix', *_COMMON)
+        brief_fields = ('url', 'id', 'display', 'peer_group', 'prefix')
+
+
 class BGPPeerSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_routing_protocols-api:bgppeer-detail'
     )
     instance = BGPInstanceSerializer(nested=True)
-    peer = IPAddressSerializer(nested=True)
+    peer = IPAddressSerializer(nested=True, required=False, allow_null=True)
+    interface = InterfaceSerializer(nested=True, required=False, allow_null=True)
     source = IPAddressSerializer(nested=True, required=False, allow_null=True)
     peer_group = BGPPeerGroupSerializer(nested=True, required=False, allow_null=True)
     remote_as = ASNSerializer(nested=True, required=False, allow_null=True)
     local_as = ASNSerializer(nested=True, required=False, allow_null=True)
     bfd = serializers.PrimaryKeyRelatedField(
         queryset=BFDProfile.objects.all(), required=False, allow_null=True
+    )
+    passphrase_md5 = serializers.CharField(
+        source='md5_digest', read_only=True, allow_null=True
     )
     import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
@@ -167,6 +228,7 @@ class BGPPeerSerializer(NetBoxModelSerializer):
             'name',
             'instance',
             'peer',
+            'interface',
             'source',
             'peer_group',
             'status',

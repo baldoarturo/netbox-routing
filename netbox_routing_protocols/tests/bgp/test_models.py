@@ -3,7 +3,8 @@ from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase
 
-from ipam.models import IPAddress
+from dcim.models import Interface
+from ipam.models import IPAddress, Prefix
 from netaddr import IPNetwork
 
 from netbox_routing_protocols.choices.bgp import BGPAddressFamilyChoices
@@ -23,6 +24,10 @@ __all__ = (
     'BGPChoicesTestCase',
     'BGPRoutePolicyTestCase',
     'BGPGracefulRestartTestCase',
+    'BGPAuthenticationTestCase',
+    'BGPRouteReflectorTestCase',
+    'BGPUnnumberedPeerTestCase',
+    'BGPListenRangeTestCase',
 )
 
 
@@ -463,3 +468,175 @@ class BGPRoutePolicyTestCase(BGPInstanceMixin, AddressesMixin, TestCase):
         peer_af.maximum_prefix_warning = 101
         with self.assertRaises(ValidationError):
             peer_af.full_clean()
+
+
+class BGPAuthenticationTestCase(BGPInstanceMixin, TestCase):
+    """TCP MD5 (RFC 2385), stored like the OSPF key: plain text, optional digest"""
+
+    def _group(self, **kwargs):
+        return BGPPeerGroup(name='G', instance=self.bgp_instance, **kwargs)
+
+    def test_the_digest_is_shown_when_asked(self):
+        group = self._group(passphrase='secret')
+        self.assertIsNone(group.md5_digest)
+        self.assertEqual(group.get_passphrase_md5(), '5ebe2294ecd0e0f08eab7690d2a6ee69')
+        group.show_md5 = True
+        self.assertEqual(group.md5_digest, group.get_passphrase_md5())
+
+    def test_limits(self):
+        self._group(passphrase='x' * 80).full_clean()
+        with self.assertRaises(ValidationError) as cm:
+            self._group(passphrase='x' * 81).full_clean()
+        self.assertIn('passphrase', cm.exception.error_dict)
+        with self.assertRaises(ValidationError) as cm:
+            self._group(show_md5=True).full_clean()
+        self.assertIn('show_md5', cm.exception.error_dict)
+
+
+class BGPRouteReflectorTestCase(BGPInstanceMixin, AddressesMixin, TestCase):
+    def test_cluster_id_is_typed_by_hand(self):
+        instance = self.bgp_instance
+        for value, expected in (
+            ('1.1.1.1', '1.1.1.1'),
+            ('16909060', '1.2.3.4'),
+            (' 10.0.0.1 ', '10.0.0.1'),
+        ):
+            instance.cluster_id = value
+            instance.full_clean()
+            self.assertEqual(instance.cluster_id, expected)
+        for value in ('abc', '1.2.3', '4294967296'):
+            instance.cluster_id = value
+            with self.assertRaises(ValidationError) as cm:
+                instance.full_clean()
+            self.assertIn('cluster_id', cm.exception.error_dict)
+
+    def test_only_ibgp_neighbors_are_clients(self):
+        group = BGPPeerGroup(
+            name='G',
+            instance=self.bgp_instance,
+            remote_as=self.asns[1],
+            route_reflector_client=True,
+        )
+        with self.assertRaises(ValidationError) as cm:
+            group.full_clean()
+        self.assertIn('route_reflector_client', cm.exception.error_dict)
+        group.remote_as = self.asn
+        group.full_clean()
+        peer = BGPPeer(
+            instance=self.bgp_instance,
+            peer=self.peer_address,
+            remote_as=self.asns[1],
+            route_reflector_client=True,
+        )
+        with self.assertRaises(ValidationError) as cm:
+            peer.full_clean()
+        self.assertIn('route_reflector_client', cm.exception.error_dict)
+        peer.remote_as = self.asn
+        peer.full_clean()
+
+    def test_confederation(self):
+        errors = BGPInstance.confederation_errors
+        a, b, c = self.asns[0], self.asns[1], self.asns[2]
+        self.assertEqual(errors(a, b, [c]), {})
+        self.assertIn('confederation_peers', errors(a, None, [c]))
+        self.assertIn('confederation_peers', errors(a, b, [a]))
+        self.assertIn('confederation_peers', errors(a, b, [b]))
+        instance = self.bgp_instance
+        instance.confederation_identifier = instance.asn
+        with self.assertRaises(ValidationError) as cm:
+            instance.full_clean()
+        self.assertIn('confederation_identifier', cm.exception.error_dict)
+        instance.confederation_identifier = self.asns[3]
+        instance.full_clean()
+
+
+class BGPUnnumberedPeerTestCase(BGPInstanceMixin, AddressesMixin, VRFMixin, TestCase):
+    """A peer is reached through an address or through an interface (RFC 5549)"""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.interface = Interface.objects.create(
+            device=cls.device, name='eth0', type='1000base-t'
+        )
+
+    def _peer(self, **kwargs):
+        kwargs.setdefault('instance', self.bgp_instance)
+        kwargs.setdefault('remote_as', self.asns[1])
+        return BGPPeer(**kwargs)
+
+    def test_an_address_or_an_interface(self):
+        self._peer(interface=self.interface, extended_nexthop=True).full_clean()
+        self._peer(peer=self.peer_address).full_clean()
+        for kwargs in ({}, {'peer': self.peer_address, 'interface': self.interface}):
+            with self.assertRaises(ValidationError):
+                self._peer(**kwargs).full_clean()
+
+    def test_the_interface_is_on_the_device_and_the_vrf(self):
+        other = Interface.objects.create(
+            device=create_test_device(name='D2'), name='eth0', type='1000base-t'
+        )
+        with self.assertRaises(ValidationError) as cm:
+            self._peer(interface=other).full_clean()
+        self.assertIn('interface', cm.exception.error_dict)
+        self.interface.vrf = self.vrf
+        self.interface.save()
+        with self.assertRaises(ValidationError) as cm:
+            self._peer(interface=self.interface).full_clean()
+        self.assertIn('interface', cm.exception.error_dict)
+
+    def test_no_source_and_one_peer_per_interface(self):
+        with self.assertRaises(ValidationError) as cm:
+            self._peer(
+                interface=self.interface, source=self.source_address
+            ).full_clean()
+        self.assertIn('source', cm.exception.error_dict)
+        self._peer(interface=self.interface).save()
+        with self.assertRaises(ValidationError):
+            self._peer(interface=self.interface).full_clean()
+        self.assertEqual(str(BGPPeer.objects.get()), 'eth0')
+
+
+class BGPListenRangeTestCase(BGPInstanceMixin, VRFMixin, TestCase):
+    """Dynamic neighbors: the peer group listens on a prefix of IPAM"""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.group = BGPPeerGroup.objects.create(
+            name='G', instance=cls.bgp_instance, remote_as=cls.asns[1], listen_limit=10
+        )
+        cls.prefix = Prefix.objects.create(prefix='10.9.0.0/24')
+
+    def test_the_prefix_comes_from_ipam(self):
+        BGPListenRange(peer_group=self.group, prefix=self.prefix).full_clean()
+
+    def test_the_prefix_is_in_the_vrf_of_the_instance(self):
+        prefix = Prefix.objects.create(prefix='10.8.0.0/24', vrf=self.vrf)
+        with self.assertRaises(ValidationError) as cm:
+            BGPListenRange(peer_group=self.group, prefix=prefix).full_clean()
+        self.assertIn('prefix', cm.exception.error_dict)
+
+    def test_unique_per_group_and_per_instance(self):
+        BGPListenRange.objects.create(peer_group=self.group, prefix=self.prefix)
+        with self.assertRaises(ValidationError):
+            BGPListenRange(peer_group=self.group, prefix=self.prefix).full_clean()
+        other = BGPPeerGroup.objects.create(
+            name='H', instance=self.bgp_instance, remote_as=self.asns[1]
+        )
+        with self.assertRaises(ValidationError) as cm:
+            BGPListenRange(peer_group=other, prefix=self.prefix).full_clean()
+        self.assertIn('prefix', cm.exception.error_dict)
+
+    def test_the_group_needs_a_remote_as(self):
+        group = BGPPeerGroup.objects.create(name='No AS', instance=self.bgp_instance)
+        with self.assertRaises(ValidationError) as cm:
+            BGPListenRange(peer_group=group, prefix=self.prefix).full_clean()
+        self.assertIn('peer_group', cm.exception.error_dict)
+
+    def test_the_vrf_of_the_instance_is_shown(self):
+        instance = self.bgp_instance
+        self.assertIsNone(instance.vrf_route_distinguisher)
+        instance.vrf = self.vrf
+        self.assertEqual(instance.vrf_route_distinguisher, self.vrf.rd)
+        self.assertEqual(instance.vrf_import_targets_display, '')

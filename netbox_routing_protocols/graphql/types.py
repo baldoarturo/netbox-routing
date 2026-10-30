@@ -12,6 +12,7 @@ __all__ = (
     'BGPInstanceType',
     'BGPAddressFamilyType',
     'BGPPeerGroupType',
+    'BGPListenRangeType',
     'BGPPeerType',
     'BGPPeerAddressFamilyType',
     'CommunityType',

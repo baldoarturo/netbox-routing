@@ -9,6 +9,7 @@ __all__ = (
     'BGPInstanceTable',
     'BGPAddressFamilyTable',
     'BGPPeerGroupTable',
+    'BGPListenRangeTable',
     'BGPPeerTable',
     'BGPPeerAddressFamilyTable',
     'BFDProfileTable',
@@ -34,6 +35,8 @@ class BGPInstanceTable(TenancyColumnsMixin, NetBoxTable):
             'asn',
             'router_id',
             'asdot',
+            'cluster_id',
+            'confederation_identifier',
             'graceful_restart',
             'graceful_restart_time',
             'graceful_restart_stale_time',
@@ -100,7 +103,10 @@ _CONFIG_FIELDS = (
     'passive',
     'import_policy',
     'export_policy',
-    'password',
+    'passphrase',
+    'show_md5',
+    'route_reflector_client',
+    'extended_nexthop',
     'keepalive',
     'hold_time',
 )
@@ -117,6 +123,7 @@ class BGPPeerGroupTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable)
             'id',
             'name',
             'instance',
+            'listen_limit',
             *_CONFIG_FIELDS,
             'tenant_group',
             'tenant',
@@ -125,10 +132,24 @@ class BGPPeerGroupTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable)
         default_columns = ('pk', 'id', 'name', 'instance', 'remote_as', 'enabled')
 
 
+class BGPListenRangeTable(NetBoxTable):
+    peer_group = tables.Column(linkify=True, verbose_name=_('Peer Group'))
+    instance = tables.Column(
+        linkify=True, accessor='peer_group__instance', verbose_name=_('Instance')
+    )
+    prefix = tables.Column(linkify=True, verbose_name=_('Prefix'))
+
+    class Meta(NetBoxTable.Meta):
+        model = BGPListenRange
+        fields = ('pk', 'id', 'peer_group', 'instance', 'prefix', 'description')
+        default_columns = ('pk', 'id', 'peer_group', 'instance', 'prefix')
+
+
 class BGPPeerTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
     instance = tables.Column(linkify=True, verbose_name=_('Instance'))
     peer = tables.Column(linkify=True, verbose_name=_('Peer Address'))
+    interface = tables.Column(linkify=True, verbose_name=_('Interface'))
     source = tables.Column(linkify=True, verbose_name=_('Source Address'))
     peer_group = tables.Column(linkify=True, verbose_name=_('Peer Group'))
 
@@ -140,6 +161,7 @@ class BGPPeerTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable):
             'name',
             'instance',
             'peer',
+            'interface',
             'source',
             'peer_group',
             *_CONFIG_FIELDS,
@@ -154,6 +176,7 @@ class BGPPeerTable(_BGPPeerConfigColumns, TenancyColumnsMixin, NetBoxTable):
             'name',
             'instance',
             'peer',
+            'interface',
             'peer_group',
             'remote_as',
             'enabled',

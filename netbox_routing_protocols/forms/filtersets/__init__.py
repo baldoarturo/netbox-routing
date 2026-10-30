@@ -3,6 +3,7 @@ from .bgp import (
     BGPInstanceFilterForm,
     BGPAddressFamilyFilterForm,
     BGPPeerGroupFilterForm,
+    BGPListenRangeFilterForm,
     BGPPeerFilterForm,
     BGPPeerAddressFamilyFilterForm,
     BFDProfileFilterForm,
@@ -53,6 +54,7 @@ __all__ = (
     'BGPInstanceFilterForm',
     'BGPAddressFamilyFilterForm',
     'BGPPeerGroupFilterForm',
+    'BGPListenRangeFilterForm',
     'BGPPeerFilterForm',
     'BGPPeerAddressFamilyFilterForm',
     # BFD

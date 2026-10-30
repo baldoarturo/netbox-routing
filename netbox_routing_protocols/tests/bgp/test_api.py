@@ -1,4 +1,5 @@
-from ipam.models import ASN, IPAddress, RIR, VRF
+from dcim.models import Interface
+from ipam.models import ASN, IPAddress, Prefix, RIR, VRF
 from netaddr import IPNetwork
 from utilities.testing import APIViewTestCases, create_test_device
 
@@ -9,6 +10,7 @@ __all__ = (
     'BGPInstanceTestCase',
     'BGPAddressFamilyTestCase',
     'BGPPeerGroupTestCase',
+    'BGPListenRangeTestCase',
     'BGPPeerTestCase',
     'BGPPeerAddressFamilyTestCase',
     'BFDProfileTestCase',
@@ -49,6 +51,9 @@ class BGPInstanceTestCase(APIViewTestCases.APIViewTestCase):
                 'asdot': True,
                 'graceful_restart': True,
                 'graceful_restart_time': 120,
+                'cluster_id': '10.0.0.1',
+                'confederation_identifier': asns[2].pk,
+                'confederation_peers': [asns[3].pk],
             },
             {
                 'name': 'Instance Y',
@@ -124,6 +129,28 @@ class BGPPeerGroupTestCase(
         ]
 
 
+class BGPListenRangeTestCase(
+    LeanCoreTestsMixin, _BGPChildAPI, APIViewTestCases.APIViewTestCase
+):
+    model = BGPListenRange
+    brief_fields = ['display', 'id', 'peer_group', 'prefix', 'url']
+
+    @classmethod
+    def setUpTestData(cls):
+        asns, instance = cls._parents()
+        group = BGPPeerGroup.objects.create(
+            name='Group', instance=instance, remote_as=asns[1]
+        )
+        prefixes = [Prefix.objects.create(prefix=f'10.{i}.0.0/24') for i in range(1, 6)]
+        cls.model.objects.bulk_create(
+            [cls.model(peer_group=group, prefix=prefixes[i]) for i in range(3)]
+        )
+        cls.create_data = [
+            {'peer_group': group.pk, 'prefix': prefixes[3].pk},
+            {'peer_group': group.pk, 'prefix': prefixes[4].pk},
+        ]
+
+
 class BGPPeerTestCase(
     LeanCoreTestsMixin, _BGPChildAPI, APIViewTestCases.APIViewTestCase
 ):
@@ -152,6 +179,16 @@ class BGPPeerTestCase(
                 'peer': addresses[3].pk,
                 'peer_group': group.pk,
                 'status': 'planned',
+            },
+            {
+                'instance': instance.pk,
+                'interface': Interface.objects.create(
+                    device=instance.device, name='eth0', type='1000base-t'
+                ).pk,
+                'remote_as': asns[2].pk,
+                'extended_nexthop': True,
+                'passphrase': 'secret',
+                'show_md5': True,
             },
             {
                 'instance': instance.pk,

@@ -7,6 +7,7 @@ __all__ = (
     'BGPInstanceViewSet',
     'BGPAddressFamilyViewSet',
     'BGPPeerGroupViewSet',
+    'BGPListenRangeViewSet',
     'BGPPeerViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',
@@ -41,12 +42,24 @@ class BGPPeerGroupViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.BGPPeerGroupFilterSet
 
 
+class BGPListenRangeViewSet(NetBoxModelViewSet):
+    queryset = BGPListenRange.objects.select_related(
+        'peer_group__instance__device',
+        'peer_group__instance__vrf',
+        'peer_group__instance__asn',
+        'prefix',
+    )
+    serializer_class = BGPListenRangeSerializer
+    filterset_class = filtersets.BGPListenRangeFilterSet
+
+
 class BGPPeerViewSet(NetBoxModelViewSet):
     queryset = BGPPeer.objects.select_related(
         'instance__device',
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface',
         'source',
         'peer_group__instance__device',
         'peer_group__instance__vrf',

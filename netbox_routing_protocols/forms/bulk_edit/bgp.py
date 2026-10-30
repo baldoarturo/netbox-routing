@@ -17,6 +17,7 @@ __all__ = (
     'BGPInstanceBulkEditForm',
     'BGPAddressFamilyBulkEditForm',
     'BGPPeerGroupBulkEditForm',
+    'BGPListenRangeBulkEditForm',
     'BGPPeerBulkEditForm',
     'BGPPeerAddressFamilyBulkEditForm',
     'BFDProfileBulkEditForm',
@@ -50,6 +51,9 @@ class BGPPeerConfigBulkEditMixin(forms.Form):
         label=_('TTL Security Hops'), required=False, min_value=1, max_value=254
     )
     passive = _tristate(_('Passive'))
+    route_reflector_client = _tristate(_('Route Reflector Client'))
+    extended_nexthop = _tristate(_('Extended Next Hop'))
+    show_md5 = _tristate(_('MD5 Digest'))
     import_policy = DynamicModelChoiceField(
         label=_('Import Policy'),
         queryset=RoutePolicy.objects.all(),
@@ -78,6 +82,8 @@ _CONFIG_NULLABLE = (
     'ebgp_multihop',
     'ttl_security_hops',
     'passive',
+    'route_reflector_client',
+    'extended_nexthop',
     'import_policy',
     'export_policy',
     'keepalive',
@@ -96,6 +102,7 @@ class BGPInstanceBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
         label=_('ASN'), queryset=ASN.objects.all(), required=False, selector=True
     )
     asdot = _tristate(_('AS Dot Notation'))
+    cluster_id = forms.CharField(label=_('Cluster ID'), required=False, max_length=15)
     graceful_restart = _tristate(_('Graceful Restart'))
     import_policy = DynamicModelChoiceField(
         label=_('Import Policy'),
@@ -112,13 +119,16 @@ class BGPInstanceBulkEditForm(TenantBulkEditMixin, PrimaryModelBulkEditForm):
 
     fieldsets = (
         FieldSet('description'),
-        FieldSet('vrf', 'asn', 'asdot', 'graceful_restart', name=_('BGP')),
+        FieldSet(
+            'vrf', 'asn', 'asdot', 'cluster_id', 'graceful_restart', name=_('BGP')
+        ),
         FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant', name=_('Tenancy')),
     )
     nullable_fields = (
         'vrf',
         'asdot',
+        'cluster_id',
         'graceful_restart',
         'import_policy',
         'export_policy',
@@ -193,6 +203,9 @@ class BGPPeerGroupBulkEditForm(
     BGPPeerConfigBulkEditMixin, TenantBulkEditMixin, PrimaryModelBulkEditForm
 ):
     model = BGPPeerGroup
+    listen_limit = forms.IntegerField(
+        label=_('Listen Limit'), required=False, min_value=1
+    )
     fieldsets = (
         FieldSet('description'),
         FieldSet(
@@ -203,14 +216,24 @@ class BGPPeerGroupBulkEditForm(
             'ebgp_multihop',
             'ttl_security_hops',
             'passive',
+            'route_reflector_client',
+            'extended_nexthop',
             'keepalive',
             'hold_time',
+            'show_md5',
             name=_('Session'),
         ),
         FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
+        FieldSet('listen_limit', name=_('Dynamic neighbors')),
         FieldSet('tenant', name=_('Tenancy')),
     )
-    nullable_fields = _CONFIG_NULLABLE
+    nullable_fields = _CONFIG_NULLABLE + ('listen_limit',)
+
+
+class BGPListenRangeBulkEditForm(PrimaryModelBulkEditForm):
+    model = BGPListenRange
+    fieldsets = (FieldSet('description'),)
+    nullable_fields = ('description',)
 
 
 class BGPPeerBulkEditForm(
@@ -243,8 +266,11 @@ class BGPPeerBulkEditForm(
             'ebgp_multihop',
             'ttl_security_hops',
             'passive',
+            'route_reflector_client',
+            'extended_nexthop',
             'keepalive',
             'hold_time',
+            'show_md5',
             name=_('Session'),
         ),
         FieldSet('import_policy', 'export_policy', name=_('Route Policy')),

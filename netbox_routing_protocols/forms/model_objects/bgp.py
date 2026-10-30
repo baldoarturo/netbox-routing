@@ -2,10 +2,14 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device
-from ipam.models import ASN, VRF, IPAddress
+from ipam.models import ASN, VRF, IPAddress, Prefix
 from netbox.forms import PrimaryModelForm
 from tenancy.forms import TenancyForm
-from utilities.forms.fields import DynamicModelChoiceField
+from dcim.models import Interface
+from utilities.forms.fields import (
+    DynamicModelChoiceField,
+    DynamicModelMultipleChoiceField,
+)
 from utilities.forms.rendering import FieldSet, TabbedGroups
 
 from netbox_routing_protocols.choices.bgp import BGPCommunityTypeChoices
@@ -16,6 +20,7 @@ __all__ = (
     'BGPInstanceForm',
     'BGPAddressFamilyForm',
     'BGPPeerGroupForm',
+    'BGPListenRangeForm',
     'BGPPeerForm',
     'BGPPeerAddressFamilyForm',
     'BFDProfileForm',
@@ -29,9 +34,12 @@ _CONFIG_FIELDS = (
     'ebgp_multihop',
     'ttl_security_hops',
     'passive',
+    'route_reflector_client',
+    'extended_nexthop',
     'keepalive',
     'hold_time',
-    'password',
+    'passphrase',
+    'show_md5',
 )
 _COMMON_FIELDS = ('description', 'comments', 'tags', 'owner')
 
@@ -50,6 +58,18 @@ class BGPInstanceForm(TenancyForm, PrimaryModelForm):
     asn = DynamicModelChoiceField(
         queryset=ASN.objects.all(), required=True, selector=True, label=_('ASN')
     )
+    confederation_identifier = DynamicModelChoiceField(
+        queryset=ASN.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Confederation Identifier'),
+    )
+    confederation_peers = DynamicModelMultipleChoiceField(
+        queryset=ASN.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Confederation Peers'),
+    )
     import_policy = DynamicModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
@@ -67,6 +87,12 @@ class BGPInstanceForm(TenancyForm, PrimaryModelForm):
         FieldSet('name', 'device', 'vrf', 'asn', 'description', name=_('Instance')),
         FieldSet('router_id', 'asdot', name=_('Options')),
         FieldSet(
+            'cluster_id',
+            'confederation_identifier',
+            'confederation_peers',
+            name=_('Route reflector and confederation'),
+        ),
+        FieldSet(
             'graceful_restart',
             'graceful_restart_time',
             'graceful_restart_stale_time',
@@ -77,6 +103,16 @@ class BGPInstanceForm(TenancyForm, PrimaryModelForm):
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
+    def clean(self):
+        super().clean()
+        errors = BGPInstance.confederation_errors(
+            self.cleaned_data.get('asn'),
+            self.cleaned_data.get('confederation_identifier'),
+            self.cleaned_data.get('confederation_peers'),
+        )
+        if errors:
+            raise forms.ValidationError(errors)
+
     class Meta:
         model = BGPInstance
         fields = (
@@ -86,6 +122,9 @@ class BGPInstanceForm(TenancyForm, PrimaryModelForm):
             'asn',
             'router_id',
             'asdot',
+            'cluster_id',
+            'confederation_identifier',
+            'confederation_peers',
             'graceful_restart',
             'graceful_restart_time',
             'graceful_restart_stale_time',
@@ -185,6 +224,7 @@ class BGPPeerGroupForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
 
     fieldsets = (
         FieldSet('instance', 'name', 'description', name=_('Peer group')),
+        FieldSet('listen_limit', name=_('Dynamic neighbors')),
         FieldSet(*_CONFIG_FIELDS, name=_('Session')),
         FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
@@ -195,6 +235,7 @@ class BGPPeerGroupForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
         fields = (
             'instance',
             'name',
+            'listen_limit',
             *_CONFIG_FIELDS,
             'import_policy',
             'export_policy',
@@ -202,6 +243,30 @@ class BGPPeerGroupForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
             'tenant',
             *_COMMON_FIELDS,
         )
+
+
+class BGPListenRangeForm(PrimaryModelForm):
+    peer_group = DynamicModelChoiceField(
+        queryset=BGPPeerGroup.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Peer Group'),
+    )
+    prefix = DynamicModelChoiceField(
+        queryset=Prefix.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Prefix'),
+        help_text=_('The addresses the peer group accepts neighbors from'),
+    )
+
+    fieldsets = (
+        FieldSet('peer_group', 'prefix', 'description', name=_('Listen range')),
+    )
+
+    class Meta:
+        model = BGPListenRange
+        fields = ('peer_group', 'prefix', *_COMMON_FIELDS)
 
 
 class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
@@ -213,9 +278,16 @@ class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
     )
     peer = DynamicModelChoiceField(
         queryset=IPAddress.objects.all(),
-        required=True,
+        required=False,
         selector=True,
         label=_('Peer Address'),
+    )
+    interface = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Interface'),
+        help_text=_('Unnumbered peer (RFC 5549): instead of the address'),
     )
     source = DynamicModelChoiceField(
         queryset=IPAddress.objects.all(),
@@ -236,6 +308,7 @@ class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
             'instance',
             'name',
             'peer',
+            'interface',
             'source',
             'peer_group',
             'status',
@@ -253,6 +326,7 @@ class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
             'instance',
             'name',
             'peer',
+            'interface',
             'source',
             'peer_group',
             'status',

@@ -5,6 +5,7 @@ from .bgp.types import (
     BGPInstanceType,
     BGPAddressFamilyType,
     BGPPeerGroupType,
+    BGPListenRangeType,
     BGPPeerType,
     BGPPeerAddressFamilyType,
     BFDProfileType,
@@ -228,6 +229,12 @@ class BGPPeerGroupQuery:
 
 
 @strawberry.type(name="Query")
+class BGPListenRangeQuery:
+    bgp_listen_range: BGPListenRangeType = strawberry_django.field()
+    bgp_listen_range_list: list[BGPListenRangeType] = strawberry_django.field()
+
+
+@strawberry.type(name="Query")
 class BGPAddressFamilyQuery:
     bgp_address_family: BGPAddressFamilyType = strawberry_django.field()
     bgp_address_family_list: list[BGPAddressFamilyType] = strawberry_django.field()
@@ -270,6 +277,7 @@ schema = [
     BGPInstanceQuery,
     BGPAddressFamilyQuery,
     BGPPeerGroupQuery,
+    BGPListenRangeQuery,
     BGPPeerQuery,
     BGPPeerAddressFamilyQuery,
     BFDProfileQuery,

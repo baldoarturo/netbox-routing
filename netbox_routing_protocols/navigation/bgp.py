@@ -12,6 +12,7 @@ def build_menus():
         ('bgpinstance', 'Instances'),
         ('bgpaddressfamily', 'Address Families'),
         ('bgppeergroup', 'Peer Groups'),
+        ('bgplistenrange', 'Listen Ranges'),
         ('bgppeer', 'Peers'),
         ('bgppeeraddressfamily', 'Peer Address Families'),
     )

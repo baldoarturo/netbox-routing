@@ -50,6 +50,7 @@ __all__ = (
     'BGPInstanceSerializer',
     'BGPAddressFamilySerializer',
     'BGPPeerGroupSerializer',
+    'BGPListenRangeSerializer',
     'BGPPeerSerializer',
     'BGPPeerAddressFamilySerializer',
 )

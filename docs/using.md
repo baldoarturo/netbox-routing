@@ -16,7 +16,7 @@ Everything lives under **Routing** in the NetBox navigation menu, grouped like t
 | **Routing Objects** | Community List, Community, Community List Entry, Prefix Lists, Prefix List Entries, **Search Prefix Match**, Route Policies, Route Policy Entries, AS Path, AS Path Entries |
 | **BFD** | BFD Profile |
 | **Static** | Static Routes |
-| **BGP** | Instances, Address Families, Peer Groups, Peers, Peer Address Families |
+| **BGP** | Instances, Address Families, Peer Groups, Listen Ranges, Peers, Peer Address Families |
 | **OSPF** (v2 and v3) | Instances, Areas, Interfaces, Networks, Redistribution, Virtual Links, Summary Addresses, Neighbors, Area Ranges, Prefix SIDs, Authentication Keys |
 | **IS-IS** | Instances, Interfaces, Settings, Levels, Segment Routing, Flex-Algos, Prefix-SIDs, SRv6 Locators |
 | **EIGRP** | Routers, Address Families, Networks, Interfaces |
@@ -37,7 +37,7 @@ Device ── protocol process (instance / router) ── area / address family 
 | Protocol | Top | Then | Down to |
 | --- | --- | --- | --- |
 | Static | Static route | (assigned to) Devices | |
-| BGP | Instance (on a device, optionally in a VRF) | Address families, Peer groups → Peer address families | Peers → Peer address families |
+| BGP | Instance (on a device, optionally in a VRF) | Address families, Peer groups → Listen ranges, Peer address families | Peers → Peer address families |
 | OSPF | Instance (on a device, optionally in a VRF) | Areas → Interfaces → Networks, Neighbors | Redistribution, Virtual links, Summary addresses and Prefix SIDs hang from the instance; Area ranges from the area |
 | IS-IS | Instance (on a device, optionally in a VRF) | Levels, Segment routing, Flex-Algos, SRv6 locators | Interfaces → Interface levels, Prefix-SIDs |
 | EIGRP | Router (on a device) | Address families | Networks and Interfaces |
@@ -85,7 +85,7 @@ protocol page lists the rules and their RFC.
 
 ## Secrets
 
-Authentication keys and BGP passwords are stored **in plain text** in the NetBox database, like any
+Authentication keys and BGP passphrases are stored **in plain text** in the NetBox database, like any
 other custom field. They are shown in the interface (a few OSPF keys can also show their MD5 digest),
 so give *view* permission on these objects only to people who may see the keys. Keys are not added
 to the global search index.

@@ -37,9 +37,17 @@ An instance is "this AS, on this device, in this routing table". A device has **
 | Router ID | The BGP identifier, a 32-bit value written as an IPv4 address and never `0.0.0.0` ([RFC 6286](https://www.rfc-editor.org/rfc/rfc6286)). |
 | AS dot notation | Write four-octet ASNs as `high.low` ([RFC 5396](https://www.rfc-editor.org/rfc/rfc5396)). |
 | Graceful restart | Keep forwarding while the neighbor's BGP restarts ([RFC 4724](https://www.rfc-editor.org/rfc/rfc4724)). |
+| Cluster ID | The route reflector cluster ID ([RFC 4456](https://www.rfc-editor.org/rfc/rfc4456)). **Typed by hand**: it does not come from IPAM. A 32-bit number or an IPv4 address (a number is stored as an IPv4 address); empty uses the router ID. |
+| Confederation identifier, Confederation peers | BGP confederations ([RFC 5065](https://www.rfc-editor.org/rfc/rfc5065)): the identifier is the AS the confederation shows to the outside, the instance's own ASN is its member AS, and the peers are the other member ASes. The peers need an identifier, and neither the identifier nor the instance's ASN can be one of them. |
 | Restart time, Stale paths time, Helper only | The timers of graceful restart (they need *Graceful restart*): the restart time is advertised to the neighbors (0 to 4095 seconds, 12 bits), the stale paths time is how long the routes of a restarting neighbor are kept, *helper only* helps the neighbors to restart without restarting gracefully itself. |
 | Import policy, Export policy | A [route policy](../routing-objects.md#route-policies) for every neighbor of the instance, see [Route policy](#route-policy). |
 | Tenant | Optional owner. |
+
+### Route distinguisher and route targets
+
+An instance in a **VRF** uses the route distinguisher and the import and export route targets of that VRF
+([RFC 4364](https://www.rfc-editor.org/rfc/rfc4364)): they are defined in NetBox (**IPAM → VRFs**) and the
+page of the instance shows them. They are not copied into the plugin.
 
 ## Address families
 
@@ -86,6 +94,14 @@ A peer that points at a group takes its options from it; whatever the peer sets 
 > own values. `BGPPeer.effective(field)` (used by the validation) gives the value the peer ends up
 > with. Your configuration templates or automation combine them.
 
+### Listen ranges (dynamic neighbors)
+
+**BGP → Listen Ranges**, or the *Listen Ranges* tab of a peer group. A peer group can accept neighbors it does not
+list one by one: every address inside a *listen range* may open a session, which takes the options of the group
+(FRR `bgp listen range`, Cisco `bgp listen range`, Junos `allow`). The range is a **prefix of IPAM**
+(**IPAM → Prefixes**), in the VRF of the instance. The group needs a remote AS, a prefix can be the range of one
+group of the instance, and the group's **listen limit** is the maximum number of neighbors accepted from its ranges.
+
 ## Peers
 
 **BGP → Peers**
@@ -97,6 +113,7 @@ A peer is one BGP neighbor. A neighbor address can be used once per instance
 | --- | --- |
 | Instance | The instance (device and VRF) the session belongs to. |
 | Peer | The neighbor's IP address (a NetBox IP address in the VRF of the instance). |
+| Interface | **Unnumbered peer** instead of the address: the session runs over an interface of the device, to the IPv6 link-local address of the neighbor ([RFC 5549](https://www.rfc-editor.org/rfc/rfc5549)). The interface is on the device and in the VRF of the instance; an unnumbered peer has no source address. One of *Peer* and *Interface*, never both. |
 | Source | The local address to open the session from, usually a loopback of the device. |
 | Peer group | Inherit the options of a [peer group](#peer-groups) of the same instance. |
 | Status | **Active**, **Planned**, **Offline** or **Failed**: the lifecycle of the session in your documentation (it is not read from the network). |
@@ -114,7 +131,9 @@ Session options, on a peer and on a peer group (the peer needs a remote AS, its 
 | TTL security hops | *Generalized TTL Security Mechanism*, [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082): the neighbor is at most this many hops away and packets with a lower TTL are dropped. It cannot be used together with *eBGP multihop*. |
 | Passive | Wait for the neighbor to open the TCP connection instead of opening it ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) section 8). |
 | Import policy, Export policy | See [Route policy](#route-policy). |
-| Password | The shared secret of the TCP session, stored as plain text. The TCP MD5 option, [RFC 2385](https://www.rfc-editor.org/rfc/rfc2385), is superseded by TCP-AO ([RFC 5925](https://www.rfc-editor.org/rfc/rfc5925)). |
+| Passphrase | The shared secret of the TCP session ([RFC 2385](https://www.rfc-editor.org/rfc/rfc2385), TCP MD5), stored as **plain text**, up to 80 characters. *MD5 digest* also shows the MD5 digest of the key, like the OSPF keys. TCP-AO ([RFC 5925](https://www.rfc-editor.org/rfc/rfc5925)) is not supported. |
+| Route reflector client | The neighbor is a client of this route reflector ([RFC 4456](https://www.rfc-editor.org/rfc/rfc4456)). Only an iBGP neighbor (remote AS equal to the instance's) can be one. |
+| Extended next hop | Advertise IPv4 prefixes with an IPv6 next hop ([RFC 5549](https://www.rfc-editor.org/rfc/rfc5549)). |
 | Keepalive time, Hold time | Seconds. The hold time is negotiated in the OPEN message: zero (no keepalives) or at least 3; keepalives are sent about every third of it ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271)). |
 
 ## Peer address families
@@ -149,12 +168,6 @@ no explicit import and export policy ([RFC 8212](https://www.rfc-editor.org/rfc/
 or a peer group whose remote AS differs from the instance's lists, in a warning, the enabled address families
 with no policy at any level. Nothing is blocked: the plugin only documents.
 
-## Migrating from netbox-bgp
-
-`manage.py migrate-netbox-bgp` creates one instance per device (every session needs a device and a
-local ASN), its IPv4 and IPv6 unicast families, the peers and, where a session used a peer group, a copy
-of that group in the instance of the device.
-
 ## Field reference
 
 Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a field that can be left empty (it then inherits, or is not set).
@@ -162,7 +175,8 @@ Every object also has `description`, `comments`, tags and custom fields, which a
 ```text
 BGP instance
 ├─ name · device → Device · vrf → VRF · asn → ASN · tenant → Tenant
-├─ router_id · asdot? · graceful_restart? · graceful_restart_time · graceful_restart_stale_time
+├─ router_id · asdot? · cluster_id · confederation_identifier → ASN · confederation_peers → ASN (several)
+├─ graceful_restart? · graceful_restart_time · graceful_restart_stale_time
 │     · graceful_restart_helper_only? · import_policy → Route policy · export_policy → Route policy
 │
 ├─ Address family
@@ -175,18 +189,21 @@ BGP instance
 │     · long_lived_stale_time
 │
 ├─ Peer group
-│     name · instance → BGP instance · tenant → Tenant
-│     · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · password
-│     · ebgp_multihop · ttl_security_hops · passive? · keepalive · hold_time
+│     name · instance → BGP instance · tenant → Tenant · listen_limit
+│     · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · passphrase · show_md5
+│     · ebgp_multihop · ttl_security_hops · passive? · route_reflector_client? · extended_nexthop?
+│     · keepalive · hold_time
+│     ├─ Listen range: peer_group → Peer group · prefix → Prefix
 │     · import_policy → Route policy · export_policy → Route policy
 │     └─ Peer address family (see below)
 │
 └─ Peer
       name · instance → BGP instance · tenant → Tenant
-      · peer → IP address · source → IP address · peer_group → Peer group
+      · peer → IP address, or interface → Interface (unnumbered) · source → IP address · peer_group → Peer group
       · status {Active | Planned | Offline | Failed}
-      · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · password
-      · ebgp_multihop · ttl_security_hops · passive? · keepalive · hold_time
+      · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · passphrase · show_md5
+      · ebgp_multihop · ttl_security_hops · passive? · route_reflector_client? · extended_nexthop?
+      · keepalive · hold_time
       · import_policy → Route policy · export_policy → Route policy
       └─ Peer address family
             peer → Peer, or peer_group → Peer group · address_family → Address family

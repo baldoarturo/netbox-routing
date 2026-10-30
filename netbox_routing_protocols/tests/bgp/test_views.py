@@ -1,4 +1,4 @@
-from ipam.models import ASN, IPAddress, RIR, VRF
+from ipam.models import ASN, IPAddress, Prefix, RIR, VRF
 from netaddr import IPNetwork
 from utilities.testing import ViewTestCases, create_test_device
 
@@ -13,6 +13,7 @@ __all__ = (
     'BGPInstanceTestCase',
     'BGPAddressFamilyTestCase',
     'BGPPeerGroupTestCase',
+    'BGPListenRangeTestCase',
     'BGPPeerTestCase',
     'BGPPeerAddressFamilyTestCase',
     'BFDProfileTestCase',
@@ -112,6 +113,22 @@ class BGPPeerGroupTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
             'ebgp_multihop': 2,
             'passive': True,
         }
+
+
+class BGPListenRangeTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
+    model = BGPListenRange
+
+    @classmethod
+    def setUpTestData(cls):
+        asns, instance = cls._parents()
+        group = BGPPeerGroup.objects.create(
+            name='Group', instance=instance, remote_as=asns[1]
+        )
+        prefixes = [Prefix.objects.create(prefix=f'10.{i}.0.0/24') for i in range(1, 5)]
+        cls.model.objects.bulk_create(
+            [cls.model(peer_group=group, prefix=prefixes[i]) for i in range(3)]
+        )
+        cls.form_data = {'peer_group': group.pk, 'prefix': prefixes[3].pk}
 
 
 class BGPPeerTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
