@@ -241,7 +241,17 @@ OSPFv2 can authenticate its packets so that only trusted routers join the domain
 | Null | No authentication. |
 | Simple Password | A clear-text password, up to **8 characters**. Weak: only protects against mistakes. |
 | Message Digest | A cryptographic digest with a **key ID (0 to 255)** and a key of up to **16 characters** for MD5. |
+| Authentication Trailer | **OSPFv3 only.** The key with an **SA ID (0 to 65535)** and an **HMAC-SHA algorithm** ([RFC 7166](https://www.rfc-editor.org/rfc/rfc7166)); MD5 is not allowed. |
 | Key Chain | The name of a key chain configured on the device, which rotates keys. No key is stored here. |
+
+**The family decides what you can choose.** OSPFv2 (IPv4 instances) uses Null, Simple Password, Message
+Digest and Key Chain. OSPFv3 (IPv6 instances) dropped the authentication of the packet header
+([RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) §2.5) and uses the Authentication Trailer, a Key
+Chain or none. The forms offer only the types of the family, the model refuses the others, and an
+instance, area, interface or virtual link cannot mix them because they all belong to one instance. The
+rule of OSPFv2 that one area uses a single authentication type does not exist in OSPFv3: each interface
+has its own. IPsec authentication of OSPFv3 ([RFC 4552](https://www.rfc-editor.org/rfc/rfc4552)) is not
+supported yet.
 
 For message digest, choose the **algorithm**: **MD5** ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328)),
 or **HMAC-SHA-1/256/384/512** ([RFC 5709](https://www.rfc-editor.org/rfc/rfc5709)). The key is stored
@@ -376,7 +386,7 @@ Every object also has `description`, `comments`, tags and custom fields, which a
 ```text
 OSPF instance
 ├─ Identity: name · device → Device · vrf → VRF · address_family {IPv4 (OSPFv2) | IPv6 (OSPFv3)} · router_id · ospf_instance_id
-├─ Authentication: authentication {Simple Password | Message Digest | Key Chain | Null Authentication}
+├─ Authentication: authentication {Simple Password | Message Digest | Authentication Trailer | Key Chain | Null Authentication}
 │     · passphrase · authentication_key_id · show_md5?
 │     · message_digest_algorithm {MD5 | HMAC-SHA-1 | HMAC-SHA-256 | HMAC-SHA-384 | HMAC-SHA-512}
 │     · key_chain
@@ -457,6 +467,7 @@ OSPF instance
 | [RFC 5286](https://www.rfc-editor.org/rfc/rfc5286), [RFC 7490](https://www.rfc-editor.org/rfc/rfc7490) | Loop-free alternates, remote LFA |
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization |
 | [RFC 5709](https://www.rfc-editor.org/rfc/rfc5709) | HMAC-SHA authentication |
+| [RFC 7166](https://www.rfc-editor.org/rfc/rfc7166) | Authentication trailer of OSPFv3 |
 | [RFC 6549](https://www.rfc-editor.org/rfc/rfc6549) | Multi-instance OSPFv2 |
 | [RFC 6860](https://www.rfc-editor.org/rfc/rfc6860) | Hiding transit-only networks |
 | [RFC 6987](https://www.rfc-editor.org/rfc/rfc6987) | Max-metric router LSA |

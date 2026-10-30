@@ -113,20 +113,28 @@ class OSPFAuthenticationChoices(ChoiceSet):
     """
     Authentication types of OSPFv2 (RFC 2328 appendix D): null (0), simple
     password (1) and cryptographic (2), the latter with the key given directly
-    (message digest) or through a key chain.
+    (message digest) or through a key chain; and the authentication trailer of
+    OSPFv3 (RFC 7166), the only one with a key of its own in that version.
     """
 
     NULL = 'null'
     SIMPLE = 'simple'
     MESSAGE_DIGEST = 'message-digest'
     KEYCHAIN = 'key-chain'
+    TRAILER = 'trailer'
 
     CHOICES = [
         (SIMPLE, 'Simple Password'),
         (MESSAGE_DIGEST, 'Message Digest'),
+        (TRAILER, 'Authentication Trailer'),
         (KEYCHAIN, 'Key Chain'),
         (NULL, 'Null Authentication'),
     ]
+
+    # OSPFv2 carries the authentication in the packet header (RFC 2328 D);
+    # OSPFv3 dropped it and uses the authentication trailer (RFC 7166).
+    IPV4 = (SIMPLE, MESSAGE_DIGEST, KEYCHAIN, NULL)
+    IPV6 = (TRAILER, KEYCHAIN, NULL)
 
 
 class OSPFRouteTypeChoices(ChoiceSet):

@@ -102,6 +102,8 @@ OSPF_PRIORITY_DEFAULT = 1
 # Cryptographic authentication Key ID: 8-bit field (RFC 2328 D.3).
 OSPF_AUTH_KEY_ID_MIN = 0
 OSPF_AUTH_KEY_ID_MAX = 255
+# OSPFv3 authentication trailer: 16-bit Security Association ID (RFC 7166 4.1).
+OSPF_TRAILER_SA_ID_MAX = 65535
 
 # Simple password: a 64-bit field per network (RFC 2328 D.2). MD5 key: 16 bytes
 # (RFC 2328 D.3).

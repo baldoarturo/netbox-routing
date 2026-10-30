@@ -33,6 +33,7 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_COST_MAX,
     OSPF_COST_MIN,
     OSPF_AUTH_KEY_ID_MAX,
+    OSPF_TRAILER_SA_ID_MAX,
     OSPF_AUTH_KEY_ID_MIN,
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
@@ -103,19 +104,25 @@ class OSPFAuthenticationMixin(models.Model):
         null=True,
         help_text=_('The key, stored as plain text. For message digest authentication'),
     )
-    authentication_key_id = models.PositiveSmallIntegerField(
+    authentication_key_id = models.PositiveIntegerField(
         verbose_name=_('Key ID'),
-        help_text=_('Message digest key ID, 0 to 255 (RFC 2328 D.3)'),
+        help_text=_(
+            'Message digest key ID, 0 to 255 (RFC 2328 D.3); the SA ID of the '
+            'authentication trailer, 0 to 65535 (RFC 7166 4.1)'
+        ),
         validators=[
             MinValueValidator(OSPF_AUTH_KEY_ID_MIN),
-            MaxValueValidator(OSPF_AUTH_KEY_ID_MAX),
+            MaxValueValidator(OSPF_TRAILER_SA_ID_MAX),
         ],
         blank=True,
         null=True,
     )
     message_digest_algorithm = models.CharField(
         verbose_name=_('Message Digest Algorithm'),
-        help_text=_('MD5 (RFC 2328) or HMAC-SHA (RFC 5709); default: MD5'),
+        help_text=_(
+            'MD5 (RFC 2328) or HMAC-SHA (RFC 5709, RFC 7166); default: MD5. '
+            'The authentication trailer takes HMAC-SHA only'
+        ),
         choices=OSPFMessageDigestAlgorithmChoices,
         default=OSPFMessageDigestAlgorithmChoices.MD5,
         max_length=20,
@@ -155,10 +162,55 @@ class OSPFAuthenticationMixin(models.Model):
         """The MD5 digest of the key, only when it is set to be shown."""
         return self.get_passphrase_md5() if self.show_md5 else None
 
+    def _authentication_ip_version(self):
+        """4 or 6: the address family of the instance this object belongs to."""
+        owner = getattr(self, 'instance', None) or self
+        return getattr(owner, 'ip_version', 4)
+
     def _clean_authentication(self):
         errors = {}
         auth = self.authentication
-        if auth == OSPFAuthenticationChoices.SIMPLE:
+        version = self._authentication_ip_version()
+        allowed = (
+            OSPFAuthenticationChoices.IPV6
+            if version == 6
+            else OSPFAuthenticationChoices.IPV4
+        )
+        if auth and auth not in allowed:
+            if version == 6:
+                msg = _(
+                    'OSPFv3 has no authentication in the packet header; use the '
+                    'authentication trailer (RFC 7166) or a key chain.'
+                )
+            else:
+                msg = _(
+                    'The authentication trailer (RFC 7166) is for OSPFv3: IPv6 '
+                    'instances.'
+                )
+            raise ValidationError({'authentication': msg})
+        if (
+            self.authentication_key_id is not None
+            and self.authentication_key_id > OSPF_AUTH_KEY_ID_MAX
+            and auth != OSPFAuthenticationChoices.TRAILER
+        ):
+            errors['authentication_key_id'] = _(
+                'The key ID goes up to {max} (RFC 2328 D.3); only the SA ID of the '
+                'authentication trailer goes up to {trailer}.'
+            ).format(max=OSPF_AUTH_KEY_ID_MAX, trailer=OSPF_TRAILER_SA_ID_MAX)
+        if auth == OSPFAuthenticationChoices.TRAILER:
+            if not self.passphrase:
+                errors['passphrase'] = _('A key is required for the trailer.')
+            if self.authentication_key_id is None:
+                errors['authentication_key_id'] = _(
+                    'The SA ID is required for the trailer (RFC 7166 4.1).'
+                )
+            if self.message_digest_algorithm == OSPFMessageDigestAlgorithmChoices.MD5:
+                errors['message_digest_algorithm'] = _(
+                    'The authentication trailer takes HMAC-SHA only (RFC 7166 4.4).'
+                )
+            if self.key_chain:
+                errors['key_chain'] = _('A key chain is not used with the trailer.')
+        elif auth == OSPFAuthenticationChoices.SIMPLE:
             if not self.passphrase:
                 errors['passphrase'] = _('A password is required.')
             elif len(self.passphrase) > OSPF_SIMPLE_PASSWORD_MAX_LENGTH:
@@ -310,15 +362,15 @@ class OSPFTTLSecurityMixin(models.Model):
             )
 
 
-def authentication_conflict(required, own):
+def authentication_conflict(required, own, version=4):
     """
     The authentication type (null, simple password or cryptographic) is a
     parameter of the area, and has to be the same for all the routers attached
     to a network (RFC 2328 C.2 and C.3): the interfaces of an area cannot use a
     different type from the one the area uses.
     """
-    if not required or not own:
-        return False
+    if not required or not own or version != 4:
+        return False  # OSPFv3 has no such rule: the trailer is per interface
     return _authentication_type(required) != _authentication_type(own)
 
 
@@ -857,7 +909,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
             .filter(Q(area__authentication__isnull=True) | Q(area__authentication=''))
             .select_related('interface')
             if authentication_conflict(
-                self.authentication, ospf_interface.authentication
+                self.authentication, ospf_interface.authentication, self.ip_version
             )
         ]
         if not self.areas.filter(area_type=OSPFAreaTypeChoices.BACKBONE).exclude(
@@ -867,7 +919,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
                 virtual_link
                 for virtual_link in self.virtual_links.all()
                 if authentication_conflict(
-                    self.authentication, virtual_link.authentication
+                    self.authentication, virtual_link.authentication, self.ip_version
                 )
             ]
         if interfaces:
@@ -1119,14 +1171,18 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         interfaces = [
             ospf_interface
             for ospf_interface in self.interfaces.select_related('interface')
-            if authentication_conflict(required, ospf_interface.authentication)
+            if authentication_conflict(
+                required, ospf_interface.authentication, self.instance.ip_version
+            )
         ]
         if self.area_type == OSPFAreaTypeChoices.BACKBONE:
             # Virtual links belong to the backbone
             interfaces += [
                 virtual_link
                 for virtual_link in self.instance.virtual_links.all()
-                if authentication_conflict(required, virtual_link.authentication)
+                if authentication_conflict(
+                    required, virtual_link.authentication, self.instance.ip_version
+                )
             ]
         if interfaces:
             raise _authentication_conflict_error(interfaces, required)
@@ -1545,7 +1601,9 @@ class OSPFInterface(
         if not (self.area_id and self.authentication):
             return
         required = self.area.get_authentication_type()
-        if authentication_conflict(required, self.authentication):
+        if authentication_conflict(
+            required, self.authentication, self.instance.ip_version
+        ):
             raise ValidationError(
                 {
                     'authentication': _(
@@ -2007,7 +2065,9 @@ class OSPFVirtualLink(
             raise ValidationError(errors)
         if self.authentication and self.instance_id:
             required = self.get_authentication_type()
-            if authentication_conflict(required, self.authentication):
+            if authentication_conflict(
+                required, self.authentication, self.instance.ip_version
+            ):
                 raise ValidationError(
                     {
                         'authentication': _(
