@@ -9,7 +9,7 @@ from ipam.models import ASN, VRF, IPAddress, Prefix
 from netbox_routing_protocols.choices.ospf import OSPFRouteTypeChoices
 from netbox_routing_protocols.models import (
     ASPath,
-    EIGRPRouter,
+    EIGRPAddressFamily,
     ISISInstance,
     OSPFInstance,
     PrefixList,
@@ -340,7 +340,7 @@ class BGPRedistributionFilterSet(NetBoxModelFilterSet):
     )
     eigrp_source_id = django_filters.ModelMultipleChoiceFilter(
         field_name='eigrp_source',
-        queryset=EIGRPRouter.objects.all(),
+        queryset=EIGRPAddressFamily.objects.all(),
         label=_('EIGRP Source (ID)'),
     )
     route_policy_id = django_filters.ModelMultipleChoiceFilter(

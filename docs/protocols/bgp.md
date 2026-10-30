@@ -84,14 +84,23 @@ An instance can have each family once. Options of the family:
 ## Redistribution
 
 **BGP → Redistribution**, or the *Redistribution* tab of an address family. It takes routes from another protocol
-into the address family (vendors call it *redistribute*). The sources are the **connected** and **static**
-routes of the device, and the instances of **OSPF**, **IS-IS** and **EIGRP** on the same device and in the same
-VRF (an EIGRP router is in the global table). The instance is never a source of itself.
+into that address family (vendors call it *redistribute*). A redistribution is **per address family**: the routes
+of one IP version go into one family. The sources are the **connected** and **static** routes of the device, and
+the instances of **OSPF**, **IS-IS** and **EIGRP**.
+
+A source must match the address family on three points:
+
+- it is on the **same device** as the BGP instance;
+- it is in the **same VRF** as the BGP instance (an EIGRP source is an EIGRP address family, which carries the VRF);
+- it runs the **same IP version**: `ipv4-*` and `vpnv4-*` families take IPv4 sources, `ipv6-*` and `vpnv6-*` take IPv6.
+
+Address families without IP prefixes (EVPN, VPLS, link-state, NSAP, RTFILTER) take no redistribution.
 
 | Field | Meaning |
 | --- | --- |
 | Protocol | Connected, static, OSPF, IS-IS or EIGRP. |
-| OSPF / IS-IS / EIGRP source | The instance the routes come from, for that protocol only. |
+| OSPF / IS-IS source | The instance the routes come from, for that protocol only. |
+| EIGRP source | The EIGRP address family the routes come from. |
 | Route types | For OSPF, which kinds of OSPF routes (internal, external 1 and 2, NSSA external 1 and 2). Empty takes all of them. |
 | Metric | The MED of the redistributed routes ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) section 5.1.4). |
 | Route policy | Filters the redistributed routes before they enter BGP. |

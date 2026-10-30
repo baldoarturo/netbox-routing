@@ -592,7 +592,8 @@ class BGPRedistributionListView(ObjectListView):
         'address_family__instance__asn',
         'ospf_source__device',
         'isis_source__device',
-        'eigrp_source__device',
+        'eigrp_source__router__device',
+        'eigrp_source__vrf',
         'route_policy',
         'tenant',
     )
@@ -609,7 +610,8 @@ class BGPRedistributionView(ObjectView):
         'address_family__instance__asn',
         'ospf_source__device',
         'isis_source__device',
-        'eigrp_source__device',
+        'eigrp_source__router__device',
+        'eigrp_source__vrf',
         'route_policy',
         'tenant',
     )
@@ -635,7 +637,8 @@ class BGPRedistributionEditView(ObjectEditView):
         'address_family__instance__asn',
         'ospf_source__device',
         'isis_source__device',
-        'eigrp_source__device',
+        'eigrp_source__router__device',
+        'eigrp_source__vrf',
         'route_policy',
         'tenant',
     )
@@ -650,7 +653,8 @@ class BGPRedistributionDeleteView(ObjectDeleteView):
         'address_family__instance__asn',
         'ospf_source__device',
         'isis_source__device',
-        'eigrp_source__device',
+        'eigrp_source__router__device',
+        'eigrp_source__vrf',
         'route_policy',
         'tenant',
     )
@@ -664,7 +668,8 @@ class BGPRedistributionBulkEditView(BulkEditView):
         'address_family__instance__asn',
         'ospf_source__device',
         'isis_source__device',
-        'eigrp_source__device',
+        'eigrp_source__router__device',
+        'eigrp_source__vrf',
         'route_policy',
         'tenant',
     )
@@ -681,7 +686,8 @@ class BGPRedistributionBulkDeleteView(BulkDeleteView):
         'address_family__instance__asn',
         'ospf_source__device',
         'isis_source__device',
-        'eigrp_source__device',
+        'eigrp_source__router__device',
+        'eigrp_source__vrf',
         'route_policy',
         'tenant',
     )

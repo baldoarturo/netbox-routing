@@ -71,7 +71,8 @@ class BGPRedistributionViewSet(NetBoxModelViewSet):
         'address_family__instance__asn',
         'ospf_source__device',
         'isis_source__device',
-        'eigrp_source__device',
+        'eigrp_source__router__device',
+        'eigrp_source__vrf',
         'route_policy',
         'tenant',
     )

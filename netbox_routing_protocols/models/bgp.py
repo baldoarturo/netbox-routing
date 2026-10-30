@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
 from netbox_routing_protocols.choices.ospf import OSPFRouteTypeChoices
+from netbox_routing_protocols.helpers.redistribution import source_problem
 from netbox_routing_protocols.models.policy import RoutePolicyMixin
 from netbox_routing_protocols.choices.bgp import *
 
@@ -44,6 +45,34 @@ PREFIX_LIST_FAMILY = {
     BGPAddressFamilyChoices.VPNV6_UNICAST: 6,
     BGPAddressFamilyChoices.VPNV6_MULTICAST: 6,
     BGPAddressFamilyChoices.VPNV6_FLOWSPEC: 6,
+}
+
+
+# IP version of a BGP address family, for the redistribution: the VPN families carry the
+# IP version of their prefixes. Families without prefixes take no redistribution.
+BGP_FAMILY_OF_AF = {
+    **dict.fromkeys(
+        (
+            BGPAddressFamilyChoices.IPV4_UNICAST,
+            BGPAddressFamilyChoices.IPV4_MULTICAST,
+            BGPAddressFamilyChoices.IPV4_FLOWSPEC,
+            BGPAddressFamilyChoices.VPNV4_UNICAST,
+            BGPAddressFamilyChoices.VPNV4_MULTICAST,
+            BGPAddressFamilyChoices.VPNV4_FLOWSPEC,
+        ),
+        'ipv4',
+    ),
+    **dict.fromkeys(
+        (
+            BGPAddressFamilyChoices.IPV6_UNICAST,
+            BGPAddressFamilyChoices.IPV6_MULTICAST,
+            BGPAddressFamilyChoices.IPV6_FLOWSPEC,
+            BGPAddressFamilyChoices.VPNV6_UNICAST,
+            BGPAddressFamilyChoices.VPNV6_MULTICAST,
+            BGPAddressFamilyChoices.VPNV6_FLOWSPEC,
+        ),
+        'ipv6',
+    ),
 }
 
 
@@ -768,12 +797,15 @@ class BGPRedistribution(PrimaryModel):
         null=True,
     )
     eigrp_source = models.ForeignKey(
-        to='netbox_routing_protocols.EIGRPRouter',
+        to='netbox_routing_protocols.EIGRPAddressFamily',
         related_name='bgp_redistributions',
         on_delete=models.CASCADE,
         verbose_name=_('EIGRP Source'),
         blank=True,
         null=True,
+        help_text=_(
+            'The EIGRP address family (its VRF and IP version) that is the source'
+        ),
     )
     metric = models.PositiveBigIntegerField(
         verbose_name=_('Metric'),
@@ -881,20 +913,24 @@ class BGPRedistribution(PrimaryModel):
         if errors:
             raise ValidationError(errors)
 
+        family = BGP_FAMILY_OF_AF.get(self.address_family.address_family)
+        if family is None:
+            raise ValidationError(
+                {
+                    'address_family': _(
+                        'This address family carries no IP prefixes: nothing can be '
+                        'redistributed into it.'
+                    )
+                }
+            )
         if self.source is None:
             return
         instance = self.address_family.instance
-        source = self.source
-        if source.device_id != instance.device_id:
-            errors[self.SOURCE_FIELDS[self.protocol]] = _(
-                'The source must be on the same device as the BGP instance.'
-            )
-        elif getattr(source, 'vrf_id', None) != instance.vrf_id:
-            # an EIGRP router has no VRF: it runs in the global table
-            errors[self.SOURCE_FIELDS[self.protocol]] = _(
-                'The source must be in the same VRF as the BGP instance (an EIGRP '
-                'router is in the global table).'
-            )
+        problem = source_problem(
+            self.protocol, self.source, instance.device_id, instance.vrf_id, family
+        )
+        if problem:
+            errors[self.SOURCE_FIELDS[self.protocol]] = problem
         if errors:
             raise ValidationError(errors)
 

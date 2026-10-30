@@ -14,7 +14,11 @@ from netbox_routing_protocols.api._serializers.objects import (
     PrefixListSerializer,
     RoutePolicySerializer,
 )
-from netbox_routing_protocols.models import EIGRPRouter, ISISInstance, OSPFInstance
+from netbox_routing_protocols.models import (
+    EIGRPAddressFamily,
+    ISISInstance,
+    OSPFInstance,
+)
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
@@ -216,7 +220,7 @@ class BGPRedistributionSerializer(NetBoxModelSerializer):
         queryset=ISISInstance.objects.all(), required=False, allow_null=True
     )
     eigrp_source = serializers.PrimaryKeyRelatedField(
-        queryset=EIGRPRouter.objects.all(), required=False, allow_null=True
+        queryset=EIGRPAddressFamily.objects.all(), required=False, allow_null=True
     )
     route_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     tenant = TenantSerializer(nested=True, required=False, allow_null=True)
