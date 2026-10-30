@@ -181,6 +181,18 @@ class CommunityTablesTestCase(SuperuserMixin, TestCase):
         row = next(r for r in response.context['table'].data if r.pk == lst.pk)
         self.assertEqual((row.entry_count, row.route_policy_entry_count), (2, 1))
 
+    def test_the_well_known_column_is_empty_for_other_communities(self):
+        self.login()
+        Community.objects.create(community='65000:1')
+        Community.objects.create(community='65535:65281')
+        response = self.client.get(reverse(NS + 'community_list'))
+        cells = {
+            row.community: str(response.context['table'].rows[i].get_cell('well_known'))
+            for i, row in enumerate(response.context['table'].data)
+        }
+        self.assertEqual(cells['65000:1'], '—')
+        self.assertEqual(cells['65535:65281'], 'NO_EXPORT (RFC 1997)')
+
     def test_the_list_tables_have_no_query_per_row(self):
         self.login()
         url = reverse(NS + 'community_list')
