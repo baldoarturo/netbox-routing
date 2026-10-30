@@ -489,6 +489,8 @@ valid community is left as it was and fails validation the next time it is edite
 | Role | A NetBox IPAM role that classifies the community (for example *blackhole*, *customer*). |
 | Tenant | Optional owner. |
 
+![The list of communities, with their type, the well-known name and the status](images/community-list.png)
+
 ### Well-known communities
 
 The field accepts the name of a well-known community, in upper or lower case with `-` or `_`
@@ -522,6 +524,8 @@ sequence empty and the entry takes the next multiple of 10 above the last one of
 the API and the import all do it; entries of one bulk request get consecutive numbers). The same
 community can appear more than once in a list, for example a deny before a permit; when you save
 such an entry the form tells you which entry makes the other unreachable.
+
+![The list of community list entries, with their sequence, action and community](images/communitylistentry-list.png)
 
 ### The pages
 
