@@ -14,7 +14,11 @@ from utilities.forms.rendering import FieldSet, TabbedGroups
 
 from netbox_routing_protocols.choices.bgp import BGPCommunityTypeChoices
 from netbox_routing_protocols.choices.ospf import OSPFRouteTypeChoices
-from netbox_routing_protocols.models import EIGRPRouter, ISISInstance, OSPFInstance
+from netbox_routing_protocols.models import (
+    EIGRPAddressFamily,
+    ISISInstance,
+    OSPFInstance,
+)
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.models.bgp import *
 
@@ -296,10 +300,11 @@ class BGPRedistributionForm(TenancyForm, PrimaryModelForm):
         label=_('IS-IS Source'),
     )
     eigrp_source = DynamicModelChoiceField(
-        queryset=EIGRPRouter.objects.all(),
+        queryset=EIGRPAddressFamily.objects.all(),
         required=False,
         selector=True,
         label=_('EIGRP Source'),
+        help_text=_('An EIGRP address family: its VRF and IP version'),
     )
     ospf_match = forms.MultipleChoiceField(
         choices=OSPFRouteTypeChoices,

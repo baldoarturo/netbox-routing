@@ -5,7 +5,7 @@ from dcim.models import Device, Interface
 from ipam.models import ASN, VRF, Prefix
 from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing_protocols.models import (
-    EIGRPRouter,
+    EIGRPAddressFamily,
     ISISInstance,
     OSPFInstance,
     PrefixList,
@@ -266,7 +266,7 @@ class BGPRedistributionFilterForm(NetBoxModelFilterSetForm):
         label=_('IS-IS Source'),
     )
     eigrp_source_id = DynamicModelMultipleChoiceField(
-        queryset=EIGRPRouter.objects.all(),
+        queryset=EIGRPAddressFamily.objects.all(),
         required=False,
         selector=True,
         label=_('EIGRP Source'),
