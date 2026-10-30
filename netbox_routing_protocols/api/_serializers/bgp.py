@@ -35,7 +35,11 @@ _SESSION = (
     'local_as',
     'enabled',
     'bfd',
-    'ttl',
+    'ebgp_multihop',
+    'ttl_security_hops',
+    'passive',
+    'import_policy',
+    'export_policy',
     'password',
     'keepalive',
     'hold_time',
@@ -49,6 +53,8 @@ class BGPInstanceSerializer(NetBoxModelSerializer):
     device = DeviceSerializer(nested=True)
     vrf = VRFSerializer(nested=True, required=False, allow_null=True)
     asn = ASNSerializer(nested=True)
+    import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     tenant = TenantSerializer(nested=True, required=False, allow_null=True)
 
     class Meta:
@@ -64,6 +70,11 @@ class BGPInstanceSerializer(NetBoxModelSerializer):
             'router_id',
             'asdot',
             'graceful_restart',
+            'graceful_restart_time',
+            'graceful_restart_stale_time',
+            'graceful_restart_helper_only',
+            'import_policy',
+            'export_policy',
             'tenant',
             *_COMMON,
         )
@@ -94,6 +105,7 @@ class BGPAddressFamilySerializer(NetBoxModelSerializer):
             'additional_paths_send',
             'additional_paths_receive',
             'additional_paths_install',
+            'long_lived_stale_time',
             'tenant',
             *_COMMON,
         )
@@ -110,6 +122,8 @@ class BGPPeerGroupSerializer(NetBoxModelSerializer):
     bfd = serializers.PrimaryKeyRelatedField(
         queryset=BFDProfile.objects.all(), required=False, allow_null=True
     )
+    import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     tenant = TenantSerializer(nested=True, required=False, allow_null=True)
 
     class Meta:
@@ -140,6 +154,8 @@ class BGPPeerSerializer(NetBoxModelSerializer):
     bfd = serializers.PrimaryKeyRelatedField(
         queryset=BFDProfile.objects.all(), required=False, allow_null=True
     )
+    import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     tenant = TenantSerializer(nested=True, required=False, allow_null=True)
 
     class Meta:
@@ -170,10 +186,8 @@ class BGPPeerAddressFamilySerializer(NetBoxModelSerializer):
     address_family = BGPAddressFamilySerializer(nested=True)
     prefixlist_in = PrefixListSerializer(nested=True, required=False, allow_null=True)
     prefixlist_out = PrefixListSerializer(nested=True, required=False, allow_null=True)
-    routepolicy_in = RoutePolicySerializer(nested=True, required=False, allow_null=True)
-    routepolicy_out = RoutePolicySerializer(
-        nested=True, required=False, allow_null=True
-    )
+    import_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    export_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
     tenant = TenantSerializer(nested=True, required=False, allow_null=True)
 
     class Meta:
@@ -188,8 +202,16 @@ class BGPPeerAddressFamilySerializer(NetBoxModelSerializer):
             'enabled',
             'prefixlist_in',
             'prefixlist_out',
-            'routepolicy_in',
-            'routepolicy_out',
+            'import_policy',
+            'export_policy',
+            'send_community',
+            'next_hop_self',
+            'remove_private_as',
+            'allowas_in',
+            'maximum_prefix',
+            'maximum_prefix_warning',
+            'maximum_prefix_action',
+            'maximum_prefix_restart',
             'tenant',
             *_COMMON,
         )

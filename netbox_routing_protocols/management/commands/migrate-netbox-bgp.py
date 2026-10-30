@@ -402,14 +402,14 @@ class Command(BaseCommand):
                         peer_af = BGPPeerAddressFamily(
                             peer_group=entry,
                             address_family=address_family,
-                            routepolicy_in=(
+                            import_policy=(
                                 mapping['route_policy'].get(
                                     import_policy.routingpolicy.pk
                                 )
                                 if import_policy
                                 else None
                             ),
-                            routepolicy_out=(
+                            export_policy=(
                                 mapping['route_policy'].get(
                                     export_policy.routingpolicy.pk
                                 )
@@ -488,8 +488,8 @@ class Command(BaseCommand):
                         peeraf = BGPPeerAddressFamily(
                             peer=peer,
                             address_family=af,
-                            routepolicy_in=import_policy,
-                            routepolicy_out=export_policy,
+                            import_policy=import_policy,
+                            export_policy=export_policy,
                             prefixlist_in=(
                                 mapping['prefix_list'].get(item.prefix_list_in.pk)
                                 if item.prefix_list_in

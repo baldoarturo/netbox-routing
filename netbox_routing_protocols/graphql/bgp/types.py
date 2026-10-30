@@ -34,6 +34,21 @@ class BGPInstanceType(PrimaryObjectType):
     router_id: str | None
     asdot: bool | None
     graceful_restart: bool | None
+    graceful_restart_time: int | None
+    graceful_restart_stale_time: int | None
+    graceful_restart_helper_only: bool | None
+    import_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    export_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
     tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
     address_families: list[
         Annotated[
@@ -71,6 +86,7 @@ class BGPAddressFamilyType(PrimaryObjectType):
     additional_paths_send: bool | None
     additional_paths_receive: bool | None
     additional_paths_install: bool | None
+    long_lived_stale_time: int | None
     tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
 
 
@@ -91,7 +107,21 @@ class BGPPeerGroupType(PrimaryObjectType):
         ]
         | None
     )
-    ttl: int | None
+    ebgp_multihop: int | None
+    ttl_security_hops: int | None
+    passive: bool | None
+    import_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    export_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
     password: str | None
     keepalive: int | None
     hold_time: int | None
@@ -134,7 +164,21 @@ class BGPPeerType(PrimaryObjectType):
         ]
         | None
     )
-    ttl: int | None
+    ebgp_multihop: int | None
+    ttl_security_hops: int | None
+    passive: bool | None
+    import_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    export_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
     password: str | None
     keepalive: int | None
     hold_time: int | None
@@ -169,6 +213,14 @@ class BGPPeerAddressFamilyType(PrimaryObjectType):
         strawberry.lazy('netbox_routing_protocols.graphql.types'),
     ]
     enabled: bool | None
+    send_community: list[str]
+    next_hop_self: bool | None
+    remove_private_as: bool | None
+    allowas_in: int | None
+    maximum_prefix: int | None
+    maximum_prefix_warning: int | None
+    maximum_prefix_action: str | None
+    maximum_prefix_restart: int | None
     prefixlist_in: (
         Annotated[
             "PrefixListType", strawberry.lazy('netbox_routing_protocols.graphql.types')
@@ -181,13 +233,13 @@ class BGPPeerAddressFamilyType(PrimaryObjectType):
         ]
         | None
     )
-    routepolicy_in: (
+    import_policy: (
         Annotated[
             "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]
         | None
     )
-    routepolicy_out: (
+    export_policy: (
         Annotated[
             "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
         ]

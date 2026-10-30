@@ -48,6 +48,7 @@ class BGPInstanceTestCase(APIViewTestCases.APIViewTestCase):
                 'router_id': '192.0.2.1',
                 'asdot': True,
                 'graceful_restart': True,
+                'graceful_restart_time': 120,
             },
             {
                 'name': 'Instance Y',
@@ -157,7 +158,8 @@ class BGPPeerTestCase(
                 'peer': addresses[4].pk,
                 'source': addresses[5].pk,
                 'remote_as': asns[2].pk,
-                'ttl': 255,
+                'ttl_security_hops': 1,
+                'passive': True,
             },
         ]
 
@@ -187,7 +189,15 @@ class BGPPeerAddressFamilyTestCase(
             [cls.model(peer=peer, address_family=afs[i]) for i in range(3)]
         )
         cls.create_data = [
-            {'peer': peer.pk, 'address_family': afs[3].pk, 'enabled': True},
+            {
+                'peer': peer.pk,
+                'address_family': afs[3].pk,
+                'enabled': True,
+                'send_community': ['standard', 'large'],
+                'maximum_prefix': 100,
+                'maximum_prefix_action': 'restart',
+                'maximum_prefix_restart': 30,
+            },
             {'peer_group': group.pk, 'address_family': afs[0].pk},
         ]
 

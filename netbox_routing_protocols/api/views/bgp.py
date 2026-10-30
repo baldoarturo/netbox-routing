@@ -74,8 +74,8 @@ class BGPPeerAddressFamilyViewSet(NetBoxModelViewSet):
         'address_family__instance__asn',
         'prefixlist_in',
         'prefixlist_out',
-        'routepolicy_in',
-        'routepolicy_out',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     serializer_class = BGPPeerAddressFamilySerializer

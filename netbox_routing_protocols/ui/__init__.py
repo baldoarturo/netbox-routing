@@ -7,6 +7,11 @@ __all__ = (
     # Panels
     'SettingsChoicePanel',
     'BGPPolicyFilteringPanel',
+    'BGPRoutePolicyPanel',
+    'BGPGracefulRestartPanel',
+    'BGPPeerAddressFamilyOptionsPanel',
+    'BGPNoPolicyPanel',
+    'BGPEffectivePolicyPanel',
     'BGPInstancePanel',
     'BGPAddressFamilyPanel',
     'BGPAddressFamilyOptionsPanel',

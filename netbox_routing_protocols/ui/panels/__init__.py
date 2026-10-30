@@ -10,6 +10,11 @@ from .ospf import *
 __all__ = (
     'SettingsChoicePanel',
     'BGPPolicyFilteringPanel',
+    'BGPRoutePolicyPanel',
+    'BGPGracefulRestartPanel',
+    'BGPPeerAddressFamilyOptionsPanel',
+    'BGPNoPolicyPanel',
+    'BGPEffectivePolicyPanel',
     'BGPInstancePanel',
     'BGPAddressFamilyPanel',
     'BGPAddressFamilyOptionsPanel',

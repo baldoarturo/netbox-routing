@@ -35,12 +35,37 @@ class ASPathUsageFilterSetMixin(django_filters.FilterSet):
         if not value:
             return queryset
         return queryset.filter(
-            Q(routepolicy_in__route_policy_entries__match_aspath__in=value)
-            | Q(routepolicy_out__route_policy_entries__match_aspath__in=value)
+            Q(import_policy__route_policy_entries__match_aspath__in=value)
+            | Q(export_policy__route_policy_entries__match_aspath__in=value)
         ).distinct()
 
 
-class PolicyFilterSetMixin(django_filters.FilterSet):
+class RoutePolicyFilterSetMixin(django_filters.FilterSet):
+    import_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy_id',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Import Policy (ID)'),
+    )
+    import_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='import_policy_id__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Import Policy (Name)'),
+    )
+    export_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy_id',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Export Policy (ID)'),
+    )
+    export_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='export_policy_id__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Export Policy (Name)'),
+    )
+
+
+class PolicyFilterSetMixin(RoutePolicyFilterSetMixin):
     prefixlist_in_id = django_filters.ModelMultipleChoiceFilter(
         field_name='prefixlist_in_id',
         queryset=PrefixList.objects.all(),
@@ -63,31 +88,9 @@ class PolicyFilterSetMixin(django_filters.FilterSet):
         to_field_name='name',
         label=_('Outgoing Prefix List (Name)'),
     )
-    routepolicy_in_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='routepolicy_in_id',
-        queryset=RoutePolicy.objects.all(),
-        label=_('Incoming Route Policy (ID)'),
-    )
-    routepolicy_in = django_filters.ModelMultipleChoiceFilter(
-        field_name='routepolicy_in_id__name',
-        queryset=RoutePolicy.objects.all(),
-        to_field_name='name',
-        label=_('Incoming Route Policy (Name)'),
-    )
-    routepolicy_out_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='routepolicy_out_id',
-        queryset=RoutePolicy.objects.all(),
-        label=_('Outgoing Route Policy (ID)'),
-    )
-    routepolicy_out = django_filters.ModelMultipleChoiceFilter(
-        field_name='routepolicy_out_id__name',
-        queryset=RoutePolicy.objects.all(),
-        to_field_name='name',
-        label=_('Outgoing Route Policy (Name)'),
-    )
 
 
-class PeerConfigFilterSetMixin(django_filters.FilterSet):
+class PeerConfigFilterSetMixin(RoutePolicyFilterSetMixin):
     instance_id = django_filters.ModelMultipleChoiceFilter(
         field_name='instance',
         queryset=BGPInstance.objects.all(),
@@ -128,7 +131,9 @@ class PeerConfigFilterSetMixin(django_filters.FilterSet):
 
 
 @register_filterset
-class BGPInstanceFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
+class BGPInstanceFilterSet(
+    RoutePolicyFilterSetMixin, TenancyFilterSet, NetBoxModelFilterSet
+):
     device_id = django_filters.ModelMultipleChoiceFilter(
         field_name='device',
         queryset=Device.objects.all(),
@@ -153,7 +158,17 @@ class BGPInstanceFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
 
     class Meta:
         model = BGPInstance
-        fields = ('id', 'name', 'router_id', 'asdot', 'graceful_restart', 'description')
+        fields = (
+            'id',
+            'name',
+            'router_id',
+            'asdot',
+            'graceful_restart',
+            'graceful_restart_time',
+            'graceful_restart_stale_time',
+            'graceful_restart_helper_only',
+            'description',
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -198,6 +213,7 @@ class BGPAddressFamilyFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
             'additional_paths_send',
             'additional_paths_receive',
             'additional_paths_install',
+            'long_lived_stale_time',
             'description',
         )
 
@@ -222,7 +238,9 @@ class BGPPeerGroupFilterSet(
             'id',
             'name',
             'enabled',
-            'ttl',
+            'ebgp_multihop',
+            'ttl_security_hops',
+            'passive',
             'keepalive',
             'hold_time',
             'description',
@@ -261,7 +279,9 @@ class BGPPeerFilterSet(
             'id',
             'name',
             'enabled',
-            'ttl',
+            'ebgp_multihop',
+            'ttl_security_hops',
+            'passive',
             'keepalive',
             'hold_time',
             'description',
@@ -310,7 +330,16 @@ class BGPPeerAddressFamilyFilterSet(
 
     class Meta:
         model = BGPPeerAddressFamily
-        fields = ('id', 'enabled', 'description')
+        fields = (
+            'id',
+            'enabled',
+            'next_hop_self',
+            'remove_private_as',
+            'allowas_in',
+            'maximum_prefix',
+            'maximum_prefix_action',
+            'description',
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():

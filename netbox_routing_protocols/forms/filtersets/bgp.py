@@ -35,17 +35,17 @@ class BGPPolicyFilterFormMixin(forms.Form):
         selector=True,
         label=_('Outgoing Prefix List'),
     )
-    routepolicy_in_id = DynamicModelMultipleChoiceField(
+    import_policy_id = DynamicModelMultipleChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Incoming Route Policy'),
+        label=_('Import Policy'),
     )
-    routepolicy_out_id = DynamicModelMultipleChoiceField(
+    export_policy_id = DynamicModelMultipleChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Outgoing Route Policy'),
+        label=_('Export Policy'),
     )
 
 
@@ -87,6 +87,18 @@ class BGPPeerConfigFilterFormMixin(forms.Form):
             choices=((None, '---------'), (True, _('Yes')), (False, _('No')))
         ),
     )
+    import_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
 
 
 class BGPInstanceFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
@@ -94,6 +106,7 @@ class BGPInstanceFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet('device_id', 'vrf_id', 'asn_id', name=_('BGP')),
+        FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
         FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
     )
     device_id = DynamicModelMultipleChoiceField(
@@ -113,6 +126,18 @@ class BGPInstanceFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
         required=False,
         selector=True,
         label=_('ASN'),
+    )
+    import_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
     )
     tag = TagFilterField(model)
 
@@ -156,6 +181,7 @@ class BGPPeerGroupFilterForm(
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet('instance_id', 'device_id', name=_('BGP')),
         FieldSet('enabled', 'remote_as_id', 'local_as_id', 'bfd_id', name=_('Session')),
+        FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
         FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
     )
     tag = TagFilterField(model)
@@ -169,6 +195,7 @@ class BGPPeerFilterForm(
         FieldSet('q', 'filter_id', 'tag'),
         FieldSet('instance_id', 'device_id', 'peer_group_id', 'status', name=_('BGP')),
         FieldSet('enabled', 'remote_as_id', 'local_as_id', 'bfd_id', name=_('Session')),
+        FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
         FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
     )
     peer_group_id = DynamicModelMultipleChoiceField(
@@ -200,8 +227,8 @@ class BGPPeerAddressFamilyFilterForm(
         FieldSet(
             'prefixlist_in_id',
             'prefixlist_out_id',
-            'routepolicy_in_id',
-            'routepolicy_out_id',
+            'import_policy_id',
+            'export_policy_id',
             name=_('Filtering'),
         ),
         FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),

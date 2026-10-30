@@ -17,6 +17,8 @@ __all__ = (
 
 class BGPInstanceTable(TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(linkify=True, verbose_name=_('Name'))
+    import_policy = tables.Column(linkify=True, verbose_name=_('Import Policy'))
+    export_policy = tables.Column(linkify=True, verbose_name=_('Export Policy'))
     device = tables.Column(linkify=True, verbose_name=_('Device'))
     vrf = tables.Column(linkify=True, verbose_name=_('VRF'))
     asn = tables.Column(linkify=True, verbose_name=_('ASN'))
@@ -33,6 +35,11 @@ class BGPInstanceTable(TenancyColumnsMixin, NetBoxTable):
             'router_id',
             'asdot',
             'graceful_restart',
+            'graceful_restart_time',
+            'graceful_restart_stale_time',
+            'graceful_restart_helper_only',
+            'import_policy',
+            'export_policy',
             'tenant_group',
             'tenant',
             'description',
@@ -67,6 +74,7 @@ class BGPAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):
             'additional_paths_send',
             'additional_paths_receive',
             'additional_paths_install',
+            'long_lived_stale_time',
             'tenant_group',
             'tenant',
             'description',
@@ -78,6 +86,8 @@ class _BGPPeerConfigColumns(tables.Table):
     remote_as = tables.Column(linkify=True, verbose_name=_('Remote AS'))
     local_as = tables.Column(linkify=True, verbose_name=_('Local AS'))
     bfd = tables.Column(linkify=True, verbose_name=_('BFD Profile'))
+    import_policy = tables.Column(linkify=True, verbose_name=_('Import Policy'))
+    export_policy = tables.Column(linkify=True, verbose_name=_('Export Policy'))
 
 
 _CONFIG_FIELDS = (
@@ -85,7 +95,11 @@ _CONFIG_FIELDS = (
     'local_as',
     'enabled',
     'bfd',
-    'ttl',
+    'ebgp_multihop',
+    'ttl_security_hops',
+    'passive',
+    'import_policy',
+    'export_policy',
     'password',
     'keepalive',
     'hold_time',
@@ -153,8 +167,13 @@ class BGPPeerAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):
     address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
     prefixlist_in = tables.Column(linkify=True, verbose_name=_('Prefix List In'))
     prefixlist_out = tables.Column(linkify=True, verbose_name=_('Prefix List Out'))
-    routepolicy_in = tables.Column(linkify=True, verbose_name=_('Route Policy In'))
-    routepolicy_out = tables.Column(linkify=True, verbose_name=_('Route Policy Out'))
+    import_policy = tables.Column(linkify=True, verbose_name=_('Import Policy'))
+    export_policy = tables.Column(linkify=True, verbose_name=_('Export Policy'))
+    send_community = tables.Column(
+        accessor='send_community_display',
+        orderable=False,
+        verbose_name=_('Send Community'),
+    )
 
     class Meta(NetBoxTable.Meta):
         model = BGPPeerAddressFamily
@@ -167,8 +186,16 @@ class BGPPeerAddressFamilyTable(TenancyColumnsMixin, NetBoxTable):
             'enabled',
             'prefixlist_in',
             'prefixlist_out',
-            'routepolicy_in',
-            'routepolicy_out',
+            'import_policy',
+            'export_policy',
+            'send_community',
+            'next_hop_self',
+            'remove_private_as',
+            'allowas_in',
+            'maximum_prefix',
+            'maximum_prefix_warning',
+            'maximum_prefix_action',
+            'maximum_prefix_restart',
             'tenant_group',
             'tenant',
             'description',

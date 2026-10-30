@@ -67,7 +67,9 @@ class BGPInstanceTestCase(_ViewHelpers, *VIEW_CASES):
             'asn': asn.pk,
             'router_id': '192.0.2.1',
             'asdot': True,
-            'graceful_restart': False,
+            'graceful_restart': True,
+            'graceful_restart_time': 120,
+            'graceful_restart_stale_time': 360,
         }
 
 
@@ -107,6 +109,8 @@ class BGPPeerGroupTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
             'remote_as': asns[1].pk,
             'hold_time': 90,
             'keepalive': 30,
+            'ebgp_multihop': 2,
+            'passive': True,
         }
 
 
@@ -160,6 +164,10 @@ class BGPPeerAddressFamilyTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES
             'peer': peer.pk,
             'address_family': afs[3].pk,
             'enabled': True,
+            'send_community': ['standard', 'large'],
+            'next_hop_self': True,
+            'maximum_prefix': 100,
+            'maximum_prefix_action': 'stop',
         }
 
 

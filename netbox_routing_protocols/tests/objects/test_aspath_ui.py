@@ -236,9 +236,9 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
             route_policy=cls.policy, sequence=10, action='permit'
         )
         entry.match_aspath.add(cls.aspath)
-        cls.inbound = create_peer_address_family(routepolicy_in=cls.policy)
-        cls.outbound = create_peer_address_family(routepolicy_out=cls.policy)
-        cls.unrelated = create_peer_address_family(routepolicy_in=cls.other_policy)
+        cls.inbound = create_peer_address_family(import_policy=cls.policy)
+        cls.outbound = create_peer_address_family(export_policy=cls.policy)
+        cls.unrelated = create_peer_address_family(import_policy=cls.other_policy)
 
     @staticmethod
     def policy_list():

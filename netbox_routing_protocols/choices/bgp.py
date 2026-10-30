@@ -4,6 +4,8 @@ __all__ = (
     'BGPAdditionalPathSelectChoices',
     'BGPAddressFamilyChoices',
     'BGPBestPathASPathChoices',
+    'BGPCommunityTypeChoices',
+    'BGPMaximumPrefixActionChoices',
     'BFDChoices',
     'BGPStatusChoices',
 )
@@ -35,6 +37,34 @@ class BGPBestPathASPathChoices(ChoiceSet):
     MULTIPATH = 'multipath-relax'
 
     CHOICES = [(IGNORE, 'Ignore'), (MULTIPATH, 'Multipath Relax Comparison')]
+
+
+class BGPCommunityTypeChoices(ChoiceSet):
+    """The kinds of communities a neighbor is sent (RFC 1997, RFC 4360, RFC 8092)"""
+
+    STANDARD = 'standard'
+    EXTENDED = 'extended'
+    LARGE = 'large'
+
+    CHOICES = [
+        (STANDARD, 'Standard'),
+        (EXTENDED, 'Extended'),
+        (LARGE, 'Large'),
+    ]
+
+
+class BGPMaximumPrefixActionChoices(ChoiceSet):
+    """What happens when a neighbor sends more prefixes than the limit (RFC 4486)"""
+
+    RESTART = 'restart'
+    STOP = 'stop'
+    WARNING_ONLY = 'warning-only'
+
+    CHOICES = [
+        (RESTART, 'Cease, restart after a time'),
+        (STOP, 'Cease, until cleared'),
+        (WARNING_ONLY, 'Warning only'),
+    ]
 
 
 class BGPAddressFamilyChoices(ChoiceSet):

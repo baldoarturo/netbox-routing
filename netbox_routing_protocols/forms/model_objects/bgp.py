@@ -8,6 +8,7 @@ from tenancy.forms import TenancyForm
 from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet, TabbedGroups
 
+from netbox_routing_protocols.choices.bgp import BGPCommunityTypeChoices
 from netbox_routing_protocols.models.objects import *
 from netbox_routing_protocols.models.bgp import *
 
@@ -25,7 +26,9 @@ _CONFIG_FIELDS = (
     'local_as',
     'enabled',
     'bfd',
-    'ttl',
+    'ebgp_multihop',
+    'ttl_security_hops',
+    'passive',
     'keepalive',
     'hold_time',
     'password',
@@ -47,10 +50,30 @@ class BGPInstanceForm(TenancyForm, PrimaryModelForm):
     asn = DynamicModelChoiceField(
         queryset=ASN.objects.all(), required=True, selector=True, label=_('ASN')
     )
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
 
     fieldsets = (
         FieldSet('name', 'device', 'vrf', 'asn', 'description', name=_('Instance')),
-        FieldSet('router_id', 'asdot', 'graceful_restart', name=_('Options')),
+        FieldSet('router_id', 'asdot', name=_('Options')),
+        FieldSet(
+            'graceful_restart',
+            'graceful_restart_time',
+            'graceful_restart_stale_time',
+            'graceful_restart_helper_only',
+            name=_('Graceful restart'),
+        ),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -64,6 +87,11 @@ class BGPInstanceForm(TenancyForm, PrimaryModelForm):
             'router_id',
             'asdot',
             'graceful_restart',
+            'graceful_restart_time',
+            'graceful_restart_stale_time',
+            'graceful_restart_helper_only',
+            'import_policy',
+            'export_policy',
             'tenant_group',
             'tenant',
             *_COMMON_FIELDS,
@@ -95,6 +123,7 @@ class BGPAddressFamilyForm(TenancyForm, PrimaryModelForm):
             'additional_paths_install',
             name=_('Additional paths'),
         ),
+        FieldSet('long_lived_stale_time', name=_('Graceful restart')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -112,6 +141,7 @@ class BGPAddressFamilyForm(TenancyForm, PrimaryModelForm):
             'additional_paths_send',
             'additional_paths_receive',
             'additional_paths_install',
+            'long_lived_stale_time',
             'tenant_group',
             'tenant',
             *_COMMON_FIELDS,
@@ -131,6 +161,18 @@ class BGPPeerConfigFormMixin(forms.Form):
         selector=True,
         label=_('BFD Profile'),
     )
+    import_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Import Policy'),
+    )
+    export_policy = DynamicModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Export Policy'),
+    )
 
 
 class BGPPeerGroupForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
@@ -144,6 +186,7 @@ class BGPPeerGroupForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
     fieldsets = (
         FieldSet('instance', 'name', 'description', name=_('Peer group')),
         FieldSet(*_CONFIG_FIELDS, name=_('Session')),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -153,6 +196,8 @@ class BGPPeerGroupForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
             'instance',
             'name',
             *_CONFIG_FIELDS,
+            'import_policy',
+            'export_policy',
             'tenant_group',
             'tenant',
             *_COMMON_FIELDS,
@@ -198,6 +243,7 @@ class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
             name=_('Peer'),
         ),
         FieldSet(*_CONFIG_FIELDS, name=_('Session')),
+        FieldSet('import_policy', 'export_policy', name=_('Route Policy')),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -211,6 +257,8 @@ class BGPPeerForm(BGPPeerConfigFormMixin, TenancyForm, PrimaryModelForm):
             'peer_group',
             'status',
             *_CONFIG_FIELDS,
+            'import_policy',
+            'export_policy',
             'tenant_group',
             'tenant',
             *_COMMON_FIELDS,
@@ -248,17 +296,24 @@ class BGPPeerAddressFamilyForm(TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Outbound Prefix List'),
     )
-    routepolicy_in = DynamicModelChoiceField(
+    import_policy = DynamicModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Inbound Route Policy'),
+        label=_('Import Policy'),
     )
-    routepolicy_out = DynamicModelChoiceField(
+    export_policy = DynamicModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
         selector=True,
-        label=_('Outbound Route Policy'),
+        label=_('Export Policy'),
+    )
+
+    send_community = forms.MultipleChoiceField(
+        choices=BGPCommunityTypeChoices,
+        required=False,
+        label=_('Send Community'),
+        help_text=_('Empty uses the one of the peer group, else the platform default'),
     )
 
     fieldsets = (
@@ -275,9 +330,23 @@ class BGPPeerAddressFamilyForm(TenancyForm, PrimaryModelForm):
         FieldSet(
             'prefixlist_in',
             'prefixlist_out',
-            'routepolicy_in',
-            'routepolicy_out',
+            'import_policy',
+            'export_policy',
             name=_('Filtering'),
+        ),
+        FieldSet(
+            'send_community',
+            'next_hop_self',
+            'remove_private_as',
+            'allowas_in',
+            name=_('Advertisement'),
+        ),
+        FieldSet(
+            'maximum_prefix',
+            'maximum_prefix_warning',
+            'maximum_prefix_action',
+            'maximum_prefix_restart',
+            name=_('Maximum prefixes'),
         ),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
@@ -291,8 +360,16 @@ class BGPPeerAddressFamilyForm(TenancyForm, PrimaryModelForm):
             'enabled',
             'prefixlist_in',
             'prefixlist_out',
-            'routepolicy_in',
-            'routepolicy_out',
+            'import_policy',
+            'export_policy',
+            'send_community',
+            'next_hop_self',
+            'remove_private_as',
+            'allowas_in',
+            'maximum_prefix',
+            'maximum_prefix_warning',
+            'maximum_prefix_action',
+            'maximum_prefix_restart',
             'tenant_group',
             'tenant',
             *_COMMON_FIELDS,

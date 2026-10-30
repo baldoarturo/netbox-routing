@@ -4,6 +4,11 @@ from netbox.ui import attrs, panels
 
 __all__ = (
     'BGPPolicyFilteringPanel',
+    'BGPRoutePolicyPanel',
+    'BGPGracefulRestartPanel',
+    'BGPPeerAddressFamilyOptionsPanel',
+    'BGPNoPolicyPanel',
+    'BGPEffectivePolicyPanel',
     'BGPInstancePanel',
     'BGPAddressFamilyPanel',
     'BGPAddressFamilyOptionsPanel',
@@ -23,9 +28,6 @@ class BGPInstancePanel(panels.ObjectAttributesPanel):
     asn = attrs.RelatedObjectAttr('asn', label=_('ASN'), linkify=True)
     router_id = attrs.TextAttr('router_id', label=_('Router ID'))
     asdot = attrs.BooleanAttr('asdot', label=_('AS Dot Notation'))
-    graceful_restart = attrs.BooleanAttr(
-        'graceful_restart', label=_('Graceful Restart')
-    )
     tenant = attrs.RelatedObjectAttr('tenant', linkify=True)
     description = attrs.TextAttr('description', label=_('Description'))
 
@@ -55,6 +57,9 @@ class BGPAddressFamilyOptionsPanel(panels.ObjectAttributesPanel):
     additional_paths_install = attrs.BooleanAttr(
         'additional_paths_install', label=_('Additional Paths (install)')
     )
+    long_lived_stale_time = attrs.NumericAttr(
+        'long_lived_stale_time', label=_('Long-Lived Graceful Restart Stale Time')
+    )
 
 
 class BGPPeerGroupPanel(panels.ObjectAttributesPanel):
@@ -82,10 +87,68 @@ class BGPPeerSessionPanel(panels.ObjectAttributesPanel):
     local_as = attrs.RelatedObjectAttr('local_as', label=_('Local AS'), linkify=True)
     enabled = attrs.BooleanAttr('enabled', label=_('Enabled'))
     bfd = attrs.RelatedObjectAttr('bfd', label=_('BFD Profile'), linkify=True)
-    ttl = attrs.NumericAttr('ttl', label=_('TTL'))
+    ebgp_multihop = attrs.NumericAttr('ebgp_multihop', label=_('eBGP Multihop'))
+    ttl_security_hops = attrs.NumericAttr(
+        'ttl_security_hops', label=_('TTL Security Hops')
+    )
+    passive = attrs.BooleanAttr('passive', label=_('Passive'))
     password = attrs.TextAttr('password', label=_('Password'))
     keepalive = attrs.NumericAttr('keepalive', label=_('Keepalive Time'))
     hold_time = attrs.NumericAttr('hold_time', label=_('Hold Time'))
+
+
+class BGPRoutePolicyPanel(panels.ObjectAttributesPanel):
+    """The import and export policy set on the object itself"""
+
+    import_policy = attrs.RelatedObjectAttr(
+        'import_policy', linkify=True, label=_('Import Policy')
+    )
+    export_policy = attrs.RelatedObjectAttr(
+        'export_policy', linkify=True, label=_('Export Policy')
+    )
+
+
+class BGPGracefulRestartPanel(panels.ObjectAttributesPanel):
+    graceful_restart = attrs.BooleanAttr(
+        'graceful_restart', label=_('Graceful Restart')
+    )
+    graceful_restart_time = attrs.NumericAttr(
+        'graceful_restart_time', label=_('Restart Time')
+    )
+    graceful_restart_stale_time = attrs.NumericAttr(
+        'graceful_restart_stale_time', label=_('Stale Paths Time')
+    )
+    graceful_restart_helper_only = attrs.BooleanAttr(
+        'graceful_restart_helper_only', label=_('Helper Only')
+    )
+
+
+class BGPPeerAddressFamilyOptionsPanel(panels.ObjectAttributesPanel):
+    send_community = attrs.TextAttr('send_community_display', label=_('Send Community'))
+    next_hop_self = attrs.BooleanAttr('next_hop_self', label=_('Next Hop Self'))
+    remove_private_as = attrs.BooleanAttr(
+        'remove_private_as', label=_('Remove Private AS')
+    )
+    allowas_in = attrs.NumericAttr('allowas_in', label=_('Allow AS In'))
+    maximum_prefix = attrs.NumericAttr('maximum_prefix', label=_('Maximum Prefixes'))
+    maximum_prefix_warning = attrs.NumericAttr(
+        'maximum_prefix_warning', label=_('Warning at (%)')
+    )
+    maximum_prefix_action = attrs.ChoiceAttr('maximum_prefix_action', label=_('Action'))
+    maximum_prefix_restart = attrs.NumericAttr(
+        'maximum_prefix_restart', label=_('Restart after (minutes)')
+    )
+
+
+class BGPNoPolicyPanel(panels.TemplatePanel):
+    """The address families of an eBGP session that has no import or export policy at
+    any level (RFC 8212)"""
+
+    def __init__(self, **kwargs):
+        super().__init__('netbox_routing_protocols/panels/bgp_no_policy.html', **kwargs)
+
+    def should_render(self, context):
+        return bool(context.get('sessions_without_policy'))
 
 
 class BGPPeerAddressFamilyPanel(panels.ObjectAttributesPanel):
@@ -99,11 +162,23 @@ class BGPPeerAddressFamilyPanel(panels.ObjectAttributesPanel):
     description = attrs.TextAttr('description', label=_('Description'))
 
 
+class BGPEffectivePolicyPanel(panels.ObjectAttributesPanel):
+    """The policy that applies: the most specific of the address family, the peer
+    group, the peer and the instance"""
+
+    import_policy = attrs.TextAttr(
+        'effective_import_policy_display', label=_('Import Policy')
+    )
+    export_policy = attrs.TextAttr(
+        'effective_export_policy_display', label=_('Export Policy')
+    )
+
+
 class BGPPolicyFilteringPanel(panels.ObjectAttributesPanel):
     prefixlist_out = attrs.RelatedObjectAttr('prefixlist_out', linkify=True)
     prefixlist_in = attrs.RelatedObjectAttr('prefixlist_in', linkify=True)
-    routepolicy_out = attrs.RelatedObjectAttr('routepolicy_out', linkify=True)
-    routepolicy_in = attrs.RelatedObjectAttr('routepolicy_in', linkify=True)
+    export_policy = attrs.RelatedObjectAttr('export_policy', linkify=True)
+    import_policy = attrs.RelatedObjectAttr('import_policy', linkify=True)
 
 
 class BFDProfilePanel(panels.ObjectAttributesPanel):
