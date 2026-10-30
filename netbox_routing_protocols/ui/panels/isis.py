@@ -85,6 +85,9 @@ class ISISLevelPanel(panels.ObjectAttributesPanel):
     disabled = attrs.BooleanAttr('disabled', label=_('Disabled'))
     auth_type = attrs.ChoiceAttr('auth_type', label=_('Auth Type'))
     auth_key = attrs.TextAttr('auth_key', label=_('Auth Key'))
+    auth_key_id = attrs.NumericAttr('auth_key_id', label=_('Auth Key ID'))
+    auth_key_chain = attrs.TextAttr('auth_key_chain', label=_('Auth Key Chain'))
+    auth_send_only = attrs.BooleanAttr('auth_send_only', label=_('Auth Send Only'))
 
 
 class ISISInterfaceLevelPanel(panels.ObjectAttributesPanel):
@@ -98,6 +101,15 @@ class ISISInterfaceLevelPanel(panels.ObjectAttributesPanel):
     priority = attrs.NumericAttr('priority', label=_('Priority'))
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
     hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
+    hello_auth_key_id = attrs.NumericAttr(
+        'hello_auth_key_id', label=_('Hello Auth Key ID')
+    )
+    hello_auth_key_chain = attrs.TextAttr(
+        'hello_auth_key_chain', label=_('Hello Auth Key Chain')
+    )
+    hello_auth_send_only = attrs.BooleanAttr(
+        'hello_auth_send_only', label=_('Hello Auth Send Only')
+    )
 
 
 class ISISSegmentRoutingPanel(panels.ObjectAttributesPanel):
@@ -139,8 +151,26 @@ class ISISInstanceSettingsPanel(panels.ObjectAttributesPanel):
     metric_style = attrs.ChoiceAttr('metric_style', label=_('Metric Style'))
     area_auth_type = attrs.ChoiceAttr('area_auth_type', label=_('Area Auth Type'))
     area_auth_key = attrs.TextAttr('area_auth_key', label=_('Area Auth Key'))
+    area_auth_key_id = attrs.NumericAttr(
+        'area_auth_key_id', label=_('Area Auth Key ID')
+    )
+    area_auth_key_chain = attrs.TextAttr(
+        'area_auth_key_chain', label=_('Area Auth Key Chain')
+    )
+    area_auth_send_only = attrs.BooleanAttr(
+        'area_auth_send_only', label=_('Area Auth Send Only')
+    )
     domain_auth_type = attrs.ChoiceAttr('domain_auth_type', label=_('Domain Auth Type'))
     domain_auth_key = attrs.TextAttr('domain_auth_key', label=_('Domain Auth Key'))
+    domain_auth_key_id = attrs.NumericAttr(
+        'domain_auth_key_id', label=_('Domain Auth Key ID')
+    )
+    domain_auth_key_chain = attrs.TextAttr(
+        'domain_auth_key_chain', label=_('Domain Auth Key Chain')
+    )
+    domain_auth_send_only = attrs.BooleanAttr(
+        'domain_auth_send_only', label=_('Domain Auth Send Only')
+    )
     overload_bit = attrs.BooleanAttr('overload_bit', label=_('Overload Bit'))
     overload_on_startup = attrs.BooleanAttr(
         'overload_on_startup', label=_('Overload on Startup')
@@ -211,6 +241,15 @@ class ISISInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     )
     hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
     hello_auth_key = attrs.TextAttr('hello_auth_key', label=_('Hello Auth Key'))
+    hello_auth_key_id = attrs.NumericAttr(
+        'hello_auth_key_id', label=_('Hello Auth Key ID')
+    )
+    hello_auth_key_chain = attrs.TextAttr(
+        'hello_auth_key_chain', label=_('Hello Auth Key Chain')
+    )
+    hello_auth_send_only = attrs.BooleanAttr(
+        'hello_auth_send_only', label=_('Hello Auth Send Only')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 

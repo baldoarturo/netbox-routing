@@ -249,8 +249,14 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
         FieldSet(
             'area_auth_type',
             'area_auth_key',
+            'area_auth_key_id',
+            'area_auth_key_chain',
+            'area_auth_send_only',
             'domain_auth_type',
             'domain_auth_key',
+            'domain_auth_key_id',
+            'domain_auth_key_chain',
+            'domain_auth_send_only',
             name=_('Authentication'),
         ),
     )
@@ -286,8 +292,14 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             'microloop_avoidance',
             'area_auth_type',
             'area_auth_key',
+            'area_auth_key_id',
+            'area_auth_key_chain',
+            'area_auth_send_only',
             'domain_auth_type',
             'domain_auth_key',
+            'domain_auth_key_id',
+            'domain_auth_key_chain',
+            'domain_auth_send_only',
             'description',
             'comments',
             'tags',
@@ -355,7 +367,14 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'route_tag',
             name=_('Options'),
         ),
-        FieldSet('hello_auth_type', 'hello_auth_key', name=_('Authentication')),
+        FieldSet(
+            'hello_auth_type',
+            'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
+            name=_('Authentication'),
+        ),
     )
 
     class Meta:
@@ -383,6 +402,9 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'three_way_handshake',
             'hello_auth_type',
             'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             'description',
             'comments',
             'tags',
@@ -508,7 +530,14 @@ class ISISLevelForm(PrimaryModelForm):
             'disabled',
             name=_('Attributes'),
         ),
-        FieldSet('auth_type', 'auth_key', name=_('Authentication')),
+        FieldSet(
+            'auth_type',
+            'auth_key',
+            'auth_key_id',
+            'auth_key_chain',
+            'auth_send_only',
+            name=_('Authentication'),
+        ),
     )
 
     class Meta:
@@ -523,6 +552,9 @@ class ISISLevelForm(PrimaryModelForm):
             'disabled',
             'auth_type',
             'auth_key',
+            'auth_key_id',
+            'auth_key_chain',
+            'auth_send_only',
             'description',
             'comments',
             'tags',
@@ -553,7 +585,14 @@ class ISISInterfaceLevelForm(PrimaryModelForm):
             'passive',
             name=_('Attributes'),
         ),
-        FieldSet('hello_auth_type', 'hello_auth_key', name=_('Authentication')),
+        FieldSet(
+            'hello_auth_type',
+            'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
+            name=_('Authentication'),
+        ),
     )
 
     class Meta:
@@ -568,6 +607,9 @@ class ISISInterfaceLevelForm(PrimaryModelForm):
             'passive',
             'hello_auth_type',
             'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             'description',
             'comments',
             'tags',

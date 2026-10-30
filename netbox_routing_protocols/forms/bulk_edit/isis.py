@@ -243,6 +243,13 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         required=False,
     )
     hello_auth_key = forms.CharField(label=_('Hello Auth Key'), required=False)
+    hello_auth_key_id = forms.IntegerField(
+        label=_('Key ID'), min_value=0, max_value=65535, required=False
+    )
+    hello_auth_key_chain = forms.CharField(
+        label=_('Key Chain'), max_length=100, required=False
+    )
+    hello_auth_send_only = _boolean(_('Send Only'))
     bfd_enabled = _boolean(_('BFD Enabled'))
     frr_enabled = _boolean(_('FRR Enabled'))
     frr_protection = forms.ChoiceField(
@@ -283,6 +290,9 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
             'passive',
             'hello_auth_type',
             'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             'bfd_enabled',
             'frr_enabled',
             'frr_protection',
@@ -314,6 +324,8 @@ class ISISInterfaceBulkEditForm(NetBoxModelBulkEditForm):
         'passive',
         'hello_auth_type',
         'hello_auth_key',
+        'hello_auth_key_id',
+        'hello_auth_key_chain',
         'bfd_enabled',
         'frr_enabled',
         'frr_protection',
@@ -347,6 +359,13 @@ class ISISLevelBulkEditForm(NetBoxModelBulkEditForm):
         required=False,
     )
     auth_key = forms.CharField(label=_('Auth Key'), required=False)
+    auth_key_id = forms.IntegerField(
+        label=_('Key ID'), min_value=0, max_value=65535, required=False
+    )
+    auth_key_chain = forms.CharField(
+        label=_('Key Chain'), max_length=100, required=False
+    )
+    auth_send_only = _boolean(_('Send Only'))
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -363,6 +382,9 @@ class ISISLevelBulkEditForm(NetBoxModelBulkEditForm):
             'disabled',
             'auth_type',
             'auth_key',
+            'auth_key_id',
+            'auth_key_chain',
+            'auth_send_only',
             name='Attributes',
         ),
         FieldSet('description', 'comments'),
@@ -375,6 +397,8 @@ class ISISLevelBulkEditForm(NetBoxModelBulkEditForm):
         'disabled',
         'auth_type',
         'auth_key',
+        'auth_key_id',
+        'auth_key_chain',
         'description',
         'comments',
     )
@@ -398,6 +422,13 @@ class ISISInterfaceLevelBulkEditForm(NetBoxModelBulkEditForm):
         required=False,
     )
     hello_auth_key = forms.CharField(label=_('Hello Auth Key'), required=False)
+    hello_auth_key_id = forms.IntegerField(
+        label=_('Key ID'), min_value=0, max_value=65535, required=False
+    )
+    hello_auth_key_chain = forms.CharField(
+        label=_('Key Chain'), max_length=100, required=False
+    )
+    hello_auth_send_only = _boolean(_('Send Only'))
     description = forms.CharField(
         label=_('Description'), max_length=200, required=False
     )
@@ -414,6 +445,9 @@ class ISISInterfaceLevelBulkEditForm(NetBoxModelBulkEditForm):
             'passive',
             'hello_auth_type',
             'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             name='Attributes',
         ),
         FieldSet('description', 'comments'),
@@ -426,6 +460,8 @@ class ISISInterfaceLevelBulkEditForm(NetBoxModelBulkEditForm):
         'passive',
         'hello_auth_type',
         'hello_auth_key',
+        'hello_auth_key_id',
+        'hello_auth_key_chain',
         'description',
         'comments',
     )

@@ -136,16 +136,36 @@ class ISISFrrProtectionChoices(ChoiceSet):
 
 
 class ISISAuthTypeChoices(ChoiceSet):
+    """Authentication of IS-IS PDUs: cleartext (ISO 10589), HMAC-MD5 (RFC 5304) and
+    HMAC-SHA (RFC 5310, which lists SHA-1, 224, 256, 384 and 512), or the keys of a
+    key chain defined on the device."""
+
     MD5 = 'md5'
     TEXT = 'text'
     HMAC_SHA1 = 'hmac-sha-1'
+    HMAC_SHA224 = 'hmac-sha-224'
     HMAC_SHA256 = 'hmac-sha-256'
+    HMAC_SHA384 = 'hmac-sha-384'
+    HMAC_SHA512 = 'hmac-sha-512'
+    KEY_CHAIN = 'key-chain'
+
+    HMAC_SHA_TYPES = (
+        HMAC_SHA1,
+        HMAC_SHA224,
+        HMAC_SHA256,
+        HMAC_SHA384,
+        HMAC_SHA512,
+    )
 
     CHOICES = (
         (MD5, 'MD5'),
         (TEXT, 'Cleartext'),
         (HMAC_SHA1, 'HMAC-SHA-1'),
+        (HMAC_SHA224, 'HMAC-SHA-224'),
         (HMAC_SHA256, 'HMAC-SHA-256'),
+        (HMAC_SHA384, 'HMAC-SHA-384'),
+        (HMAC_SHA512, 'HMAC-SHA-512'),
+        (KEY_CHAIN, 'Key chain'),
     )
 
 
