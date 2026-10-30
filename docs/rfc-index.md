@@ -39,6 +39,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization | [OSPF](protocols/ospf.md#advanced-features), [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 5668](https://www.rfc-editor.org/rfc/rfc5668) | 4-octet AS extended communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 5701](https://www.rfc-editor.org/rfc/rfc5701) | IPv6 address specific extended communities | [Routing objects](routing-objects.md#communities) |
+| [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) | OSPF for IPv6 (OSPFv3) | [OSPF](protocols/ospf.md) |
 | [RFC 5709](https://www.rfc-editor.org/rfc/rfc5709) | OSPFv2 HMAC-SHA authentication | [OSPF authentication](protocols/ospf.md#authentication) |
 | [RFC 5880](https://www.rfc-editor.org/rfc/rfc5880) | BFD | [BFD](bfd.md) |
 | [RFC 5882](https://www.rfc-editor.org/rfc/rfc5882) | Generic application of BFD | [IS-IS interfaces](protocols/isis.md#interfaces) |

@@ -40,6 +40,7 @@ class OSPFInstanceType(PrimaryObjectType):
     device: Annotated["DeviceType", strawberry.lazy('dcim.graphql.types')]
     vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
     router_id: str
+    address_family: str
     import_policy: (
         Annotated[
             "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')

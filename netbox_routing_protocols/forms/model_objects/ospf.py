@@ -13,6 +13,7 @@ from utilities.forms.widgets import HTMXSelect
 
 from netbox_routing_protocols.choices import OSPFNetworkTypeChoices
 from netbox_routing_protocols.choices.ospf import (
+    OSPFAddressFamilyChoices,
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFMessageDigestAlgorithmChoices,
@@ -69,6 +70,16 @@ class OSPFInstanceForm(PrimaryModelForm):
         label=_('VRF'),
     )
 
+    address_family = forms.ChoiceField(
+        choices=OSPFAddressFamilyChoices,
+        initial=OSPFAddressFamilyChoices.IPV4,
+        label=_('Address Family'),
+        help_text=_(
+            'IPv4 is OSPFv2 (RFC 2328), IPv6 is OSPFv3 (RFC 5340). It cannot be '
+            'changed once the instance exists'
+        ),
+        widget=HTMXSelect(),
+    )
     import_policy = DynamicModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
@@ -92,6 +103,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             name=_('Device'),
         ),
         FieldSet(
+            'address_family',
             'router_id',
             'vrf',
             name=_('Instance'),
@@ -123,6 +135,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             'router_id',
             'device',
             'vrf',
+            'address_family',
             'default_originate',
             'default_originate_always',
             'default_originate_metric',
@@ -139,6 +152,9 @@ class OSPFInstanceForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            # The family is fixed: another family needs another instance
+            self.fields['address_family'].disabled = True
         # Options left empty fall back to their default (see clean()).
         self.fields['default_originate_metric_type'].required = False
         self.fields['message_digest_algorithm'].required = False
@@ -420,7 +436,7 @@ class OSPFNetworkForm(PrimaryModelForm):
         queryset=OSPFInterface.objects.all(),
         required=True,
         selector=True,
-        query_params={'unnumbered': False},
+        query_params={'unnumbered': False, 'address_family': 'ipv4'},
         label=_('OSPF Interface'),
     )
     ip_address = DynamicModelChoiceField(
@@ -428,7 +444,10 @@ class OSPFNetworkForm(PrimaryModelForm):
         required=True,
         selector=True,
         label=_('IP Address'),
-        help_text=_('Must be an IPv4 address assigned to the OSPF interface'),
+        help_text=_(
+            'Must be an IPv4 address assigned to the OSPF interface. Networks are '
+            'for IPv4 instances: OSPFv3 is enabled on the interface'
+        ),
     )
 
     fieldsets = (

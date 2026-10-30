@@ -1,6 +1,18 @@
 from utilities.choices import ChoiceSet
 
 
+class OSPFAddressFamilyChoices(ChoiceSet):
+    """The IP version an instance routes: OSPFv2 (RFC 2328) or OSPFv3 (RFC 5340)."""
+
+    IPV4 = 'ipv4'
+    IPV6 = 'ipv6'
+
+    CHOICES = [
+        (IPV4, 'IPv4 (OSPFv2)'),
+        (IPV6, 'IPv6 (OSPFv3)'),
+    ]
+
+
 class OSPFAreaTypeChoices(ChoiceSet):
     STANDARD = 'standard'
     BACKBONE = 'backbone'

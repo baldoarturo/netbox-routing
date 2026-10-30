@@ -4,7 +4,10 @@ from dcim.models import Interface, Device
 from ipam.models import VRF
 from netbox.forms import NetBoxModelImportForm
 from utilities.forms.fields import CSVModelChoiceField, CSVChoiceField
-from netbox_routing_protocols.choices.ospf import OSPFNetworkTypeChoices
+from netbox_routing_protocols.choices.ospf import (
+    OSPFAddressFamilyChoices,
+    OSPFNetworkTypeChoices,
+)
 
 from netbox_routing_protocols.models import (
     OSPFAuthenticationMixin,
@@ -35,6 +38,11 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
         help_text=_("Name of VRF"),
     )
 
+    address_family = CSVChoiceField(
+        choices=OSPFAddressFamilyChoices,
+        required=False,
+        help_text=_("IPv4 (OSPFv2, the default) or IPv6 (OSPFv3)"),
+    )
     import_policy = CSVModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
@@ -55,6 +63,7 @@ class OSPFInstanceImportForm(NetBoxModelImportForm):
             "router_id",
             "device",
             "vrf",
+            "address_family",
             "default_originate",
             "default_originate_always",
             "default_originate_metric",

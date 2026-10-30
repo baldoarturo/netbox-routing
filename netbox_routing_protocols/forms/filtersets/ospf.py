@@ -5,6 +5,7 @@ from dcim.models import Interface, Device
 from ipam.models import VRF, IPAddress
 from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing_protocols.choices.ospf import (
+    OSPFAddressFamilyChoices,
     OSPFAuthenticationChoices,
     OSPFFastRerouteChoices,
 )
@@ -81,6 +82,11 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('Router ID'),
     )
+    address_family = forms.ChoiceField(
+        choices=add_blank_choice(OSPFAddressFamilyChoices),
+        label=_('Address Family'),
+        required=False,
+    )
     default_originate = forms.NullBooleanField(
         required=False,
         label=_('Default Originate'),
@@ -137,7 +143,9 @@ class OSPFInstanceFilterForm(NetBoxModelFilterSetForm):
             'filter_id',
             'tag',
         ),
-        FieldSet('device_id', 'vrf_id', 'router_id', name=_('Device')),
+        FieldSet(
+            'device_id', 'vrf_id', 'router_id', 'address_family', name=_('Device')
+        ),
         FieldSet('import_policy_id', 'export_policy_id', name=_('Route Policy')),
         FieldSet(
             'default_originate',

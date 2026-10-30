@@ -10,7 +10,10 @@ from utilities.filters import MultiValueCharFilter
 from utilities.filtersets import register_filterset
 
 from netbox.filtersets import NetBoxModelFilterSet
-from netbox_routing_protocols.choices.ospf import OSPFAuthenticationChoices
+from netbox_routing_protocols.choices.ospf import (
+    OSPFAddressFamilyChoices,
+    OSPFAuthenticationChoices,
+)
 from netbox_routing_protocols.choices.ospf import (
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
@@ -125,6 +128,7 @@ class OSPFInstanceFilterSet(NetBoxModelFilterSet):
             'vrf_id',
             'vrf',
             'router_id',
+            'address_family',
             'import_policy_id',
             'import_policy',
             'export_policy_id',
@@ -214,6 +218,11 @@ class OSPFAreaFilterSet(NetBoxModelFilterSet):
 
 @register_filterset
 class OSPFInterfaceFilterSet(NetBoxModelFilterSet):
+    address_family = django_filters.MultipleChoiceFilter(
+        field_name='instance__address_family',
+        choices=OSPFAddressFamilyChoices,
+        label='Address family of the instance',
+    )
     instance_id = django_filters.ModelMultipleChoiceFilter(
         field_name='instance',
         queryset=OSPFInstance.objects.all(),
