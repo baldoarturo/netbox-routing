@@ -24,7 +24,7 @@ from netbox_routing_protocols.constants.isis import (
     ISISSETTING_ASSIGNMENT_MODELS,
 )
 from netbox_routing_protocols.helpers.isis import (
-    auth_pair_errors,
+    auth_errors,
     metric_errors,
     net_error,
     net_parts,
@@ -262,6 +262,25 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
             'IS-IS area password authentication key (plaintext — routing-protocol auth, not config access).'
         ),
     )
+    area_auth_key_id = models.PositiveIntegerField(
+        verbose_name=_('Area auth key ID'),
+        validators=[MaxValueValidator(65535)],
+        blank=True,
+        null=True,
+        help_text=_('Key ID of an HMAC-SHA key, 0 to 65535 (RFC 5310).'),
+    )
+    area_auth_key_chain = models.CharField(
+        verbose_name=_('Area auth key chain'),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=_('Name of the key chain, when the type is Key chain.'),
+    )
+    area_auth_send_only = models.BooleanField(
+        verbose_name=_('Area auth send only'),
+        default=False,
+        help_text=_('Send authentication but do not check it on received PDUs.'),
+    )
     domain_auth_type = models.CharField(
         verbose_name=_('Domain auth type'),
         max_length=16,
@@ -280,6 +299,25 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
         help_text=_(
             'IS-IS domain password authentication key (plaintext — routing-protocol auth, not config access).'
         ),
+    )
+    domain_auth_key_id = models.PositiveIntegerField(
+        verbose_name=_('Domain auth key ID'),
+        validators=[MaxValueValidator(65535)],
+        blank=True,
+        null=True,
+        help_text=_('Key ID of an HMAC-SHA key, 0 to 65535 (RFC 5310).'),
+    )
+    domain_auth_key_chain = models.CharField(
+        verbose_name=_('Domain auth key chain'),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=_('Name of the key chain, when the type is Key chain.'),
+    )
+    domain_auth_send_only = models.BooleanField(
+        verbose_name=_('Domain auth send only'),
+        default=False,
+        help_text=_('Send authentication but do not check it on received PDUs.'),
     )
     # SPF / LSP timers — initial-delay and max-wait mean the same across Cisco,
     # Nokia, Junos and IOS-XR, so they get their own columns. The backoff
@@ -452,14 +490,7 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
             ('area_auth_type', 'area_auth_key'),
             ('domain_auth_type', 'domain_auth_key'),
         ):
-            errors.update(
-                auth_pair_errors(
-                    getattr(self, type_field),
-                    getattr(self, key_field),
-                    type_field,
-                    key_field,
-                )
-            )
+            errors.update(auth_errors(self, type_field, key_field))
         # Reject a malformed NET at the model layer (form/API/import all run full_clean)
         # rather than letting it fail downstream when pushed to the device.
         if self.net and (message := net_error(self.net)):
@@ -629,6 +660,25 @@ class ISISInterface(PrimaryModel):
             'IS-IS per-interface hello (IIH) authentication key (plaintext — '
             'routing-protocol auth, not config access).'
         ),
+    )
+    hello_auth_key_id = models.PositiveIntegerField(
+        verbose_name=_('Hello auth key ID'),
+        validators=[MaxValueValidator(65535)],
+        blank=True,
+        null=True,
+        help_text=_('Key ID of an HMAC-SHA key, 0 to 65535 (RFC 5310).'),
+    )
+    hello_auth_key_chain = models.CharField(
+        verbose_name=_('Hello auth key chain'),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=_('Name of the key chain, when the type is Key chain.'),
+    )
+    hello_auth_send_only = models.BooleanField(
+        verbose_name=_('Hello auth send only'),
+        default=False,
+        help_text=_('Send authentication but do not check it on received PDUs.'),
     )
     frr_enabled = models.BooleanField(
         verbose_name=_('FRR enabled'),
@@ -811,14 +861,7 @@ class ISISInterface(PrimaryModel):
                 'The circuit type does not run any level of the instance IS type.'
             )
         # Hello auth type and key are only meaningful together (mirrors ISISInstance).
-        errors.update(
-            auth_pair_errors(
-                self.hello_auth_type,
-                self.hello_auth_key,
-                'hello_auth_type',
-                'hello_auth_key',
-            )
-        )
+        errors.update(auth_errors(self, 'hello_auth_type', 'hello_auth_key'))
         if errors:
             raise ValidationError(errors)
         self._clean_levels()
@@ -910,6 +953,25 @@ class ISISLevel(PrimaryModel):
             'Per-level authentication key (plaintext — routing-protocol auth, not config access).'
         ),
     )
+    auth_key_id = models.PositiveIntegerField(
+        verbose_name=_('Auth key ID'),
+        validators=[MaxValueValidator(65535)],
+        blank=True,
+        null=True,
+        help_text=_('Key ID of an HMAC-SHA key, 0 to 65535 (RFC 5310).'),
+    )
+    auth_key_chain = models.CharField(
+        verbose_name=_('Auth key chain'),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=_('Name of the key chain, when the type is Key chain.'),
+    )
+    auth_send_only = models.BooleanField(
+        verbose_name=_('Auth send only'),
+        default=False,
+        help_text=_('Send authentication but do not check it on received PDUs.'),
+    )
 
     clone_fields = (
         'instance',
@@ -933,9 +995,7 @@ class ISISLevel(PrimaryModel):
 
     def clean(self):
         super().clean()
-        errors = auth_pair_errors(
-            self.auth_type, self.auth_key, 'auth_type', 'auth_key'
-        )
+        errors = auth_errors(self, 'auth_type', 'auth_key')
         if self.instance_id:
             if (
                 self.level not in type_levels(self.instance.is_type)
@@ -1013,6 +1073,25 @@ class ISISInterfaceLevel(PrimaryModel):
             'routing-protocol auth, not config access).'
         ),
     )
+    hello_auth_key_id = models.PositiveIntegerField(
+        verbose_name=_('Hello auth key ID'),
+        validators=[MaxValueValidator(65535)],
+        blank=True,
+        null=True,
+        help_text=_('Key ID of an HMAC-SHA key, 0 to 65535 (RFC 5310).'),
+    )
+    hello_auth_key_chain = models.CharField(
+        verbose_name=_('Hello auth key chain'),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=_('Name of the key chain, when the type is Key chain.'),
+    )
+    hello_auth_send_only = models.BooleanField(
+        verbose_name=_('Hello auth send only'),
+        default=False,
+        help_text=_('Send authentication but do not check it on received PDUs.'),
+    )
 
     clone_fields = (
         'interface',
@@ -1043,14 +1122,7 @@ class ISISInterfaceLevel(PrimaryModel):
                 ('priority', 0, 127),
             ),
         )
-        errors.update(
-            auth_pair_errors(
-                self.hello_auth_type,
-                self.hello_auth_key,
-                'hello_auth_type',
-                'hello_auth_key',
-            )
-        )
+        errors.update(auth_errors(self, 'hello_auth_type', 'hello_auth_key'))
         if self.interface_id:
             instance = self.interface.instance
             errors.update(metric_errors(self, ('metric',), instance.metric_style))

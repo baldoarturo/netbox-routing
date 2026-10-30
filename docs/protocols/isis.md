@@ -83,7 +83,7 @@ A route policy that an instance uses **cannot be deleted**: choose another one, 
 
 ### Authentication
 
-IS-IS has authentication in four places; each takes a **type** and a **key**, and one without the
+IS-IS has authentication in four places (the interface hello exists both on the interface and, per level, on the interface level); each takes a **type** and a **key**, and one without the
 other is refused:
 
 | Where | Protects |
@@ -94,8 +94,18 @@ other is refused:
 | **Hello** (interface) | The hello PDUs of one interface, so only trusted routers become neighbors. |
 
 Types: **Cleartext** (the original ISO 10589 password, weak), **MD5**
-([RFC 5304](https://www.rfc-editor.org/rfc/rfc5304)) and **HMAC-SHA-1 / HMAC-SHA-256**
-([RFC 5310](https://www.rfc-editor.org/rfc/rfc5310)). Keys are stored as plain text.
+([RFC 5304](https://www.rfc-editor.org/rfc/rfc5304)), **HMAC-SHA-1, 224, 256, 384 and 512**
+([RFC 5310](https://www.rfc-editor.org/rfc/rfc5310), which lists exactly these) and **Key chain**.
+Keys are stored as plain text, as in OSPF.
+
+Every place has, besides the type and the key, three more fields that start with the same name
+(for the hello of an interface: `hello_auth_key_id`, `hello_auth_key_chain` and `hello_auth_send_only`):
+
+| Field | Meaning |
+| --- | --- |
+| **Key ID** | The number that identifies the key in the PDU, 0 to 65535 (RFC 5310). Only for the HMAC-SHA types. |
+| **Key chain** | The name of a key chain defined on the device, with the **Key chain** type: the device takes the keys, their IDs and their lifetimes from it (this is how keys are rolled over without a break), so the key and the key ID stay empty. Only the name is stored, as OSPF does. |
+| **Send only** | Sign the PDUs that are sent but do not check the ones received. It is used while authentication is being enabled network-wide (Cisco `send-only`, Junos `no-authentication-check`). It needs a type. |
 
 ## Levels
 
@@ -304,8 +314,8 @@ IS-IS instance
 ├─ Type: is_type {Level-1 | Level-2 Only | Level-1-2}
 │     · metric_style {Wide | Narrow | Transition}
 ├─ Authentication
-│     · area_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · area_auth_key
-│     · domain_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · domain_auth_key
+│     · area_auth_type {MD5 | Cleartext | HMAC-SHA-1/224/256/384/512 | Key chain} · area_auth_key · area_auth_key_id · area_auth_key_chain · area_auth_send_only
+│     · domain_auth_type {MD5 | Cleartext | HMAC-SHA-1/224/256/384/512 | Key chain} · domain_auth_key · domain_auth_key_id · domain_auth_key_chain · domain_auth_send_only
 ├─ Timers: spf_initial_wait · spf_max_wait · lsp_initial_wait · lsp_max_wait
 │     · lsp_lifetime · lsp_refresh_interval · lsp_mtu
 ├─ Overload: overload_bit? · overload_on_startup? · overload_timeout
@@ -323,7 +333,7 @@ IS-IS instance
 ├─ Level
 │     instance → IS-IS instance · level {Level-1 | Level-2} · disabled?
 │     · default_metric · wide_metrics_only? · preference · labeled_preference
-│     · auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · auth_key
+│     · auth_type {MD5 | Cleartext | HMAC-SHA-1/224/256/384/512 | Key chain} · auth_key · auth_key_id · auth_key_chain · auth_send_only
 ├─ Segment routing
 │     instance → IS-IS instance · enabled? · srv6_enabled? · prefix_sid_range
 │     · srgb_start · srgb_range · srlb_start · srlb_range · maximum_sid_depth · tunnel_table_pref
@@ -351,8 +361,8 @@ IS-IS instance
     ├─ instance → IS-IS instance · interface → Interface · address_family {IPv4 | IPv6}
     ├─ Basics: circuit_type {Level-1 | Level-2 Only | Level-1-2}
     │     · network_type {Point-to-Point | Broadcast} · metric · passive? · bfd_enabled?
-    ├─ Authentication: hello_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256}
-    │     · hello_auth_key
+    ├─ Authentication: hello_auth_type {MD5 | Cleartext | HMAC-SHA-1/224/256/384/512 | Key chain}
+    │     · hello_auth_key · hello_auth_key_id · hello_auth_key_chain · hello_auth_send_only
     ├─ Fast reroute: frr_enabled? · frr_protection {Link protection | Node protection}
     ├─ Timers: csnp_interval · retransmit_interval · lsp_interval · mesh_group
     ├─ Options: hello_padding? · ldp_sync? · prefix_suppression? · three_way_handshake?
@@ -367,7 +377,7 @@ IS-IS instance
     ├─ Interface level
     │     interface → IS-IS interface · level {Level-1 | Level-2} · metric
     │     · hello_interval · hello_multiplier · priority · passive?
-    │     · hello_auth_type {MD5 | Cleartext | HMAC-SHA-1 | HMAC-SHA-256} · hello_auth_key
+    │     · hello_auth_type {MD5 | Cleartext | HMAC-SHA-1/224/256/384/512 | Key chain} · hello_auth_key · hello_auth_key_id · hello_auth_key_chain · hello_auth_send_only
     └─ Prefix SID
           interface → IS-IS interface · algorithm · sid_index · sid_label
           · n_flag? · no_php? · explicit_null? · readvertise?

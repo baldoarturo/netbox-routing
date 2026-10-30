@@ -40,6 +40,7 @@ __all__ = (
     'ISISConsistencyTestCase',
     'ISISRoutingModelsTestCase',
     'ISISAreaAddressTestCase',
+    'ISISAuthenticationTestCase',
     'ISISNetTestCase',
     'ISISRangeTestCase',
     'ISISSegmentRoutingRulesTestCase',
@@ -1261,3 +1262,102 @@ class ISISAreaAddressTestCase(TestCase):
         self.assertEqual(self.instance.duplicate_system_ids, [])
         ISISAreaAddress.objects.create(instance=other, net='49.0001.0000.0000.0001.00')
         self.assertEqual(self.instance.duplicate_system_ids, [other])
+
+
+class ISISAuthenticationTestCase(TestCase):
+    """HMAC-SHA types, key chains, key IDs and send-only (#447, RFC 5310)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(device=cls.device)
+        cls.interface = ISISInterface.objects.create(
+            instance=cls.instance,
+            interface=Interface.objects.create(
+                name='Eth1', device=cls.device, type='virtual'
+            ),
+            address_family='ipv4',
+        )
+
+    def groups(self):
+        """Every object with an authentication group: (object, prefix of the key)."""
+        level = ISISLevel(instance=self.instance, level=1)
+        interface_level = ISISInterfaceLevel(interface=self.interface, level=1)
+        return (
+            (ISISInstance.objects.get(pk=self.instance.pk), 'area_auth'),
+            (ISISInstance.objects.get(pk=self.instance.pk), 'domain_auth'),
+            (level, 'auth'),
+            (self.interface, 'hello_auth'),
+            (interface_level, 'hello_auth'),
+        )
+
+    def assertRejects(self, obj, field):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.full_clean()
+        self.assertIn(field, ctx.exception.error_dict)
+
+    def set_auth(self, obj, prefix, **values):
+        for name, value in values.items():
+            setattr(obj, f'{prefix}_{name}', value)
+
+    def clear_auth(self, obj, prefix):
+        for name, value in (
+            ('type', ''),
+            ('key', ''),
+            ('key_id', None),
+            ('key_chain', ''),
+        ):
+            setattr(obj, f'{prefix}_{name}', value)
+        setattr(obj, f'{prefix}_send_only', False)
+
+    def test_new_hmac_types_are_choices(self):
+        from netbox_routing_protocols.choices import ISISAuthTypeChoices
+
+        values = {value for value, _label in ISISAuthTypeChoices.CHOICES}
+        for value in ('hmac-sha-224', 'hmac-sha-384', 'hmac-sha-512', 'key-chain'):
+            self.assertIn(value, values)
+
+    def test_hmac_sha_accepts_key_and_key_id(self):
+        for obj, prefix in self.groups():
+            with self.subTest(prefix=prefix, model=type(obj).__name__):
+                self.clear_auth(obj, prefix)
+                self.set_auth(obj, prefix, type='hmac-sha-512', key='secret', key_id=7)
+                obj.full_clean()
+
+    def test_key_id_range_and_type(self):
+        for obj, prefix in self.groups():
+            with self.subTest(prefix=prefix, model=type(obj).__name__):
+                self.clear_auth(obj, prefix)
+                self.set_auth(obj, prefix, type='hmac-sha-256', key='s', key_id=65536)
+                self.assertRejects(obj, f'{prefix}_key_id')
+                self.set_auth(obj, prefix, type='md5', key='s', key_id=1)
+                self.assertRejects(obj, f'{prefix}_key_id')
+
+    def test_key_chain_needs_only_the_name(self):
+        for obj, prefix in self.groups():
+            with self.subTest(prefix=prefix, model=type(obj).__name__):
+                self.clear_auth(obj, prefix)
+                self.set_auth(obj, prefix, type='key-chain')
+                self.assertRejects(obj, f'{prefix}_key_chain')
+                self.set_auth(obj, prefix, key_chain='KC-1')
+                obj.full_clean()
+                self.set_auth(obj, prefix, key='secret')
+                self.assertRejects(obj, f'{prefix}_key')
+                self.set_auth(obj, prefix, key='', key_id=3)
+                self.assertRejects(obj, f'{prefix}_key_id')
+
+    def test_key_chain_name_needs_the_type(self):
+        for obj, prefix in self.groups():
+            with self.subTest(prefix=prefix, model=type(obj).__name__):
+                self.clear_auth(obj, prefix)
+                self.set_auth(obj, prefix, type='md5', key='s', key_chain='KC')
+                self.assertRejects(obj, f'{prefix}_key_chain')
+
+    def test_send_only_needs_a_type(self):
+        for obj, prefix in self.groups():
+            with self.subTest(prefix=prefix, model=type(obj).__name__):
+                self.clear_auth(obj, prefix)
+                setattr(obj, f'{prefix}_send_only', True)
+                self.assertRejects(obj, f'{prefix}_send_only')
+                self.set_auth(obj, prefix, type='text', key='pw')
+                obj.full_clean()

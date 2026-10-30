@@ -13,6 +13,7 @@ __all__ = (
     'range_errors',
     'router_id_error',
     'auth_pair_errors',
+    'auth_errors',
     'type_levels',
 )
 
@@ -124,3 +125,40 @@ def auth_pair_errors(type_value, key_value, type_field, key_field):
             )
         }
     return {}
+
+
+def auth_errors(obj, type_field, key_field):
+    """Field-keyed errors of one IS-IS authentication group: the type, key, key ID,
+    key chain and send-only fields that start with the same prefix. A key chain gives
+    the keys itself, the other types need a key, and the key ID (RFC 5310) only goes
+    with HMAC-SHA."""
+    from netbox_routing_protocols.choices import ISISAuthTypeChoices
+
+    id_field = f'{key_field}_id'
+    chain_field = f'{key_field}_chain'
+    send_only_field = f'{key_field[:-4]}_send_only'
+    type_value = getattr(obj, type_field)
+    key_id = getattr(obj, id_field)
+    errors = {}
+    if type_value == ISISAuthTypeChoices.KEY_CHAIN:
+        if not getattr(obj, chain_field):
+            errors[chain_field] = _('A key chain name is required.')
+        if getattr(obj, key_field):
+            errors[key_field] = _('A key is not used with a key chain.')
+        if key_id is not None:
+            errors[id_field] = _('A key ID is not used with a key chain.')
+    else:
+        errors.update(
+            auth_pair_errors(type_value, getattr(obj, key_field), type_field, key_field)
+        )
+        if getattr(obj, chain_field):
+            errors[chain_field] = _(
+                'A key chain name needs the Key chain authentication type.'
+            )
+        if key_id is not None and type_value not in ISISAuthTypeChoices.HMAC_SHA_TYPES:
+            errors[id_field] = _(
+                'A key ID goes with HMAC-SHA authentication (RFC 5310).'
+            )
+    if getattr(obj, send_only_field) and not type_value:
+        errors[send_only_field] = _('Send-only needs an authentication type.')
+    return errors
