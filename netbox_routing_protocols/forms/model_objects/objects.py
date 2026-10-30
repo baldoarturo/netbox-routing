@@ -15,6 +15,7 @@ from utilities.forms.rendering import TabbedGroups, FieldSet
 from netbox_routing_protocols.choices import ActionChoices
 from netbox_routing_protocols.forms.widgets import InlineRadioSelect
 from netbox_routing_protocols.helpers import aspath as aspath_helpers
+from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     SEQUENCE_STEP,
     any_le,
@@ -34,6 +35,7 @@ __all__ = (
     'PrefixListEntryForm',
     'RoutePolicyForm',
     'RoutePolicyResequenceForm',
+    'RoutePolicyDuplicateForm',
     'RoutePolicyEntryForm',
     'ASPathForm',
     'ASPathEntryForm',
@@ -157,6 +159,23 @@ class ASPathResequenceForm(forms.Form):
         label=_('Step'),
         help_text=_('Distance between the numbers, to leave room to insert entries.'),
     )
+
+
+class RoutePolicyDuplicateForm(forms.Form):
+    """The name and description of the copy of a route policy"""
+
+    name = forms.CharField(max_length=100, label=_('Name'))
+    description = forms.CharField(
+        max_length=200, required=False, label=_('Description')
+    )
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        if RoutePolicy.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError(
+                _('A route policy with this name already exists.')
+            )
+        return name
 
 
 class RoutePolicyResequenceForm(ASPathResequenceForm):
@@ -509,8 +528,55 @@ class RoutePolicyEntryForm(PrimaryModelForm):
             'set_metric_mode': InlineRadioSelect,
         }
         help_texts = {
+            'sequence': _(
+                'From 1 to 4294967294. Entries are evaluated in this order. Leave '
+                'empty to use the next one of the route policy (steps of %(step)s).'
+            )
+            % {'step': SEQUENCE_STEP},
             'flow_control': _(
                 'Empty = not enabled; 0 = next entry; otherwise the sequence of the '
                 'entry to continue at'
-            )
+            ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # A new entry permits unless told otherwise (in form.initial: the view builds the
+        # form from an instance whose empty action would override the initial of the field)
+        if not self.instance.pk and not self.initial.get('action'):
+            self.initial['action'] = ActionChoices.PERMIT
+        # An empty sequence takes the next one of the route policy, suggested here when the
+        # policy is known (the add button of the policy) and assigned on save otherwise. Only
+        # for a new entry: emptying it on an existing one would silently move the entry
+        if self.instance.pk:
+            return
+        self.fields['sequence'].required = False
+        if not self.initial.get('sequence'):
+            policy = str(self.initial.get('route_policy') or '')
+            policy = (
+                RoutePolicy.objects.filter(pk=policy).first()
+                if policy.isdigit()
+                else None
+            )
+            if policy:
+                try:
+                    self.initial['sequence'] = route_policy_helpers.next_sequence(
+                        policy
+                    )
+                except ValidationError:
+                    pass
+
+    def clean(self):
+        super().clean()
+        cleaned = self.cleaned_data
+        if (
+            not self.instance.pk
+            and cleaned.get('sequence') is None
+            and cleaned.get('route_policy')
+        ):
+            try:
+                cleaned['sequence'] = route_policy_helpers.next_sequence(
+                    cleaned['route_policy']
+                )
+            except ValidationError as e:
+                raise forms.ValidationError({'sequence': e.messages})

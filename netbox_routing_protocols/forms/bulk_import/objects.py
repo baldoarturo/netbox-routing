@@ -2,18 +2,31 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from ipam.models import Prefix, VRF
+from ipam.models import IPAddress, Prefix, VRF
 from netbox.forms import PrimaryModelImportForm
-from utilities.forms.fields import CSVChoiceField, CSVModelChoiceField
+from utilities.forms.fields import (
+    CSVChoiceField,
+    CSVModelChoiceField,
+    CSVModelMultipleChoiceField,
+)
 
-from netbox_routing_protocols.choices import ActionChoices
+from netbox_routing_protocols.choices import (
+    ActionChoices,
+    CommunityModeChoices,
+    MetricModeChoices,
+    OriginChoices,
+)
 from netbox_routing_protocols.helpers import aspath as aspath_helpers
+from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.helpers.prefix_list import any_le, next_sequence
+from netbox_routing_protocols.models.community import CommunityList
 from netbox_routing_protocols.models.objects import (
     ASPath,
     ASPathEntry,
     PrefixList,
     PrefixListEntry,
+    RoutePolicy,
+    RoutePolicyEntry,
 )
 
 __all__ = (
@@ -21,6 +34,8 @@ __all__ = (
     'ASPathEntryImportForm',
     'PrefixListImportForm',
     'PrefixListEntryImportForm',
+    'RoutePolicyImportForm',
+    'RoutePolicyEntryImportForm',
 )
 
 
@@ -205,3 +220,182 @@ class PrefixListEntryImportForm(PrimaryModelImportForm):
         else:
             return matches[0]
         return None
+
+
+class RoutePolicyImportForm(PrimaryModelImportForm):
+    class Meta:
+        model = RoutePolicy
+        fields = (
+            'name',
+            'description',
+            'owner',
+            'comments',
+            'tags',
+        )
+
+
+class RoutePolicyEntryImportForm(PrimaryModelImportForm):
+    """
+    Same rules as the entry form: an empty `sequence` takes the next free one, and the
+    objects an entry matches are written by name, several separated by commas. The next hops
+    are IPAM addresses (`vrf` tells which one when the address is in several VRFs). A deny
+    entry cannot set anything (checked by the model).
+    """
+
+    route_policy = CSVModelChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        help_text=_('Name of the route policy'),
+    )
+    action = CSVChoiceField(choices=ActionChoices, help_text=_('permit or deny'))
+    sequence = forms.IntegerField(
+        required=False,
+        help_text=_('Empty takes the next free one of the route policy'),
+    )
+    match_prefix_list = CSVModelMultipleChoiceField(
+        queryset=PrefixList.objects.all(),
+        to_field_name='name',
+        required=False,
+        help_text=_('Names of prefix lists, separated by commas'),
+    )
+    match_aspath = CSVModelMultipleChoiceField(
+        queryset=ASPath.objects.all(),
+        to_field_name='name',
+        required=False,
+        help_text=_('Names of AS-paths, separated by commas'),
+    )
+    match_community_list = CSVModelMultipleChoiceField(
+        queryset=CommunityList.objects.all(),
+        to_field_name='name',
+        required=False,
+        help_text=_('Names of community lists, separated by commas'),
+    )
+    match_next_hop = forms.CharField(
+        required=False,
+        help_text=_('IPv4 or IPv6 address of IPAM, without the mask'),
+    )
+    match_origin = CSVChoiceField(
+        choices=OriginChoices, required=False, help_text=_('igp, egp or incomplete')
+    )
+    set_next_hop = forms.CharField(
+        required=False,
+        help_text=_('IPv4 or IPv6 address of IPAM, without the mask'),
+    )
+    vrf = CSVModelChoiceField(
+        queryset=VRF.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('VRF of the next hops, when the address is in several VRFs'),
+    )
+    set_aspath_prepend = forms.CharField(
+        required=False,
+        help_text=_('AS numbers separated by spaces; repeat a number to repeat it'),
+    )
+    set_community_list = CSVModelChoiceField(
+        queryset=CommunityList.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Name of the community list to set'),
+    )
+    set_community_mode = CSVChoiceField(
+        choices=CommunityModeChoices,
+        required=False,
+        help_text=_('replace or additive'),
+    )
+    set_metric_mode = CSVChoiceField(
+        choices=MetricModeChoices,
+        required=False,
+        help_text=_('set (the default), add or subtract'),
+    )
+    set_origin = CSVChoiceField(
+        choices=OriginChoices, required=False, help_text=_('igp, egp or incomplete')
+    )
+
+    class Meta:
+        model = RoutePolicyEntry
+        fields = (
+            'route_policy',
+            'sequence',
+            'action',
+            'flow_control',
+            'match_prefix_list',
+            'match_aspath',
+            'match_community_list',
+            'match_next_hop',
+            'match_metric',
+            'match_origin',
+            'match_tag',
+            'match_weight',
+            'set_local_preference',
+            'set_next_hop',
+            'set_aspath_prepend',
+            'set_community_list',
+            'set_community_mode',
+            'set_metric',
+            'set_metric_mode',
+            'set_origin',
+            'set_tag',
+            'set_weight',
+            'description',
+            'owner',
+            'comments',
+            'tags',
+        )
+
+    def clean_set_aspath_prepend(self):
+        value = self.cleaned_data.get('set_aspath_prepend')
+        if not value:
+            return []
+        numbers = (
+            value if isinstance(value, list) else str(value).replace(',', ' ').split()
+        )
+        try:
+            return [int(number) for number in numbers]
+        except (TypeError, ValueError):
+            raise ValidationError(_('AS numbers separated by spaces.'))
+
+    def _find_address(self, field, vrf):
+        value = (self.cleaned_data.get(field) or '').strip()
+        if not value:
+            return None
+        try:
+            addresses = IPAddress.objects.filter(address__net_host=value)
+            if vrf:
+                addresses = addresses.filter(vrf=vrf)
+            matches = list(addresses[:2])
+        except (ValidationError, ValueError, TypeError):
+            self.add_error(
+                field, _('"%(value)s" is not a valid address.') % {'value': value}
+            )
+            return None
+        if not matches:
+            self.add_error(
+                field,
+                _('Address %(value)s does not exist in IPAM: create it first.')
+                % {'value': value},
+            )
+        elif len(matches) > 1:
+            self.add_error(
+                field,
+                _('Address %(value)s exists several times in IPAM: set the vrf column.')
+                % {'value': value},
+            )
+        else:
+            return matches[0]
+        return None
+
+    def clean(self):
+        super().clean()
+        cleaned = self.cleaned_data
+        vrf = cleaned.get('vrf')
+        for field in ('match_next_hop', 'set_next_hop'):
+            if field in cleaned:
+                cleaned[field] = self._find_address(field, vrf)
+        if cleaned.get('sequence') is None and cleaned.get('route_policy'):
+            try:
+                cleaned['sequence'] = route_policy_helpers.next_sequence(
+                    cleaned['route_policy']
+                )
+            except ValidationError as e:
+                self.add_error('sequence', e)
+        return cleaned

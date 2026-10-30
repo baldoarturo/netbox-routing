@@ -164,7 +164,7 @@ attributes and *set* others.
 | Field | Meaning |
 | --- | --- |
 | Route policy | Name of the map. |
-| Sequence | Evaluation order, 1 to 4294967294 (the range routers accept; 0 is not valid). |
+| Sequence | Evaluation order, 1 to 4294967294 (the range routers accept; 0 is not valid). Leave it empty and the entry takes the next multiple of 10 above the last one: the add form suggests it when you come from the policy, the API assigns it (consecutive numbers in a bulk request) and the import fills it. Any value is still accepted. |
 | Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route policies and BGP policies that use the list only decide *where* it is applied. |
 | Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`; 0 means the next entry. It can go up to 4294967294, like the sequence. |
 
@@ -209,6 +209,24 @@ and sets nothing, until you choose another list.
 Not modelled, because they are not BGP path attributes: source protocol, interface, route type,
 metric type, and the vendor specific ones that follow them. Extended communities go through the
 community lists, as the same list can hold both kinds.
+
+### Working with entries
+
+The page of a route policy has an **Entries** panel with an **Add entry** button (the form opens with the policy chosen, **permit** preselected and the next sequence suggested), and the tables of entries have the edit, delete and changelog buttons. **Duplicate** on the page of a policy copies it **with all its entries** under a new name (suggested: `<name> copy`): every entry keeps its sequence, action, match and set values, lists, next hops, tags and description. You need the permission to add route policies and route policy entries.
+
+The tables can be filtered (also over the API and GraphQL) by name and description, by action, sequence and policy, by the prefix lists, AS paths and community lists an entry matches, and by every match and set value; the list of policies also by what its entries match. The tables can show the entries count of each policy and the lists an entry matches. The bulk edit changes the action, the continue and the match and set values of the selected entries.
+
+### Importing route policies and entries
+
+**Route Policies** and **Route Policy Entries** have an *Import* button in the menu (CSV, JSON or YAML, like any NetBox object). Import the policies first, then their entries. The entries are written with the name of the policy in `route_policy` and `action`; the optional columns:
+
+- `sequence`: empty takes the next free one of the policy.
+- `match_prefix_list`, `match_aspath`, `match_community_list`: names, several separated by commas.
+- `match_next_hop`, `set_next_hop`: an IPAM address without the mask; `vrf` says which one when the address is in several VRFs.
+- `match_metric`, `match_origin`, `match_tag`, `match_weight`, `set_local_preference`, `set_metric`, `set_metric_mode`, `set_origin`, `set_tag`, `set_weight`: the values of the tables above.
+- `set_aspath_prepend`: AS numbers separated by spaces. `set_community_list` and `set_community_mode`: the name of the list and `replace` or `additive`.
+
+A `deny` entry with a `set_` column is refused.
 
 ### Resequencing a route policy
 

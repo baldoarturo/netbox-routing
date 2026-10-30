@@ -85,6 +85,10 @@ class ResequenceASPath(ObjectAction):
     template_name = 'netbox_routing_protocols/buttons/resequence.html'
 
 
+class DuplicateRoutePolicy(DuplicatePrefixList):
+    """A copy of the route policy with its entries"""
+
+
 class ResequenceRoutePolicy(ResequenceASPath):
     """Renumber the entries of the route policy"""
 
@@ -658,7 +662,9 @@ class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
 #
 @register_model_view(RoutePolicy, name='list', path='', detail=False)
 class RoutePolicyListView(ObjectListView):
-    queryset = RoutePolicy.objects.all()
+    queryset = RoutePolicy.objects.annotate(
+        entry_count=count_related(RoutePolicyEntry, 'route_policy')
+    )
     table = RoutePolicyTable
     filterset = RoutePolicyFilterSet
     filterset_form = RoutePolicyFilterForm
@@ -669,6 +675,7 @@ class RoutePolicyView(ObjectView):
     queryset = RoutePolicy.objects.all()
     template_name = 'generic/object.html'
     actions = (
+        DuplicateRoutePolicy,
         ResequenceRoutePolicy,
         CloneObject,
         EditObject,
@@ -682,6 +689,21 @@ class RoutePolicyView(ObjectView):
         right_panels=[
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
+        ],
+        bottom_panels=[
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.RoutePolicyEntry',
+                title=_('Entries'),
+                filters={'route_policy_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=['id', 'route_policy'],
+                actions=[
+                    AddObject(
+                        'netbox_routing_protocols.RoutePolicyEntry',
+                        label=_('Add entry'),
+                        url_params={'route_policy': lambda ctx: ctx['object'].pk},
+                    ),
+                ],
+            ),
         ],
     )
 
@@ -725,6 +747,90 @@ class RoutePolicyEditView(ObjectEditView):
 @register_model_view(RoutePolicy, name='delete')
 class RoutePolicyDeleteView(ObjectDeleteView):
     queryset = RoutePolicy.objects.all()
+
+
+@register_model_view(RoutePolicy, name='duplicate')
+class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
+    """Copy a route policy with its entries, in one transaction"""
+
+    template_name = 'netbox_routing_protocols/routepolicy_duplicate.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.add_routepolicy'
+
+    def _source(self, request, pk):
+        return get_object_or_404(
+            RoutePolicy.objects.restrict(request.user, 'view'), pk=pk
+        )
+
+    def _render(self, request, source, form):
+        return render(
+            request,
+            self.template_name,
+            {
+                'object': source,
+                'form': form,
+                'count': source.route_policy_entries.count(),
+            },
+        )
+
+    def get(self, request, pk):
+        source = self._source(request, pk)
+        form = RoutePolicyDuplicateForm(
+            initial={
+                'name': _('%(name)s copy') % {'name': source.name},
+                'description': source.description,
+            }
+        )
+        return self._render(request, source, form)
+
+    def post(self, request, pk):
+        source = self._source(request, pk)
+        form = RoutePolicyDuplicateForm(request.POST)
+        if not request.user.has_perm('netbox_routing_protocols.add_routepolicyentry'):
+            messages.error(request, _('You cannot add route policy entries.'))
+            return redirect(source.get_absolute_url())
+        if not form.is_valid():
+            return self._render(request, source, form)
+
+        # Everything an entry has but its identity; the lists are copied apart
+        skip = {'id', 'route_policy', 'created', 'last_updated', 'custom_field_data'}
+        copied = [
+            field.name
+            for field in RoutePolicyEntry._meta.concrete_fields
+            if field.name not in skip
+        ]
+        lists = ('match_prefix_list', 'match_aspath', 'match_community_list')
+        with transaction.atomic():
+            copy = RoutePolicy(
+                name=form.cleaned_data['name'],
+                description=form.cleaned_data['description'],
+                comments=source.comments,
+                owner=source.owner,
+            )
+            copy.full_clean()
+            copy.save()
+            copy.tags.set(source.tags.all())
+            for entry in source.route_policy_entries.all():
+                new_entry = RoutePolicyEntry(
+                    route_policy=copy,
+                    **{name: getattr(entry, name) for name in copied},
+                )
+                new_entry.full_clean()
+                new_entry.save()
+                new_entry.tags.set(entry.tags.all())
+                for name in lists:
+                    getattr(new_entry, name).set(getattr(entry, name).all())
+        messages.success(
+            request,
+            _('Duplicated %(source)s as %(copy)s with %(count)d entries.')
+            % {
+                'source': source,
+                'copy': copy,
+                'count': source.route_policy_entries.count(),
+            },
+        )
+        return redirect(copy.get_absolute_url())
 
 
 @register_model_view(RoutePolicy, name='resequence')
@@ -776,6 +882,12 @@ class RoutePolicyResequenceView(ContentTypePermissionRequiredMixin, View):
         return self._render(request, route_policy, form)
 
 
+@register_model_view(RoutePolicy, name='bulk_import', detail=False)
+class RoutePolicyBulkImportView(BulkImportView):
+    queryset = RoutePolicy.objects.all()
+    model_form = RoutePolicyImportForm
+
+
 @register_model_view(RoutePolicy, name='bulk_edit', detail=False)
 class RoutePolicyBulkEditView(BulkEditView):
     queryset = RoutePolicy.objects.all()
@@ -796,7 +908,9 @@ class RoutePolicyBulkDeleteView(BulkDeleteView):
 #
 @register_model_view(RoutePolicyEntry, name='list', path='', detail=False)
 class RoutePolicyEntryListView(ObjectListView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    queryset = RoutePolicyEntry.objects.select_related(
+        'route_policy', 'match_next_hop', 'set_next_hop', 'set_community_list'
+    ).prefetch_related('match_prefix_list', 'match_aspath', 'match_community_list')
     table = RoutePolicyEntryTable
     filterset = RoutePolicyEntryFilterSet
     filterset_form = RoutePolicyEntryFilterForm
@@ -865,6 +979,12 @@ class RoutePolicyEntryEditView(ObjectEditView):
 @register_model_view(RoutePolicyEntry, name='delete')
 class RoutePolicyEntryDeleteView(ObjectDeleteView):
     queryset = RoutePolicyEntry.objects.select_related('route_policy')
+
+
+@register_model_view(RoutePolicyEntry, name='bulk_import', detail=False)
+class RoutePolicyEntryBulkImportView(BulkImportView):
+    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    model_form = RoutePolicyEntryImportForm
 
 
 @register_model_view(RoutePolicyEntry, name='bulk_edit', detail=False)
