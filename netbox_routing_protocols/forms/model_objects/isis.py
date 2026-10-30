@@ -108,12 +108,22 @@ class ISISSettingMixin:
                     (True, _('True')),
                     (False, _('False')),
                 )
+                if key in ISISSettingChoices.CHECKBOXES:
+                    self.fields[key] = fields.BooleanField(
+                        label=label, required=False, initial=bool(initial)
+                    )
+                    self.fields[key].help_text = ISISSettingChoices.HELP_TEXTS.get(
+                        key, ''
+                    )
+                    setting_fields.append(key)
+                    continue
                 self.fields[key] = fields.NullBooleanField(
                     label=label,
                     required=False,
                     initial=initial,
                     widget=forms.Select(choices=choices),
                 )
+            self.fields[key].help_text = ISISSettingChoices.HELP_TEXTS.get(key, '')
             css = self.fields[key].widget.attrs.get('class', '')
             self.fields[key].widget.attrs['class'] = f'{css} form-control'
             setting_fields.append(key)

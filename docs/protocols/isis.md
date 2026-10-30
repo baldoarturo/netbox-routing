@@ -270,7 +270,7 @@ field. The value must match the type of the key (yes/no, number or address).
 | Adjacency Protocol Check | Check that neighbours support the same IP protocols before forming an adjacency ([RFC 1195](https://www.rfc-editor.org/rfc/rfc1195)). |
 | Purge Originator Identification | Add the originator to purged LSPs to find who purged them ([RFC 6232](https://www.rfc-editor.org/rfc/rfc6232)). |
 | Prefix Suppression | Do not advertise transit-only link prefixes ([RFC 6860](https://www.rfc-editor.org/rfc/rfc6860)). |
-| Multi-Topology | Separate topologies per address family ([RFC 5120](https://www.rfc-editor.org/rfc/rfc5120)). |
+| Multi-Topology | A checkbox. IPv4 and IPv6 each get their own topology and path calculation ([RFC 5120](https://www.rfc-editor.org/rfc/rfc5120)), so a link that lacks one family is not used for it. Without it both families share one topology. |
 | Log Adjacency Changes, Advertise Passive Only, Default Route Tag, IGP Shortcut, Hello Padding, RIB Priority | Vendor features without an RFC. |
 
 ## Field reference
