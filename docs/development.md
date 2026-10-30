@@ -17,16 +17,8 @@ and how to run the tests are in [`dev/README.md`](https://github.com/baldoarturo
 
 ## Work on these docs
 
-The documentation is Markdown in `docs/`, built with [MkDocs](https://www.mkdocs.org/) and the Material
-theme.
-
-```
-pip install -r docs/requirements.txt
-mkdocs serve        # preview at http://127.0.0.1:8000, reloads on save
-mkdocs build --strict
-```
-
-`--strict` fails on broken links, which is what the publishing workflow runs.
+The documentation is plain Markdown in `docs/`, read directly on GitHub. There is no site build: keep
+the relative links between pages working by hand.
 
 When you add or change a feature, update its section in the page of the protocol, with the RFC it comes
 from and why it exists when that is not obvious, and add the RFC to the [RFC index](rfc-index.md).

@@ -1,0 +1,1053 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Document the routing configuration of your network in NetBox">
+      
+      
+      
+      
+        <link rel="prev" href="../using/">
+      
+      
+        <link rel="next" href="../bfd/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+    
+    
+      
+        <title>Routing objects - NetBox Routing Protocols</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#routing-objects" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NetBox Routing Protocols" class="md-header__button md-logo" aria-label="NetBox Routing Protocols" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NetBox Routing Protocols
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Routing objects
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/baldoarturo/netbox-routing-protocols" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    baldoarturo/netbox-routing-protocols
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NetBox Routing Protocols" class="md-nav__button md-logo" aria-label="NetBox Routing Protocols" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NetBox Routing Protocols
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/baldoarturo/netbox-routing-protocols" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    baldoarturo/netbox-routing-protocols
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using the plugin
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Routing objects
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Routing objects
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prefix-lists" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prefix lists
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prefix lists">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefix-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prefix list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prefix-list-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prefix list entry
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#overlap-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overlap warnings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#search-prefix-match" class="md-nav__link">
+    <span class="md-ellipsis">
+      Search Prefix Match
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#route-maps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Route maps
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#as-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      AS paths
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#communities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Communities
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bfd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    BFD
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Protocols
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Protocols
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/static/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Static routes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/bgp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    BGP
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/ospf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    OSPF
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/isis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    IS-IS
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/eigrp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    EIGRP
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rfc-index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    RFC index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prefix-lists" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prefix lists
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prefix lists">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefix-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prefix list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prefix-list-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prefix list entry
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#overlap-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overlap warnings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#search-prefix-match" class="md-nav__link">
+    <span class="md-ellipsis">
+      Search Prefix Match
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#route-maps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Route maps
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#as-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      AS paths
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#communities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Communities
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="routing-objects">Routing objects<a class="headerlink" href="#routing-objects" title="Permanent link">&para;</a></h1>
+<p><strong>Routing → Routing Objects</strong></p>
+<p>Routing objects are the building blocks that policies are made of. They are not tied to one protocol:
+today BGP policy templates and peer address families point at prefix lists and route maps.</p>
+<blockquote>
+<p><strong>About the standards.</strong> Prefix lists, route maps and AS-path filters are <strong>vendor features</strong>: no RFC defines them, and
+every vendor spells them a little differently. What the RFCs define is what they act on: IP
+prefixes (<a href="https://www.rfc-editor.org/rfc/rfc4632">RFC 4632</a> for IPv4 CIDR,
+<a href="https://www.rfc-editor.org/rfc/rfc4291">RFC 4291</a> for IPv6), the BGP <code>AS_PATH</code> attribute
+(<a href="https://www.rfc-editor.org/rfc/rfc4271">RFC 4271</a> §5.1.2) and BGP communities
+(<a href="https://www.rfc-editor.org/rfc/rfc1997">RFC 1997</a>). Those are the pieces the plugin validates.</p>
+</blockquote>
+<h2 id="prefix-lists">Prefix lists<a class="headerlink" href="#prefix-lists" title="Permanent link">&para;</a></h2>
+<p><strong>Prefix Lists</strong> and <strong>Prefix List Entries</strong></p>
+<p>A prefix list is an ordered list of rules; each rule says <em>permit</em> or <em>deny</em> the prefixes it matches.
+Routers evaluate the entries in sequence order and stop at the first that matches.</p>
+<h3 id="prefix-list">Prefix list<a class="headerlink" href="#prefix-list" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>Name of the list, as used in the device configuration.</td>
+</tr>
+<tr>
+<td>Family</td>
+<td><strong>IPv4</strong> or <strong>IPv6</strong>. A list holds only one family, and the family <strong>cannot be changed</strong> once the list exists (its entries would stop making sense).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="prefix-list-entry">Prefix list entry<a class="headerlink" href="#prefix-list-entry" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prefix list</td>
+<td>The list the entry belongs to.</td>
+</tr>
+<tr>
+<td>Sequence</td>
+<td>Evaluation order, 1 to 4294967294 (the range routers accept). Leave it empty and the form suggests the next free one; the API assigns it automatically.</td>
+</tr>
+<tr>
+<td>Action</td>
+<td>Permit or Deny.</td>
+</tr>
+<tr>
+<td>Prefix</td>
+<td>A prefix from NetBox IPAM (<strong>IPAM → Prefixes</strong>). It must be of the family of the list.</td>
+</tr>
+<tr>
+<td>Any</td>
+<td>Matches the all-zeros prefix of the family (<code>0.0.0.0/0</code> or <code>::/0</code>). NetBox IPAM cannot hold that prefix, so this checkbox stands for it. With <em>LE</em> set to the longest length (32 or 128) it matches <em>every</em> prefix. Leave <em>Prefix</em> empty when you use it.</td>
+</tr>
+<tr>
+<td>GE / LE</td>
+<td>The length range of the match, as on routers. <em>GE</em> ("greater than or equal") and <em>LE</em> ("less than or equal") are lengths, not counts.</td>
+</tr>
+</tbody>
+</table>
+<p>How to read GE and LE for a prefix <code>10.0.0.0/8</code>:</p>
+<table>
+<thead>
+<tr>
+<th>GE</th>
+<th>LE</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>–</td>
+<td>–</td>
+<td>exactly <code>10.0.0.0/8</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td>–</td>
+<td>any prefix inside <code>10.0.0.0/8</code> of length 16 or longer, up to /32</td>
+</tr>
+<tr>
+<td>–</td>
+<td>24</td>
+<td><code>10.0.0.0/8</code> and everything inside it up to /24</td>
+</tr>
+<tr>
+<td>16</td>
+<td>24</td>
+<td>prefixes inside <code>10.0.0.0/8</code> with a length from 16 to 24</td>
+</tr>
+</tbody>
+</table>
+<p>The plugin refuses a GE or LE that is shorter than the prefix, longer than the family allows (32 for
+IPv4, 128 for IPv6) or when GE is greater than LE.</p>
+<blockquote>
+<p><strong>A prefix used by a list is protected.</strong> A NetBox prefix referenced by a prefix list entry <strong>cannot be deleted</strong>, and a change to it that
+would make an entry invalid (for example shortening the prefix below the entry's GE) is refused,
+with a message that names the entries. Remove or edit the entries first.</p>
+</blockquote>
+<h3 id="overlap-warnings">Overlap warnings<a class="headerlink" href="#overlap-warnings" title="Permanent link">&para;</a></h3>
+<p>When you save an entry the plugin compares it with the other entries of the list and warns (it still
+saves) about:</p>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Duplicate</strong></td>
+<td>Another entry matches exactly the same prefixes.</td>
+</tr>
+<tr>
+<td><strong>Shadowed</strong></td>
+<td>An earlier entry matches everything this one matches, so this entry is never reached.</td>
+</tr>
+<tr>
+<td><strong>Shadows</strong></td>
+<td>This entry matches everything a later entry matches, so that later entry is never reached.</td>
+</tr>
+<tr>
+<td><strong>Nested</strong></td>
+<td>One covers the other, with the more specific first. This is the normal way to write an exception, so it is shown for information.</td>
+</tr>
+<tr>
+<td><strong>Overlaps</strong></td>
+<td>They share some prefixes but neither covers the other.</td>
+</tr>
+</tbody>
+</table>
+<p>The entry's detail page lists the overlapping entries, and a prefix list's page shows where the list
+is used.</p>
+<h3 id="search-prefix-match">Search Prefix Match<a class="headerlink" href="#search-prefix-match" title="Permanent link">&para;</a></h3>
+<p><strong>Routing → Routing Objects → Search Prefix Match</strong></p>
+<p>Type a prefix or a plain address (<code>10.0.0.0/24</code>, <code>192.0.2.1</code>, <code>2001:db8::/32</code>) and the page shows,
+as you type, which prefix list entries match it, <strong>in which sequence</strong>, and whether the entry permits
+or denies it. An address is treated as a host prefix. Tick <em>Include the lists with no match</em> to see
+the lists that do not match too. It answers "would this prefix get through that filter?" without
+logging in to a router. It needs the <em>view</em> permission on prefix list entries.</p>
+<h2 id="route-maps">Route maps<a class="headerlink" href="#route-maps" title="Permanent link">&para;</a></h2>
+<p><strong>Route Maps</strong> and <strong>Route Map Entries</strong></p>
+<p>A route map is an ordered list of rules like a prefix list, but each rule can <em>match</em> several
+attributes and <em>set</em> others.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Route map</td>
+<td>Name of the map.</td>
+</tr>
+<tr>
+<td>Sequence</td>
+<td>Evaluation order.</td>
+</tr>
+<tr>
+<td>Action</td>
+<td>Permit or Deny.</td>
+</tr>
+<tr>
+<td>Flow control (continue)</td>
+<td>Sequence to continue evaluating at after this entry matches, for platforms that support <code>continue</code>.</td>
+</tr>
+<tr>
+<td>Match prefix list / community list / community / AS path</td>
+<td>Link the entry to the NetBox objects it matches on.</td>
+</tr>
+<tr>
+<td>Match parameters / Set parameters</td>
+<td>Free-form <strong>JSON</strong> for everything the links do not cover (for example a local preference to set). The plugin stores it as written; it does not interpret it.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="as-paths">AS paths<a class="headerlink" href="#as-paths" title="Permanent link">&para;</a></h2>
+<p><strong>AS Path</strong> and <strong>AS Path Entries</strong></p>
+<p>An AS-path list filters routes by the sequence of autonomous systems they crossed (the BGP <code>AS_PATH</code>
+attribute, <a href="https://www.rfc-editor.org/rfc/rfc4271">RFC 4271</a> §5.1.2). Each entry has a <strong>sequence</strong>,
+an <strong>action</strong> (permit or deny) and a <strong>pattern</strong>: a regular expression in the syntax of your
+platform. The pattern is not validated, because every vendor's regex dialect differs.</p>
+<h2 id="communities">Communities<a class="headerlink" href="#communities" title="Permanent link">&para;</a></h2>
+<p><strong>Community List</strong>, <strong>Community</strong> and <strong>Community List Entry</strong></p>
+<p>BGP communities (<a href="https://www.rfc-editor.org/rfc/rfc1997">RFC 1997</a>) are 32-bit tags attached to
+routes so that policies can act on groups of routes. By convention they are written <code>ASN:value</code>, for
+example <code>65000:100</code>. Keep the list of the communities you use as <strong>Community</strong> objects, so the
+meaning of <code>65000:100</code> is documented once:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Community</td>
+<td>The community value, for example <code>65000:100</code>.</td>
+</tr>
+<tr>
+<td>Name</td>
+<td>Optional human name ("customer routes").</td>
+</tr>
+<tr>
+<td>Status</td>
+<td><strong>Active</strong>, <strong>Reserved</strong> or <strong>Deprecated</strong>, to retire a community without deleting its history.</td>
+</tr>
+<tr>
+<td>Role</td>
+<td>A NetBox IPAM role that classifies the community (for example <em>blackhole</em>, <em>customer</em>).</td>
+</tr>
+<tr>
+<td>Tenant</td>
+<td>Optional owner.</td>
+</tr>
+</tbody>
+</table>
+<p>A <strong>Community List</strong> groups communities under a name, and its <strong>entries</strong> each have an action
+(permit or deny) and a community, evaluated like a prefix list. Route map entries can match on a
+community or on a whole community list.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy", "search.suggest"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>
