@@ -29,6 +29,7 @@ The documentation for operators and users (every protocol and feature, with the 
   * [Communities](docs/routing-objects.md#communities) and [community lists](docs/routing-objects.md#community-lists)
 * [Route policies](docs/routing-objects.md#route-policies) (match and set, jump to another policy, final deny, search tool; used by OSPF, IS-IS and EIGRP)
 * [Static routes](docs/protocols/static.md) (special next hops, interface, route leaking)
+* [OSPF, versions 2 (IPv4) and 3 (IPv6)](docs/protocols/ospf.md) (instances, areas, interfaces, authentication with key rollover, redistribution, virtual links, ranges, neighbors, traffic engineering, segment routing, fast reroute)
 * [IS-IS](docs/protocols/isis.md) (instances, levels, interfaces, authentication, redistribution, route leaking, segment routing, Flex-Algo, SRv6)
 
 ### Work in progress
@@ -38,7 +39,6 @@ Not production ready; the model and the migrations can still change. Each one ha
 * Dynamic routing
   * [EIGRP](docs/protocols/eigrp.md) ([tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413))
   * [BGP](docs/protocols/bgp.md) ([tracking #411](https://github.com/baldoarturo/netbox-routing-protocols/issues/411)): templates/group inheritance, IPv4/IPv6 AF and VRF, VPNv4
-  * [OSPF, versions 2 (IPv4) and 3 (IPv6)](docs/protocols/ospf.md) ([tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90))
 * [BFD profiles](docs/bfd.md) ([tracking #414](https://github.com/baldoarturo/netbox-routing-protocols/issues/414))
 * Segment routing ([tracking #201](https://github.com/baldoarturo/netbox-routing-protocols/issues/201))
 
