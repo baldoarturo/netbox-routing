@@ -1,4 +1,5 @@
 from ipam.models import ASN, IPAddress, Prefix, RIR, VRF
+from django.test import TestCase
 from netaddr import IPNetwork
 from utilities.testing import ViewTestCases, create_test_device
 
@@ -210,3 +211,44 @@ class BFDProfileTestCase(LeanCoreTestsMixin, _ViewHelpers, *VIEW_CASES):
             'min_tx_int': 60,
             'multiplier': 3,
         }
+
+
+class BGPInstanceDeleteConfirmationTestCase(TestCase):
+    """The delete page of an instance shows what goes with it (#523)"""
+
+    @classmethod
+    def setUpTestData(cls):
+        rir = RIR.objects.create(name='ARIN')
+        asn = ASN.objects.create(rir=rir, asn=64512)
+        instance = BGPInstance.objects.create(
+            name='Instance', device=create_test_device(name='Device'), asn=asn
+        )
+        af = BGPAddressFamily.objects.create(
+            instance=instance, address_family='ipv4-unicast'
+        )
+        group = BGPPeerGroup.objects.create(
+            name='Group', instance=instance, remote_as=asn
+        )
+        peer = BGPPeer.objects.create(
+            instance=instance,
+            peer=IPAddress.objects.create(address=IPNetwork('10.0.0.1/24')),
+            peer_group=group,
+        )
+        BGPPeerAddressFamily.objects.create(peer=peer, address_family=af)
+        cls.instance = instance
+
+    def test_the_page_lists_the_children_that_will_be_deleted(self):
+        from users.models import User
+
+        user = User.objects.create(username='admin', is_superuser=True)
+        self.client.force_login(user)
+        response = self.client.get(self.instance.get_absolute_url() + 'delete/')
+        self.assertEqual(response.status_code, 200)
+        dependent = response.context['dependent_objects']
+        names = {model._meta.model_name for model in dependent}
+        self.assertTrue(
+            {'bgpaddressfamily', 'bgppeergroup', 'bgppeer', 'bgppeeraddressfamily'}
+            <= names,
+            names,
+        )
+        self.assertContains(response, 'Group')
