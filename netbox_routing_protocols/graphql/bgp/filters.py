@@ -8,6 +8,7 @@ __all__ = (
     'BGPAddressFamilyFilter',
     'BGPPeerGroupFilter',
     'BGPListenRangeFilter',
+    'BGPRedistributionFilter',
     'BGPPeerFilter',
     'BGPPeerAddressFamilyFilter',
     'BFDProfileFilter',
@@ -31,6 +32,11 @@ class BGPPeerGroupFilter(PrimaryModelFilter):
 
 @strawberry_django.filter(models.BGPListenRange, lookups=True)
 class BGPListenRangeFilter(PrimaryModelFilter):
+    pass
+
+
+@strawberry_django.filter(models.BGPRedistribution, lookups=True)
+class BGPRedistributionFilter(PrimaryModelFilter):
     pass
 
 

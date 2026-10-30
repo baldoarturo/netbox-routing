@@ -14,6 +14,7 @@ from netbox_routing_protocols.api._serializers.objects import (
     PrefixListSerializer,
     RoutePolicySerializer,
 )
+from netbox_routing_protocols.models import EIGRPRouter, ISISInstance, OSPFInstance
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
@@ -21,6 +22,7 @@ __all__ = (
     'BGPAddressFamilySerializer',
     'BGPPeerGroupSerializer',
     'BGPListenRangeSerializer',
+    'BGPRedistributionSerializer',
     'BGPPeerSerializer',
     'BGPPeerAddressFamilySerializer',
     'BFDProfileSerializer',
@@ -196,6 +198,44 @@ class BGPListenRangeSerializer(NetBoxModelSerializer):
         model = BGPListenRange
         fields = ('url', 'id', 'display', 'peer_group', 'prefix', *_COMMON)
         brief_fields = ('url', 'id', 'display', 'peer_group', 'prefix')
+
+
+class BGPRedistributionSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:bgpredistribution-detail'
+    )
+    address_family = BGPAddressFamilySerializer(nested=True)
+    # the sources are the OSPF, IS-IS and EIGRP serializers' modules, which import this one
+    ospf_source = serializers.PrimaryKeyRelatedField(
+        queryset=OSPFInstance.objects.all(), required=False, allow_null=True
+    )
+    isis_source = serializers.PrimaryKeyRelatedField(
+        queryset=ISISInstance.objects.all(), required=False, allow_null=True
+    )
+    eigrp_source = serializers.PrimaryKeyRelatedField(
+        queryset=EIGRPRouter.objects.all(), required=False, allow_null=True
+    )
+    route_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
+    tenant = TenantSerializer(nested=True, required=False, allow_null=True)
+
+    class Meta:
+        model = BGPRedistribution
+        fields = (
+            'url',
+            'id',
+            'display',
+            'address_family',
+            'protocol',
+            'ospf_source',
+            'isis_source',
+            'eigrp_source',
+            'metric',
+            'route_policy',
+            'ospf_match',
+            'tenant',
+            *_COMMON,
+        )
+        brief_fields = ('url', 'id', 'display', 'address_family', 'protocol')
 
 
 class BGPPeerSerializer(NetBoxModelSerializer):

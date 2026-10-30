@@ -81,6 +81,24 @@ An instance can have each family once. Options of the family:
 | Additional paths (send / receive / install) | Advertise or accept more than one path per prefix ([RFC 7911](https://www.rfc-editor.org/rfc/rfc7911)). |
 | Long-lived stale time | Seconds the routes of a neighbor that went down are kept, marked `LLGR_STALE` (long-lived graceful restart, [RFC 9494](https://www.rfc-editor.org/rfc/rfc9494), up to 16777215; it needs *Graceful restart* on the instance). |
 
+## Redistribution
+
+**BGP → Redistribution**, or the *Redistribution* tab of an address family. It takes routes from another protocol
+into the address family (vendors call it *redistribute*). The sources are the **connected** and **static**
+routes of the device, and the instances of **OSPF**, **IS-IS** and **EIGRP** on the same device and in the same
+VRF (an EIGRP router is in the global table). The instance is never a source of itself.
+
+| Field | Meaning |
+| --- | --- |
+| Protocol | Connected, static, OSPF, IS-IS or EIGRP. |
+| OSPF / IS-IS / EIGRP source | The instance the routes come from, for that protocol only. |
+| Route types | For OSPF, which kinds of OSPF routes (internal, external 1 and 2, NSSA external 1 and 2). Empty takes all of them. |
+| Metric | The MED of the redistributed routes ([RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) section 5.1.4). |
+| Route policy | Filters the redistributed routes before they enter BGP. |
+
+The other direction, from BGP into OSPF and IS-IS, is set on those protocols (their redistribution, with BGP as the
+source). EIGRP has no redistribution yet, so BGP cannot be redistributed into it.
+
 ## Peer groups
 
 **BGP → Peer Groups**
@@ -194,6 +212,10 @@ BGP instance
 │     · additional_paths_send? · additional_paths_receive? · additional_paths_install?
 │     · long_lived_stale_time
 │
+├─ Redistribution (per address family)
+│     protocol {Connected | Static | OSPF | IS-IS | EIGRP} · ospf_source → OSPF instance
+│     · isis_source → IS-IS instance · eigrp_source → EIGRP router · ospf_match · metric
+│     · route_policy → Route policy
 ├─ Peer group
 │     name · instance → BGP instance · tenant → Tenant · listen_limit
 │     · remote_as → ASN · local_as → ASN · enabled? · bfd → BFD profile · passphrase · show_md5

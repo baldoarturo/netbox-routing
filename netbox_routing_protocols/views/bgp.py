@@ -46,6 +46,13 @@ __all__ = (
     'BGPListenRangeDeleteView',
     'BGPListenRangeBulkEditView',
     'BGPListenRangeBulkDeleteView',
+    'BGPRedistributionListView',
+    'BGPRedistributionView',
+    'BGPRedistributionEditView',
+    'BGPRedistributionDeleteView',
+    'BGPRedistributionBulkEditView',
+    'BGPRedistributionBulkDeleteView',
+    'BGPAddressFamilyRedistributionsView',
     'BGPPeerListView',
     'BGPPeerView',
     'BGPPeerEditView',
@@ -565,6 +572,133 @@ class BGPListenRangeBulkDeleteView(BulkDeleteView):
     )
     filterset = BGPListenRangeFilterSet
     table = BGPListenRangeTable
+
+
+#
+# BGPRedistribution
+#
+@register_model_view(BGPRedistribution, name='list', path='', detail=False)
+class BGPRedistributionListView(ObjectListView):
+    queryset = BGPRedistribution.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'ospf_source__device',
+        'isis_source__device',
+        'eigrp_source__device',
+        'route_policy',
+        'tenant',
+    )
+    filterset = BGPRedistributionFilterSet
+    filterset_form = BGPRedistributionFilterForm
+    table = BGPRedistributionTable
+
+
+@register_model_view(BGPRedistribution)
+class BGPRedistributionView(ObjectView):
+    queryset = BGPRedistribution.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'ospf_source__device',
+        'isis_source__device',
+        'eigrp_source__device',
+        'route_policy',
+        'tenant',
+    )
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            BGPRedistributionPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+            panels.RelatedObjectsPanel(),
+        ],
+    )
+
+
+@register_model_view(BGPRedistribution, name='add', detail=False)
+@register_model_view(BGPRedistribution, name='edit')
+class BGPRedistributionEditView(ObjectEditView):
+    queryset = BGPRedistribution.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'ospf_source__device',
+        'isis_source__device',
+        'eigrp_source__device',
+        'route_policy',
+        'tenant',
+    )
+    form = BGPRedistributionForm
+
+
+@register_model_view(BGPRedistribution, name='delete')
+class BGPRedistributionDeleteView(ObjectDeleteView):
+    queryset = BGPRedistribution.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'ospf_source__device',
+        'isis_source__device',
+        'eigrp_source__device',
+        'route_policy',
+        'tenant',
+    )
+
+
+@register_model_view(BGPRedistribution, name='bulk_edit', detail=False)
+class BGPRedistributionBulkEditView(BulkEditView):
+    queryset = BGPRedistribution.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'ospf_source__device',
+        'isis_source__device',
+        'eigrp_source__device',
+        'route_policy',
+        'tenant',
+    )
+    filterset = BGPRedistributionFilterSet
+    form = BGPRedistributionBulkEditForm
+    table = BGPRedistributionTable
+
+
+@register_model_view(BGPRedistribution, name='bulk_delete', detail=False)
+class BGPRedistributionBulkDeleteView(BulkDeleteView):
+    queryset = BGPRedistribution.objects.select_related(
+        'address_family__instance__device',
+        'address_family__instance__vrf',
+        'address_family__instance__asn',
+        'ospf_source__device',
+        'isis_source__device',
+        'eigrp_source__device',
+        'route_policy',
+        'tenant',
+    )
+    filterset = BGPRedistributionFilterSet
+    table = BGPRedistributionTable
+
+
+@register_model_view(BGPAddressFamily, name='redistributions')
+class BGPAddressFamilyRedistributionsView(ObjectChildrenView):
+    queryset = BGPAddressFamily.objects.select_related(
+        'instance__device', 'instance__asn'
+    )
+    child_model = BGPRedistribution
+    table = BGPRedistributionTable
+    filterset = BGPRedistributionFilterSet
+    filterset_form = BGPRedistributionFilterForm
+    actions = (CloneObject, EditObject, DeleteObject)
+    tab = ViewTab(
+        label='Redistribution',
+        badge=lambda obj: BGPRedistribution.objects.filter(address_family=obj).count(),
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.filter(address_family=parent)
 
 
 #

@@ -13,6 +13,7 @@ __all__ = (
     'BGPInstanceRoutingPanel',
     'BGPInstanceVRFPanel',
     'BGPListenRangePanel',
+    'BGPRedistributionPanel',
     'BGPAddressFamilyPanel',
     'BGPAddressFamilyOptionsPanel',
     'BGPPeerGroupPanel',
@@ -57,6 +58,19 @@ class BGPInstanceVRFPanel(panels.ObjectAttributesPanel):
     export_targets = attrs.TextAttr(
         'vrf_export_targets_display', label=_('Export Targets')
     )
+
+
+class BGPRedistributionPanel(panels.ObjectAttributesPanel):
+    address_family = attrs.RelatedObjectAttr('address_family', linkify=True)
+    protocol = attrs.ChoiceAttr('protocol', label=_('Protocol'))
+    source = attrs.RelatedObjectAttr('source', linkify=True, label=_('Source'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    route_policy = attrs.RelatedObjectAttr(
+        'route_policy', linkify=True, label=_('Route Policy')
+    )
+    ospf_match = attrs.TextAttr('ospf_match_display', label=_('OSPF Route Types'))
+    tenant = attrs.RelatedObjectAttr('tenant', linkify=True)
+    description = attrs.TextAttr('description', label=_('Description'))
 
 
 class BGPListenRangePanel(panels.ObjectAttributesPanel):

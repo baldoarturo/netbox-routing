@@ -4,7 +4,13 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface
 from ipam.models import ASN, VRF, Prefix
 from netbox.forms import NetBoxModelFilterSetForm
-from netbox_routing_protocols.models import PrefixList, RoutePolicy
+from netbox_routing_protocols.models import (
+    EIGRPRouter,
+    ISISInstance,
+    OSPFInstance,
+    PrefixList,
+    RoutePolicy,
+)
 from tenancy.forms import TenancyFilterForm
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
 from utilities.forms.rendering import FieldSet
@@ -13,6 +19,7 @@ from netbox_routing_protocols.choices.bgp import *
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
+    'BGPRedistributionFilterForm',
     'BGPInstanceFilterForm',
     'BGPAddressFamilyFilterForm',
     'BGPPeerGroupFilterForm',
@@ -211,6 +218,69 @@ class BGPListenRangeFilterForm(NetBoxModelFilterSetForm):
         required=False,
         selector=True,
         label=_('Prefix'),
+    )
+    tag = TagFilterField(model)
+
+
+class BGPRedistributionFilterForm(NetBoxModelFilterSetForm):
+    model = BGPRedistribution
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet(
+            'instance_id',
+            'address_family_id',
+            'protocol',
+            'ospf_source_id',
+            'isis_source_id',
+            'eigrp_source_id',
+            name=_('Redistribution'),
+        ),
+        FieldSet('device_id', name=_('Device')),
+        FieldSet('route_policy_id', name=_('Filtering')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(), required=False, selector=True, label=_('Device')
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=BGPInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    address_family_id = DynamicModelMultipleChoiceField(
+        queryset=BGPAddressFamily.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Address Family'),
+    )
+    ospf_source_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Source'),
+    )
+    isis_source_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('IS-IS Source'),
+    )
+    eigrp_source_id = DynamicModelMultipleChoiceField(
+        queryset=EIGRPRouter.objects.all(),
+        required=False,
+        selector=True,
+        label=_('EIGRP Source'),
+    )
+    route_policy_id = DynamicModelMultipleChoiceField(
+        queryset=RoutePolicy.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Route Policy'),
+    )
+    protocol = forms.MultipleChoiceField(
+        choices=BGPRedistributionProtocolChoices,
+        required=False,
+        label=_('Protocol'),
     )
     tag = TagFilterField(model)
 

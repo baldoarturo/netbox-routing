@@ -13,6 +13,7 @@ __all__ = (
     'BGPAddressFamilyType',
     'BGPPeerGroupType',
     'BGPListenRangeType',
+    'BGPRedistributionType',
     'BGPPeerType',
     'BGPPeerAddressFamilyType',
     'CommunityType',

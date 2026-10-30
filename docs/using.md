@@ -16,7 +16,7 @@ Everything lives under **Routing** in the NetBox navigation menu, grouped like t
 | **Routing Objects** | Community List, Community, Community List Entry, Prefix Lists, Prefix List Entries, **Search Prefix Match**, Route Policies, Route Policy Entries, AS Path, AS Path Entries |
 | **BFD** | BFD Profile |
 | **Static** | Static Routes |
-| **BGP** | Instances, Address Families, Peer Groups, Listen Ranges, Peers, Peer Address Families |
+| **BGP** | Instances, Address Families, Redistribution, Peer Groups, Listen Ranges, Peers, Peer Address Families |
 | **OSPF** (v2 and v3) | Instances, Areas, Interfaces, Networks, Redistribution, Virtual Links, Summary Addresses, Neighbors, Area Ranges, Prefix SIDs, Authentication Keys |
 | **IS-IS** | Instances, Interfaces, Settings, Levels, Segment Routing, Flex-Algos, Prefix-SIDs, SRv6 Locators |
 | **EIGRP** | Routers, Address Families, Networks, Interfaces |

@@ -13,6 +13,7 @@ __all__ = (
     'BGPAddressFamilyFilter',
     'BGPPeerGroupFilter',
     'BGPListenRangeFilter',
+    'BGPRedistributionFilter',
     'BGPPeerFilter',
     'BGPPeerAddressFamilyFilter',
     'CommunityFilter',
