@@ -241,6 +241,8 @@ When you delete a prefix list, an AS path or a community list that route policy 
 
 The page of a route policy has an **Entries** panel with an **Add entry** button (the form opens with the policy chosen, **permit** preselected and the next sequence suggested), and the tables of entries have the edit, delete and changelog buttons. **Duplicate** on the page of a policy copies it **with all its entries** under a new name (suggested: `<name> copy`): every entry keeps its sequence, action, match and set values, lists, next hops, tags and description. You need the permission to add route policies and route policy entries.
 
+The tables of entries show two columns by default: **Match** (one line per condition, *any* when the entry has none) and **Set** (one line per action it applies), next to the sequence, the action and the jump. Every match and set field also has its own column, hidden by default, that you can turn on from *Configure Table* to sort or export by it. Weight is shown as well, although it is not a standard BGP attribute.
+
 The tables can be filtered (also over the API and GraphQL) by name and description, by action, sequence and policy, by the prefix lists, AS paths and community lists an entry matches, and by every match and set value; the list of policies also by what its entries match. The tables can show the entries count of each policy and the lists an entry matches. The bulk edit changes the action, the jump and the match and set values of the selected entries.
 
 ### Importing route policies and entries

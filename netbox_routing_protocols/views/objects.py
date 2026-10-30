@@ -825,8 +825,18 @@ class RoutePolicyEntriesView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(route_policy=parent).select_related(
-            'route_policy'
+        return (
+            self.child_model.objects.filter(route_policy=parent)
+            .select_related(
+                'route_policy',
+                'jump_policy',
+                'match_next_hop',
+                'set_next_hop',
+                'set_community_list',
+            )
+            .prefetch_related(
+                'match_prefix_list', 'match_aspath', 'match_community_list'
+            )
         )
 
     def get_extra_context(self, request, instance):
@@ -1021,7 +1031,11 @@ class RoutePolicyBulkDeleteView(BulkDeleteView):
 @register_model_view(RoutePolicyEntry, name='list', path='', detail=False)
 class RoutePolicyEntryListView(ObjectListView):
     queryset = RoutePolicyEntry.objects.select_related(
-        'route_policy', 'match_next_hop', 'set_next_hop', 'set_community_list'
+        'route_policy',
+        'jump_policy',
+        'match_next_hop',
+        'set_next_hop',
+        'set_community_list',
     ).prefetch_related('match_prefix_list', 'match_aspath', 'match_community_list')
     table = RoutePolicyEntryTable
     filterset = RoutePolicyEntryFilterSet
