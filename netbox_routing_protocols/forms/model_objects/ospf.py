@@ -699,6 +699,8 @@ class OSPFVirtualLinkForm(PrimaryModelForm):
             'transit_area',
             'remote_router_id',
             *OSPF_INTERFACE_TIMERS,
+            'ttl_security',
+            'ttl_security_hops',
             *OSPFAuthenticationMixin.AUTHENTICATION_FIELDS,
             'description',
             'comments',

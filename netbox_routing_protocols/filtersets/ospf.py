@@ -756,7 +756,15 @@ class OSPFAuthenticationKeyFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = OSPFAuthenticationKey
-        fields = ('key_id', 'message_digest_algorithm', 'description')
+        fields = (
+            'key_id',
+            'message_digest_algorithm',
+            'description',
+            'accept_from',
+            'send_from',
+            'send_until',
+            'accept_until',
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():
