@@ -13,6 +13,7 @@ from netbox_routing_protocols.graphql.ospf.filters import (
     OSPFRedistributionFilter,
     OSPFVirtualLinkFilter,
     OSPFSummaryAddressFilter,
+    OSPFAuthenticationKeyFilter,
     OSPFNeighborFilter,
     OSPFAreaRangeFilter,
     OSPFPrefixSIDFilter,
@@ -29,6 +30,7 @@ __all__ = (
     'OSPFNeighborType',
     'OSPFAreaRangeType',
     'OSPFPrefixSIDType',
+    'OSPFAuthenticationKeyType',
 )
 
 
@@ -282,3 +284,39 @@ class OSPFPrefixSIDType(PrimaryObjectType):
     node_sid: bool
     no_php: bool
     explicit_null: bool
+
+
+@strawberry_django.type(
+    models.OSPFAuthenticationKey, fields='__all__', filters=OSPFAuthenticationKeyFilter
+)
+class OSPFAuthenticationKeyType(PrimaryObjectType):
+    instance: (
+        Annotated[
+            "OSPFInstanceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    area: (
+        Annotated[
+            "OSPFAreaType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    ospf_interface: (
+        Annotated[
+            "OSPFInterfaceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    virtual_link: (
+        Annotated[
+            "OSPFVirtualLinkType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    key_id: int
+    passphrase: str
+    message_digest_algorithm: str

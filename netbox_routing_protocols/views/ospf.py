@@ -22,6 +22,7 @@ from netbox_routing_protocols.filtersets.ospf import (
     OSPFRedistributionFilterSet,
     OSPFVirtualLinkFilterSet,
     OSPFSummaryAddressFilterSet,
+    OSPFAuthenticationKeyFilterSet,
     OSPFNeighborFilterSet,
     OSPFAreaRangeFilterSet,
     OSPFPrefixSIDFilterSet,
@@ -35,6 +36,7 @@ from netbox_routing_protocols.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFAuthenticationKey,
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
@@ -47,6 +49,7 @@ from netbox_routing_protocols.tables.ospf import (
     OSPFRedistributionTable,
     OSPFVirtualLinkTable,
     OSPFSummaryAddressTable,
+    OSPFAuthenticationKeyTable,
     OSPFNeighborTable,
     OSPFAreaRangeTable,
     OSPFPrefixSIDTable,
@@ -92,6 +95,12 @@ __all__ = (
     'OSPFVirtualLinkBulkEditView',
     'OSPFVirtualLinkDeleteView',
     'OSPFVirtualLinkBulkDeleteView',
+    'OSPFAuthenticationKeyListView',
+    'OSPFAuthenticationKeyView',
+    'OSPFAuthenticationKeyEditView',
+    'OSPFAuthenticationKeyBulkEditView',
+    'OSPFAuthenticationKeyDeleteView',
+    'OSPFAuthenticationKeyBulkDeleteView',
     'OSPFSummaryAddressListView',
     'OSPFSummaryAddressView',
     'OSPFSummaryAddressEditView',
@@ -175,6 +184,18 @@ class OSPFInstanceView(ObjectView):
                 filters={'instance_id': lambda ctx: ctx['object'].pk},
                 exclude_columns=['id', 'instance', 'device'],
                 title=_('Prefix SIDs'),
+            ),
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.OSPFAuthenticationKey',
+                filters={'instance_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=[
+                    'id',
+                    'instance',
+                    'area',
+                    'ospf_interface',
+                    'virtual_link',
+                ],
+                title=_('Additional Authentication Keys'),
             ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
@@ -281,6 +302,18 @@ class OSPFAreaView(ObjectView):
                 exclude_columns=['id', 'instance', 'device', 'area'],
                 title=_('Address Ranges'),
             ),
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.OSPFAuthenticationKey',
+                filters={'area_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=[
+                    'id',
+                    'instance',
+                    'area',
+                    'ospf_interface',
+                    'virtual_link',
+                ],
+                title=_('Additional Authentication Keys'),
+            ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
@@ -371,6 +404,18 @@ class OSPFInterfaceView(ObjectView):
                 filters={'ospf_interface_id': lambda ctx: ctx['object'].pk},
                 exclude_columns=['id', 'instance', 'device', 'ospf_interface'],
                 title=_('Neighbors'),
+            ),
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.OSPFAuthenticationKey',
+                filters={'ospf_interface_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=[
+                    'id',
+                    'instance',
+                    'area',
+                    'ospf_interface',
+                    'virtual_link',
+                ],
+                title=_('Additional Authentication Keys'),
             ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
@@ -591,6 +636,18 @@ class OSPFVirtualLinkView(ObjectView):
             TagsPanel(),
         ],
         right_panels=[
+            panels.ObjectsTablePanel(
+                model='netbox_routing_protocols.OSPFAuthenticationKey',
+                filters={'virtual_link_id': lambda ctx: ctx['object'].pk},
+                exclude_columns=[
+                    'id',
+                    'instance',
+                    'area',
+                    'ospf_interface',
+                    'virtual_link',
+                ],
+                title=_('Additional Authentication Keys'),
+            ),
             panels.CommentsPanel(),
             panels.RelatedObjectsPanel(),
         ],
@@ -891,3 +948,73 @@ class OSPFPrefixSIDBulkDeleteView(BulkDeleteView):
     queryset = PREFIX_SID_QUERYSET
     filterset = OSPFPrefixSIDFilterSet
     table = OSPFPrefixSIDTable
+
+
+#
+# Authentication key
+#
+AUTHENTICATION_KEY_QUERYSET = OSPFAuthenticationKey.objects.select_related(
+    'instance__device',
+    'instance__vrf',
+    'area__instance',
+    'ospf_interface__instance',
+    'ospf_interface__interface__device',
+    'virtual_link__instance',
+    'virtual_link__transit_area__instance',
+)
+
+
+@register_model_view(OSPFAuthenticationKey, name='list', path='', detail=False)
+class OSPFAuthenticationKeyListView(ObjectListView):
+    queryset = AUTHENTICATION_KEY_QUERYSET
+    table = OSPFAuthenticationKeyTable
+    filterset = OSPFAuthenticationKeyFilterSet
+    filterset_form = OSPFAuthenticationKeyFilterForm
+
+
+@register_model_view(OSPFAuthenticationKey)
+class OSPFAuthenticationKeyView(ObjectView):
+    queryset = AUTHENTICATION_KEY_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[
+            OSPFAuthenticationKeyPanel(),
+            TagsPanel(),
+        ],
+        right_panels=[
+            panels.CommentsPanel(),
+        ],
+    )
+
+
+@register_model_view(OSPFAuthenticationKey, name='add', detail=False)
+@register_model_view(OSPFAuthenticationKey, name='edit')
+class OSPFAuthenticationKeyEditView(ObjectEditView):
+    queryset = AUTHENTICATION_KEY_QUERYSET
+    form = OSPFAuthenticationKeyForm
+
+
+@register_model_view(OSPFAuthenticationKey, name='delete')
+class OSPFAuthenticationKeyDeleteView(ObjectDeleteView):
+    queryset = AUTHENTICATION_KEY_QUERYSET
+
+
+@register_model_view(OSPFAuthenticationKey, name='bulk_import', detail=False)
+class OSPFAuthenticationKeyBulkImportView(BulkImportView):
+    queryset = AUTHENTICATION_KEY_QUERYSET
+    model_form = OSPFAuthenticationKeyImportForm
+
+
+@register_model_view(OSPFAuthenticationKey, name='bulk_edit', detail=False)
+class OSPFAuthenticationKeyBulkEditView(BulkEditView):
+    queryset = AUTHENTICATION_KEY_QUERYSET
+    filterset = OSPFAuthenticationKeyFilterSet
+    table = OSPFAuthenticationKeyTable
+    form = OSPFAuthenticationKeyBulkEditForm
+
+
+@register_model_view(OSPFAuthenticationKey, name='bulk_delete', detail=False)
+class OSPFAuthenticationKeyBulkDeleteView(BulkDeleteView):
+    queryset = AUTHENTICATION_KEY_QUERYSET
+    filterset = OSPFAuthenticationKeyFilterSet
+    table = OSPFAuthenticationKeyTable

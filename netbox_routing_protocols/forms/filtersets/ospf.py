@@ -8,6 +8,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFAddressFamilyChoices,
     OSPFAuthenticationChoices,
     OSPFFastRerouteChoices,
+    OSPFMessageDigestAlgorithmChoices,
 )
 from netbox_routing_protocols.choices.ospf import (
     OSPFAreaTypeChoices,
@@ -31,6 +32,7 @@ from netbox_routing_protocols.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFAuthenticationKey,
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
@@ -44,6 +46,7 @@ __all__ = (
     'OSPFRedistributionFilterForm',
     'OSPFVirtualLinkFilterForm',
     'OSPFSummaryAddressFilterForm',
+    'OSPFAuthenticationKeyFilterForm',
     'OSPFNeighborFilterForm',
     'OSPFAreaRangeFilterForm',
     'OSPFPrefixSIDFilterForm',
@@ -608,5 +611,51 @@ class OSPFPrefixSIDFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_('Node SID'),
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    tag = TagFilterField(model)
+
+
+class OSPFAuthenticationKeyFilterForm(NetBoxModelFilterSetForm):
+    model = OSPFAuthenticationKey
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet(
+            'instance_id',
+            'area_id',
+            'ospf_interface_id',
+            'virtual_link_id',
+            name=_('Belongs to'),
+        ),
+        FieldSet('key_id', 'message_digest_algorithm', name=_('Key')),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    area_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Area'),
+    )
+    ospf_interface_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFInterface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Interface'),
+    )
+    virtual_link_id = DynamicModelMultipleChoiceField(
+        queryset=OSPFVirtualLink.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Virtual Link'),
+    )
+    key_id = forms.IntegerField(required=False, label=_('Key ID'))
+    message_digest_algorithm = forms.ChoiceField(
+        choices=add_blank_choice(OSPFMessageDigestAlgorithmChoices),
+        label=_('Message Digest Algorithm'),
+        required=False,
     )
     tag = TagFilterField(model)

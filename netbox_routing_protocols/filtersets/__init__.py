@@ -23,6 +23,7 @@ __all__ = (
     'OSPFNeighborFilterSet',
     'OSPFAreaRangeFilterSet',
     'OSPFPrefixSIDFilterSet',
+    'OSPFAuthenticationKeyFilterSet',
     'ISISInstanceFilterSet',
     'ISISInterfaceFilterSet',
     'ISISSettingFilterSet',

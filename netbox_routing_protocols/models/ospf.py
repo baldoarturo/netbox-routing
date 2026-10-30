@@ -1,4 +1,5 @@
 import hashlib
+from itertools import pairwise
 
 import netaddr
 from django.contrib.contenttypes.models import ContentType
@@ -86,6 +87,7 @@ __all__ = (
     'OSPFNeighbor',
     'OSPFAreaRange',
     'OSPFPrefixSID',
+    'OSPFAuthenticationKey',
 )
 
 
@@ -255,6 +257,19 @@ class OSPFAuthenticationMixin(models.Model):
             for field in ('passphrase', 'authentication_key_id', 'key_chain'):
                 if getattr(self, field) not in (None, ''):
                     errors[field] = _('Select an authentication type first.')
+        if (
+            self.pk
+            and auth
+            not in (
+                OSPFAuthenticationChoices.MESSAGE_DIGEST,
+                OSPFAuthenticationChoices.TRAILER,
+            )
+            and self.authentication_keys.exists()
+        ):
+            errors['authentication'] = _(
+                'The authentication has additional keys, which need message digest '
+                'or authentication trailer: delete them first.'
+            )
         if self.show_md5 and not self.passphrase:
             errors['show_md5'] = _('There is no key to show the MD5 digest of.')
         if errors:
@@ -2631,5 +2646,258 @@ class OSPFPrefixSID(PrimaryModel):
                     32 if prefix.version == 4 else 128
                 ):
                     errors['node_sid'] = _('The SID of a node is for a host route.')
+        if errors:
+            raise ValidationError(errors)
+
+
+_KEY_PARENTS = ('instance', 'area', 'ospf_interface', 'virtual_link')
+
+
+class OSPFAuthenticationKey(PrimaryModel):
+    """
+    An additional key of the cryptographic authentication of an instance, an
+    area, an interface or a virtual link, to roll the keys over without losing
+    the adjacencies: a router sends with one key and accepts any of the keys
+    that are valid (RFC 2328 D.3). The optional lifetimes are the ones of
+    RFC 7474: accept from, send from, send until and accept until.
+    """
+
+    PARENTS = _KEY_PARENTS
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFInstance',
+        related_name='authentication_keys',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+        blank=True,
+        null=True,
+    )
+    area = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFArea',
+        related_name='authentication_keys',
+        on_delete=models.CASCADE,
+        verbose_name=_('Area'),
+        blank=True,
+        null=True,
+    )
+    ospf_interface = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFInterface',
+        related_name='authentication_keys',
+        on_delete=models.CASCADE,
+        verbose_name=_('OSPF Interface'),
+        blank=True,
+        null=True,
+    )
+    virtual_link = models.ForeignKey(
+        to='netbox_routing_protocols.OSPFVirtualLink',
+        related_name='authentication_keys',
+        on_delete=models.CASCADE,
+        verbose_name=_('Virtual Link'),
+        blank=True,
+        null=True,
+    )
+    key_id = models.PositiveIntegerField(
+        verbose_name=_('Key ID'),
+        help_text=_(
+            'Message digest key ID, 0 to 255 (RFC 2328 D.3); the SA ID of the '
+            'authentication trailer, 0 to 65535 (RFC 7166 4.1)'
+        ),
+        validators=[
+            MinValueValidator(OSPF_AUTH_KEY_ID_MIN),
+            MaxValueValidator(OSPF_TRAILER_SA_ID_MAX),
+        ],
+    )
+    passphrase = models.CharField(
+        max_length=200,
+        help_text=_('The key, stored as plain text'),
+    )
+    message_digest_algorithm = models.CharField(
+        verbose_name=_('Message Digest Algorithm'),
+        help_text=_('MD5 (RFC 2328) or HMAC-SHA (RFC 5709, RFC 7166); default: MD5'),
+        choices=OSPFMessageDigestAlgorithmChoices,
+        default=OSPFMessageDigestAlgorithmChoices.MD5,
+        max_length=20,
+    )
+    accept_from = models.DateTimeField(
+        verbose_name=_('Accept From'),
+        help_text=_('KeyStartAccept (RFC 7474): the router accepts the key from here'),
+        blank=True,
+        null=True,
+    )
+    send_from = models.DateTimeField(
+        verbose_name=_('Send From'),
+        help_text=_(
+            'KeyStartGenerate (RFC 7474): the router signs with the key from here'
+        ),
+        blank=True,
+        null=True,
+    )
+    send_until = models.DateTimeField(
+        verbose_name=_('Send Until'),
+        help_text=_(
+            'KeyStopGenerate (RFC 7474): the router stops signing with the key'
+        ),
+        blank=True,
+        null=True,
+    )
+    accept_until = models.DateTimeField(
+        verbose_name=_('Accept Until'),
+        help_text=_('KeyStopAccept (RFC 7474): the router stops accepting the key'),
+        blank=True,
+        null=True,
+    )
+
+    clone_fields = (
+        'instance',
+        'area',
+        'ospf_interface',
+        'virtual_link',
+        'message_digest_algorithm',
+    )
+    prerequisite_models = ('netbox_routing_protocols.OSPFInstance',)
+
+    class Meta:
+        verbose_name = 'OSPF Authentication Key'
+        ordering = ('instance', 'area', 'ospf_interface', 'virtual_link', 'key_id')
+        constraints = (
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        instance__isnull=False,
+                        area__isnull=True,
+                        ospf_interface__isnull=True,
+                        virtual_link__isnull=True,
+                    )
+                    | Q(
+                        instance__isnull=True,
+                        area__isnull=False,
+                        ospf_interface__isnull=True,
+                        virtual_link__isnull=True,
+                    )
+                    | Q(
+                        instance__isnull=True,
+                        area__isnull=True,
+                        ospf_interface__isnull=False,
+                        virtual_link__isnull=True,
+                    )
+                    | Q(
+                        instance__isnull=True,
+                        area__isnull=True,
+                        ospf_interface__isnull=True,
+                        virtual_link__isnull=False,
+                    )
+                ),
+                name='%(app_label)s_%(class)s_one_parent',
+                violation_error_message=_(
+                    'A key belongs to exactly one instance, area, interface or virtual link.'
+                ),
+            ),
+            *(
+                models.UniqueConstraint(
+                    fields=(parent, 'key_id'),
+                    condition=Q(**{f'{parent}__isnull': False}),
+                    name=f'%(app_label)s_%(class)s_unique_{parent}_key_id',
+                    violation_error_message=_(
+                        'The key ID is already used by another key.'
+                    ),
+                )
+                for parent in _KEY_PARENTS
+            ),
+        )
+
+    def __str__(self):
+        return f'Key {self.key_id}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:ospfauthenticationkey', args=[self.pk]
+        )
+
+    @property
+    def parent(self):
+        for name in self.PARENTS:
+            parent = getattr(self, name)
+            if parent is not None:
+                return parent
+        return None
+
+    @staticmethod
+    def _effective_authentication(parent):
+        """The authentication the parent uses: its own or the one it inherits."""
+        if isinstance(parent, OSPFArea):
+            return parent.get_authentication_type()
+        if isinstance(parent, (OSPFInterface, OSPFVirtualLink)):
+            source = parent.get_authentication_source()[1]
+            return source.authentication if source else None
+        return parent.authentication
+
+    @staticmethod
+    def _effective_key_id(parent):
+        if isinstance(parent, (OSPFInterface, OSPFVirtualLink)):
+            source = parent.get_authentication_source()[1]
+            return source.authentication_key_id if source else None
+        return parent.authentication_key_id
+
+    def _clean_parent(self):
+        set_parents = [n for n in self.PARENTS if getattr(self, f'{n}_id') is not None]
+        if len(set_parents) != 1:
+            raise ValidationError(
+                _(
+                    'A key belongs to exactly one instance, area, interface or '
+                    'virtual link.'
+                )
+            )
+        parent = self.parent
+        auth = self._effective_authentication(parent)
+        if auth not in (
+            OSPFAuthenticationChoices.MESSAGE_DIGEST,
+            OSPFAuthenticationChoices.TRAILER,
+        ):
+            raise ValidationError(
+                _(
+                    'Several keys need message digest or authentication trailer '
+                    'authentication on the {parent}.'
+                ).format(parent=parent._meta.verbose_name)
+            )
+        return parent, auth
+
+    def clean(self):
+        super().clean()
+        parent, auth = self._clean_parent()
+        errors = {}
+        if self.key_id == self._effective_key_id(parent):
+            errors['key_id'] = _('This is the key ID of the authentication itself.')
+        if auth == OSPFAuthenticationChoices.TRAILER:
+            if self.message_digest_algorithm == OSPFMessageDigestAlgorithmChoices.MD5:
+                errors['message_digest_algorithm'] = _(
+                    'The authentication trailer takes HMAC-SHA only (RFC 7166 4.4).'
+                )
+        else:
+            if self.key_id is not None and self.key_id > OSPF_AUTH_KEY_ID_MAX:
+                errors['key_id'] = _(
+                    'The key ID of message digest goes up to {max} (RFC 2328 D.3).'
+                ).format(max=OSPF_AUTH_KEY_ID_MAX)
+            if (
+                self.message_digest_algorithm == OSPFMessageDigestAlgorithmChoices.MD5
+                and len(self.passphrase or '') > OSPF_MD5_KEY_MAX_LENGTH
+            ):
+                errors['passphrase'] = _(
+                    'An MD5 key has at most {length} characters (RFC 2328 D.3).'
+                ).format(length=OSPF_MD5_KEY_MAX_LENGTH)
+        # RFC 7474 3: accept from <= send from <= send until <= accept until
+        times = [
+            ('accept_from', self.accept_from),
+            ('send_from', self.send_from),
+            ('send_until', self.send_until),
+            ('accept_until', self.accept_until),
+        ]
+        set_times = [(name, value) for name, value in times if value is not None]
+        for (_a, earlier), (name, later) in pairwise(set_times):
+            if later < earlier:
+                errors[name] = _(
+                    'The lifetimes go in order: accept from, send from, send until, '
+                    'accept until (RFC 7474).'
+                )
+                break
         if errors:
             raise ValidationError(errors)

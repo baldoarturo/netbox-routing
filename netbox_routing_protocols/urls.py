@@ -76,6 +76,14 @@ urlpatterns = [
     ),
     path('ospf/neighbor/<int:pk>/', include(get_model_urls(app_name, 'ospfneighbor'))),
     path(
+        'ospf/authentication-key/',
+        include(get_model_urls(app_name, 'ospfauthenticationkey', detail=False)),
+    ),
+    path(
+        'ospf/authentication-key/<int:pk>/',
+        include(get_model_urls(app_name, 'ospfauthenticationkey')),
+    ),
+    path(
         'ospf/area-range/',
         include(get_model_urls(app_name, 'ospfarearange', detail=False)),
     ),

@@ -50,6 +50,7 @@ __all__ = (
     'OSPFNeighborType',
     'OSPFAreaRangeType',
     'OSPFPrefixSIDType',
+    'OSPFAuthenticationKeyType',
     'PrefixListType',
     'PrefixListEntryType',
     'RoutePolicyType',

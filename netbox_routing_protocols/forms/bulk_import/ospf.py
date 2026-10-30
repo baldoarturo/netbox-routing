@@ -17,6 +17,7 @@ from netbox_routing_protocols.choices.ospf import (
     OSPFNetworkTypeChoices,
     OSPFRedistributionProtocolChoices,
     OSPFRouteTypeChoices,
+    OSPFMessageDigestAlgorithmChoices,
     OSPFSegmentIdentifierChoices,
     OSPFSRAlgorithmChoices,
 )
@@ -26,6 +27,7 @@ from netbox_routing_protocols.models import (
     EIGRPRouter,
     ISISInstance,
     OSPFAreaRange,
+    OSPFAuthenticationKey,
     OSPFAuthenticationMixin,
     OSPFInstance,
     OSPFArea,
@@ -50,6 +52,7 @@ __all__ = (
     "OSPFNeighborImportForm",
     "OSPFAreaRangeImportForm",
     "OSPFPrefixSIDImportForm",
+    "OSPFAuthenticationKeyImportForm",
 )
 
 
@@ -583,3 +586,80 @@ class OSPFPrefixSIDImportForm(_DefaultsMixin, NetBoxModelImportForm):
     def __init__(self, data=None, *args, **kwargs):
         super().__init__(data, *args, **kwargs)
         _narrow(self, data, instance=_of_device(OSPFInstance))
+
+
+class OSPFAuthenticationKeyImportForm(_DefaultsMixin, NetBoxModelImportForm):
+    device = _device_field()
+    instance = CSVModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        to_field_name="name",
+        help_text=_(
+            "Name of the OSPF instance; also names the owner of the key if no area, interface or virtual link is given"
+        ),
+    )
+    area = CSVModelChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=False,
+        to_field_name="area_id",
+        help_text=_("Area ID, when the key belongs to an area"),
+    )
+    ospf_interface = CSVModelChoiceField(
+        queryset=OSPFInterface.objects.all(),
+        required=False,
+        to_field_name="interface__name",
+        help_text=_("Name of the interface, when the key belongs to an interface"),
+    )
+    virtual_link = CSVModelChoiceField(
+        queryset=OSPFVirtualLink.objects.all(),
+        required=False,
+        to_field_name="remote_router_id",
+        help_text=_("Remote router ID, when the key belongs to a virtual link"),
+    )
+    message_digest_algorithm = CSVChoiceField(
+        choices=OSPFMessageDigestAlgorithmChoices,
+        required=False,
+        help_text=_("Default: md5 (hmac-sha-256 for the authentication trailer)"),
+    )
+
+    class Meta:
+        model = OSPFAuthenticationKey
+        fields = (
+            "device",
+            "instance",
+            "area",
+            "ospf_interface",
+            "virtual_link",
+            "key_id",
+            "passphrase",
+            "message_digest_algorithm",
+            "accept_from",
+            "send_from",
+            "send_until",
+            "accept_until",
+            "description",
+            "comments",
+            "tags",
+        )
+
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(data, *args, **kwargs)
+        _narrow(
+            self,
+            data,
+            instance=_of_device(OSPFInstance),
+            area=_areas,
+            ospf_interface=_of_device(OSPFInterface, 'instance__device'),
+            virtual_link=_of_device(OSPFVirtualLink, 'instance__device'),
+        )
+        self._lower_parent = bool(
+            data
+            and any(data.get(n) for n in ('area', 'ospf_interface', 'virtual_link'))
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        if self._lower_parent:
+            # The instance column only located the area, interface or link
+            cleaned['instance'] = None
+        return cleaned

@@ -20,6 +20,7 @@ from netbox_routing_protocols.models import (
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
+    OSPFAuthenticationKey,
 )
 from netbox_routing_protocols.api._serializers.objects import RoutePolicySerializer
 
@@ -34,6 +35,7 @@ __all__ = (
     'OSPFNeighborSerializer',
     'OSPFAreaRangeSerializer',
     'OSPFPrefixSIDSerializer',
+    'OSPFAuthenticationKeySerializer',
 )
 
 
@@ -415,3 +417,41 @@ class OSPFPrefixSIDSerializer(NetBoxModelSerializer):
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'instance', 'prefix', 'sid')
+
+
+class OSPFAuthenticationKeySerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:ospfauthenticationkey-detail'
+    )
+    instance = OSPFInstanceSerializer(nested=True, required=False, allow_null=True)
+    area = OSPFAreaSerializer(nested=True, required=False, allow_null=True)
+    ospf_interface = OSPFInterfaceSerializer(
+        nested=True, required=False, allow_null=True
+    )
+    virtual_link = OSPFVirtualLinkSerializer(
+        nested=True, required=False, allow_null=True
+    )
+
+    class Meta:
+        model = OSPFAuthenticationKey
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'area',
+            'ospf_interface',
+            'virtual_link',
+            'key_id',
+            'passphrase',
+            'message_digest_algorithm',
+            'accept_from',
+            'send_from',
+            'send_until',
+            'accept_until',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'key_id')

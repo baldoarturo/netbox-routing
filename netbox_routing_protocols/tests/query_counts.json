@@ -48,6 +48,8 @@
   "ospfarea:list_objects_with_permission": 16,
   "ospfarearange:api_list_objects": 12,
   "ospfarearange:list_objects_with_permission": 16,
+  "ospfauthenticationkey:api_list_objects": 12,
+  "ospfauthenticationkey:list_objects_with_permission": 16,
   "ospfinstance:api_list_objects": 11,
   "ospfinstance:list_objects_with_permission": 16,
   "ospfinterface:api_list_objects": 12,
