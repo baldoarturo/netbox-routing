@@ -1,10 +1,12 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
+import netaddr
 from django.db import models
 from django.db.models import CheckConstraint, Q
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
+from dcim.models import Device
 from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 from netbox_routing_protocols.fields.ip import IPAddressField
@@ -109,11 +111,60 @@ class StaticRoute(PrimaryModel):
 
     def clean(self):
         super().clean()
+        errors = {}
         if not self.interface_next_hop and not self.next_hop:
+            errors['next_hop'] = _(
+                "A route requires set either an IP next hop or an Interface next hop."
+            )
+        prefix = netaddr.IPNetwork(str(self.prefix)) if self.prefix else None
+        if prefix is not None and prefix.ip != prefix.network:
+            errors['prefix'] = _(
+                'The prefix has host bits set, use {network} instead.'
+            ).format(network=prefix.cidr)
+        if self.next_hop:
+            nh = netaddr.IPAddress(str(self.next_hop))
+            if prefix is not None and nh.version != prefix.version:
+                errors['next_hop'] = _(
+                    'The next hop must be an IPv{version} address, like the prefix.'
+                ).format(version=prefix.version)
+            elif int(nh) == 0 or nh.is_multicast() or nh.is_loopback():
+                errors['next_hop'] = _(
+                    'The next hop must be a usable unicast address (not unspecified, loopback or multicast).'
+                )
+            elif nh.version == 6 and nh.is_link_local() and not self.interface_next_hop:
+                errors['interface_next_hop'] = _(
+                    'A link-local next hop is only meaningful on a link: '
+                    'set the interface next hop (RFC 4291, RFC 4861).'
+                )
+        if errors:
+            raise ValidationError(errors)
+
+    def duplicates_on(self, devices):
+        """
+        Devices among `devices` that already carry another route with the same
+        VRF, prefix, next hop and interface next hop.
+        """
+        routes = StaticRoute.objects.filter(
+            vrf=self.vrf, prefix=self.prefix, next_hop=self.next_hop
+        ).exclude(pk=self.pk)
+        if self.interface_next_hop:
+            routes = routes.filter(interface_next_hop=self.interface_next_hop)
+        else:
+            routes = routes.filter(
+                Q(interface_next_hop__isnull=True) | Q(interface_next_hop='')
+            )
+        return Device.objects.filter(
+            pk__in=[d.pk for d in devices], static_routes__in=routes
+        ).distinct()
+
+    def validate_devices(self, devices):
+        duplicated = list(self.duplicates_on(devices))
+        if duplicated:
+            names = ', '.join(str(d) for d in duplicated[:5])
             raise ValidationError(
                 {
-                    "next_hop": _(
-                        "A route requires set either an IP next hop or an Interface next hop."
-                    )
+                    'devices': _(
+                        'These devices already have a route with the same VRF, prefix and next hop: {names}'
+                    ).format(names=names)
                 }
             )

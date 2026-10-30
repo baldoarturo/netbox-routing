@@ -59,3 +59,27 @@ class StaticRouteTestCase(TestCase):
         form = StaticRouteBulkEditForm(data={'distance': 300})
         self.assertFalse(form.is_valid())
         self.assertIn('distance', form.errors)
+
+    def test_duplicate_route_on_device_is_refused(self):
+        data = {
+            'devices': [self.device.pk],
+            'prefix': '10.0.0.0/8',
+            'next_hop': '10.10.10.1',
+        }
+        form = StaticRouteForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        form = StaticRouteForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('devices', form.errors)
+
+    def test_host_bits_are_refused(self):
+        form = StaticRouteForm(
+            data={
+                'devices': [self.device.pk],
+                'prefix': '10.0.0.1/24',
+                'next_hop': '10.10.10.1',
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('prefix', form.errors)

@@ -26,6 +26,16 @@ that carry it.
 **A route needs a next hop**: either an IP next hop, an interface next hop, or both. The form refuses
 a route with neither.
 
+## What the plugin checks
+
+* The **prefix** has no host bits (`10.0.0.1/24` is refused, use `10.0.0.0/24`), as on Cisco, Junos and Arista.
+* The **next hop** is an address of the same family as the prefix (an IPv4 prefix through an IPv6 next hop is refused),
+  and it is not `0.0.0.0`/`::`, a loopback or a multicast address.
+* An IPv6 **link-local** next hop (`fe80::/10`, RFC 4291) needs the *Interface next hop*: the address is only
+  meaningful on one link (RFC 4861).
+* A device cannot carry two routes with the same VRF, prefix, next hop and interface next hop. The form, the CSV
+  import and the REST API name the devices that already have it.
+
 ## Typical uses
 
 * **A default route on many devices.** Create the route once and select all the devices it applies

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from dcim.api.serializers_.devices import DeviceSerializer
@@ -46,6 +47,26 @@ class StaticRouteSerializer(NetBoxModelSerializer):
             'next_hop',
             'description',
         )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        instance = self.instance
+        route = StaticRoute(
+            pk=instance.pk if instance else None,
+            **{
+                field: attrs.get(field, getattr(instance, field, None))
+                for field in ('vrf', 'prefix', 'next_hop', 'interface_next_hop')
+            },
+        )
+        if 'devices' in attrs:
+            devices = attrs['devices'] or []
+        else:
+            devices = instance.devices.all() if instance else []
+        try:
+            route.validate_devices(devices)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return attrs
 
     def create(self, validated_data):
         devices = validated_data.pop('devices', None)

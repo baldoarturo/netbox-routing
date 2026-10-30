@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device
@@ -40,3 +41,12 @@ class StaticRouteImportForm(NetBoxModelImportForm):
             "comments",
             "tags",
         )
+
+    def _post_clean(self):
+        super()._post_clean()
+        devices = self.cleaned_data.get('devices')
+        if devices and not self.errors:
+            try:
+                self.instance.validate_devices(devices)
+            except ValidationError as e:
+                self.add_error(None, e)
