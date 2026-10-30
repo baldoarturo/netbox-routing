@@ -9,7 +9,7 @@ dev/test.sh     # the plugin tests, fast
 ```
 
 Only `dev/plugin.conf` is specific to this plugin: the rest is generic and can
-be copied to another plugin (see [Using it in another plugin](#using-it-in-another-plugin)).
+be copied to another plugin (see [Using it in another plugin](#using-it-in-another-plugin)) `dev/samples/` is optional sample data of this plugin (not part of the reusable template): `carrier_communities.py` loads the communities and lists of Cogent, Hurricane Electric and AS3549 into the dev database; the command is in its header.
 
 Requirements: Linux with apt or dnf, `sudo` (only to install missing packages),
 Python 3.12 or newer and about 2 GB of disk. podman is installed if missing.
