@@ -81,3 +81,50 @@ class StaticRouteTestCase(TestCase):
         qs = self.filterset(params, self.queryset).qs
         self.assertEqual(qs.filter(pk=route.pk).count(), 1)
         self.assertEqual(qs.count(), 3)
+
+    def test_interface_next_hop(self):
+        StaticRoute.objects.filter(name='Route 1').update(interface_next_hop='Gi0/1')
+        params = {'interface_next_hop': ['gi0/1']}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_route_tag(self):
+        StaticRoute.objects.filter(name='Route 2').update(tag=4294967295)
+        params = {'route_tag': [4294967295]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_permanent(self):
+        StaticRoute.objects.filter(name='Route 3').update(permanent=True)
+        self.assertEqual(
+            self.filterset({'permanent': True}, self.queryset).qs.count(), 1
+        )
+        self.assertEqual(
+            self.filterset({'permanent': False}, self.queryset).qs.count(), 2
+        )
+
+    def test_distance_range(self):
+        params = {'distance__gte': [50]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_family(self):
+        StaticRoute.objects.filter(name='Route 3').update(
+            prefix='2001:db8::/32', next_hop='2001:db8::1'
+        )
+        self.assertEqual(self.filterset({'family': 6}, self.queryset).qs.count(), 1)
+        self.assertEqual(self.filterset({'family': 4}, self.queryset).qs.count(), 2)
+
+    def test_prefix_within_and_contains(self):
+        qs = self.queryset
+        self.assertEqual(self.filterset({'within': '1.0.0.0/8'}, qs).qs.count(), 1)
+        self.assertEqual(
+            self.filterset({'within_include': '0.0.0.0/0'}, qs).qs.count(), 3
+        )
+        self.assertEqual(self.filterset({'within': '0.0.0.0/0'}, qs).qs.count(), 1)
+        self.assertEqual(self.filterset({'contains': '1.1.1.5/32'}, qs).qs.count(), 3)
+        self.assertEqual(self.filterset({'within': 'bad'}, qs).qs.count(), 0)
+
+    def test_q_matches_interface_and_description(self):
+        StaticRoute.objects.filter(name='Route 1').update(
+            interface_next_hop='Tunnel7', description='uplink to ISP'
+        )
+        self.assertEqual(self.filterset({'q': 'Tunnel7'}, self.queryset).qs.count(), 1)
+        self.assertEqual(self.filterset({'q': 'uplink'}, self.queryset).qs.count(), 1)

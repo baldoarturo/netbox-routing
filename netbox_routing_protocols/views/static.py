@@ -48,7 +48,7 @@ class StaticRouteListView(ObjectListView):
 
 @register_model_view(StaticRoute)
 class StaticRouteView(ObjectView):
-    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
+    queryset = StaticRoute.objects.select_related('vrf')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -65,7 +65,7 @@ class StaticRouteView(ObjectView):
 
 @register_model_view(StaticRoute, name='devices')
 class StaticRouteDevicesView(ObjectChildrenView):
-    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
+    queryset = StaticRoute.objects.all()
     child_model = Device
     table = DeviceTable
     filterset = DeviceFilterSet
@@ -89,7 +89,7 @@ class StaticRouteEditView(ObjectEditView):
 
 @register_model_view(StaticRoute, name='delete')
 class StaticRouteDeleteView(ObjectDeleteView):
-    queryset = StaticRoute.objects.select_related('vrf').prefetch_related('devices')
+    queryset = StaticRoute.objects.all()
 
 
 @register_model_view(StaticRoute, name='bulk_edit', detail=False)
