@@ -24,9 +24,9 @@ The documentation for operators and users (every protocol and feature, with the 
 ### Ready
 
 * [Routing objects](docs/routing-objects.md)
-  * Prefix lists
-  * AS paths
-  * Communities and community lists
+  * [Prefix lists](docs/routing-objects.md#prefix-lists)
+  * [AS paths](docs/routing-objects.md#as-paths)
+  * [Communities](docs/routing-objects.md#communities) and [community lists](docs/routing-objects.md#community-lists)
 * [Static routes](docs/protocols/static.md) (special next hops, interface, route leaking)
 * [IS-IS](docs/protocols/isis.md) (instances, levels, interfaces, authentication, redistribution, route leaking, segment routing, Flex-Algo, SRv6)
 

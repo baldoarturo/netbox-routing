@@ -27,7 +27,7 @@ instance?"* is one search away, next to the rest of your inventory.
 | [EIGRP](protocols/eigrp.md) | Routers (classic and named), address families, networks, interfaces | Work in progress ([Tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)) |
 | [Route policies](routing-objects.md) | Route policies, route policy entries | Work in progress ([Tracking #307](https://github.com/baldoarturo/netbox-routing-protocols/issues/307)) |
 | [BFD](bfd.md) | Reusable BFD timer profiles | Work in progress ([Tracking #414](https://github.com/baldoarturo/netbox-routing-protocols/issues/414)) |
-| [Routing objects](routing-objects.md) | Prefix lists, AS paths, communities and community lists | Ready |
+| [Routing objects](routing-objects.md) | [Prefix lists](routing-objects.md#prefix-lists), [AS paths](routing-objects.md#as-paths), [communities](routing-objects.md#communities) and [community lists](routing-objects.md#community-lists) | Ready |
 
 Segment routing shared by all the protocols (SRGB, SRLB and prefix SIDs per device) is also work in progress ([Tracking #201](https://github.com/baldoarturo/netbox-routing-protocols/issues/201)). Progress is followed in the "Tracking:" issues and the GitHub projects of the repository.
 
