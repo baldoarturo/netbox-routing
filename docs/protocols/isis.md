@@ -28,6 +28,7 @@ IS-IS instance (a process on a device, optionally in a VRF)
  ├─ Flex-Algo        ├─ SRv6 locator        └─ Settings
  ├─ Redistribution   ├─ Summary address     └─ Route leak
  ├─ SR mapping entry (SIDs for prefixes that have none)
+ ├─ Address family (settings that differ between IPv4 and IPv6)
  ├─ Area address (more NETs for migrations and area merges)
  └─ Interface (device interface + address family)
      ├─ Interface level (per-level metric and hello settings)
@@ -271,6 +272,22 @@ Rules:
 
 **Duplicate system IDs.** Two routers with the same system ID in the same area cannot form adjacencies. The page of an instance shows **Same System ID In** with the other instances that share a system ID and an area (counting their added area addresses too); `—` means there are none. It is a warning, nothing is blocked.
 
+## Address families
+
+**IS-IS → Address Families**
+
+One IS-IS process carries **IPv4 and IPv6 together**, in the same adjacencies and with one NET ([RFC 1195](https://www.rfc-editor.org/rfc/rfc1195), [RFC 5308](https://www.rfc-editor.org/rfc/rfc5308)). That is why, unlike OSPF (where there is one instance per family), the family is **not** a field of the instance here: the interfaces, redistributions, summaries and route leaks already say which family they are. Some settings can still differ by family on the devices (IOS-XR `address-family ipv4|ipv6 unicast`, Junos, Nokia), and this object holds them. A field left empty **uses the value of the instance**.
+
+| Field | Meaning |
+| --- | --- |
+| Instance, Address family | The instance and the family (IPv4 or IPv6) the settings are for. One entry per family. |
+| Metric style | Wide, narrow or transition for this family. It is the one that the metrics of that family are checked against: narrow allows 1 to 63, otherwise up to 16777214 ([RFC 5305](https://www.rfc-editor.org/rfc/rfc5305)). It cannot be narrow while an interface or a redistribution of the family already has a metric above 63. |
+| Administrative distance | 1 to 255. |
+| Maximum paths | Equal-cost paths, 1 or more. |
+| Default route origination | Originate a default route of this family. |
+
+Multi-topology ([RFC 5120](https://www.rfc-editor.org/rfc/rfc5120)) stays a [setting](#settings) of the instance.
+
 ## Redistribution
 
 **IS-IS → Redistribution**
@@ -371,6 +388,9 @@ IS-IS instance
 ├─ Flex-Algo
 │     instance → IS-IS instance · algo_id · metric_type · priority
 │     · admin_group_exclude · admin_group_include_any · admin_group_include_all
+├─ Address family
+│     instance → IS-IS instance · address_family {IPv4 | IPv6}
+│     · metric_style {Wide | Narrow | Transition} · distance · maximum_paths · default_originate?
 ├─ Area address
 │     instance → IS-IS instance · net (the area and system_id are read-only, derived from it)
 ├─ Redistribution

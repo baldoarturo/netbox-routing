@@ -28,6 +28,7 @@ __all__ = (
     'ISISFlexAlgoFilter',
     'ISISPrefixSIDFilter',
     'ISISSRv6LocatorFilter',
+    'ISISAddressFamilyFilter',
     'ISISSRMappingEntryFilter',
     'ISISAdjacencySIDFilter',
     'ISISAreaAddressFilter',
@@ -146,3 +147,9 @@ class ISISSRMappingEntryFilter(PrimaryModelFilter):
 @strawberry_django.filter(models.ISISAdjacencySID, lookups=True)
 class ISISAdjacencySIDFilter(PrimaryModelFilter):
     interface_id: ID | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISAddressFamily, lookups=True)
+class ISISAddressFamilyFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    address_family: StrFilterLookup | None = strawberry_django.filter_field()

@@ -29,6 +29,7 @@ __all__ = (
     'ISISFlexAlgoBulkEditForm',
     'ISISPrefixSIDBulkEditForm',
     'ISISSRv6LocatorBulkEditForm',
+    'ISISAddressFamilyBulkEditForm',
     'ISISSRMappingEntryBulkEditForm',
     'ISISAdjacencySIDBulkEditForm',
     'ISISRedistributionBulkEditForm',

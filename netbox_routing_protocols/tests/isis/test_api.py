@@ -20,6 +20,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
     ISISSRMappingEntry,
     ISISAdjacencySID,
     ISISAreaAddress,
@@ -37,6 +38,7 @@ __all__ = (
     'ISISInterfaceLevelAPITestCase',
     'ISISSegmentRoutingAPITestCase',
     'ISISFlexAlgoAPITestCase',
+    'ISISAddressFamilyAPITestCase',
     'ISISSRMappingEntryAPITestCase',
     'ISISAdjacencySIDAPITestCase',
     'ISISAreaAddressAPITestCase',
@@ -872,3 +874,35 @@ class ISISAdjacencySIDAPITestCase(LeanCoreTestsMixin, APIViewTestCases.APIViewTe
         for label in (24001, 24002, 24003):
             ISISAdjacencySID.objects.create(interface=iface, sid_label=label)
         cls.create_data = [{'interface': iface.pk, 'sid_label': 24010}]
+
+
+class ISISAddressFamilyAPITestCase(
+    LeanCoreTestsMixin, APIViewTestCases.APIViewTestCase
+):
+    model = ISISAddressFamily
+    view_namespace = 'plugins-api:netbox_routing_protocols'
+    graphql_base_name = 'isis_address_family'
+    brief_fields = ['address_family', 'display', 'id', 'instance', 'url']
+    user_permissions = ('netbox_routing_protocols.view_isisinstance',)
+    bulk_update_data = {'distance': 120}
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Test Device')
+        insts = [
+            ISISInstance.objects.create(device=device, process_tag=str(n))
+            for n in range(3)
+        ]
+        ISISAddressFamily.objects.create(instance=insts[0], address_family='ipv4')
+        ISISAddressFamily.objects.create(
+            instance=insts[0], address_family='ipv6', distance=115
+        )
+        ISISAddressFamily.objects.create(instance=insts[1], address_family='ipv4')
+        cls.create_data = [
+            {
+                'instance': insts[2].pk,
+                'address_family': 'ipv6',
+                'metric_style': 'wide',
+                'maximum_paths': 4,
+            },
+        ]

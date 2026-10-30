@@ -27,6 +27,7 @@ from netbox_routing_protocols.filtersets.isis import (
     ISISFlexAlgoFilterSet,
     ISISPrefixSIDFilterSet,
     ISISSRv6LocatorFilterSet,
+    ISISAddressFamilyFilterSet,
     ISISSRMappingEntryFilterSet,
     ISISAdjacencySIDFilterSet,
     ISISRedistributionFilterSet,
@@ -51,6 +52,7 @@ from netbox_routing_protocols.models import (
     ISISAreaAddress,
     ISISSRMappingEntry,
     ISISAdjacencySID,
+    ISISAddressFamily,
 )
 from netbox_routing_protocols.tables.isis import (
     ISISInstanceTable,
@@ -62,6 +64,7 @@ from netbox_routing_protocols.tables.isis import (
     ISISFlexAlgoTable,
     ISISPrefixSIDTable,
     ISISSRv6LocatorTable,
+    ISISAddressFamilyTable,
     ISISSRMappingEntryTable,
     ISISAdjacencySIDTable,
     ISISAreaAddressTable,
@@ -115,6 +118,14 @@ __all__ = (
     'ISISSRv6LocatorDeleteView',
     'ISISSRv6LocatorBulkDeleteView',
     'ISISSRv6LocatorBulkImportView',
+    'ISISAddressFamilyListView',
+    'ISISAddressFamilyView',
+    'ISISAddressFamilyEditView',
+    'ISISAddressFamilyBulkEditView',
+    'ISISAddressFamilyDeleteView',
+    'ISISAddressFamilyBulkDeleteView',
+    'ISISAddressFamilyBulkImportView',
+    'ISISInstanceAddressFamiliesView',
     'ISISSRMappingEntryListView',
     'ISISSRMappingEntryView',
     'ISISSRMappingEntryEditView',
@@ -1231,3 +1242,75 @@ class ISISInterfaceAdjacencySidsView(ObjectChildrenView):
 
     def get_children(self, request, parent):
         return ISISADJACENCYSID_QUERYSET.filter(interface=parent)
+
+
+ISISADDRESSFAMILY_QUERYSET = ISISAddressFamily.objects.select_related(
+    'instance__device'
+)
+
+
+@register_model_view(ISISAddressFamily, name='list', path='', detail=False)
+class ISISAddressFamilyListView(ObjectListView):
+    queryset = ISISADDRESSFAMILY_QUERYSET
+    filterset = ISISAddressFamilyFilterSet
+    filterset_form = ISISAddressFamilyFilterForm
+    table = ISISAddressFamilyTable
+
+
+@register_model_view(ISISAddressFamily)
+class ISISAddressFamilyView(ObjectView):
+    queryset = ISISADDRESSFAMILY_QUERYSET
+    template_name = 'generic/object.html'
+    layout = layout.SimpleLayout(
+        left_panels=[ISISAddressFamilyPanel(), TagsPanel()],
+        right_panels=[panels.CommentsPanel(), panels.RelatedObjectsPanel()],
+    )
+
+
+@register_model_view(ISISAddressFamily, name='add', detail=False)
+@register_model_view(ISISAddressFamily, name='edit')
+class ISISAddressFamilyEditView(ObjectEditView):
+    queryset = ISISADDRESSFAMILY_QUERYSET
+    form = ISISAddressFamilyForm
+
+
+@register_model_view(ISISAddressFamily, name='delete')
+class ISISAddressFamilyDeleteView(ObjectDeleteView):
+    queryset = ISISADDRESSFAMILY_QUERYSET
+
+
+@register_model_view(ISISAddressFamily, name='bulk_import', detail=False)
+class ISISAddressFamilyBulkImportView(BulkImportView):
+    queryset = ISISADDRESSFAMILY_QUERYSET
+    model_form = ISISAddressFamilyImportForm
+
+
+@register_model_view(ISISAddressFamily, name='bulk_edit', detail=False)
+class ISISAddressFamilyBulkEditView(BulkEditView):
+    queryset = ISISADDRESSFAMILY_QUERYSET
+    filterset = ISISAddressFamilyFilterSet
+    table = ISISAddressFamilyTable
+    form = ISISAddressFamilyBulkEditForm
+
+
+@register_model_view(ISISAddressFamily, name='bulk_delete', detail=False)
+class ISISAddressFamilyBulkDeleteView(BulkDeleteView):
+    queryset = ISISADDRESSFAMILY_QUERYSET
+    filterset = ISISAddressFamilyFilterSet
+    table = ISISAddressFamilyTable
+
+
+@register_model_view(ISISInstance, name='address-families')
+class ISISInstanceAddressFamiliesView(ObjectChildrenView):
+    queryset = ISISInstance.objects.all()
+    child_model = ISISAddressFamily
+    table = ISISAddressFamilyTable
+    filterset = ISISAddressFamilyFilterSet
+    tab = ViewTab(
+        label=_('Address Families'),
+        badge=lambda obj: ISISAddressFamily.objects.filter(instance=obj).count(),
+        hide_if_empty=False,
+    )
+
+    def get_children(self, request, parent):
+        return ISISADDRESSFAMILY_QUERYSET.filter(instance=parent)

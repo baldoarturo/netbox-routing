@@ -17,6 +17,7 @@ from netbox_routing_protocols.graphql.isis.filters import (
     ISISFlexAlgoFilter,
     ISISPrefixSIDFilter,
     ISISSRv6LocatorFilter,
+    ISISAddressFamilyFilter,
     ISISSRMappingEntryFilter,
     ISISAdjacencySIDFilter,
     ISISAreaAddressFilter,
@@ -35,6 +36,7 @@ __all__ = (
     'ISISFlexAlgoType',
     'ISISPrefixSIDType',
     'ISISSRv6LocatorType',
+    'ISISAddressFamilyType',
     'ISISSRMappingEntryType',
     'ISISAdjacencySIDType',
     'ISISAreaAddressType',
@@ -303,3 +305,17 @@ class ISISAdjacencySIDType(PrimaryObjectType):
     ]
     sid_label: int
     protected: bool
+
+
+@strawberry_django.type(
+    models.ISISAddressFamily, fields='__all__', filters=ISISAddressFamilyFilter
+)
+class ISISAddressFamilyType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    address_family: str
+    metric_style: str
+    distance: int | None
+    maximum_paths: int | None
+    default_originate: bool | None

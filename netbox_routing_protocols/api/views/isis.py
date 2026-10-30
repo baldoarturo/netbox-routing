@@ -15,6 +15,7 @@ from netbox_routing_protocols.api.serializers import (
     ISISFlexAlgoSerializer,
     ISISPrefixSIDSerializer,
     ISISSRv6LocatorSerializer,
+    ISISAddressFamilySerializer,
     ISISSRMappingEntrySerializer,
     ISISAdjacencySIDSerializer,
     ISISAreaAddressSerializer,
@@ -32,6 +33,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
     ISISSRMappingEntry,
     ISISAdjacencySID,
     ISISAreaAddress,
@@ -50,6 +52,7 @@ __all__ = (
     'ISISFlexAlgoViewSet',
     'ISISPrefixSIDViewSet',
     'ISISSRv6LocatorViewSet',
+    'ISISAddressFamilyViewSet',
     'ISISSRMappingEntryViewSet',
     'ISISAdjacencySIDViewSet',
     'ISISAreaAddressViewSet',
@@ -181,3 +184,9 @@ class ISISAdjacencySIDViewSet(NetBoxModelViewSet):
     queryset = ISISAdjacencySID.objects.select_related('interface__interface')
     serializer_class = ISISAdjacencySIDSerializer
     filterset_class = filtersets.ISISAdjacencySIDFilterSet
+
+
+class ISISAddressFamilyViewSet(NetBoxModelViewSet):
+    queryset = ISISAddressFamily.objects.select_related('instance__device')
+    serializer_class = ISISAddressFamilySerializer
+    filterset_class = filtersets.ISISAddressFamilyFilterSet

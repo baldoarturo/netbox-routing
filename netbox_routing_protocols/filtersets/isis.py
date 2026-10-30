@@ -40,6 +40,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
     ISISSRMappingEntry,
     ISISAdjacencySID,
     ISISAreaAddress,
@@ -59,6 +60,7 @@ __all__ = (
     'ISISFlexAlgoFilterSet',
     'ISISPrefixSIDFilterSet',
     'ISISSRv6LocatorFilterSet',
+    'ISISAddressFamilyFilterSet',
     'ISISSRMappingEntryFilterSet',
     'ISISAdjacencySIDFilterSet',
     'ISISAreaAddressFilterSet',
@@ -665,6 +667,35 @@ class ISISAdjacencySIDFilterSet(NetBoxModelFilterSet):
     class Meta:
         model = ISISAdjacencySID
         fields = ('interface_id', 'sid_label', 'protected')
+
+    def search(self, queryset, name, value):
+        return queryset
+
+
+@register_filterset
+class ISISAddressFamilyFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    address_family = django_filters.MultipleChoiceFilter(
+        choices=ISISAddressFamilyChoices,
+        label=_('Address Family'),
+    )
+    metric_style = django_filters.MultipleChoiceFilter(
+        choices=ISISMetricStyleChoices,
+        label=_('Metric Style'),
+    )
+
+    class Meta:
+        model = ISISAddressFamily
+        fields = ('instance_id', 'distance', 'maximum_paths', 'default_originate')
 
     def search(self, queryset, name, value):
         return queryset

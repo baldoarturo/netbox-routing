@@ -14,6 +14,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
     ISISSRMappingEntry,
     ISISAdjacencySID,
     ISISAreaAddress,
@@ -32,6 +33,7 @@ __all__ = (
     'ISISFlexAlgoTable',
     'ISISPrefixSIDTable',
     'ISISSRv6LocatorTable',
+    'ISISAddressFamilyTable',
     'ISISSRMappingEntryTable',
     'ISISAdjacencySIDTable',
     'ISISAreaAddressTable',
@@ -425,3 +427,42 @@ class ISISAdjacencySIDTable(NetBoxTable):
         model = ISISAdjacencySID
         fields = ('pk', 'id', 'sid_label', 'interface', 'protected', 'description')
         default_columns = ('pk', 'id', 'sid_label', 'interface', 'protected')
+
+
+class ISISAddressFamilyTable(NetBoxTable):
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    default_originate = tables.BooleanColumn(
+        verbose_name=_('Default Route Origination')
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISAddressFamily
+        fields = (
+            'pk',
+            'id',
+            'address_family',
+            'instance',
+            'device',
+            'metric_style',
+            'distance',
+            'maximum_paths',
+            'default_originate',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'address_family',
+            'instance',
+            'metric_style',
+            'distance',
+            'maximum_paths',
+            'default_originate',
+        )
+
+    def render_address_family(self, record):
+        return record.get_address_family_display()
