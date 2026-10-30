@@ -8,8 +8,11 @@ descriptions of its links, and each one computes the shortest paths on its own. 
 extensions that real networks use on top of it. Defaults and ranges follow the RFC, and each feature
 below says which RFC it comes from.
 
-> **Scope.** OSPFv3 (IPv6, [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340)) is not modelled yet. Networks,
-> summary addresses and ranges accept IPv4 only, and the router ID is an IPv4-style identifier.
+> **Scope.** Each instance has an **address family**: IPv4 is OSPFv2 ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328))
+> and IPv6 is OSPFv3 ([RFC 5340](https://www.rfc-editor.org/rfc/rfc5340)). What the family does not allow is
+> refused, and the forms offer only what applies. Not supported yet: the IPv4 address family inside OSPFv3
+> ([RFC 5838](https://www.rfc-editor.org/rfc/rfc5838)) and IPsec authentication of OSPFv3
+> ([RFC 4552](https://www.rfc-editor.org/rfc/rfc4552)).
 
 ## How it is organized
 
@@ -40,8 +43,9 @@ An instance is one OSPF process: "OSPF on this device, in this VRF".
 | Name | The process name or number, as on the device. |
 | Device | The device that runs it. |
 | VRF | Optional. OSPF can run once per VRF. |
+| Address family | IPv4 (OSPFv2, the default) or IPv6 (OSPFv3). A device has **one instance per VRF and address family** (no VRF is the default VRF): it can run OSPFv2 and OSPFv3 side by side, but not two OSPFv2 in the same VRF. **It cannot be changed** once the instance exists, because everything under it (networks, neighbors, ranges, SIDs) depends on it: create another instance. |
 | Router ID | The 32-bit identifier of the router in the OSPF domain ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) §C.1), written like an IPv4 address. It must be a valid IPv4 address, not `0.0.0.0` and without a mask, and it should be unique in the network. |
-| Instance ID | Lets several OSPF processes run over the same link: routers form an adjacency only with a neighbor that has the same ID ([RFC 6549](https://www.rfc-editor.org/rfc/rfc6549)). Default 0. |
+| Instance ID | Lets several OSPF processes run over the same link: routers form an adjacency only with a neighbor that has the same ID ([RFC 6549](https://www.rfc-editor.org/rfc/rfc6549)). Default 0. It goes from 0 to 127 in OSPFv2 and from 0 to 255 in OSPFv3 (an 8-bit field, [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) §2.4). |
 
 ### Default route
 
@@ -107,6 +111,12 @@ Empty optional fields mean "use the platform default".
 | TE router address | Stable address of the router in traffic-engineering LSAs, usually a loopback. Empty uses the router ID. | [RFC 3630](https://www.rfc-editor.org/rfc/rfc3630) |
 | Segment routing, SRGB start/size | Advertise segment routing and the label block (SRGB) the router uses. Requires opaque LSAs. | [RFC 8665](https://www.rfc-editor.org/rfc/rfc8665), [RFC 7684](https://www.rfc-editor.org/rfc/rfc7684) |
 | LDP sync, hold-down | Advertise the maximum metric on interfaces until LDP is up on them, so traffic never takes a path without labels. | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) |
+
+**By address family.** Opaque LSAs are an OSPFv2 mechanism ([RFC 5250](https://www.rfc-editor.org/rfc/rfc5250)):
+OSPFv3 carries the flooding scope in the LSA type ([RFC 5340](https://www.rfc-editor.org/rfc/rfc5340)
+A.4.2.1), so on an IPv6 instance the *Opaque capability* cannot be set and traffic engineering and
+segment routing do not ask for it. The TE router address and the prefix SIDs must be of the family of
+the instance. LDP sync, TTL security and fast reroute apply to both families.
 
 The instance's **authentication** is described in [Authentication](#authentication).
 
@@ -220,6 +230,12 @@ address** assigned to that interface. An interface may have several networks, ea
 interface with no addresses (an unnumbered interface) has no networks. Only IPv4 is accepted, and the
 network is derived from the address and its mask. Deleting the IP address in IPAM removes the network.
 
+Networks are for **IPv4 instances only**: OSPFv3 runs per link, so it is enabled on the interface itself
+and has no network statements ([RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) §2.1). For the same
+reason an interface of an IPv6 instance cannot be unnumbered. In the same way, the neighbors, area ranges,
+summary addresses, prefix SIDs and the TE router address of an instance must be of its family; the neighbors
+of an OSPFv3 instance are identified by their link-local address (RFC 5340 §3.1.1).
+
 ## Authentication
 
 OSPFv2 can authenticate its packets so that only trusted routers join the domain
@@ -231,7 +247,17 @@ OSPFv2 can authenticate its packets so that only trusted routers join the domain
 | Null | No authentication. |
 | Simple Password | A clear-text password, up to **8 characters**. Weak: only protects against mistakes. |
 | Message Digest | A cryptographic digest with a **key ID (0 to 255)** and a key of up to **16 characters** for MD5. |
+| Authentication Trailer | **OSPFv3 only.** The key with an **SA ID (0 to 65535)** and an **HMAC-SHA algorithm** ([RFC 7166](https://www.rfc-editor.org/rfc/rfc7166)); MD5 is not allowed. |
 | Key Chain | The name of a key chain configured on the device, which rotates keys. No key is stored here. |
+
+**The family decides what you can choose.** OSPFv2 (IPv4 instances) uses Null, Simple Password, Message
+Digest and Key Chain. OSPFv3 (IPv6 instances) dropped the authentication of the packet header
+([RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) §2.5) and uses the Authentication Trailer, a Key
+Chain or none. The forms offer only the types of the family, the model refuses the others, and an
+instance, area, interface or virtual link cannot mix them because they all belong to one instance. The
+rule of OSPFv2 that one area uses a single authentication type does not exist in OSPFv3: each interface
+has its own. IPsec authentication of OSPFv3 ([RFC 4552](https://www.rfc-editor.org/rfc/rfc4552)) is not
+supported yet.
 
 For message digest, choose the **algorithm**: **MD5** ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328)),
 or **HMAC-SHA-1/256/384/512** ([RFC 5709](https://www.rfc-editor.org/rfc/rfc5709)). The key is stored
@@ -365,8 +391,8 @@ Every object also has `description`, `comments`, tags and custom fields, which a
 
 ```text
 OSPF instance
-├─ Identity: name · device → Device · vrf → VRF · router_id · ospf_instance_id
-├─ Authentication: authentication {Simple Password | Message Digest | Key Chain | Null Authentication}
+├─ Identity: name · device → Device · vrf → VRF · address_family {IPv4 (OSPFv2) | IPv6 (OSPFv3)} · router_id · ospf_instance_id
+├─ Authentication: authentication {Simple Password | Message Digest | Authentication Trailer | Key Chain | Null Authentication}
 │     · passphrase · authentication_key_id · show_md5?
 │     · message_digest_algorithm {MD5 | HMAC-SHA-1 | HMAC-SHA-256 | HMAC-SHA-384 | HMAC-SHA-512}
 │     · key_chain
@@ -436,6 +462,7 @@ OSPF instance
 
 | RFC | What it gives the plugin |
 | --- | --- |
+| [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) | OSPFv3: IPv6 instances (no networks, link-local neighbors) |
 | [RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) | The protocol: router ID, areas, interface types and timers, authentication, virtual links, ranges, external route types |
 | [RFC 3101](https://www.rfc-editor.org/rfc/rfc3101) | NSSA areas |
 | [RFC 3623](https://www.rfc-editor.org/rfc/rfc3623) | Graceful restart |
@@ -446,6 +473,7 @@ OSPF instance
 | [RFC 5286](https://www.rfc-editor.org/rfc/rfc5286), [RFC 7490](https://www.rfc-editor.org/rfc/rfc7490) | Loop-free alternates, remote LFA |
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization |
 | [RFC 5709](https://www.rfc-editor.org/rfc/rfc5709) | HMAC-SHA authentication |
+| [RFC 7166](https://www.rfc-editor.org/rfc/rfc7166) | Authentication trailer of OSPFv3 |
 | [RFC 6549](https://www.rfc-editor.org/rfc/rfc6549) | Multi-instance OSPFv2 |
 | [RFC 6860](https://www.rfc-editor.org/rfc/rfc6860) | Hiding transit-only networks |
 | [RFC 6987](https://www.rfc-editor.org/rfc/rfc6987) | Max-metric router LSA |

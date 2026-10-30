@@ -6,6 +6,8 @@ OSPF_COST_MAX = 65535
 # RFC 6549: instance IDs of an OSPFv2 instance carried in the packets
 OSPF_INSTANCE_ID_MIN = 0
 OSPF_INSTANCE_ID_MAX = 127
+# RFC 5340 2.4: the OSPFv3 Instance ID is an 8-bit field
+OSPF_V3_INSTANCE_ID_MAX = 255
 
 # RFC 5443: seconds to keep the maximum link metric while LDP is not operational
 OSPF_LDP_SYNC_HOLDDOWN_MIN = 1
@@ -102,6 +104,8 @@ OSPF_PRIORITY_DEFAULT = 1
 # Cryptographic authentication Key ID: 8-bit field (RFC 2328 D.3).
 OSPF_AUTH_KEY_ID_MIN = 0
 OSPF_AUTH_KEY_ID_MAX = 255
+# OSPFv3 authentication trailer: 16-bit Security Association ID (RFC 7166 4.1).
+OSPF_TRAILER_SA_ID_MAX = 65535
 
 # Simple password: a 64-bit field per network (RFC 2328 D.2). MD5 key: 16 bytes
 # (RFC 2328 D.3).

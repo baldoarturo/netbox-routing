@@ -15,6 +15,7 @@ from netbox.models import PrimaryModel
 
 from netbox_routing_protocols import choices
 from netbox_routing_protocols.choices.ospf import (
+    OSPFAddressFamilyChoices,
     OSPFFastRerouteChoices,
     OSPFNetworkTypeChoices,
     OSPFRangeTypeChoices,
@@ -32,6 +33,7 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_COST_MAX,
     OSPF_COST_MIN,
     OSPF_AUTH_KEY_ID_MAX,
+    OSPF_TRAILER_SA_ID_MAX,
     OSPF_AUTH_KEY_ID_MIN,
     OSPF_EXTERNAL_METRIC_MAX,
     OSPF_EXTERNAL_METRIC_MIN,
@@ -40,6 +42,7 @@ from netbox_routing_protocols.constants.ospf import (
     OSPF_GRACEFUL_RESTART_PERIOD_MIN,
     OSPF_INSTANCE_ID_MAX,
     OSPF_INSTANCE_ID_MIN,
+    OSPF_V3_INSTANCE_ID_MAX,
     OSPF_INTERFACE_TIMERS,
     OSPF_LDP_SYNC_HOLDDOWN_MAX,
     OSPF_LDP_SYNC_HOLDDOWN_MIN,
@@ -102,19 +105,25 @@ class OSPFAuthenticationMixin(models.Model):
         null=True,
         help_text=_('The key, stored as plain text. For message digest authentication'),
     )
-    authentication_key_id = models.PositiveSmallIntegerField(
+    authentication_key_id = models.PositiveIntegerField(
         verbose_name=_('Key ID'),
-        help_text=_('Message digest key ID, 0 to 255 (RFC 2328 D.3)'),
+        help_text=_(
+            'Message digest key ID, 0 to 255 (RFC 2328 D.3); the SA ID of the '
+            'authentication trailer, 0 to 65535 (RFC 7166 4.1)'
+        ),
         validators=[
             MinValueValidator(OSPF_AUTH_KEY_ID_MIN),
-            MaxValueValidator(OSPF_AUTH_KEY_ID_MAX),
+            MaxValueValidator(OSPF_TRAILER_SA_ID_MAX),
         ],
         blank=True,
         null=True,
     )
     message_digest_algorithm = models.CharField(
         verbose_name=_('Message Digest Algorithm'),
-        help_text=_('MD5 (RFC 2328) or HMAC-SHA (RFC 5709); default: MD5'),
+        help_text=_(
+            'MD5 (RFC 2328) or HMAC-SHA (RFC 5709, RFC 7166); default: MD5. '
+            'The authentication trailer takes HMAC-SHA only'
+        ),
         choices=OSPFMessageDigestAlgorithmChoices,
         default=OSPFMessageDigestAlgorithmChoices.MD5,
         max_length=20,
@@ -154,10 +163,55 @@ class OSPFAuthenticationMixin(models.Model):
         """The MD5 digest of the key, only when it is set to be shown."""
         return self.get_passphrase_md5() if self.show_md5 else None
 
+    def _authentication_ip_version(self):
+        """4 or 6: the address family of the instance this object belongs to."""
+        owner = getattr(self, 'instance', None) or self
+        return getattr(owner, 'ip_version', 4)
+
     def _clean_authentication(self):
         errors = {}
         auth = self.authentication
-        if auth == OSPFAuthenticationChoices.SIMPLE:
+        version = self._authentication_ip_version()
+        allowed = (
+            OSPFAuthenticationChoices.IPV6
+            if version == 6
+            else OSPFAuthenticationChoices.IPV4
+        )
+        if auth and auth not in allowed:
+            if version == 6:
+                msg = _(
+                    'OSPFv3 has no authentication in the packet header; use the '
+                    'authentication trailer (RFC 7166) or a key chain.'
+                )
+            else:
+                msg = _(
+                    'The authentication trailer (RFC 7166) is for OSPFv3: IPv6 '
+                    'instances.'
+                )
+            raise ValidationError({'authentication': msg})
+        if (
+            self.authentication_key_id is not None
+            and self.authentication_key_id > OSPF_AUTH_KEY_ID_MAX
+            and auth != OSPFAuthenticationChoices.TRAILER
+        ):
+            errors['authentication_key_id'] = _(
+                'The key ID goes up to {max} (RFC 2328 D.3); only the SA ID of the '
+                'authentication trailer goes up to {trailer}.'
+            ).format(max=OSPF_AUTH_KEY_ID_MAX, trailer=OSPF_TRAILER_SA_ID_MAX)
+        if auth == OSPFAuthenticationChoices.TRAILER:
+            if not self.passphrase:
+                errors['passphrase'] = _('A key is required for the trailer.')
+            if self.authentication_key_id is None:
+                errors['authentication_key_id'] = _(
+                    'The SA ID is required for the trailer (RFC 7166 4.1).'
+                )
+            if self.message_digest_algorithm == OSPFMessageDigestAlgorithmChoices.MD5:
+                errors['message_digest_algorithm'] = _(
+                    'The authentication trailer takes HMAC-SHA only (RFC 7166 4.4).'
+                )
+            if self.key_chain:
+                errors['key_chain'] = _('A key chain is not used with the trailer.')
+        elif auth == OSPFAuthenticationChoices.SIMPLE:
             if not self.passphrase:
                 errors['passphrase'] = _('A password is required.')
             elif len(self.passphrase) > OSPF_SIMPLE_PASSWORD_MAX_LENGTH:
@@ -309,15 +363,15 @@ class OSPFTTLSecurityMixin(models.Model):
             )
 
 
-def authentication_conflict(required, own):
+def authentication_conflict(required, own, version=4):
     """
     The authentication type (null, simple password or cryptographic) is a
     parameter of the area, and has to be the same for all the routers attached
     to a network (RFC 2328 C.2 and C.3): the interfaces of an area cannot use a
     different type from the one the area uses.
     """
-    if not required or not own:
-        return False
+    if not required or not own or version != 4:
+        return False  # OSPFv3 has no such rule: the trailer is per interface
     return _authentication_type(required) != _authentication_type(own)
 
 
@@ -364,6 +418,16 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
         on_delete=models.CASCADE,
         blank=True,
         null=True,
+    )
+    address_family = models.CharField(
+        verbose_name=_('Address Family'),
+        help_text=_(
+            'IPv4 is OSPFv2 (RFC 2328), IPv6 is OSPFv3 (RFC 5340). It cannot be '
+            'changed: create another instance'
+        ),
+        max_length=4,
+        choices=OSPFAddressFamilyChoices,
+        default=OSPFAddressFamilyChoices.IPV4,
     )
     default_originate = models.BooleanField(
         verbose_name=_('Default Originate'),
@@ -635,7 +699,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
             'Stable address of the router in the traffic engineering LSAs, usually '
             'a loopback (RFC 3630 2.4.1). Empty uses the router ID'
         ),
-        protocol='IPv4',
+        protocol='both',
         blank=True,
         null=True,
     )
@@ -698,13 +762,13 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
         verbose_name=_('Instance ID'),
         help_text=_(
             'Identifies the instance in the packets, so several can run over the '
-            'same link; routers only form adjacencies with the same ID (RFC 6549). '
-            'The default is 0'
+            'same link; routers only form adjacencies with the same ID (RFC 6549, '
+            'RFC 5340 2.4). OSPFv2: 0 to 127; OSPFv3: 0 to 255. The default is 0'
         ),
         default=OSPF_INSTANCE_ID_MIN,
         validators=[
             MinValueValidator(OSPF_INSTANCE_ID_MIN),
-            MaxValueValidator(OSPF_INSTANCE_ID_MAX),
+            MaxValueValidator(OSPF_V3_INSTANCE_ID_MAX),
         ],
     )
     ADVANCED_FIELDS = (
@@ -753,6 +817,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
             'router_id',
             'device',
             'vrf',
+            'address_family',
             'default_originate',
             'default_originate_always',
             'default_originate_metric',
@@ -768,11 +833,11 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
         verbose_name = 'OSPF Instance'
         constraints = (
             models.UniqueConstraint(
-                fields=('device', 'vrf'),
-                name='%(app_label)s_%(class)s_unique_device_vrf',
+                fields=('device', 'vrf', 'address_family'),
+                name='%(app_label)s_%(class)s_unique_device_vrf_family',
                 violation_error_message=_(
-                    'The device already has an OSPF instance in this VRF '
-                    '(an empty VRF is the default VRF).'
+                    'The device already has an OSPF instance of this address family '
+                    'in this VRF (an empty VRF is the default VRF).'
                 ),
                 nulls_distinct=False,
             ),
@@ -783,6 +848,60 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:ospfinstance', args=[self.pk])
+
+    @property
+    def ip_version(self):
+        """The IP version (4 or 6) the instance routes."""
+        return 6 if self.address_family == OSPFAddressFamilyChoices.IPV6 else 4
+
+    @property
+    def uses_opaque_lsas(self):
+        """Traffic engineering and segment routing travel in opaque LSAs in OSPFv2
+        only: OSPFv3 carries the flooding scope in the LSA type (RFC 5340 A.4.2.1)."""
+        return self.ip_version == 4
+
+    def _clean_instance_id(self):
+        if (
+            self.ip_version == 4
+            and self.ospf_instance_id is not None
+            and self.ospf_instance_id > OSPF_INSTANCE_ID_MAX
+        ):
+            raise ValidationError(
+                {
+                    'ospf_instance_id': _(
+                        'An OSPFv2 instance ID goes up to {max} (RFC 6549); OSPFv3 '
+                        'up to {v3} (RFC 5340 2.4).'
+                    ).format(max=OSPF_INSTANCE_ID_MAX, v3=OSPF_V3_INSTANCE_ID_MAX)
+                }
+            )
+        if self.ip_version == 6 and self.opaque_capability:
+            raise ValidationError(
+                {
+                    'opaque_capability': _(
+                        'OSPFv3 has no opaque LSAs: the scope is part of the LSA '
+                        'type (RFC 5340 A.4.2.1).'
+                    )
+                }
+            )
+
+    def _clean_address_family(self):
+        """The family is fixed when the instance is created (a new one is needed)."""
+        if not self.pk:
+            return
+        stored = (
+            type(self)
+            .objects.filter(pk=self.pk)
+            .values_list('address_family', flat=True)
+            .first()
+        )
+        if stored is not None and stored != self.address_family:
+            raise ValidationError(
+                {
+                    'address_family': _(
+                        'The address family cannot be changed: create a new instance.'
+                    )
+                }
+            )
 
     def _clean_advanced_options(self):
         errors = {}
@@ -821,7 +940,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
             .filter(Q(area__authentication__isnull=True) | Q(area__authentication=''))
             .select_related('interface')
             if authentication_conflict(
-                self.authentication, ospf_interface.authentication
+                self.authentication, ospf_interface.authentication, self.ip_version
             )
         ]
         if not self.areas.filter(area_type=OSPFAreaTypeChoices.BACKBONE).exclude(
@@ -831,7 +950,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
                 virtual_link
                 for virtual_link in self.virtual_links.all()
                 if authentication_conflict(
-                    self.authentication, virtual_link.authentication
+                    self.authentication, virtual_link.authentication, self.ip_version
                 )
             ]
         if interfaces:
@@ -840,6 +959,15 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
     def _clean_traffic_engineering(self):
         if self.te_router_address:
             address = netaddr.IPAddress(self.te_router_address)
+            if address.version != self.ip_version:
+                raise ValidationError(
+                    {
+                        'te_router_address': _(
+                            'The router address must be an IPv{version} address, '
+                            'like the address family of the instance.'
+                        ).format(version=self.ip_version)
+                    }
+                )
             if address.is_loopback() or address.is_multicast() or int(address) == 0:
                 raise ValidationError(
                     {
@@ -849,7 +977,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
                         )
                     }
                 )
-            if not self.opaque_capability:
+            if self.uses_opaque_lsas and not self.opaque_capability:
                 raise ValidationError(
                     {
                         'te_router_address': _(
@@ -859,6 +987,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
                 )
         if (
             self.pk
+            and self.uses_opaque_lsas
             and not self.opaque_capability
             and self.areas.filter(traffic_engineering=True).exists()
         ):
@@ -883,7 +1012,11 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
 
     def _clean_segment_routing(self):
         errors = {}
-        if self.segment_routing and not self.opaque_capability:
+        if (
+            self.segment_routing
+            and self.uses_opaque_lsas
+            and not self.opaque_capability
+        ):
             errors['segment_routing'] = _('Segment routing needs the opaque LSAs.')
         if (self.srgb_start is None) != (self.srgb_size is None):
             errors['srgb_size'] = _('Set both the start and the size of the SRGB.')
@@ -918,6 +1051,8 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
 
     def clean(self):
         super().clean()
+        self._clean_address_family()
+        self._clean_instance_id()
         self._clean_traffic_engineering()
         self._clean_segment_routing()
         self._clean_ldp_sync()
@@ -1073,14 +1208,18 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         interfaces = [
             ospf_interface
             for ospf_interface in self.interfaces.select_related('interface')
-            if authentication_conflict(required, ospf_interface.authentication)
+            if authentication_conflict(
+                required, ospf_interface.authentication, self.instance.ip_version
+            )
         ]
         if self.area_type == OSPFAreaTypeChoices.BACKBONE:
             # Virtual links belong to the backbone
             interfaces += [
                 virtual_link
                 for virtual_link in self.instance.virtual_links.all()
-                if authentication_conflict(required, virtual_link.authentication)
+                if authentication_conflict(
+                    required, virtual_link.authentication, self.instance.ip_version
+                )
             ]
         if interfaces:
             raise _authentication_conflict_error(interfaces, required)
@@ -1089,6 +1228,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         if (
             self.traffic_engineering
             and self.instance_id
+            and self.instance.uses_opaque_lsas
             and not self.instance.opaque_capability
         ):
             raise ValidationError(
@@ -1418,6 +1558,15 @@ class OSPFInterface(
     def _clean_unnumbered(self):
         if not self.unnumbered:
             return
+        if self.instance_id and self.instance.ip_version != 4:
+            raise ValidationError(
+                {
+                    'unnumbered': _(
+                        'OSPFv3 runs over the link-local addresses: there are no '
+                        'unnumbered interfaces.'
+                    )
+                }
+            )
         if self.network_type != OSPFNetworkTypeChoices.POINT_TO_POINT:
             raise ValidationError(
                 {'unnumbered': _('Only point-to-point interfaces can be unnumbered.')}
@@ -1490,7 +1639,9 @@ class OSPFInterface(
         if not (self.area_id and self.authentication):
             return
         required = self.area.get_authentication_type()
-        if authentication_conflict(required, self.authentication):
+        if authentication_conflict(
+            required, self.authentication, self.instance.ip_version
+        ):
             raise ValidationError(
                 {
                     'authentication': _(
@@ -1574,6 +1725,15 @@ class OSPFNetwork(PrimaryModel):
         super().clean()
         if not (self.ospf_interface_id and self.ip_address_id):
             return
+        if self.ospf_interface.instance.ip_version != 4:
+            raise ValidationError(
+                {
+                    'ospf_interface': _(
+                        'OSPFv3 is enabled on the interface, not with networks '
+                        '(RFC 5340 2.1): networks are for IPv4 instances.'
+                    )
+                }
+            )
         if self.ospf_interface.unnumbered:
             raise ValidationError(
                 {
@@ -1943,7 +2103,9 @@ class OSPFVirtualLink(
             raise ValidationError(errors)
         if self.authentication and self.instance_id:
             required = self.get_authentication_type()
-            if authentication_conflict(required, self.authentication):
+            if authentication_conflict(
+                required, self.authentication, self.instance.ip_version
+            ):
                 raise ValidationError(
                     {
                         'authentication': _(
@@ -2018,9 +2180,14 @@ class OSPFSummaryAddress(PrimaryModel):
             prefix = netaddr.IPNetwork(str(self.prefix))
         except (netaddr.AddrFormatError, ValueError):
             return  # reported by the field's own validation
-        if prefix.version != 4:
+        if self.instance_id and prefix.version != self.instance.ip_version:
             raise ValidationError(
-                {'prefix': _('OSPFv2 summary addresses must be IPv4 prefixes.')}
+                {
+                    'prefix': _(
+                        'The prefix must be IPv{version}, like the address '
+                        'family of the instance.'
+                    ).format(version=self.instance.ip_version)
+                }
             )
         if prefix.ip != prefix.cidr.ip:
             raise ValidationError(
@@ -2156,14 +2323,21 @@ class OSPFNeighbor(PrimaryModel):
                 address = None  # reported by the field's own validation
             if address is not None:
                 networks = self._local_networks()
+                version = self.ospf_interface.instance.ip_version
                 if (
-                    address.version != 4
+                    address.version != version
                     or address.is_loopback()
                     or address.is_multicast()
                 ):
                     errors['ip_address'] = _(
-                        'The neighbor must have a unicast IPv4 address.'
-                    )
+                        'The neighbor must have a unicast IPv{version} address.'
+                    ).format(version=version)
+                elif version == 6:
+                    if not address.is_link_local():
+                        errors['ip_address'] = _(
+                            'OSPFv3 neighbors are identified by their link-local '
+                            'address (RFC 5340 3.1.1).'
+                        )
                 elif any(address == network.ip for network in networks):
                     errors['ip_address'] = _(
                         'This is an address of the interface itself.'
@@ -2250,9 +2424,14 @@ class OSPFAreaRange(PrimaryModel):
             prefix = netaddr.IPNetwork(str(self.prefix))
         except (netaddr.AddrFormatError, ValueError):
             return  # reported by the field's own validation
-        if prefix.version != 4:
+        if self.area_id and prefix.version != self.area.instance.ip_version:
             raise ValidationError(
-                {'prefix': _('OSPFv2 address ranges must be IPv4 prefixes.')}
+                {
+                    'prefix': _(
+                        'The prefix must be IPv{version}, like the address '
+                        'family of the instance.'
+                    ).format(version=self.area.instance.ip_version)
+                }
             )
         if prefix.ip != prefix.cidr.ip:
             raise ValidationError(
@@ -2386,13 +2565,18 @@ class OSPFPrefixSID(PrimaryModel):
             except (netaddr.AddrFormatError, ValueError):
                 prefix = None  # reported by the field's own validation
             if prefix is not None:
-                if prefix.version != 4:
-                    errors['prefix'] = _('OSPFv2 prefix SIDs are for IPv4 prefixes.')
+                if self.instance_id and prefix.version != self.instance.ip_version:
+                    errors['prefix'] = _(
+                        'The prefix must be IPv{version}, like the address '
+                        'family of the instance.'
+                    ).format(version=self.instance.ip_version)
                 elif prefix.ip != prefix.cidr.ip:
                     errors['prefix'] = _(
                         'The prefix has host bits set: use {cidr}.'
                     ).format(cidr=prefix.cidr)
-                elif self.node_sid and prefix.prefixlen != 32:
+                elif self.node_sid and prefix.prefixlen != (
+                    32 if prefix.version == 4 else 128
+                ):
                     errors['node_sid'] = _('The SID of a node is for a host route.')
         if errors:
             raise ValidationError(errors)

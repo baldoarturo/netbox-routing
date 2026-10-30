@@ -59,6 +59,7 @@ class OSPFInstanceSerializer(NetBoxModelSerializer):
             'router_id',
             'device',
             'vrf',
+            'address_family',
             'default_originate',
             'default_originate_always',
             'default_originate_metric',

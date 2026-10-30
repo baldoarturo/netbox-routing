@@ -13,6 +13,8 @@ from utilities.forms.widgets import HTMXSelect
 
 from netbox_routing_protocols.choices import OSPFNetworkTypeChoices
 from netbox_routing_protocols.choices.ospf import (
+    OSPFAddressFamilyChoices,
+    OSPFAuthenticationChoices,
     OSPFAreaTypeChoices,
     OSPFExternalMetricTypeChoices,
     OSPFMessageDigestAlgorithmChoices,
@@ -55,6 +57,37 @@ __all__ = (
 )
 
 
+def _default_algorithm(authentication):
+    """HMAC-SHA-256 for the authentication trailer (RFC 7166), else MD5."""
+    if authentication == OSPFAuthenticationChoices.TRAILER:
+        return OSPFMessageDigestAlgorithmChoices.HMAC_SHA_256
+    return OSPFMessageDigestAlgorithmChoices.MD5
+
+
+def _limit_authentication(form, version):
+    """Offer only the authentication types of the address family (None: all)."""
+    if version is None:
+        return
+    allowed = (
+        OSPFAuthenticationChoices.IPV6
+        if version == 6
+        else OSPFAuthenticationChoices.IPV4
+    )
+    field = form.fields['authentication']
+    field.choices = [
+        choice for choice in field.choices if not choice[0] or choice[0] in allowed
+    ]
+
+
+def _instance_version(form):
+    """The IP version of the instance chosen in the form, or None if none yet."""
+    value = get_field_value(form, 'instance')
+    if not value:
+        return None
+    instance = OSPFInstance.objects.filter(pk=value).first()
+    return instance.ip_version if instance else None
+
+
 class OSPFInstanceForm(PrimaryModelForm):
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
@@ -69,6 +102,17 @@ class OSPFInstanceForm(PrimaryModelForm):
         label=_('VRF'),
     )
 
+    address_family = forms.ChoiceField(
+        choices=OSPFAddressFamilyChoices,
+        initial=OSPFAddressFamilyChoices.IPV4,
+        label=_('Address Family'),
+        help_text=_(
+            'IPv4 is OSPFv2 (RFC 2328), IPv6 is OSPFv3 (RFC 5340). It cannot be '
+            'changed once the instance exists'
+        ),
+        required=False,
+        widget=HTMXSelect(),
+    )
     import_policy = DynamicModelChoiceField(
         queryset=RoutePolicy.objects.all(),
         required=False,
@@ -92,6 +136,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             name=_('Device'),
         ),
         FieldSet(
+            'address_family',
             'router_id',
             'vrf',
             name=_('Instance'),
@@ -123,6 +168,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             'router_id',
             'device',
             'vrf',
+            'address_family',
             'default_originate',
             'default_originate_always',
             'default_originate_metric',
@@ -139,6 +185,11 @@ class OSPFInstanceForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            # The family is fixed: another family needs another instance
+            self.fields['address_family'].disabled = True
+        family = get_field_value(self, 'address_family')
+        _limit_authentication(self, 6 if family == OSPFAddressFamilyChoices.IPV6 else 4)
         # Options left empty fall back to their default (see clean()).
         self.fields['default_originate_metric_type'].required = False
         self.fields['message_digest_algorithm'].required = False
@@ -147,6 +198,8 @@ class OSPFInstanceForm(PrimaryModelForm):
                 self.fields[name].required = False
 
     def clean(self):
+        if not self.cleaned_data.get('address_family'):
+            self.cleaned_data['address_family'] = OSPFAddressFamilyChoices.IPV4
         if not self.cleaned_data.get('default_originate_metric_type'):
             self.cleaned_data['default_originate_metric_type'] = (
                 OSPFExternalMetricTypeChoices.TYPE_2
@@ -156,8 +209,8 @@ class OSPFInstanceForm(PrimaryModelForm):
             if not field.null and self.cleaned_data.get(name) in (None, ''):
                 self.cleaned_data[name] = field.get_default()
         if not self.cleaned_data.get('message_digest_algorithm'):
-            self.cleaned_data['message_digest_algorithm'] = (
-                OSPFMessageDigestAlgorithmChoices.MD5
+            self.cleaned_data['message_digest_algorithm'] = _default_algorithm(
+                self.cleaned_data.get('authentication')
             )
         return super().clean()
 
@@ -195,11 +248,12 @@ class OSPFAreaForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         # An empty algorithm falls back to its default (see clean())
         self.fields['message_digest_algorithm'].required = False
+        _limit_authentication(self, _instance_version(self))
 
     def clean(self):
         if not self.cleaned_data.get('message_digest_algorithm'):
-            self.cleaned_data['message_digest_algorithm'] = (
-                OSPFMessageDigestAlgorithmChoices.MD5
+            self.cleaned_data['message_digest_algorithm'] = _default_algorithm(
+                self.cleaned_data.get('authentication')
             )
         # Area 0 is the backbone: the untouched default type becomes Backbone
         area = OSPFArea(area_id=self.cleaned_data.get('area_id'))
@@ -386,6 +440,7 @@ class OSPFInterfaceForm(PrimaryModelForm):
         # An empty timer or priority falls back to its default (see clean()).
         for name in (*OSPF_INTERFACE_TIMERS, 'priority', 'message_digest_algorithm'):
             self.fields[name].required = False
+        _limit_authentication(self, _instance_version(self))
 
     def clean(self):
         for name, (_min, _max, default) in OSPF_INTERFACE_TIMERS.items():
@@ -394,8 +449,8 @@ class OSPFInterfaceForm(PrimaryModelForm):
         if self.cleaned_data.get('priority') is None:
             self.cleaned_data['priority'] = OSPF_PRIORITY_DEFAULT
         if not self.cleaned_data.get('message_digest_algorithm'):
-            self.cleaned_data['message_digest_algorithm'] = (
-                OSPFMessageDigestAlgorithmChoices.MD5
+            self.cleaned_data['message_digest_algorithm'] = _default_algorithm(
+                self.cleaned_data.get('authentication')
             )
         super().clean()
         if self.cleaned_data.get('instance') and self.cleaned_data.get('interface'):
@@ -420,7 +475,7 @@ class OSPFNetworkForm(PrimaryModelForm):
         queryset=OSPFInterface.objects.all(),
         required=True,
         selector=True,
-        query_params={'unnumbered': False},
+        query_params={'unnumbered': False, 'address_family': 'ipv4'},
         label=_('OSPF Interface'),
     )
     ip_address = DynamicModelChoiceField(
@@ -428,7 +483,10 @@ class OSPFNetworkForm(PrimaryModelForm):
         required=True,
         selector=True,
         label=_('IP Address'),
-        help_text=_('Must be an IPv4 address assigned to the OSPF interface'),
+        help_text=_(
+            'Must be an IPv4 address assigned to the OSPF interface. Networks are '
+            'for IPv4 instances: OSPFv3 is enabled on the interface'
+        ),
     )
 
     fieldsets = (
@@ -645,14 +703,15 @@ class OSPFVirtualLinkForm(PrimaryModelForm):
         # Empty timers and algorithm fall back to their default (see clean())
         for name in (*OSPF_INTERFACE_TIMERS, 'message_digest_algorithm'):
             self.fields[name].required = False
+        _limit_authentication(self, _instance_version(self))
 
     def clean(self):
         for name, (_min, _max, default) in OSPF_INTERFACE_TIMERS.items():
             if self.cleaned_data.get(name) is None:
                 self.cleaned_data[name] = default
         if not self.cleaned_data.get('message_digest_algorithm'):
-            self.cleaned_data['message_digest_algorithm'] = (
-                OSPFMessageDigestAlgorithmChoices.MD5
+            self.cleaned_data['message_digest_algorithm'] = _default_algorithm(
+                self.cleaned_data.get('authentication')
             )
         return super().clean()
 

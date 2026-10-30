@@ -33,6 +33,7 @@ __all__ = (
 @strawberry_django.filter(models.OSPFInstance, lookups=True)
 class OSPFInstanceFilter(VRFMixin, DeviceMixin, PrimaryModelFilter):
     router_id: BaseFilterLookup[str] | None = strawberry_django.filter_field()
+    address_family: BaseFilterLookup[str] | None = strawberry_django.filter_field()
     import_policy: (
         Annotated[
             'RoutePolicyFilter',
