@@ -5,6 +5,7 @@ from netbox_routing_protocols.models.ospf import (
     OSPFInstance,
     OSPFInterface,
     OSPFNeighbor,
+    OSPFAuthenticationKey,
     OSPFNetwork,
     OSPFPrefixSID,
     OSPFRedistribution,
@@ -23,6 +24,7 @@ __all__ = (
     'OSPFNeighborIndex',
     'OSPFAreaRangeIndex',
     'OSPFPrefixSIDIndex',
+    'OSPFAuthenticationKeyIndex',
 )
 
 
@@ -135,3 +137,13 @@ class OSPFPrefixSIDIndex(SearchIndex):
         ('comments', 5000),
     )
     display_attrs = ('instance', 'sid_type', 'algorithm')
+
+
+@register_search
+class OSPFAuthenticationKeyIndex(SearchIndex):
+    model = OSPFAuthenticationKey
+    fields = (
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('key_id', 'message_digest_algorithm')

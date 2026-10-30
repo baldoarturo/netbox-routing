@@ -52,6 +52,7 @@ from netbox_routing_protocols.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFAuthenticationKey,
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
@@ -65,6 +66,7 @@ __all__ = (
     'OSPFRedistributionBulkEditForm',
     'OSPFVirtualLinkBulkEditForm',
     'OSPFSummaryAddressBulkEditForm',
+    'OSPFAuthenticationKeyBulkEditForm',
     'OSPFNeighborBulkEditForm',
     'OSPFAreaRangeBulkEditForm',
     'OSPFPrefixSIDBulkEditForm',
@@ -819,6 +821,25 @@ class OSPFPrefixSIDBulkEditForm(NetBoxModelBulkEditForm):
     model = OSPFPrefixSID
     fieldsets = (
         FieldSet('algorithm', 'node_sid', 'no_php', 'explicit_null'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('description',)
+
+
+class OSPFAuthenticationKeyBulkEditForm(NetBoxModelBulkEditForm):
+    message_digest_algorithm = forms.ChoiceField(
+        label=_('Message Digest Algorithm'),
+        choices=add_blank_choice(choices.OSPFMessageDigestAlgorithmChoices),
+        required=False,
+    )
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = OSPFAuthenticationKey
+    fieldsets = (
+        FieldSet('message_digest_algorithm'),
         FieldSet('description'),
     )
     nullable_fields = ('description',)

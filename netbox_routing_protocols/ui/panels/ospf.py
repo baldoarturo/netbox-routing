@@ -16,6 +16,7 @@ __all__ = (
     'OSPFNeighborPanel',
     'OSPFAreaRangePanel',
     'OSPFPrefixSIDPanel',
+    'OSPFAuthenticationKeyPanel',
 )
 
 
@@ -326,4 +327,24 @@ class OSPFPrefixSIDPanel(panels.ObjectAttributesPanel):
     node_sid = attrs.BooleanAttr('node_sid', label=_('Node SID'))
     no_php = attrs.BooleanAttr('no_php', label=_('No PHP'))
     explicit_null = attrs.BooleanAttr('explicit_null', label=_('Explicit Null'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class OSPFAuthenticationKeyPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    area = attrs.RelatedObjectAttr('area', label=_('Area'), linkify=True)
+    ospf_interface = attrs.RelatedObjectAttr(
+        'ospf_interface', label=_('OSPF Interface'), linkify=True
+    )
+    virtual_link = attrs.RelatedObjectAttr(
+        'virtual_link', label=_('Virtual Link'), linkify=True
+    )
+    key_id = attrs.NumericAttr('key_id', label=_('Key ID'))
+    message_digest_algorithm = attrs.ChoiceAttr(
+        'message_digest_algorithm', label=_('Message Digest Algorithm')
+    )
+    accept_from = attrs.TextAttr('accept_from', label=_('Accept From'))
+    send_from = attrs.TextAttr('send_from', label=_('Send From'))
+    send_until = attrs.TextAttr('send_until', label=_('Send Until'))
+    accept_until = attrs.TextAttr('accept_until', label=_('Accept Until'))
     description = attrs.TextAttr('description', label=_('Description'))

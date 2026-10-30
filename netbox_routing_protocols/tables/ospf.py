@@ -10,6 +10,7 @@ from netbox_routing_protocols.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFAuthenticationKey,
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
@@ -23,6 +24,7 @@ __all__ = (
     'OSPFRedistributionTable',
     'OSPFVirtualLinkTable',
     'OSPFSummaryAddressTable',
+    'OSPFAuthenticationKeyTable',
     'OSPFNeighborTable',
     'OSPFAreaRangeTable',
     'OSPFPrefixSIDTable',
@@ -447,3 +449,40 @@ class OSPFPrefixSIDTable(NetBoxTable):
 
     def render_algorithm(self, record):
         return record.get_algorithm_display()
+
+
+class OSPFAuthenticationKeyTable(NetBoxTable):
+    key_id = tables.Column(verbose_name=_('Key ID'), linkify=True)
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    area = tables.Column(verbose_name=_('Area'), linkify=True)
+    ospf_interface = tables.Column(verbose_name=_('OSPF Interface'), linkify=True)
+    virtual_link = tables.Column(verbose_name=_('Virtual Link'), linkify=True)
+
+    class Meta(NetBoxTable.Meta):
+        model = OSPFAuthenticationKey
+        fields = (
+            'pk',
+            'id',
+            'key_id',
+            'instance',
+            'area',
+            'ospf_interface',
+            'virtual_link',
+            'message_digest_algorithm',
+            'accept_from',
+            'send_from',
+            'send_until',
+            'accept_until',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'key_id',
+            'instance',
+            'area',
+            'ospf_interface',
+            'virtual_link',
+            'message_digest_algorithm',
+            'send_from',
+            'send_until',
+        )

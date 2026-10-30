@@ -58,6 +58,10 @@ __all__ = (
     'OSPFPrefixSIDForm',
     'OSPFPrefixSIDBulkEditForm',
     'OSPFPrefixSIDFilterForm',
+    'OSPFAuthenticationKeyForm',
+    'OSPFAuthenticationKeyBulkEditForm',
+    'OSPFAuthenticationKeyFilterForm',
+    'OSPFAuthenticationKeyImportForm',
     # IS-IS
     'ISISInstanceForm',
     'ISISInstanceBulkEditForm',

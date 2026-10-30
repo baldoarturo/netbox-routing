@@ -51,6 +51,7 @@ __all__ = (
     'OSPFNeighborFilter',
     'OSPFAreaRangeFilter',
     'OSPFPrefixSIDFilter',
+    'OSPFAuthenticationKeyFilter',
     'PrefixListFilter',
     'PrefixListEntryFilter',
     'RoutePolicyFilter',

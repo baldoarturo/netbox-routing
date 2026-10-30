@@ -22,6 +22,7 @@ __all__ = (
     'OSPFNeighborSerializer',
     'OSPFAreaRangeSerializer',
     'OSPFPrefixSIDSerializer',
+    'OSPFAuthenticationKeySerializer',
     'ISISInstanceSerializer',
     'ISISInterfaceSerializer',
     'ISISSettingSerializer',

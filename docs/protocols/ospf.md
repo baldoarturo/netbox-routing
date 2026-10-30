@@ -25,7 +25,8 @@ OSPF instance (a process on a device, optionally in a VRF)
  ├─ Redistribution
  ├─ Summary address
  ├─ Virtual link
- └─ Prefix SID
+ ├─ Prefix SID
+ └─ Authentication key (of the instance, an area, an interface or a virtual link)
 ```
 
 Build it top-down: **Instance → Area → Interface → Network**. The rest are optional extras of the
@@ -265,6 +266,20 @@ or **HMAC-SHA-1/256/384/512** ([RFC 5709](https://www.rfc-editor.org/rfc/rfc5709
 as plain text; tick *Show MD5* to also display the MD5 digest the key produces on devices that store
 it that way.
 
+### Additional keys (key rollover)
+
+An instance, area, interface or virtual link that uses **Message Digest** or **Authentication Trailer**
+has one key in its own fields. To change keys without losing the adjacencies, add more keys in
+**OSPF → Authentication Keys** (or from the *Additional Authentication Keys* panel of the object):
+the router signs the packets with one key and accepts any key that is valid
+([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) D.3). Each key has its **key ID** (unique for
+its object and different from the key ID of the authentication itself), its key and its algorithm, with
+the same limits as the main key. Optionally it has the four **lifetimes** of
+[RFC 7474](https://www.rfc-editor.org/rfc/rfc7474): *accept from*, *send from*, *send until* and
+*accept until*, which must go in that order. A key belongs to exactly one object, and deleting the
+object deletes its keys. The authentication of the object cannot change to another type while it has
+keys.
+
 ### Inheritance
 
 Authentication is set where convenient and **inherited downwards**: an **interface** uses its own
@@ -395,6 +410,7 @@ route types is separated by commas.
 | Summary address | `device`, `instance`, `prefix` |
 | Area range | `device`, `instance`, `area` (the area ID), `prefix`, `range_type` |
 | Prefix SID | `device`, `instance`, `prefix`, `sid`, `sid_type`, `algorithm` |
+| Authentication key | `device`, `instance` and, for a key of a lower object, `area` (the area ID), `ospf_interface` (name) or `virtual_link` (remote router ID); `key_id`, `passphrase`, `message_digest_algorithm` |
 
 The same validations as in the forms apply, row by row.
 
@@ -493,9 +509,14 @@ OSPF instance
 │     ├─ Security: ttl_security? · ttl_security_hops
 │     └─ Authentication: authentication · passphrase · authentication_key_id · show_md5?
 │           · message_digest_algorithm · key_chain
-└─ Prefix SID
-      instance → OSPF instance · prefix · sid_type {Index into the SRGB | Absolute label (local)}
-      · sid · algorithm {SPF | Strict SPF} · node_sid? · no_php? · explicit_null?
+├─ Prefix SID
+│     instance → OSPF instance · prefix · sid_type {Index into the SRGB | Absolute label (local)}
+│     · sid · algorithm {SPF | Strict SPF} · node_sid? · no_php? · explicit_null?
+└─ Authentication key (of an instance, area, interface or virtual link: exactly one)
+      instance → OSPF instance · area → Area · ospf_interface → OSPF interface
+      · virtual_link → Virtual link · key_id · passphrase
+      · message_digest_algorithm {MD5 | HMAC-SHA-1 | HMAC-SHA-256 | HMAC-SHA-384 | HMAC-SHA-512}
+      · accept_from · send_from · send_until · accept_until
 ```
 
 ## Standards behind OSPF
@@ -514,6 +535,7 @@ OSPF instance
 | [RFC 5443](https://www.rfc-editor.org/rfc/rfc5443) | LDP/IGP synchronization |
 | [RFC 5709](https://www.rfc-editor.org/rfc/rfc5709) | HMAC-SHA authentication |
 | [RFC 7166](https://www.rfc-editor.org/rfc/rfc7166) | Authentication trailer of OSPFv3 |
+| [RFC 7474](https://www.rfc-editor.org/rfc/rfc7474) | Key lifetimes of the authentication keys |
 | [RFC 6549](https://www.rfc-editor.org/rfc/rfc6549) | Multi-instance OSPFv2 |
 | [RFC 6860](https://www.rfc-editor.org/rfc/rfc6860) | Hiding transit-only networks |
 | [RFC 6987](https://www.rfc-editor.org/rfc/rfc6987) | Max-metric router LSA |

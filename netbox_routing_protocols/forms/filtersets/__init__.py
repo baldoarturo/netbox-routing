@@ -17,6 +17,7 @@ from .ospf import (
     OSPFNeighborFilterForm,
     OSPFAreaRangeFilterForm,
     OSPFPrefixSIDFilterForm,
+    OSPFAuthenticationKeyFilterForm,
 )
 from .isis import (
     ISISInstanceFilterForm,
@@ -87,6 +88,7 @@ __all__ = (
     'OSPFNeighborFilterForm',
     'OSPFAreaRangeFilterForm',
     'OSPFPrefixSIDFilterForm',
+    'OSPFAuthenticationKeyFilterForm',
     # Routing Objects
     'PrefixListFilterForm',
     'PrefixListEntryFilterForm',

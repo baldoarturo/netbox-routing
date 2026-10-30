@@ -11,6 +11,7 @@ from netbox_routing_protocols.api.serializers import (
     OSPFNeighborSerializer,
     OSPFAreaRangeSerializer,
     OSPFPrefixSIDSerializer,
+    OSPFAuthenticationKeySerializer,
 )
 from netbox_routing_protocols.models import (
     OSPFInstance,
@@ -23,6 +24,7 @@ from netbox_routing_protocols.models import (
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
+    OSPFAuthenticationKey,
 )
 
 __all__ = (
@@ -36,6 +38,7 @@ __all__ = (
     'OSPFNeighborViewSet',
     'OSPFAreaRangeViewSet',
     'OSPFPrefixSIDViewSet',
+    'OSPFAuthenticationKeyViewSet',
 )
 
 
@@ -126,3 +129,17 @@ class OSPFPrefixSIDViewSet(NetBoxModelViewSet):
     queryset = OSPFPrefixSID.objects.select_related('instance__device', 'instance__vrf')
     serializer_class = OSPFPrefixSIDSerializer
     filterset_class = filtersets.OSPFPrefixSIDFilterSet
+
+
+class OSPFAuthenticationKeyViewSet(NetBoxModelViewSet):
+    queryset = OSPFAuthenticationKey.objects.select_related(
+        'instance__device',
+        'instance__vrf',
+        'area__instance',
+        'ospf_interface__instance',
+        'ospf_interface__interface__device',
+        'virtual_link__instance',
+        'virtual_link__transit_area',
+    )
+    serializer_class = OSPFAuthenticationKeySerializer
+    filterset_class = filtersets.OSPFAuthenticationKeyFilterSet

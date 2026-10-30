@@ -24,6 +24,7 @@ __all__ = (
     'OSPFRedistributionFilter',
     'OSPFVirtualLinkFilter',
     'OSPFSummaryAddressFilter',
+    'OSPFAuthenticationKeyFilter',
     'OSPFNeighborFilter',
     'OSPFAreaRangeFilter',
     'OSPFPrefixSIDFilter',
@@ -181,3 +182,12 @@ class OSPFPrefixSIDFilter(PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     instance_id: ID | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.OSPFAuthenticationKey, lookups=True)
+class OSPFAuthenticationKeyFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    area_id: ID | None = strawberry_django.filter_field()
+    ospf_interface_id: ID | None = strawberry_django.filter_field()
+    virtual_link_id: ID | None = strawberry_django.filter_field()
+    key_id: BaseFilterLookup[int] | None = strawberry_django.filter_field()

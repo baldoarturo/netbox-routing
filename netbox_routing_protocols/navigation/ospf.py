@@ -203,6 +203,26 @@ ospf_prefix_sids = PluginMenuItem(
     ),
 )
 
+ospf_authentication_keys = PluginMenuItem(
+    link='plugins:netbox_routing_protocols:ospfauthenticationkey_list',
+    link_text='Authentication Keys',
+    permissions=['netbox_routing_protocols.view_ospfauthenticationkey'],
+    buttons=(
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfauthenticationkey_add',
+            title='Add',
+            icon_class=COL_ADD,
+            permissions=['netbox_routing_protocols.add_ospfauthenticationkey'],
+        ),
+        PluginMenuButton(
+            link='plugins:netbox_routing_protocols:ospfauthenticationkey_bulk_import',
+            title='Import',
+            icon_class=COL_IMPORT,
+            permissions=['netbox_routing_protocols.import_ospfauthenticationkey'],
+        ),
+    ),
+)
+
 MENUITEMS = (
     ospf_instance,
     ospf_area,
@@ -214,4 +234,5 @@ MENUITEMS = (
     ospf_neighbors,
     ospf_area_ranges,
     ospf_prefix_sids,
+    ospf_authentication_keys,
 )

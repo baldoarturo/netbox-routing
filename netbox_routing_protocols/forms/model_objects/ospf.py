@@ -9,7 +9,7 @@ from netbox.forms import PrimaryModelForm
 from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, get_field_value
 from utilities.forms.fields import DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
-from utilities.forms.widgets import HTMXSelect
+from utilities.forms.widgets import DateTimePicker, HTMXSelect
 
 from netbox_routing_protocols.choices import OSPFNetworkTypeChoices
 from netbox_routing_protocols.choices.ospf import (
@@ -37,6 +37,7 @@ from netbox_routing_protocols.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFAuthenticationKey,
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
@@ -51,6 +52,7 @@ __all__ = (
     'OSPFRedistributionForm',
     'OSPFVirtualLinkForm',
     'OSPFSummaryAddressForm',
+    'OSPFAuthenticationKeyForm',
     'OSPFNeighborForm',
     'OSPFAreaRangeForm',
     'OSPFPrefixSIDForm',
@@ -859,3 +861,98 @@ class OSPFPrefixSIDForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+
+
+class OSPFAuthenticationKeyForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    area = DynamicModelChoiceField(
+        queryset=OSPFArea.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Area'),
+    )
+    ospf_interface = DynamicModelChoiceField(
+        queryset=OSPFInterface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('OSPF Interface'),
+    )
+    virtual_link = DynamicModelChoiceField(
+        queryset=OSPFVirtualLink.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Virtual Link'),
+    )
+
+    fieldsets = (
+        FieldSet(
+            'instance',
+            'area',
+            'ospf_interface',
+            'virtual_link',
+            name=_('Belongs to (choose one)'),
+        ),
+        FieldSet(
+            'key_id',
+            'passphrase',
+            'message_digest_algorithm',
+            'description',
+            name=_('Key'),
+        ),
+        FieldSet(
+            'accept_from',
+            'send_from',
+            'send_until',
+            'accept_until',
+            name=_('Lifetimes (RFC 7474)'),
+        ),
+    )
+
+    class Meta:
+        model = OSPFAuthenticationKey
+        fields = (
+            'instance',
+            'area',
+            'ospf_interface',
+            'virtual_link',
+            'key_id',
+            'passphrase',
+            'message_digest_algorithm',
+            'accept_from',
+            'send_from',
+            'send_until',
+            'accept_until',
+            'description',
+            'comments',
+            'tags',
+            'owner',
+        )
+        widgets = {
+            'accept_from': DateTimePicker(),
+            'send_from': DateTimePicker(),
+            'send_until': DateTimePicker(),
+            'accept_until': DateTimePicker(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['message_digest_algorithm'].required = False
+
+    def clean(self):
+        if not self.cleaned_data.get('message_digest_algorithm'):
+            self.cleaned_data['message_digest_algorithm'] = _default_algorithm(
+                self._parent_authentication()
+            )
+        return super().clean()
+
+    def _parent_authentication(self):
+        for name in OSPFAuthenticationKey.PARENTS:
+            parent = self.cleaned_data.get(name)
+            if parent is not None:
+                return parent.authentication
+        return None

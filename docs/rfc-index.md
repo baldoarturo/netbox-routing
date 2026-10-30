@@ -60,6 +60,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 7490](https://www.rfc-editor.org/rfc/rfc7490) | Remote LFA | [OSPF](protocols/ospf.md#other-interface-options), [IS-IS](protocols/isis.md#fast-reroute-and-micro-loops) |
 | [RFC 7611](https://www.rfc-editor.org/rfc/rfc7611) | ACCEPT_OWN community | [Routing objects](routing-objects.md#well-known-communities) |
 | [RFC 7166](https://www.rfc-editor.org/rfc/rfc7166) | OSPFv3 authentication trailer | [OSPF authentication](protocols/ospf.md#authentication) |
+| [RFC 7474](https://www.rfc-editor.org/rfc/rfc7474) | OSPF security extension: key rollover lifetimes | [OSPF authentication](protocols/ospf.md#additional-keys-key-rollover) |
 | [RFC 7684](https://www.rfc-editor.org/rfc/rfc7684) | OSPFv2 extended prefix/link LSAs | [OSPF](protocols/ospf.md#prefix-sids) |
 | [RFC 7752](https://www.rfc-editor.org/rfc/rfc7752) | BGP link-state | [BGP](protocols/bgp.md#address-families) |
 | [RFC 7868](https://www.rfc-editor.org/rfc/rfc7868) | EIGRP | [EIGRP](protocols/eigrp.md) |

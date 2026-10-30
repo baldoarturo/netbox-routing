@@ -38,6 +38,7 @@ from netbox_routing_protocols.models import (
     OSPFRedistribution,
     OSPFVirtualLink,
     OSPFSummaryAddress,
+    OSPFAuthenticationKey,
     OSPFNeighbor,
     OSPFAreaRange,
     OSPFPrefixSID,
@@ -52,6 +53,7 @@ __all__ = (
     'OSPFRedistributionFilterSet',
     'OSPFVirtualLinkFilterSet',
     'OSPFSummaryAddressFilterSet',
+    'OSPFAuthenticationKeyFilterSet',
     'OSPFNeighborFilterSet',
     'OSPFAreaRangeFilterSet',
     'OSPFPrefixSIDFilterSet',
@@ -722,3 +724,41 @@ class OSPFPrefixSIDFilterSet(NetBoxModelFilterSet):
             return queryset.filter(prefix=str(netaddr.IPNetwork(value).cidr))
         except (netaddr.AddrFormatError, ValueError):
             return queryset.none()
+
+
+class OSPFAuthenticationKeyFilterSet(NetBoxModelFilterSet):
+    """Filters the keys by their instance, area, interface or virtual link"""
+
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance',
+        queryset=OSPFInstance.objects.all(),
+        label=_('Instance (ID)'),
+    )
+    area_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='area',
+        queryset=OSPFArea.objects.all(),
+        label=_('Area (ID)'),
+    )
+    ospf_interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='ospf_interface',
+        queryset=OSPFInterface.objects.all(),
+        label=_('OSPF Interface (ID)'),
+    )
+    virtual_link_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='virtual_link',
+        queryset=OSPFVirtualLink.objects.all(),
+        label=_('Virtual Link (ID)'),
+    )
+    message_digest_algorithm = django_filters.MultipleChoiceFilter(
+        choices=OSPFMessageDigestAlgorithmChoices,
+        label=_('Message Digest Algorithm'),
+    )
+
+    class Meta:
+        model = OSPFAuthenticationKey
+        fields = ('key_id', 'message_digest_algorithm', 'description')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(Q(description__icontains=value))

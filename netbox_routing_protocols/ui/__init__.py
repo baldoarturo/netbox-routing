@@ -52,6 +52,7 @@ __all__ = (
     'OSPFNeighborPanel',
     'OSPFAreaRangePanel',
     'OSPFPrefixSIDPanel',
+    'OSPFAuthenticationKeyPanel',
     'ISISInstancePanel',
     'ISISInstanceSettingsPanel',
     'ISISInterfacePanel',
