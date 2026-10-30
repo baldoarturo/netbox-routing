@@ -4,7 +4,7 @@ from utilities.urls import get_model_urls
 
 from . import views  # noqa F401
 from .views.community import CommunityMatchView
-from .views.objects import ASPathMatchView, PrefixMatchView
+from .views.objects import ASPathMatchView, PrefixMatchView, RoutePolicyMatchView
 
 app_name = 'netbox_routing_protocols'
 
@@ -12,6 +12,11 @@ urlpatterns = [
     # Tools
     path('tools/prefix-match/', PrefixMatchView.as_view(), name='prefix_match'),
     path('tools/as-path-match/', ASPathMatchView.as_view(), name='aspath_match'),
+    path(
+        'tools/route-policy-match/',
+        RoutePolicyMatchView.as_view(),
+        name='routepolicy_match',
+    ),
     path(
         'tools/community-match/',
         CommunityMatchView.as_view(),
@@ -113,6 +118,61 @@ urlpatterns = [
         include(get_model_urls(app_name, 'isisflexalgo', detail=False)),
     ),
     path('isis/flex-algo/<int:pk>/', include(get_model_urls(app_name, 'isisflexalgo'))),
+    path(
+        'isis/address-family/',
+        include(get_model_urls(app_name, 'isisaddressfamily', detail=False)),
+    ),
+    path(
+        'isis/address-family/<int:pk>/',
+        include(get_model_urls(app_name, 'isisaddressfamily')),
+    ),
+    path(
+        'isis/sr-mapping-entry/',
+        include(get_model_urls(app_name, 'isissrmappingentry', detail=False)),
+    ),
+    path(
+        'isis/sr-mapping-entry/<int:pk>/',
+        include(get_model_urls(app_name, 'isissrmappingentry')),
+    ),
+    path(
+        'isis/adjacency-sid/',
+        include(get_model_urls(app_name, 'isisadjacencysid', detail=False)),
+    ),
+    path(
+        'isis/adjacency-sid/<int:pk>/',
+        include(get_model_urls(app_name, 'isisadjacencysid')),
+    ),
+    path(
+        'isis/area-address/',
+        include(get_model_urls(app_name, 'isisareaaddress', detail=False)),
+    ),
+    path(
+        'isis/area-address/<int:pk>/',
+        include(get_model_urls(app_name, 'isisareaaddress')),
+    ),
+    path(
+        'isis/redistribution/',
+        include(get_model_urls(app_name, 'isisredistribution', detail=False)),
+    ),
+    path(
+        'isis/redistribution/<int:pk>/',
+        include(get_model_urls(app_name, 'isisredistribution')),
+    ),
+    path(
+        'isis/summary-address/',
+        include(get_model_urls(app_name, 'isissummaryaddress', detail=False)),
+    ),
+    path(
+        'isis/summary-address/<int:pk>/',
+        include(get_model_urls(app_name, 'isissummaryaddress')),
+    ),
+    path(
+        'isis/route-leak/',
+        include(get_model_urls(app_name, 'isisrouteleak', detail=False)),
+    ),
+    path(
+        'isis/route-leak/<int:pk>/', include(get_model_urls(app_name, 'isisrouteleak'))
+    ),
     path(
         'isis/prefix-sid/',
         include(get_model_urls(app_name, 'isisprefixsid', detail=False)),

@@ -28,6 +28,13 @@ __all__ = (
     'ISISFlexAlgoFilter',
     'ISISPrefixSIDFilter',
     'ISISSRv6LocatorFilter',
+    'ISISAddressFamilyFilter',
+    'ISISSRMappingEntryFilter',
+    'ISISAdjacencySIDFilter',
+    'ISISAreaAddressFilter',
+    'ISISRedistributionFilter',
+    'ISISSummaryAddressFilter',
+    'ISISRouteLeakFilter',
 )
 
 
@@ -101,3 +108,48 @@ class ISISInterfaceFilter(InterfaceMixin, PrimaryModelFilter):
         | None
     ) = strawberry_django.filter_field()
     instance_id: ID | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISRedistribution, lookups=True)
+class ISISRedistributionFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    address_family: StrFilterLookup | None = strawberry_django.filter_field()
+    protocol: StrFilterLookup | None = strawberry_django.filter_field()
+    level: StrFilterLookup | None = strawberry_django.filter_field()
+    route_policy: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISSummaryAddress, lookups=True)
+class ISISSummaryAddressFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    level: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISRouteLeak, lookups=True)
+class ISISRouteLeakFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    address_family: StrFilterLookup | None = strawberry_django.filter_field()
+    route_policy: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISAreaAddress, lookups=True)
+class ISISAreaAddressFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    net: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISSRMappingEntry, lookups=True)
+class ISISSRMappingEntryFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    level: StrFilterLookup | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISAdjacencySID, lookups=True)
+class ISISAdjacencySIDFilter(PrimaryModelFilter):
+    interface_id: ID | None = strawberry_django.filter_field()
+
+
+@strawberry_django.filter(models.ISISAddressFamily, lookups=True)
+class ISISAddressFamilyFilter(PrimaryModelFilter):
+    instance_id: ID | None = strawberry_django.filter_field()
+    address_family: StrFilterLookup | None = strawberry_django.filter_field()

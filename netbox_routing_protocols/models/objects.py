@@ -354,6 +354,41 @@ class RoutePolicy(PrimaryModel):
             'plugins:netbox_routing_protocols:routepolicy', kwargs={'pk': self.pk}
         )
 
+    def save(self, *args, **kwargs):
+        creating = self._state.adding
+        super().save(*args, **kwargs)
+        if creating:
+            # Every route policy ends in a deny of everything, as on the routers: it is
+            # data of the model (an entry that cannot be edited nor deleted), not a
+            # drawing of the page
+            RoutePolicyEntry.objects.get_or_create(
+                route_policy=self,
+                implicit=True,
+                defaults={
+                    'sequence': IMPLICIT_SEQUENCE,
+                    'action': ActionChoices.DENY,
+                },
+            )
+
+    def unreachable_entries(self):
+        """
+        The entries that are never evaluated, as a list of (entry, entry that stops the
+        evaluation): an entry that matches every route (no conditions) decides every route
+        that reaches it, so the entries after it are never reached. The final deny is not
+        counted.
+        """
+        entries = list(
+            self.route_policy_entries.filter(implicit=False)
+            .prefetch_related(
+                'match_prefix_list', 'match_aspath', 'match_community_list'
+            )
+            .order_by('sequence')
+        )
+        for index, entry in enumerate(entries):
+            if entry.matches_everything:
+                return [(later, entry) for later in entries[index + 1 :]]
+        return []
+
 
 # Tag and weight are not BGP path attributes: some vendors have them, others do not
 TAG_HELP = _(
@@ -363,6 +398,9 @@ WEIGHT_HELP = _(
     'Not a BGP attribute (0 to 65535): only some vendors have it (for example Cisco '
     'and FRR), and it never leaves the router'
 )
+
+# The sequence of the final deny of every route policy: just above the range of the entries
+IMPLICIT_SEQUENCE = 4294967295
 
 # The settings of an entry, which a deny entry cannot have
 SET_FIELDS = (
@@ -376,6 +414,7 @@ SET_FIELDS = (
     'set_origin',
     'set_tag',
     'set_weight',
+    'jump_policy',
 )
 
 
@@ -390,11 +429,23 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
     sequence = models.PositiveBigIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(4294967294)],
     )
-    flow_control = models.PositiveBigIntegerField(
-        verbose_name=_('Flow Control (Continue)'),
-        null=True,
+    jump_policy = models.ForeignKey(
+        to=RoutePolicy,
+        on_delete=models.PROTECT,
+        related_name='jumped_from',
         blank=True,
-        validators=[MaxValueValidator(4294967294)],
+        null=True,
+        verbose_name=_('Jump to Route Policy'),
+        help_text=_(
+            'When the entry matches and permits, the evaluation goes on in this route '
+            'policy and does not come back. A route policy used as a jump target cannot '
+            'be deleted'
+        ),
+    )
+    implicit = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text=_('The deny of everything that ends every route policy'),
     )
     # What the entry matches on. Several conditions are an AND; several objects in one list
     # are an OR, as on the routers
@@ -553,6 +604,24 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
                 name='%(app_label)s_%(class)s_unique_routepolicy_sequence',
                 violation_error_message="Route Policy sequence must be unique.",
             ),
+            # One final deny per route policy, and no sequence 0 (the upper limit of the entries is
+            # checked by the validators: a resequence uses numbers above it for a moment)
+            models.UniqueConstraint(
+                fields=('route_policy',),
+                condition=models.Q(implicit=True),
+                name='%(app_label)s_%(class)s_unique_implicit',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        implicit=True,
+                        sequence=IMPLICIT_SEQUENCE,
+                        action=ActionChoices.DENY,
+                    )
+                    | models.Q(implicit=False, sequence__gte=1)
+                ),
+                name='%(app_label)s_%(class)s_implicit_or_sequence_range',
+            ),
         )
 
     def __str__(self):
@@ -568,17 +637,71 @@ class RoutePolicyEntry(PermitDenyChoiceMixin, PrimaryModel):
         """E.g. `65001 65001`"""
         return ' '.join(str(asn) for asn in self.set_aspath_prepend)
 
+    @property
+    def matches_everything(self):
+        """True when the entry has no condition: it decides every route that reaches it"""
+        if self.implicit:
+            return True
+        scalars = (
+            self.match_next_hop_id,
+            self.match_metric,
+            self.match_origin,
+            self.match_tag,
+            self.match_weight,
+        )
+        if any(value not in (None, '') for value in scalars):
+            return False
+        if not self.pk:
+            return True
+        return not any(
+            getattr(self, name).all()
+            for name in ('match_prefix_list', 'match_aspath', 'match_community_list')
+        )
+
+    def delete(self, *args, **kwargs):
+        if self.implicit:
+            raise models.ProtectedError(
+                _('The final deny of a route policy cannot be deleted.'), {self}
+            )
+        return super().delete(*args, **kwargs)
+
+    def _jump_reaches(self, start, target):
+        """True when following the jumps from the policy `start` we get to `target`"""
+        seen, pending = set(), [start.pk]
+        while pending:
+            pk = pending.pop()
+            if pk == target.pk:
+                return True
+            if pk in seen:
+                continue
+            seen.add(pk)
+            pending.extend(
+                RoutePolicyEntry.objects.filter(
+                    route_policy_id=pk, jump_policy__isnull=False
+                )
+                .exclude(pk=self.pk)
+                .values_list('jump_policy_id', flat=True)
+            )
+        return False
+
     def clean(self):
         super().clean()
+        if self.implicit:
+            raise ValidationError(
+                _('The final deny of a route policy cannot be changed.')
+            )
         errors = {}
+        if self.jump_policy_id and self.route_policy_id:
+            if self._jump_reaches(self.jump_policy, self.route_policy):
+                errors['jump_policy'] = _(
+                    'The jump would make a loop: that route policy leads back to this one.'
+                )
         if self.action == ActionChoices.DENY:
-            # A deny entry only denies: nothing is set and nothing continues
-            for name in (*SET_FIELDS, 'flow_control'):
+            # A deny entry only denies: nothing is set and nothing jumps
+            for name in SET_FIELDS:
                 value = getattr(self, name)
                 if value not in (None, '', []):
-                    errors[name] = _(
-                        'A deny entry only denies: it cannot set or continue.'
-                    )
+                    errors[name] = _('A deny entry only denies: it cannot set or jump.')
         else:
             if self.set_community_list and not self.set_community_mode:
                 errors['set_community_mode'] = _('Choose replace or additive.')

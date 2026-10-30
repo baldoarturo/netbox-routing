@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/netbox-routing-protocols.svg)](https://pypi.org/project/netbox-routing-protocols/)
 [![NetBox](https://img.shields.io/badge/NetBox-4.7%2B-success.svg)](https://github.com/netbox-community/netbox)
 [![CI](https://github.com/baldoarturo/netbox-routing-protocols/actions/workflows/ci.yml/badge.svg)](https://github.com/baldoarturo/netbox-routing-protocols/actions/workflows/ci.yml)
-[![License: AGPL-3.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A plugin for tracking all kinds of routing information
 
@@ -17,30 +17,30 @@ This plugin was created by Daniel Sheppard ([`dansheps`](https://github.com/dans
 
 ## Documentation
 
-The documentation for operators and users (every protocol and feature, with the RFC it comes from) is in [`docs/`](docs/index.md).
+The documentation for operators and users (every protocol and feature, with the RFC it comes from) is in [`docs/`](docs/index.md). Start with [Using the plugin](docs/using.md); the [RFC index](docs/rfc-index.md) goes from an RFC to the features that use it, and [Development](docs/development.md) explains how to work on the docs.
 
 ## Features
 
 ### Ready
 
-* Routing objects
-  * Prefix lists
-  * AS paths
-  * Communities and community lists
+* [Routing objects](docs/routing-objects.md)
+  * [Prefix lists](docs/routing-objects.md#prefix-lists)
+  * [AS paths](docs/routing-objects.md#as-paths)
+  * [Communities](docs/routing-objects.md#communities) and [community lists](docs/routing-objects.md#community-lists)
+* [Route policies](docs/routing-objects.md#route-policies) (match and set, jump to another policy, final deny, search tool; used by OSPF, IS-IS and EIGRP)
+* [Static routes](docs/protocols/static.md) (special next hops, interface, route leaking)
+* [IS-IS](docs/protocols/isis.md) (instances, levels, interfaces, authentication, redistribution, route leaking, segment routing, Flex-Algo, SRv6)
 
 ### Work in progress
 
 Not production ready; the model and the migrations can still change. Each one has a tracking issue.
 
-* [Static routing](https://github.com/baldoarturo/netbox-routing-protocols/issues/410)
 * Dynamic routing
-  * [EIGRP](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)
-  * [BGP](https://github.com/baldoarturo/netbox-routing-protocols/issues/411) (templates/group inheritance, IPv4/IPv6 AF and VRF, VPNv4)
-  * [OSPF](https://github.com/baldoarturo/netbox-routing-protocols/issues/90)
-  * [IS-IS](https://github.com/baldoarturo/netbox-routing-protocols/issues/412)
-* [Route policies](https://github.com/baldoarturo/netbox-routing-protocols/issues/307)
-* [BFD profiles](https://github.com/baldoarturo/netbox-routing-protocols/issues/414)
-* [Segment routing](https://github.com/baldoarturo/netbox-routing-protocols/issues/201)
+  * [EIGRP](docs/protocols/eigrp.md) ([tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413))
+  * [BGP](docs/protocols/bgp.md) ([tracking #411](https://github.com/baldoarturo/netbox-routing-protocols/issues/411)): templates/group inheritance, IPv4/IPv6 AF and VRF, VPNv4
+  * [OSPF](docs/protocols/ospf.md) ([tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90))
+* [BFD profiles](docs/bfd.md) ([tracking #414](https://github.com/baldoarturo/netbox-routing-protocols/issues/414))
+* Segment routing ([tracking #201](https://github.com/baldoarturo/netbox-routing-protocols/issues/201))
 
 # Requirements
 
@@ -120,7 +120,7 @@ None
 
 ## Usage
 
-TBD
+See [Using the plugin](docs/using.md): the menu, how the objects relate to each other, bulk import and validation.
 
 ## Additional Notes
 
@@ -133,4 +133,4 @@ intentionally narrow
 
 Install the pre-commit hooks once in your clone (`pip install pre-commit`, then `pre-commit install`): they run Ruff
 and Black on every commit with the same configuration as the CI, which runs `pre-commit run --all-files` on every pull
-request. See `dev/README.md` to run NetBox and the tests.
+request. See [`dev/README.md`](dev/README.md) to run NetBox and the tests.

@@ -1,7 +1,7 @@
 import netaddr
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -30,6 +30,8 @@ from utilities.views import (
     register_model_view,
 )
 from netbox_routing_protocols.helpers import aspath as aspath_helpers
+from netbox_routing_protocols.choices import OriginChoices
+from netbox_routing_protocols.helpers import community as community_helpers
 from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.helpers.prefix_list import (
     describe_entry,
@@ -359,6 +361,7 @@ def reference_groups(request, objs, references=prefix_list_references):
                     if len(model_pks) == 1
                     else meta.verbose_name_plural
                 ),
+                'model': meta.model_name,
                 'count': len(model_pks),
                 'objects': shown,
                 'more': len(model_pks) - len(shown),
@@ -658,12 +661,101 @@ class ASPathMatchView(ContentTypePermissionRequiredMixin, View):
 
 
 #
+# Route policy match: which entry of a route policy decides a route
+#
+class RoutePolicyMatchView(ContentTypePermissionRequiredMixin, View):
+    template_name = 'netbox_routing_protocols/routepolicy_match.html'
+    partial_name = 'netbox_routing_protocols/routepolicy_match_results.html'
+
+    def get_required_permission(self):
+        return 'netbox_routing_protocols.view_routepolicyentry'
+
+    def get(self, request):
+        data = request.GET
+        fields = (
+            'prefix',
+            'as_path',
+            'communities',
+            'next_hop',
+            'metric',
+            'origin',
+            'tag',
+            'weight',
+        )
+        values = {name: data.get(name, '').strip() for name in fields}
+        policies = RoutePolicy.objects.restrict(request.user, 'view')
+        context = {
+            'values': values,
+            'policy_id': data.get('policy', ''),
+            'policies': policies,
+            'origins': OriginChoices,
+        }
+        if any(values.values()):
+            context.update(
+                self.evaluate(request, values, data.get('policy', ''), policies)
+            )
+        # HTMX asks for the results only, a normal request for the whole page
+        template = self.partial_name if request.htmx else self.template_name
+        return render(request, template, context)
+
+    @staticmethod
+    def parse(values):
+        """The route typed by the user, or the first error"""
+        route = route_policy_helpers.Route()
+        try:
+            if values['prefix']:
+                route.prefix = netaddr.IPNetwork(values['prefix'])
+            if values['as_path']:
+                route.as_path = aspath_helpers.parse_as_path(values['as_path'])
+            if values['communities']:
+                route.communities = community_helpers.parse_communities(
+                    values['communities']
+                )
+            if values['next_hop']:
+                route.next_hop = netaddr.IPAddress(values['next_hop'])
+            for name, high in (
+                ('metric', 4294967295),
+                ('tag', 4294967295),
+                ('weight', 65535),
+            ):
+                if values[name]:
+                    number = int(values[name])
+                    if not 0 <= number <= high:
+                        raise ValueError(name)
+                    setattr(route, name, number)
+        except (netaddr.AddrFormatError, ValueError, TypeError) as e:
+            return None, _('"%(value)s" is not valid.') % {'value': e}
+        except ValidationError as e:
+            return None, e.messages[0]
+        if values['origin']:
+            if values['origin'] not in OriginChoices.values():
+                return None, _('The origin must be igp, egp or incomplete.')
+            route.origin = values['origin']
+        return route, None
+
+    def evaluate(self, request, values, policy_id, policies):
+        route, error = self.parse(values)
+        if error:
+            return {'error': error}
+        if policy_id.isdigit():
+            policies = policies.filter(pk=policy_id)
+        results = []
+        for policy in policies.order_by('name'):
+            outcome = route_policy_helpers.evaluate(policy, route)
+            outcome['policy'] = policy
+            results.append(outcome)
+        return {'results': results}
+
+
+#
 # Route Policy
 #
 @register_model_view(RoutePolicy, name='list', path='', detail=False)
 class RoutePolicyListView(ObjectListView):
     queryset = RoutePolicy.objects.annotate(
-        entry_count=count_related(RoutePolicyEntry, 'route_policy')
+        entry_count=Count(
+            'route_policy_entries', filter=Q(route_policy_entries__implicit=False)
+        )
     )
     table = RoutePolicyTable
     filterset = RoutePolicyFilterSet
@@ -671,7 +763,7 @@ class RoutePolicyListView(ObjectListView):
 
 
 @register_model_view(RoutePolicy)
-class RoutePolicyView(ObjectView):
+class RoutePolicyView(GetRelatedModelsMixin, ObjectView):
     queryset = RoutePolicy.objects.all()
     template_name = 'generic/object.html'
     actions = (
@@ -691,6 +783,7 @@ class RoutePolicyView(ObjectView):
             panels.RelatedObjectsPanel(),
         ],
         bottom_panels=[
+            UnreachablePanel(title=_('Entries never evaluated')),
             panels.ObjectsTablePanel(
                 model='netbox_routing_protocols.RoutePolicyEntry',
                 title=_('Entries'),
@@ -707,6 +800,18 @@ class RoutePolicyView(ObjectView):
         ],
     )
 
+    def get_extra_context(self, request, instance):
+        # An entry without conditions decides every route that reaches it: the ones below it
+        # are never evaluated. Allowed, but the user is told
+        unreachable = instance.unreachable_entries()
+        return {
+            'unreachable': [entry for entry, _stopper in unreachable],
+            'stopper': unreachable[0][1] if unreachable else None,
+            # Where the policy is used: the BGP objects, the import and export of the
+            # protocol instances and the entries of other policies that jump to it
+            'related_models': self.get_related_models(request, instance),
+        }
+
 
 @register_model_view(RoutePolicy, name='entries')
 class RoutePolicyEntriesView(ObjectChildrenView):
@@ -716,12 +821,22 @@ class RoutePolicyEntriesView(ObjectChildrenView):
     filterset = RoutePolicyEntryFilterSet
     tab = ViewTab(
         label='Entries',
-        badge=lambda obj: RoutePolicyEntry.objects.filter(route_policy=obj).count(),
+        badge=lambda obj: route_policy_helpers.user_entries(obj).count(),
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(route_policy=parent).select_related(
-            'route_policy'
+        return (
+            self.child_model.objects.filter(route_policy=parent)
+            .select_related(
+                'route_policy',
+                'jump_policy',
+                'match_next_hop',
+                'set_next_hop',
+                'set_community_list',
+            )
+            .prefetch_related(
+                'match_prefix_list', 'match_aspath', 'match_community_list'
+            )
         )
 
     def get_extra_context(self, request, instance):
@@ -770,7 +885,7 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             {
                 'object': source,
                 'form': form,
-                'count': source.route_policy_entries.count(),
+                'count': route_policy_helpers.user_entries(source).count(),
             },
         )
 
@@ -794,7 +909,14 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             return self._render(request, source, form)
 
         # Everything an entry has but its identity; the lists are copied apart
-        skip = {'id', 'route_policy', 'created', 'last_updated', 'custom_field_data'}
+        skip = {
+            'id',
+            'route_policy',
+            'implicit',
+            'created',
+            'last_updated',
+            'custom_field_data',
+        }
         copied = [
             field.name
             for field in RoutePolicyEntry._meta.concrete_fields
@@ -811,7 +933,7 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             copy.full_clean()
             copy.save()
             copy.tags.set(source.tags.all())
-            for entry in source.route_policy_entries.all():
+            for entry in route_policy_helpers.user_entries(source):
                 new_entry = RoutePolicyEntry(
                     route_policy=copy,
                     **{name: getattr(entry, name) for name in copied},
@@ -827,7 +949,7 @@ class RoutePolicyDuplicateView(ContentTypePermissionRequiredMixin, View):
             % {
                 'source': source,
                 'copy': copy,
-                'count': source.route_policy_entries.count(),
+                'count': route_policy_helpers.user_entries(source).count(),
             },
         )
         return redirect(copy.get_absolute_url())
@@ -854,7 +976,7 @@ class RoutePolicyResequenceView(ContentTypePermissionRequiredMixin, View):
             {
                 'object': route_policy,
                 'form': form,
-                'count': route_policy.route_policy_entries.count(),
+                'count': route_policy_helpers.user_entries(route_policy).count(),
             },
         )
 
@@ -909,7 +1031,11 @@ class RoutePolicyBulkDeleteView(BulkDeleteView):
 @register_model_view(RoutePolicyEntry, name='list', path='', detail=False)
 class RoutePolicyEntryListView(ObjectListView):
     queryset = RoutePolicyEntry.objects.select_related(
-        'route_policy', 'match_next_hop', 'set_next_hop', 'set_community_list'
+        'route_policy',
+        'jump_policy',
+        'match_next_hop',
+        'set_next_hop',
+        'set_community_list',
     ).prefetch_related('match_prefix_list', 'match_aspath', 'match_community_list')
     table = RoutePolicyEntryTable
     filterset = RoutePolicyEntryFilterSet
@@ -989,7 +1115,10 @@ class RoutePolicyEntryBulkImportView(BulkImportView):
 
 @register_model_view(RoutePolicyEntry, name='bulk_edit', detail=False)
 class RoutePolicyEntryBulkEditView(BulkEditView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    # the final deny of a policy is not chosen nor changed in bulk
+    queryset = RoutePolicyEntry.objects.select_related('route_policy').filter(
+        implicit=False
+    )
     filterset = RoutePolicyEntryFilterSet
     table = RoutePolicyEntryTable
     form = RoutePolicyEntryBulkEditForm
@@ -997,7 +1126,10 @@ class RoutePolicyEntryBulkEditView(BulkEditView):
 
 @register_model_view(RoutePolicyEntry, name='bulk_delete', detail=False)
 class RoutePolicyEntryBulkDeleteView(BulkDeleteView):
-    queryset = RoutePolicyEntry.objects.select_related('route_policy')
+    # the final deny of a policy is not chosen nor changed in bulk
+    queryset = RoutePolicyEntry.objects.select_related('route_policy').filter(
+        implicit=False
+    )
     filterset = RoutePolicyEntryFilterSet
     table = RoutePolicyEntryTable
 

@@ -24,11 +24,11 @@ class StaticRouteTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase)
         'url',
     ]
 
-    bulk_update_data = {'metric': 5}
+    bulk_update_data = {'distance': 5}
 
     def test_paginated_list_returns_each_tied_route_once(self):
         """
-        StaticRoute orders by (vrf, prefix, metric). These rows differ only by next_hop,
+        StaticRoute orders by (vrf, prefix, distance). These rows differ only by next_hop,
         so the ordering is not total unless it ends in a unique field.
         """
         self.add_permissions('netbox_routing_protocols.view_staticroute')
@@ -39,7 +39,7 @@ class StaticRouteTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase)
                     vrf=vrf,
                     prefix='198.18.0.0/24',
                     next_hop=IPAddress(f'198.18.{index // 250}.{index % 250}'),
-                    metric=10,
+                    distance=10,
                 )
                 for index in range(1, 1501)
             ]
@@ -94,7 +94,7 @@ class StaticRouteTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase)
                 'vrf': vrf.pk,
                 'prefix': '0.0.0.0/0',
                 'next_hop': '10.10.10.2',
-                'metric': 1,
+                'distance': 1,
                 'permanent': True,
             },
             {
@@ -103,7 +103,7 @@ class StaticRouteTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase)
                 'vrf': None,
                 'prefix': '4.4.4.4/32',
                 'next_hop': '10.10.10.1',
-                'metric': 1,
+                'distance': 1,
                 'permanent': True,
             },
             {
@@ -112,7 +112,24 @@ class StaticRouteTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase)
                 'vrf': None,
                 'prefix': '1.1.1.0/24',
                 'next_hop': '10.10.10.1',
-                'metric': 1,
+                'distance': 1,
                 'permanent': True,
             },
         ]
+
+    def test_duplicate_route_on_device_is_refused(self):
+        self.add_permissions('netbox_routing_protocols.add_staticroute')
+        device = create_test_device(name='Device Dup')
+        data = {
+            'devices': [device.pk],
+            'prefix': '10.99.0.0/16',
+            'next_hop': '10.10.10.1',
+        }
+        url = self._get_list_url()
+        self.assertHttpStatus(
+            self.client.post(url, data, format='json', **self.header),
+            status.HTTP_201_CREATED,
+        )
+        response = self.client.post(url, data, format='json', **self.header)
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('devices', response.data)

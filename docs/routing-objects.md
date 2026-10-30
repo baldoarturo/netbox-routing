@@ -166,7 +166,7 @@ attributes and *set* others.
 | Route policy | Name of the map. |
 | Sequence | Evaluation order, 1 to 4294967294 (the range routers accept; 0 is not valid). Leave it empty and the entry takes the next multiple of 10 above the last one: the add form suggests it when you come from the policy, the API assigns it (consecutive numbers in a bulk request) and the import fills it. Any value is still accepted. |
 | Action | Permit (the default in the form) or Deny. The action belongs to the entry, as on routers; the route policies and BGP policies that use the list only decide *where* it is applied. |
-| Flow control (continue) | Sequence to continue evaluating at after this entry matches, for platforms that support `continue`; 0 means the next entry. It can go up to 4294967294, like the sequence. |
+| Jump to route policy | Optional, on a permit entry: when the entry matches, the evaluation **goes on in that route policy and does not come back** (a *goto*, like Juniper `next policy`). A jump that would make a loop (the other policy leads back to this one) is refused, and a route policy that is the target of a jump cannot be deleted. |
 
 ### What an entry matches
 
@@ -189,7 +189,7 @@ conditions matches every route. They follow the BGP path attributes of RFC 4271 
 ### What an entry sets
 
 What the entry changes in the routes it permits. **A deny entry only denies**: it cannot set
-anything and cannot continue, and the form and the API refuse it.
+anything and cannot jump, and the form and the API refuse it.
 
 | Field | Meaning |
 | --- | --- |
@@ -210,11 +210,40 @@ Not modelled, because they are not BGP path attributes: source protocol, interfa
 metric type, and the vendor specific ones that follow them. Extended communities go through the
 community lists, as the same list can hold both kinds.
 
+### How an entry is evaluated
+
+The entries are evaluated in the order of their sequence and **the first one that matches decides** the route:
+
+- The conditions of one entry combine with **AND**: the route has to meet all of them. Several objects of the same kind (two prefix lists, two AS paths) combine with **OR**: any one is enough. An entry without conditions matches every route.
+- A **community list** condition is **match all**: the route has to carry **all** the communities of the permit entries of the list. (Decided for now; it can change if users ask for *any* or *exact*.)
+- A **deny** entry that matches denies the route and the evaluation stops. A **permit** entry that matches permits it, applies its *set* values, and if it has a **jump** the evaluation goes on in the other route policy (and does not come back); otherwise it stops.
+- A route that no entry matches is **denied**: see the final deny below.
+
+### The final deny
+
+Every route policy ends in a **deny of everything**, as on the routers. It is not drawn by the page: it is an entry of the model (sequence 4294967295, just above the range of yours, `implicit` true), created together with the policy and for the policies that existed before it was added, so it is there when you query the API or GraphQL, and it is always the last one. It cannot be edited, deleted, moved or chosen in a bulk action, it is not counted in the number of entries of a policy and the resequence and the duplicate leave it alone (the copy has its own). Filter with `implicit=true` to find them.
+
+### Entries that are never evaluated
+
+An entry without conditions decides every route that reaches it, so the entries after it are never evaluated. It is **allowed**, but the page of the route policy shows an alert, above the entries, with the entry that stops the others and the ones that are left unreachable.
+
+### Searching what a route policy does with a route
+
+**Route Policies → Search Route Policy Match** takes a route and shows, for one policy or all of them, how it is evaluated, entry by entry, the way [explained above](#how-an-entry-is-evaluated): every condition of each entry with ✓ or ✗, the entry that decides, whether the result is **permit** or **deny**, what a permit entry **sets**, and the jumps to other policies followed to the end. The route is described with any of: prefix, AS path, communities, next hop, metric, origin, tag and weight. Everything is optional, but an entry that has a condition on a field you did not give is not met. The prefix lists, AS paths and community lists are evaluated with the rules of their own search tools: a prefix list or an AS path is met when its first matching entry permits, and a community list when the route carries all the communities of its permit entries. A route that no entry matches ends in the final deny. You need the permission to view route policy entries.
+
+### Where a route policy is used
+
+The page of a route policy lists, with a link to the filtered list of each, where it is used: the BGP policy templates and peer address families (in and out), the OSPF instances, IS-IS instances and EIGRP routers that take it as their import or export policy, and the entries of other route policies that jump to it. A policy that appears there cannot be deleted.
+
+When you delete a prefix list, an AS path or a community list that route policy entries match, the confirmation lists those entries and warns that **an entry with no other condition will then match every route**. An entry without conditions is shown as *Matches every route* on its page (and in an optional column of the tables), and saving one shows a warning, besides the alert of the policy page about the entries it leaves unreachable.
+
 ### Working with entries
 
 The page of a route policy has an **Entries** panel with an **Add entry** button (the form opens with the policy chosen, **permit** preselected and the next sequence suggested), and the tables of entries have the edit, delete and changelog buttons. **Duplicate** on the page of a policy copies it **with all its entries** under a new name (suggested: `<name> copy`): every entry keeps its sequence, action, match and set values, lists, next hops, tags and description. You need the permission to add route policies and route policy entries.
 
-The tables can be filtered (also over the API and GraphQL) by name and description, by action, sequence and policy, by the prefix lists, AS paths and community lists an entry matches, and by every match and set value; the list of policies also by what its entries match. The tables can show the entries count of each policy and the lists an entry matches. The bulk edit changes the action, the continue and the match and set values of the selected entries.
+The tables of entries show two columns by default: **Match** (one line per condition, *any* when the entry has none) and **Set** (one line per action it applies), next to the sequence, the action and the jump. Every match and set field also has its own column, hidden by default, that you can turn on from *Configure Table* to sort or export by it. Weight is shown as well, although it is not a standard BGP attribute.
+
+The tables can be filtered (also over the API and GraphQL) by name and description, by action, sequence and policy, by the prefix lists, AS paths and community lists an entry matches, and by every match and set value; the list of policies also by what its entries match. The tables can show the entries count of each policy and the lists an entry matches. The bulk edit changes the action, the jump and the match and set values of the selected entries.
 
 ### Importing route policies and entries
 
@@ -230,11 +259,11 @@ A `deny` entry with a `set_` column is refused.
 
 ### Resequencing a route policy
 
-The **Resequence** button on the page of the route policy renumbers its entries **keeping their order**, as it does for prefix lists: first number and step (10 by default), nothing changes if the last number would go over 4294967294, and you need the permission to change route policy entries. In addition, the **continue** of an entry follows the entry it points to: a continue to 30 that becomes 20 is rewritten to 20 (0, "next entry", and a target that does not exist are left alone). Over the API: `PATCH /api/plugins/routing/objects/route-policy/<id>/resequence/` with optional `start` and `step`; it answers `{"changed": <number of entries renumbered>}`.
+The **Resequence** button on the page of the route policy renumbers its entries **keeping their order**, as it does for prefix lists: first number and step (10 by default), nothing changes if the last number would go over 4294967294, and you need the permission to change route policy entries. The final deny (see below) stays at the end. Over the API: `PATCH /api/plugins/routing/objects/route-policy/<id>/resequence/` with optional `start` and `step`; it answers `{"changed": <number of entries renumbered>}`.
 
 ### Deleting a route policy in use
 
-A route policy that a protocol uses **cannot be deleted**: BGP policy templates and peer address families, and the import and export policy of an OSPF instance, an IS-IS instance or an EIGRP router. The delete is refused, in the web interface (single and bulk) and in the API, and the message names the objects that use it. Choose another policy in them, or clear the field, and then delete it. The entries of a policy that is not in use are deleted with it.
+A route policy that a protocol uses **cannot be deleted**: BGP policy templates and peer address families, the import and export policy of an OSPF instance, an IS-IS instance or an EIGRP router, and the entries of another route policy that jump to it. The delete is refused, in the web interface (single and bulk) and in the API, and the message names the objects that use it. Choose another policy in them, or clear the field, and then delete it. The entries of a policy that is not in use are deleted with it.
 
 ## AS paths
 
@@ -460,6 +489,8 @@ valid community is left as it was and fails validation the next time it is edite
 | Role | A NetBox IPAM role that classifies the community (for example *blackhole*, *customer*). |
 | Tenant | Optional owner. |
 
+![The list of communities, with their type, the well-known name and the status](images/community-list.png)
+
 ### Well-known communities
 
 The field accepts the name of a well-known community, in upper or lower case with `-` or `_`
@@ -485,12 +516,16 @@ vendors keep a list per kind of community (`ip community-list`, `ip extcommunity
 of a list cannot change while it has entries of another type. Only **standard lists** (exact
 communities) are modelled; expanded lists (regular expressions) are not.
 
+![The list of community lists, with their type and the number of entries of each one](images/communitylist-list.png)
+
 Each **entry** has a sequence (`1` to `4294967294`), an action (permit or deny) and a community.
 Entries are evaluated in sequence order and the first match wins, like a prefix list. Leave the
 sequence empty and the entry takes the next multiple of 10 above the last one of the list (the form,
 the API and the import all do it; entries of one bulk request get consecutive numbers). The same
 community can appear more than once in a list, for example a deny before a permit; when you save
 such an entry the form tells you which entry makes the other unreachable.
+
+![The list of community list entries, with their sequence, action and community](images/communitylistentry-list.png)
 
 ### The pages
 
@@ -532,6 +567,8 @@ type of the chosen list.
 ### Search Community Match
 
 **Routing → Community → Search Community Match**
+
+![Search Community Match for no-export: the entry that matches, with the well-known name](images/community-match.png)
 
 Type the communities a route carries, separated by spaces or commas (`65000:100 no-export
 rt:65000:1 65000:1:2`; any type, and the well-known names work) and the page shows, as you type,
@@ -586,7 +623,7 @@ Route policy
 ├─ name
 └─ Entry
     ├─ route_policy → Route policy
-    ├─ Result: sequence · action {Permit | Deny} · flow_control
+    ├─ Result: sequence · action {Permit | Deny} · jump_policy → Route policy · implicit? (read only)
     ├─ Match: match_prefix_list → Prefix list · match_aspath → AS path
     │         · match_community_list → Community list · match_next_hop → IP address (IPAM)
     │         · match_metric · match_origin {IGP | EGP | Incomplete} · match_tag · match_weight

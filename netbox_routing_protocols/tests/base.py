@@ -112,7 +112,11 @@ class AutomatedFormDataCreationMixin:
         super().setUpTestData()
 
         try:
-            sequence = cls.model.objects.last().sequence + 1
+            queryset = cls.model.objects.all()
+            if any(f.name == 'implicit' for f in cls.model._meta.fields):
+                # the final deny of a route policy is not one of the entries
+                queryset = queryset.filter(implicit=False)
+            sequence = queryset.last().sequence + 1
         except Exception:
             sequence = 0
 

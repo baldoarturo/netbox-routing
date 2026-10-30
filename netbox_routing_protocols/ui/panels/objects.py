@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.ui import attrs, panels
 
 __all__ = (
+    'UnreachablePanel',
     'ASPathPanel',
     'ASPathEntryPanel',
     'PrefixListPanel',
@@ -58,7 +59,13 @@ class RoutePolicyEntryPanel(panels.ObjectAttributesPanel):
     )
     sequence = attrs.NumericAttr('sequence', label=_('Sequence'))
     action = attrs.ChoiceAttr('action', label=_('Action'))
-    flow_control = attrs.NumericAttr('flow_control', label=_('Flow Control'))
+    jump_policy = attrs.RelatedObjectAttr(
+        'jump_policy', linkify=True, label=_('Jump to Route Policy')
+    )
+    matches_everything = attrs.BooleanAttr(
+        'matches_everything', label=_('Matches every route')
+    )
+    implicit = attrs.BooleanAttr('implicit', label=_('Final deny'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
@@ -102,6 +109,16 @@ class RoutePolicyEntrySetPanel(panels.ObjectAttributesPanel):
     set_origin = attrs.ChoiceAttr('set_origin', label=_('Origin'))
     set_tag = attrs.NumericAttr('set_tag', label=_('Tag'))
     set_weight = attrs.NumericAttr('set_weight', label=_('Weight'))
+
+
+class UnreachablePanel(panels.TemplatePanel):
+    """The entries of a route policy that are never evaluated, and the one that stops them"""
+
+    def __init__(self, **kwargs):
+        super().__init__('netbox_routing_protocols/panels/unreachable.html', **kwargs)
+
+    def should_render(self, context):
+        return bool(context.get('unreachable'))
 
 
 class OverlapsPanel(panels.TemplatePanel):

@@ -18,11 +18,18 @@ class ISISNavigationTestCase(SimpleTestCase):
     EXPECTED_MODELS = (
         'isisinstance',
         'isisinterface',
+        'isisaddressfamily',
+        'isisareaaddress',
         'isissetting',
         'isislevel',
         'isissegmentrouting',
         'isisflexalgo',
+        'isisredistribution',
+        'isissummaryaddress',
+        'isisrouteleak',
         'isisprefixsid',
+        'isissrmappingentry',
+        'isisadjacencysid',
         'isissrv6locator',
     )
 

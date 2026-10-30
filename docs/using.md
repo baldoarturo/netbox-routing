@@ -1,7 +1,7 @@
 # Using the plugin
 
 > [!WARNING]
-> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
+> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **static routes, prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
 
 ## About this project
 

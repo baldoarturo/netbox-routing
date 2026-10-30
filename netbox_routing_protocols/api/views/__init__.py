@@ -22,6 +22,13 @@ from .isis import (
     ISISFlexAlgoViewSet,
     ISISPrefixSIDViewSet,
     ISISSRv6LocatorViewSet,
+    ISISAddressFamilyViewSet,
+    ISISSRMappingEntryViewSet,
+    ISISAdjacencySIDViewSet,
+    ISISAreaAddressViewSet,
+    ISISRedistributionViewSet,
+    ISISSummaryAddressViewSet,
+    ISISRouteLeakViewSet,
 )
 from .bgp import *
 from .objects import *
@@ -67,6 +74,13 @@ __all__ = (
     'ISISFlexAlgoViewSet',
     'ISISPrefixSIDViewSet',
     'ISISSRv6LocatorViewSet',
+    'ISISAddressFamilyViewSet',
+    'ISISSRMappingEntryViewSet',
+    'ISISAdjacencySIDViewSet',
+    'ISISAreaAddressViewSet',
+    'ISISRedistributionViewSet',
+    'ISISSummaryAddressViewSet',
+    'ISISRouteLeakViewSet',
     'PrefixListViewSet',
     'PrefixListEntryViewSet',
     'RoutePolicyViewSet',

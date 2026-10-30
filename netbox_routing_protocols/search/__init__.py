@@ -16,6 +16,13 @@ from .isis import (
     ISISFlexAlgoIndex,
     ISISPrefixSIDIndex,
     ISISSRv6LocatorIndex,
+    ISISAddressFamilyIndex,
+    ISISSRMappingEntryIndex,
+    ISISAdjacencySIDIndex,
+    ISISAreaAddressIndex,
+    ISISRedistributionIndex,
+    ISISSummaryAddressIndex,
+    ISISRouteLeakIndex,
 )
 from .objects import *
 from .ospf import (
@@ -60,6 +67,13 @@ __all__ = (
     'ISISFlexAlgoIndex',
     'ISISPrefixSIDIndex',
     'ISISSRv6LocatorIndex',
+    'ISISAddressFamilyIndex',
+    'ISISSRMappingEntryIndex',
+    'ISISAdjacencySIDIndex',
+    'ISISAreaAddressIndex',
+    'ISISRedistributionIndex',
+    'ISISSummaryAddressIndex',
+    'ISISRouteLeakIndex',
     'OSPFInstanceIndex',
     'OSPFAreaIndex',
     'OSPFInterfaceIndex',

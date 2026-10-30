@@ -7,11 +7,15 @@ __all__ = (
     'ISISAuthTypeChoices',
     'ISISCircuitTypeChoices',
     'ISISFastRerouteChoices',
+    'ISISFlexAlgoMetricTypeChoices',
     'ISISFrrProtectionChoices',
     'ISISIsTypeChoices',
     'ISISMetricStyleChoices',
     'ISISNetworkTypeChoices',
     'ISISLevelChoices',
+    'ISISLevelScopeChoices',
+    'ISISRedistributionMetricTypeChoices',
+    'ISISRedistributionProtocolChoices',
     'ISISSettingChoices',
 )
 
@@ -100,6 +104,21 @@ class ISISFastRerouteChoices(ChoiceSet):
     )
 
 
+class ISISFlexAlgoMetricTypeChoices(ChoiceSet):
+    """Flex-Algo metric types (RFC 9350 section 5.1): IGP metric (0), minimum unidirectional
+    link delay (1) and TE default metric (2)."""
+
+    IGP = 'igp-metric'
+    DELAY = 'delay-metric'
+    TE = 'te-metric'
+
+    CHOICES = (
+        (IGP, 'IGP metric'),
+        (DELAY, 'Minimum unidirectional delay'),
+        (TE, 'TE metric'),
+    )
+
+
 class ISISFrrProtectionChoices(ChoiceSet):
     """Per-interface repair coverage requested from the FRR computation.
 
@@ -117,16 +136,36 @@ class ISISFrrProtectionChoices(ChoiceSet):
 
 
 class ISISAuthTypeChoices(ChoiceSet):
+    """Authentication of IS-IS PDUs: cleartext (ISO 10589), HMAC-MD5 (RFC 5304) and
+    HMAC-SHA (RFC 5310, which lists SHA-1, 224, 256, 384 and 512), or the keys of a
+    key chain defined on the device."""
+
     MD5 = 'md5'
     TEXT = 'text'
     HMAC_SHA1 = 'hmac-sha-1'
+    HMAC_SHA224 = 'hmac-sha-224'
     HMAC_SHA256 = 'hmac-sha-256'
+    HMAC_SHA384 = 'hmac-sha-384'
+    HMAC_SHA512 = 'hmac-sha-512'
+    KEY_CHAIN = 'key-chain'
+
+    HMAC_SHA_TYPES = (
+        HMAC_SHA1,
+        HMAC_SHA224,
+        HMAC_SHA256,
+        HMAC_SHA384,
+        HMAC_SHA512,
+    )
 
     CHOICES = (
         (MD5, 'MD5'),
         (TEXT, 'Cleartext'),
         (HMAC_SHA1, 'HMAC-SHA-1'),
+        (HMAC_SHA224, 'HMAC-SHA-224'),
         (HMAC_SHA256, 'HMAC-SHA-256'),
+        (HMAC_SHA384, 'HMAC-SHA-384'),
+        (HMAC_SHA512, 'HMAC-SHA-512'),
+        (KEY_CHAIN, 'Key chain'),
     )
 
 
@@ -164,6 +203,18 @@ class ISISSettingChoices(ChoiceSet):
     HELLO_PADDING = 'hello_padding'
     RIB_PRIORITY = 'rib_priority'
 
+    # Graceful restart (RFC 8706), LDP sync (RFC 5443), overload conditions and
+    # protocol limits (ISO 10589, RFC 6232)
+    GRACEFUL_RESTART_T3 = 'graceful_restart_t3'
+    GRACEFUL_RESTART_HELPER = 'graceful_restart_helper'
+    LDP_SYNC_HOLDDOWN = 'ldp_sync_holddown'
+    OVERLOAD_WAIT_FOR_BGP = 'overload_wait_for_bgp'
+    OVERLOAD_HIGH_METRICS = 'overload_high_metrics'
+    MAX_AREA_ADDRESSES = 'max_area_addresses'
+    DEFAULT_ORIGINATE = 'default_originate'
+    ADJACENCY_CHECK = 'adjacency_check'
+    PURGE_ORIGINATOR_ID = 'purge_originator_id'
+
     CHOICES = [
         (SPF_SECOND_WAIT, 'SPF Second Wait (ms)'),
         (SPF_RAPID_RUNS, 'SPF Rapid Runs'),
@@ -180,7 +231,27 @@ class ISISSettingChoices(ChoiceSet):
         (IGP_SHORTCUT, 'IGP Shortcut'),
         (HELLO_PADDING, 'Hello Padding'),
         (RIB_PRIORITY, 'RIB Priority'),
+        (GRACEFUL_RESTART_T3, 'Graceful Restart T3 (s)'),
+        (GRACEFUL_RESTART_HELPER, 'Graceful Restart Helper'),
+        (LDP_SYNC_HOLDDOWN, 'LDP-IGP Sync Hold-down (s)'),
+        (OVERLOAD_WAIT_FOR_BGP, 'Overload Until BGP Converges'),
+        (OVERLOAD_HIGH_METRICS, 'Overload with High Metrics'),
+        (MAX_AREA_ADDRESSES, 'Maximum Area Addresses'),
+        (DEFAULT_ORIGINATE, 'Default Route Origination'),
+        (ADJACENCY_CHECK, 'Adjacency Protocol Check'),
+        (PURGE_ORIGINATOR_ID, 'Purge Originator Identification'),
     ]
+
+    # Short explanation shown under a key on the form
+    HELP_TEXTS = {
+        MULTI_TOPOLOGY: (
+            'RFC 5120: IPv4 and IPv6 each get their own topology and path '
+            'calculation, so a link that lacks one family is not used for it. '
+            'Without it both families share one topology.'
+        ),
+    }
+    # Keys shown as a checkbox instead of a True/False/blank select
+    CHECKBOXES = (MULTI_TOPOLOGY,)
 
     FIELD_TYPES = {
         SPF_SECOND_WAIT: 'integer',
@@ -198,4 +269,57 @@ class ISISSettingChoices(ChoiceSet):
         IGP_SHORTCUT: 'boolean',
         HELLO_PADDING: 'boolean',
         RIB_PRIORITY: 'string',
+        GRACEFUL_RESTART_T3: 'integer',
+        GRACEFUL_RESTART_HELPER: 'boolean',
+        LDP_SYNC_HOLDDOWN: 'integer',
+        OVERLOAD_WAIT_FOR_BGP: 'boolean',
+        OVERLOAD_HIGH_METRICS: 'boolean',
+        MAX_AREA_ADDRESSES: 'integer',
+        DEFAULT_ORIGINATE: 'boolean',
+        ADJACENCY_CHECK: 'boolean',
+        PURGE_ORIGINATOR_ID: 'boolean',
     }
+
+
+class ISISLevelScopeChoices(ChoiceSet):
+    """Level a redistribution or summary applies to (RFC 1195, RFC 5302)."""
+
+    LEVEL1 = 'level-1'
+    LEVEL2 = 'level-2'
+    LEVEL12 = 'level-1-2'
+
+    CHOICES = (
+        (LEVEL1, 'Level-1'),
+        (LEVEL2, 'Level-2'),
+        (LEVEL12, 'Level-1-2'),
+    )
+
+
+class ISISRedistributionProtocolChoices(ChoiceSet):
+    CONNECTED = 'connected'
+    STATIC = 'static'
+    EIGRP = 'eigrp'
+    BGP = 'bgp'
+    OSPF = 'ospf'
+    ISIS = 'isis'
+
+    CHOICES = (
+        (CONNECTED, 'Connected'),
+        (STATIC, 'Static'),
+        (EIGRP, 'EIGRP'),
+        (BGP, 'BGP'),
+        (OSPF, 'OSPF'),
+        (ISIS, 'IS-IS'),
+    )
+
+
+class ISISRedistributionMetricTypeChoices(ChoiceSet):
+    """Internal and external metrics of ISO 10589 and RFC 1195 section 3.3."""
+
+    INTERNAL = 'internal'
+    EXTERNAL = 'external'
+
+    CHOICES = (
+        (INTERNAL, 'Internal'),
+        (EXTERNAL, 'External'),
+    )

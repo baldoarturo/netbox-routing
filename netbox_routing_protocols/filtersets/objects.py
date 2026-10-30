@@ -186,7 +186,7 @@ class RoutePolicyFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
 
 @register_filterset
@@ -238,6 +238,11 @@ class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
     action = django_filters.MultipleChoiceFilter(
         choices=ActionChoices, label=_('Action')
     )
+    jump_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='jump_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Jump to Route Policy (ID)'),
+    )
     match_next_hop_id = django_filters.ModelMultipleChoiceFilter(
         field_name='match_next_hop',
         queryset=IPAddress.objects.all(),
@@ -285,7 +290,8 @@ class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
             'match_origin',
             'match_tag',
             'match_weight',
-            'flow_control',
+            'jump_policy_id',
+            'implicit',
             'set_local_preference',
             'set_next_hop_id',
             'set_community_list_id',
@@ -302,4 +308,4 @@ class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
             return queryset
         qs_filter = Q(route_policy__name__icontains=value)
         qs_filter |= Q(description__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)

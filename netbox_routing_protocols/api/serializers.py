@@ -4,6 +4,7 @@ from netbox_routing_protocols.api._serializers.static import StaticRouteSerializ
 from netbox_routing_protocols.api._serializers.bgp import *
 from netbox_routing_protocols.api._serializers.isis import *
 from netbox_routing_protocols.api._serializers.ospf import *
+from netbox_routing_protocols.api._serializers.isis_routes import *
 from netbox_routing_protocols.api._serializers.eigrp import *
 
 __all__ = (
@@ -30,6 +31,13 @@ __all__ = (
     'ISISFlexAlgoSerializer',
     'ISISPrefixSIDSerializer',
     'ISISSRv6LocatorSerializer',
+    'ISISAddressFamilySerializer',
+    'ISISSRMappingEntrySerializer',
+    'ISISAdjacencySIDSerializer',
+    'ISISAreaAddressSerializer',
+    'ISISRedistributionSerializer',
+    'ISISSummaryAddressSerializer',
+    'ISISRouteLeakSerializer',
     'EIGRPRouterSerializer',
     'EIGRPAddressFamilySerializer',
     'EIGRPNetworkSerializer',

@@ -1,6 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device
+from dcim.models import Device, Interface
 from ipam.models import VRF
 from netbox.forms import PrimaryModelForm
 from netbox_routing_protocols.models import StaticRoute
@@ -22,6 +23,19 @@ class StaticRouteForm(PrimaryModelForm):
         label=_('VRF'),
     )
 
+    interface = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+        query_params={'device_id': '$devices'},
+        label=_('Interface Next Hop'),
+    )
+    next_hop_vrf = DynamicModelChoiceField(
+        queryset=VRF.objects.all(),
+        required=False,
+        label=_('Next Hop VRF'),
+    )
+
     fieldsets = (
         FieldSet(
             'devices',
@@ -29,10 +43,16 @@ class StaticRouteForm(PrimaryModelForm):
         ),
         FieldSet(
             'prefix',
+            'next_hop_type',
             'next_hop',
-            'interface_next_hop',
-            'metric',
+            'interface',
+            'distance',
             name=_('Route'),
+        ),
+        FieldSet(
+            'next_hop_vrf',
+            'next_hop_global',
+            name=_('Route leaking'),
         ),
         FieldSet(
             'name',
@@ -54,9 +74,12 @@ class StaticRouteForm(PrimaryModelForm):
             'vrf',
             'prefix',
             'next_hop',
-            'interface_next_hop',
+            'interface',
+            'next_hop_type',
+            'next_hop_vrf',
+            'next_hop_global',
             'name',
-            'metric',
+            'distance',
             'permanent',
             'tag',
             'description',
@@ -64,6 +87,15 @@ class StaticRouteForm(PrimaryModelForm):
             'tags',
             'owner',
         )
+
+    def _post_clean(self):
+        super()._post_clean()
+        devices = self.cleaned_data.get('devices')
+        if devices and not self.errors:
+            try:
+                self.instance.validate_devices(devices)
+            except ValidationError as e:
+                self.add_error(None, e)
 
     def __init__(self, data=None, instance=None, *args, **kwargs):
         super().__init__(*args, data=data, instance=instance, **kwargs)

@@ -8,6 +8,9 @@ from netbox.forms import NetBoxModelImportForm
 from utilities.forms.fields import CSVModelChoiceField
 
 from netbox_routing_protocols.models import (
+    BGPRouter,
+    EIGRPRouter,
+    OSPFInstance,
     ISISInstance,
     ISISInterface,
     ISISSetting,
@@ -17,6 +20,13 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
+    ISISAreaAddress,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 from netbox_routing_protocols.models.objects import RoutePolicy
 
@@ -30,6 +40,13 @@ __all__ = (
     'ISISFlexAlgoImportForm',
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
+    'ISISAddressFamilyImportForm',
+    'ISISSRMappingEntryImportForm',
+    'ISISAdjacencySIDImportForm',
+    'ISISAreaAddressImportForm',
+    'ISISRedistributionImportForm',
+    'ISISSummaryAddressImportForm',
+    'ISISRouteLeakImportForm',
 )
 
 
@@ -131,6 +148,9 @@ class ISISLevelImportForm(NetBoxModelImportForm):
             'disabled',
             'auth_type',
             'auth_key',
+            'auth_key_id',
+            'auth_key_chain',
+            'auth_send_only',
             'description',
             'comments',
             'tags',
@@ -154,6 +174,11 @@ class ISISInterfaceLevelImportForm(NetBoxModelImportForm):
             'hello_multiplier',
             'priority',
             'passive',
+            'hello_auth_type',
+            'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             'description',
             'comments',
             'tags',
@@ -244,8 +269,14 @@ class ISISInstanceImportForm(NetBoxModelImportForm):
             'microloop_avoidance',
             'area_auth_type',
             'area_auth_key',
+            'area_auth_key_id',
+            'area_auth_key_chain',
+            'area_auth_send_only',
             'domain_auth_type',
             'domain_auth_key',
+            'domain_auth_key_id',
+            'domain_auth_key_chain',
+            'domain_auth_send_only',
             'description',
             'comments',
             'tags',
@@ -295,6 +326,9 @@ class ISISInterfaceImportForm(NetBoxModelImportForm):
             'passive',
             'hello_auth_type',
             'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             'bfd_enabled',
             'frr_enabled',
             'frr_protection',
@@ -302,6 +336,14 @@ class ISISInterfaceImportForm(NetBoxModelImportForm):
             'retransmit_interval',
             'lsp_interval',
             'mesh_group',
+            'hello_padding',
+            'ldp_sync',
+            'prefix_suppression',
+            'route_tag',
+            'three_way_handshake',
+            'admin_group',
+            'te_metric',
+            'delay_metric',
             'description',
             'comments',
             'tags',
@@ -316,6 +358,171 @@ class ISISSettingImportForm(NetBoxModelImportForm):
             'assigned_object_id',
             'key',
             'value',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISRedistributionImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+    ospf_source = CSVModelChoiceField(
+        queryset=OSPFInstance.objects.all(),
+        required=False,
+        help_text=_('Primary key of OSPF Instance'),
+    )
+    eigrp_source = CSVModelChoiceField(
+        queryset=EIGRPRouter.objects.all(),
+        required=False,
+        help_text=_('Primary key of EIGRP Router'),
+    )
+    bgp_source = CSVModelChoiceField(
+        queryset=BGPRouter.objects.all(),
+        required=False,
+        help_text=_('Primary key of BGP Router'),
+    )
+    isis_source = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISRedistribution
+        fields = (
+            'instance',
+            'address_family',
+            'protocol',
+            'ospf_source',
+            'eigrp_source',
+            'bgp_source',
+            'isis_source',
+            'level',
+            'metric',
+            'metric_type',
+            'route_tag',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISSummaryAddressImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISSummaryAddress
+        fields = (
+            'instance',
+            'prefix',
+            'level',
+            'not_advertise',
+            'metric',
+            'route_tag',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISRouteLeakImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISRouteLeak
+        fields = (
+            'instance',
+            'address_family',
+            'route_policy',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISAreaAddressImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISAreaAddress
+        fields = ('instance', 'net', 'description', 'comments', 'tags')
+
+
+class ISISSRMappingEntryImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISSRMappingEntry
+        fields = (
+            'instance',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISAdjacencySIDImportForm(NetBoxModelImportForm):
+    interface = CSVModelChoiceField(
+        queryset=ISISInterface.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Interface'),
+    )
+
+    class Meta:
+        model = ISISAdjacencySID
+        fields = (
+            'interface',
+            'sid_label',
+            'protected',
+            'description',
+            'comments',
+            'tags',
+        )
+
+
+class ISISAddressFamilyImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=True,
+        help_text=_('Primary key of IS-IS Instance'),
+    )
+
+    class Meta:
+        model = ISISAddressFamily
+        fields = (
+            'instance',
+            'address_family',
+            'metric_style',
+            'distance',
+            'maximum_paths',
+            'default_originate',
             'description',
             'comments',
             'tags',

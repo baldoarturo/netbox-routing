@@ -3,3 +3,4 @@ from .bgp import *
 from .isis import *
 from .objects import *
 from .ospf import *
+from .static import *

@@ -12,6 +12,13 @@ from netbox_routing_protocols.models.isis import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
+    ISISAreaAddress,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 
 __all__ = (
@@ -24,6 +31,13 @@ __all__ = (
     'ISISFlexAlgoIndex',
     'ISISPrefixSIDIndex',
     'ISISSRv6LocatorIndex',
+    'ISISAddressFamilyIndex',
+    'ISISSRMappingEntryIndex',
+    'ISISAdjacencySIDIndex',
+    'ISISAreaAddressIndex',
+    'ISISRedistributionIndex',
+    'ISISSummaryAddressIndex',
+    'ISISRouteLeakIndex',
 )
 
 
@@ -102,3 +116,78 @@ class ISISInterfaceIndex(SearchIndex):
         ('comments', 5000),
     )
     display_attrs = ('instance', 'interface')
+
+
+@register_search
+class ISISRedistributionIndex(SearchIndex):
+    model = ISISRedistribution
+    fields = (
+        ('route_policy', 100),
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'protocol')
+
+
+@register_search
+class ISISSummaryAddressIndex(SearchIndex):
+    model = ISISSummaryAddress
+    fields = (
+        ('prefix', 100),
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'prefix', 'level')
+
+
+@register_search
+class ISISRouteLeakIndex(SearchIndex):
+    model = ISISRouteLeak
+    fields = (
+        ('route_policy', 100),
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'address_family')
+
+
+@register_search
+class ISISAreaAddressIndex(SearchIndex):
+    model = ISISAreaAddress
+    fields = (
+        ('net', 100),
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'net')
+
+
+@register_search
+class ISISSRMappingEntryIndex(SearchIndex):
+    model = ISISSRMappingEntry
+    fields = (
+        ('prefix', 100),
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'prefix', 'level')
+
+
+@register_search
+class ISISAdjacencySIDIndex(SearchIndex):
+    model = ISISAdjacencySID
+    fields = (
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('interface', 'sid_label')
+
+
+@register_search
+class ISISAddressFamilyIndex(SearchIndex):
+    model = ISISAddressFamily
+    fields = (
+        ('description', 500),
+        ('comments', 5000),
+    )
+    display_attrs = ('instance', 'address_family')

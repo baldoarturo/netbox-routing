@@ -18,11 +18,18 @@ def build_menus():
     menu_items = (
         ('isisinstance', 'Instances'),
         ('isisinterface', 'Interfaces'),
+        ('isisaddressfamily', 'Address Families'),
+        ('isisareaaddress', 'Area Addresses'),
         ('isissetting', 'Settings'),
         ('isislevel', 'Levels'),
         ('isissegmentrouting', 'Segment Routing'),
         ('isisflexalgo', 'Flex-Algos'),
+        ('isisredistribution', 'Redistribution'),
+        ('isissummaryaddress', 'Summary Addresses'),
+        ('isisrouteleak', 'Route Leaking'),
         ('isisprefixsid', 'Prefix-SIDs'),
+        ('isissrmappingentry', 'SR Mapping Entries'),
+        ('isisadjacencysid', 'Adjacency-SIDs'),
         ('isissrv6locator', 'SRv6 Locators'),
     )
     for model, name in menu_items:

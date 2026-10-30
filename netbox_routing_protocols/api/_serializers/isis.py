@@ -21,6 +21,10 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
+    ISISAreaAddress,
 )
 from netbox_routing_protocols.api._serializers.objects import RoutePolicySerializer
 
@@ -34,6 +38,10 @@ __all__ = (
     'ISISFlexAlgoSerializer',
     'ISISPrefixSIDSerializer',
     'ISISSRv6LocatorSerializer',
+    'ISISAddressFamilySerializer',
+    'ISISSRMappingEntrySerializer',
+    'ISISAdjacencySIDSerializer',
+    'ISISAreaAddressSerializer',
 )
 
 
@@ -146,6 +154,9 @@ class ISISLevelSerializer(NetBoxModelSerializer):
             'disabled',
             'auth_type',
             'auth_key',
+            'auth_key_id',
+            'auth_key_chain',
+            'auth_send_only',
             'description',
             'comments',
             'tags',
@@ -172,6 +183,11 @@ class ISISInterfaceLevelSerializer(NetBoxModelSerializer):
             'hello_multiplier',
             'priority',
             'passive',
+            'hello_auth_type',
+            'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             'description',
             'comments',
             'tags',
@@ -276,8 +292,14 @@ class ISISInstanceSerializer(NetBoxModelSerializer):
             'ignore_attached_bit',
             'area_auth_type',
             'area_auth_key',
+            'area_auth_key_id',
+            'area_auth_key_chain',
+            'area_auth_send_only',
             'domain_auth_type',
             'domain_auth_key',
+            'domain_auth_key_id',
+            'domain_auth_key_chain',
+            'domain_auth_send_only',
             'spf_initial_wait',
             'spf_max_wait',
             'lsp_initial_wait',
@@ -330,6 +352,9 @@ class ISISInterfaceSerializer(NetBoxModelSerializer):
             'passive',
             'hello_auth_type',
             'hello_auth_key',
+            'hello_auth_key_id',
+            'hello_auth_key_chain',
+            'hello_auth_send_only',
             'bfd_enabled',
             'frr_enabled',
             'frr_protection',
@@ -337,6 +362,14 @@ class ISISInterfaceSerializer(NetBoxModelSerializer):
             'retransmit_interval',
             'lsp_interval',
             'mesh_group',
+            'hello_padding',
+            'ldp_sync',
+            'prefix_suppression',
+            'route_tag',
+            'three_way_handshake',
+            'admin_group',
+            'te_metric',
+            'delay_metric',
             'description',
             'comments',
             'tags',
@@ -350,3 +383,103 @@ class ISISInterfaceSerializer(NetBoxModelSerializer):
             'interface',
             'address_family',
         )
+
+
+class ISISAreaAddressSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:isisareaaddress-detail'
+    )
+    instance = ISISInstanceSerializer(nested=True)
+
+    class Meta:
+        model = ISISAreaAddress
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'net',
+            'area',
+            'system_id',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'instance', 'net')
+
+
+class ISISSRMappingEntrySerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:isissrmappingentry-detail'
+    )
+    instance = ISISInstanceSerializer(nested=True)
+
+    class Meta:
+        model = ISISSRMappingEntry
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'instance', 'prefix')
+
+
+class ISISAdjacencySIDSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:isisadjacencysid-detail'
+    )
+    interface = ISISInterfaceSerializer(nested=True)
+
+    class Meta:
+        model = ISISAdjacencySID
+        fields = (
+            'url',
+            'id',
+            'display',
+            'interface',
+            'sid_label',
+            'protected',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'interface', 'sid_label')
+
+
+class ISISAddressFamilySerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing_protocols-api:isisaddressfamily-detail'
+    )
+    instance = ISISInstanceSerializer(nested=True)
+
+    class Meta:
+        model = ISISAddressFamily
+        fields = (
+            'url',
+            'id',
+            'display',
+            'instance',
+            'address_family',
+            'metric_style',
+            'distance',
+            'maximum_paths',
+            'default_originate',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
+        )
+        brief_fields = ('url', 'id', 'display', 'instance', 'address_family')

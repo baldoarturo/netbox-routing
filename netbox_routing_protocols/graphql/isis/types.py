@@ -17,6 +17,13 @@ from netbox_routing_protocols.graphql.isis.filters import (
     ISISFlexAlgoFilter,
     ISISPrefixSIDFilter,
     ISISSRv6LocatorFilter,
+    ISISAddressFamilyFilter,
+    ISISSRMappingEntryFilter,
+    ISISAdjacencySIDFilter,
+    ISISAreaAddressFilter,
+    ISISRedistributionFilter,
+    ISISSummaryAddressFilter,
+    ISISRouteLeakFilter,
 )
 
 __all__ = (
@@ -29,6 +36,13 @@ __all__ = (
     'ISISFlexAlgoType',
     'ISISPrefixSIDType',
     'ISISSRv6LocatorType',
+    'ISISAddressFamilyType',
+    'ISISSRMappingEntryType',
+    'ISISAdjacencySIDType',
+    'ISISAreaAddressType',
+    'ISISRedistributionType',
+    'ISISSummaryAddressType',
+    'ISISRouteLeakType',
 )
 
 
@@ -88,13 +102,16 @@ class ISISLevelType(PrimaryObjectType):
 
 
 @strawberry_django.type(
-    models.ISISInterfaceLevel, fields='__all__', filters=ISISInterfaceLevelFilter
+    models.ISISInterfaceLevel,
+    exclude=['hello_auth_key'],
+    filters=ISISInterfaceLevelFilter,
 )
 class ISISInterfaceLevelType(PrimaryObjectType):
     interface: Annotated[
         'ISISInterfaceType', strawberry.lazy('netbox_routing_protocols.graphql.types')
     ]
     level: int
+    hello_auth_type: str | None
 
 
 @strawberry_django.type(
@@ -185,3 +202,120 @@ class ISISInterfaceType(ISISSettingsMixin, PrimaryObjectType):
     passive: bool | None
     hello_auth_type: str | None
     bfd_enabled: bool | None
+
+
+@strawberry_django.type(
+    models.ISISRedistribution, fields='__all__', filters=ISISRedistributionFilter
+)
+class ISISRedistributionType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    address_family: str
+    protocol: str
+    ospf_source: (
+        Annotated[
+            "OSPFInstanceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    eigrp_source: (
+        Annotated[
+            "EIGRPRouterType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    bgp_source: (
+        Annotated[
+            "BGPRouterType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
+    isis_source: (
+        Annotated[
+            "ISISInstanceType",
+            strawberry.lazy('netbox_routing_protocols.graphql.types'),
+        ]
+        | None
+    )
+    level: str
+    metric: int | None
+    metric_type: str
+    route_tag: int | None
+    route_policy: str
+
+
+@strawberry_django.type(
+    models.ISISSummaryAddress, fields='__all__', filters=ISISSummaryAddressFilter
+)
+class ISISSummaryAddressType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    prefix: str
+    level: str
+    not_advertise: bool
+    metric: int | None
+    route_tag: int | None
+
+
+@strawberry_django.type(
+    models.ISISRouteLeak, fields='__all__', filters=ISISRouteLeakFilter
+)
+class ISISRouteLeakType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    address_family: str
+    route_policy: str
+
+
+@strawberry_django.type(
+    models.ISISAreaAddress, fields='__all__', filters=ISISAreaAddressFilter
+)
+class ISISAreaAddressType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    net: str
+
+
+@strawberry_django.type(
+    models.ISISSRMappingEntry, fields='__all__', filters=ISISSRMappingEntryFilter
+)
+class ISISSRMappingEntryType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    prefix: str
+    range_size: int
+    sid_index: int | None
+    sid_label: int | None
+    algorithm: int
+    level: str
+
+
+@strawberry_django.type(
+    models.ISISAdjacencySID, fields='__all__', filters=ISISAdjacencySIDFilter
+)
+class ISISAdjacencySIDType(PrimaryObjectType):
+    interface: Annotated[
+        "ISISInterfaceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    sid_label: int
+    protected: bool
+
+
+@strawberry_django.type(
+    models.ISISAddressFamily, fields='__all__', filters=ISISAddressFamilyFilter
+)
+class ISISAddressFamilyType(PrimaryObjectType):
+    instance: Annotated[
+        "ISISInstanceType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+    ]
+    address_family: str
+    metric_style: str
+    distance: int | None
+    maximum_paths: int | None
+    default_originate: bool | None

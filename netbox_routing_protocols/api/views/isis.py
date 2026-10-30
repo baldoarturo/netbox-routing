@@ -15,6 +15,13 @@ from netbox_routing_protocols.api.serializers import (
     ISISFlexAlgoSerializer,
     ISISPrefixSIDSerializer,
     ISISSRv6LocatorSerializer,
+    ISISAddressFamilySerializer,
+    ISISSRMappingEntrySerializer,
+    ISISAdjacencySIDSerializer,
+    ISISAreaAddressSerializer,
+    ISISRedistributionSerializer,
+    ISISSummaryAddressSerializer,
+    ISISRouteLeakSerializer,
 )
 from netbox_routing_protocols.models import (
     ISISInstance,
@@ -26,6 +33,13 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
+    ISISAreaAddress,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 
 __all__ = (
@@ -38,6 +52,13 @@ __all__ = (
     'ISISFlexAlgoViewSet',
     'ISISPrefixSIDViewSet',
     'ISISSRv6LocatorViewSet',
+    'ISISAddressFamilyViewSet',
+    'ISISSRMappingEntryViewSet',
+    'ISISAdjacencySIDViewSet',
+    'ISISAreaAddressViewSet',
+    'ISISRedistributionViewSet',
+    'ISISSummaryAddressViewSet',
+    'ISISRouteLeakViewSet',
 )
 
 
@@ -118,3 +139,54 @@ class ISISInterfaceViewSet(NetBoxModelViewSet):
     )
     serializer_class = ISISInterfaceSerializer
     filterset_class = filtersets.ISISInterfaceFilterSet
+
+
+class ISISRedistributionViewSet(NetBoxModelViewSet):
+    queryset = ISISRedistribution.objects.select_related(
+        'instance__device',
+        'instance__vrf',
+        'ospf_source__device',
+        'eigrp_source__device',
+        'bgp_source__asn',
+        'isis_source__device',
+    ).prefetch_related('bgp_source__assigned_object')
+    serializer_class = ISISRedistributionSerializer
+    filterset_class = filtersets.ISISRedistributionFilterSet
+
+
+class ISISSummaryAddressViewSet(NetBoxModelViewSet):
+    queryset = ISISSummaryAddress.objects.select_related(
+        'instance__device', 'instance__vrf'
+    )
+    serializer_class = ISISSummaryAddressSerializer
+    filterset_class = filtersets.ISISSummaryAddressFilterSet
+
+
+class ISISRouteLeakViewSet(NetBoxModelViewSet):
+    queryset = ISISRouteLeak.objects.select_related('instance__device', 'instance__vrf')
+    serializer_class = ISISRouteLeakSerializer
+    filterset_class = filtersets.ISISRouteLeakFilterSet
+
+
+class ISISAreaAddressViewSet(NetBoxModelViewSet):
+    queryset = ISISAreaAddress.objects.select_related('instance__device')
+    serializer_class = ISISAreaAddressSerializer
+    filterset_class = filtersets.ISISAreaAddressFilterSet
+
+
+class ISISSRMappingEntryViewSet(NetBoxModelViewSet):
+    queryset = ISISSRMappingEntry.objects.select_related('instance__device')
+    serializer_class = ISISSRMappingEntrySerializer
+    filterset_class = filtersets.ISISSRMappingEntryFilterSet
+
+
+class ISISAdjacencySIDViewSet(NetBoxModelViewSet):
+    queryset = ISISAdjacencySID.objects.select_related('interface__interface')
+    serializer_class = ISISAdjacencySIDSerializer
+    filterset_class = filtersets.ISISAdjacencySIDFilterSet
+
+
+class ISISAddressFamilyViewSet(NetBoxModelViewSet):
+    queryset = ISISAddressFamily.objects.select_related('instance__device')
+    serializer_class = ISISAddressFamilySerializer
+    filterset_class = filtersets.ISISAddressFamilyFilterSet

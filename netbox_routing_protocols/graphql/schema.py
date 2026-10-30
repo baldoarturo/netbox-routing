@@ -37,6 +37,13 @@ from .isis.types import (
     ISISFlexAlgoType,
     ISISPrefixSIDType,
     ISISSRv6LocatorType,
+    ISISAddressFamilyType,
+    ISISSRMappingEntryType,
+    ISISAdjacencySIDType,
+    ISISAreaAddressType,
+    ISISRedistributionType,
+    ISISSummaryAddressType,
+    ISISRouteLeakType,
 )
 from .ospf.types import (
     OSPFInstanceType,
@@ -114,6 +121,20 @@ class ISISQuery:
 
     isis_flex_algo: ISISFlexAlgoType = strawberry_django.field()
     isis_flex_algo_list: list[ISISFlexAlgoType] = strawberry_django.field()
+    isis_address_family: ISISAddressFamilyType = strawberry_django.field()
+    isis_address_family_list: list[ISISAddressFamilyType] = strawberry_django.field()
+    isis_sr_mapping_entry: ISISSRMappingEntryType = strawberry_django.field()
+    isis_sr_mapping_entry_list: list[ISISSRMappingEntryType] = strawberry_django.field()
+    isis_adjacency_sid: ISISAdjacencySIDType = strawberry_django.field()
+    isis_adjacency_sid_list: list[ISISAdjacencySIDType] = strawberry_django.field()
+    isis_area_address: ISISAreaAddressType = strawberry_django.field()
+    isis_area_address_list: list[ISISAreaAddressType] = strawberry_django.field()
+    isis_redistribution: ISISRedistributionType = strawberry_django.field()
+    isis_redistribution_list: list[ISISRedistributionType] = strawberry_django.field()
+    isis_summary_address: ISISSummaryAddressType = strawberry_django.field()
+    isis_summary_address_list: list[ISISSummaryAddressType] = strawberry_django.field()
+    isis_route_leak: ISISRouteLeakType = strawberry_django.field()
+    isis_route_leak_list: list[ISISRouteLeakType] = strawberry_django.field()
 
     isis_prefix_sid: ISISPrefixSIDType = strawberry_django.field()
     isis_prefix_sid_list: list[ISISPrefixSIDType] = strawberry_django.field()

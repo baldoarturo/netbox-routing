@@ -14,6 +14,13 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
+    ISISSRMappingEntry,
+    ISISAdjacencySID,
+    ISISAreaAddress,
+    ISISRedistribution,
+    ISISSummaryAddress,
+    ISISRouteLeak,
 )
 
 __all__ = (
@@ -26,6 +33,13 @@ __all__ = (
     'ISISFlexAlgoTable',
     'ISISPrefixSIDTable',
     'ISISSRv6LocatorTable',
+    'ISISAddressFamilyTable',
+    'ISISSRMappingEntryTable',
+    'ISISAdjacencySIDTable',
+    'ISISAreaAddressTable',
+    'ISISRedistributionTable',
+    'ISISSummaryAddressTable',
+    'ISISRouteLeakTable',
 )
 
 
@@ -242,3 +256,213 @@ class ISISInterfaceTable(NetBoxTable):
             'address_family',
             'passive',
         )
+
+
+class ISISRedistributionTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    protocol = tables.Column(verbose_name=_('Protocol'))
+    source = tables.Column(verbose_name=_('Source'), orderable=False, empty_values=())
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISRedistribution
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'address_family',
+            'protocol',
+            'source',
+            'level',
+            'metric',
+            'metric_type',
+            'route_tag',
+            'route_policy',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'instance',
+            'address_family',
+            'protocol',
+            'source',
+            'level',
+            'metric',
+            'route_policy',
+        )
+
+    def render_protocol(self, record):
+        return record.get_protocol_display()
+
+    def render_source(self, record):
+        return str(record.source) if record.source else '—'
+
+
+class ISISSummaryAddressTable(NetBoxTable):
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    not_advertise = tables.BooleanColumn(verbose_name=_('Do Not Advertise'))
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISSummaryAddress
+        fields = (
+            'pk',
+            'id',
+            'prefix',
+            'instance',
+            'device',
+            'level',
+            'not_advertise',
+            'metric',
+            'route_tag',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'prefix',
+            'instance',
+            'level',
+            'not_advertise',
+            'metric',
+        )
+
+
+class ISISRouteLeakTable(NetBoxTable):
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISRouteLeak
+        fields = (
+            'pk',
+            'id',
+            'instance',
+            'device',
+            'address_family',
+            'route_policy',
+            'description',
+        )
+        default_columns = ('pk', 'id', 'instance', 'address_family', 'route_policy')
+
+    def render_address_family(self, record):
+        return record.get_address_family_display()
+
+
+class ISISAreaAddressTable(NetBoxTable):
+    net = tables.Column(verbose_name=_('NET'), linkify=True)
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    area = tables.Column(verbose_name=_('Area'), orderable=False)
+    system_id = tables.Column(verbose_name=_('System ID'), orderable=False)
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISAreaAddress
+        fields = (
+            'pk',
+            'id',
+            'net',
+            'instance',
+            'device',
+            'area',
+            'system_id',
+            'description',
+        )
+        default_columns = ('pk', 'id', 'net', 'instance', 'area', 'system_id')
+
+
+class ISISSRMappingEntryTable(NetBoxTable):
+    prefix = tables.Column(verbose_name=_('Prefix'), linkify=True)
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISSRMappingEntry
+        fields = (
+            'pk',
+            'id',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'instance',
+            'device',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'prefix',
+            'range_size',
+            'sid_index',
+            'sid_label',
+            'algorithm',
+            'level',
+            'instance',
+        )
+
+
+class ISISAdjacencySIDTable(NetBoxTable):
+    sid_label = tables.Column(verbose_name=_('SID Label'), linkify=True)
+    interface = tables.Column(verbose_name=_('Interface'), linkify=True)
+    protected = tables.BooleanColumn(verbose_name=_('Protected'))
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISAdjacencySID
+        fields = ('pk', 'id', 'sid_label', 'interface', 'protected', 'description')
+        default_columns = ('pk', 'id', 'sid_label', 'interface', 'protected')
+
+
+class ISISAddressFamilyTable(NetBoxTable):
+    address_family = tables.Column(linkify=True, verbose_name=_('Address Family'))
+    instance = tables.Column(verbose_name=_('Instance'), linkify=True)
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='instance__device'
+    )
+    default_originate = tables.BooleanColumn(
+        verbose_name=_('Default Route Origination')
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = ISISAddressFamily
+        fields = (
+            'pk',
+            'id',
+            'address_family',
+            'instance',
+            'device',
+            'metric_style',
+            'distance',
+            'maximum_paths',
+            'default_originate',
+            'description',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'address_family',
+            'instance',
+            'metric_style',
+            'distance',
+            'maximum_paths',
+            'default_originate',
+        )
+
+    def render_address_family(self, record):
+        return record.get_address_family_display()

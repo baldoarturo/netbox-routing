@@ -100,7 +100,13 @@ class RoutePolicyEntryType(PrimaryObjectType):
     ]
     action: str
     sequence: BigInt
-    flow_control: BigInt | None
+    implicit: bool
+    jump_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
     match_prefix_list: list[
         Annotated[
             "PrefixListType", strawberry.lazy('netbox_routing_protocols.graphql.types')

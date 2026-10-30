@@ -17,6 +17,10 @@ class StaticRouteType(PrimaryObjectType):
     vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
     prefix: str | None
     next_hop: str | None
-    interface_next_hop: str | None
-    metric: int | None
-    permanent: bool | None
+    interface: Annotated["InterfaceType", strawberry.lazy('dcim.graphql.types')] | None
+    next_hop_type: str
+    next_hop_vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
+    next_hop_global: bool
+    distance: int
+    permanent: bool
+    tag: int | None

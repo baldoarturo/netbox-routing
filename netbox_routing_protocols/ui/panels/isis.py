@@ -17,6 +17,13 @@ __all__ = (
     'ISISFlexAlgoPanel',
     'ISISPrefixSIDPanel',
     'ISISSRv6LocatorPanel',
+    'ISISAddressFamilyPanel',
+    'ISISSRMappingEntryPanel',
+    'ISISAdjacencySIDPanel',
+    'ISISAreaAddressPanel',
+    'ISISRedistributionPanel',
+    'ISISSummaryAddressPanel',
+    'ISISRouteLeakPanel',
 )
 
 
@@ -81,6 +88,9 @@ class ISISLevelPanel(panels.ObjectAttributesPanel):
     disabled = attrs.BooleanAttr('disabled', label=_('Disabled'))
     auth_type = attrs.ChoiceAttr('auth_type', label=_('Auth Type'))
     auth_key = attrs.TextAttr('auth_key', label=_('Auth Key'))
+    auth_key_id = attrs.NumericAttr('auth_key_id', label=_('Auth Key ID'))
+    auth_key_chain = attrs.TextAttr('auth_key_chain', label=_('Auth Key Chain'))
+    auth_send_only = attrs.BooleanAttr('auth_send_only', label=_('Auth Send Only'))
 
 
 class ISISInterfaceLevelPanel(panels.ObjectAttributesPanel):
@@ -93,6 +103,16 @@ class ISISInterfaceLevelPanel(panels.ObjectAttributesPanel):
     )
     priority = attrs.NumericAttr('priority', label=_('Priority'))
     passive = attrs.BooleanAttr('passive', label=_('Passive'))
+    hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
+    hello_auth_key_id = attrs.NumericAttr(
+        'hello_auth_key_id', label=_('Hello Auth Key ID')
+    )
+    hello_auth_key_chain = attrs.TextAttr(
+        'hello_auth_key_chain', label=_('Hello Auth Key Chain')
+    )
+    hello_auth_send_only = attrs.BooleanAttr(
+        'hello_auth_send_only', label=_('Hello Auth Send Only')
+    )
 
 
 class ISISSegmentRoutingPanel(panels.ObjectAttributesPanel):
@@ -117,6 +137,9 @@ class ISISInstancePanel(panels.ObjectAttributesPanel):
     vrf = attrs.RelatedObjectAttr('vrf', linkify=True)
     process_tag = attrs.TextAttr('process_tag', label=_('Process Tag'))
     net = attrs.TextAttr('net', label=_('NET'))
+    duplicate_system_ids = attrs.TextAttr(
+        'duplicate_system_ids_display', label=_('Same System ID In')
+    )
     is_type = attrs.ChoiceAttr('is_type', label=_('IS Type'))
     import_policy = attrs.RelatedObjectAttr(
         'import_policy', linkify=True, label=_('Import Policy')
@@ -131,8 +154,26 @@ class ISISInstanceSettingsPanel(panels.ObjectAttributesPanel):
     metric_style = attrs.ChoiceAttr('metric_style', label=_('Metric Style'))
     area_auth_type = attrs.ChoiceAttr('area_auth_type', label=_('Area Auth Type'))
     area_auth_key = attrs.TextAttr('area_auth_key', label=_('Area Auth Key'))
+    area_auth_key_id = attrs.NumericAttr(
+        'area_auth_key_id', label=_('Area Auth Key ID')
+    )
+    area_auth_key_chain = attrs.TextAttr(
+        'area_auth_key_chain', label=_('Area Auth Key Chain')
+    )
+    area_auth_send_only = attrs.BooleanAttr(
+        'area_auth_send_only', label=_('Area Auth Send Only')
+    )
     domain_auth_type = attrs.ChoiceAttr('domain_auth_type', label=_('Domain Auth Type'))
     domain_auth_key = attrs.TextAttr('domain_auth_key', label=_('Domain Auth Key'))
+    domain_auth_key_id = attrs.NumericAttr(
+        'domain_auth_key_id', label=_('Domain Auth Key ID')
+    )
+    domain_auth_key_chain = attrs.TextAttr(
+        'domain_auth_key_chain', label=_('Domain Auth Key Chain')
+    )
+    domain_auth_send_only = attrs.BooleanAttr(
+        'domain_auth_send_only', label=_('Domain Auth Send Only')
+    )
     overload_bit = attrs.BooleanAttr('overload_bit', label=_('Overload Bit'))
     overload_on_startup = attrs.BooleanAttr(
         'overload_on_startup', label=_('Overload on Startup')
@@ -192,8 +233,29 @@ class ISISInterfaceSettingsPanel(panels.ObjectAttributesPanel):
     )
     lsp_interval = attrs.NumericAttr('lsp_interval', label=_('LSP Interval'))
     mesh_group = attrs.TextAttr('mesh_group', label=_('Mesh Group'))
+    hello_padding = attrs.BooleanAttr('hello_padding', label=_('Hello Padding'))
+    ldp_sync = attrs.BooleanAttr('ldp_sync', label=_('LDP-IGP Sync'))
+    prefix_suppression = attrs.BooleanAttr(
+        'prefix_suppression', label=_('Prefix Suppression')
+    )
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    three_way_handshake = attrs.BooleanAttr(
+        'three_way_handshake', label=_('Three-way Handshake')
+    )
+    admin_group = attrs.TextAttr('admin_group', label=_('Admin Group'))
+    te_metric = attrs.NumericAttr('te_metric', label=_('TE Metric'))
+    delay_metric = attrs.NumericAttr('delay_metric', label=_('Delay Metric'))
     hello_auth_type = attrs.ChoiceAttr('hello_auth_type', label=_('Hello Auth Type'))
     hello_auth_key = attrs.TextAttr('hello_auth_key', label=_('Hello Auth Key'))
+    hello_auth_key_id = attrs.NumericAttr(
+        'hello_auth_key_id', label=_('Hello Auth Key ID')
+    )
+    hello_auth_key_chain = attrs.TextAttr(
+        'hello_auth_key_chain', label=_('Hello Auth Key Chain')
+    )
+    hello_auth_send_only = attrs.BooleanAttr(
+        'hello_auth_send_only', label=_('Hello Auth Send Only')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 
@@ -202,3 +264,71 @@ class ISISSettingPanel(panels.ObjectAttributesPanel):
     assigned_object = attrs.RelatedObjectAttr('assigned_object', linkify=True)
     name = attrs.TextAttr('key', label=_('Name'))
     value = attrs.TextAttr('value', label=_('Value'))
+
+
+class ISISRedistributionPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    protocol = attrs.ChoiceAttr('protocol', label=_('Protocol'))
+    source = attrs.TextAttr('source', label=_('Source'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    metric_type = attrs.ChoiceAttr('metric_type', label=_('Metric Type'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISSummaryAddressPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    not_advertise = attrs.BooleanAttr('not_advertise', label=_('Do Not Advertise'))
+    metric = attrs.NumericAttr('metric', label=_('Metric'))
+    route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISRouteLeakPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISAreaAddressPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    net = attrs.TextAttr('net', label=_('NET'))
+    area = attrs.TextAttr('area', label=_('Area'))
+    system_id = attrs.TextAttr('system_id', label=_('System ID'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISSRMappingEntryPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    range_size = attrs.NumericAttr('range_size', label=_('Range Size'))
+    sid_index = attrs.NumericAttr('sid_index', label=_('SID Index'))
+    sid_label = attrs.NumericAttr('sid_label', label=_('SID Label'))
+    algorithm = attrs.NumericAttr('algorithm', label=_('Algorithm'))
+    level = attrs.ChoiceAttr('level', label=_('Level'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISAdjacencySIDPanel(panels.ObjectAttributesPanel):
+    interface = attrs.RelatedObjectAttr('interface', label=_('Interface'), linkify=True)
+    sid_label = attrs.NumericAttr('sid_label', label=_('SID Label'))
+    protected = attrs.BooleanAttr('protected', label=_('Protected'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISAddressFamilyPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    metric_style = attrs.TextAttr('metric_style', label=_('Metric Style'))
+    distance = attrs.NumericAttr('distance', label=_('Administrative Distance'))
+    maximum_paths = attrs.NumericAttr('maximum_paths', label=_('Maximum Paths'))
+    default_originate = attrs.BooleanAttr(
+        'default_originate', label=_('Default Route Origination')
+    )
+    description = attrs.TextAttr('description', label=_('Description'))

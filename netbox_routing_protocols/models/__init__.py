@@ -10,7 +10,14 @@ from .isis import (
     ISISSegmentRouting,
     ISISFlexAlgo,
     ISISPrefixSID,
+    ISISAddressFamily,
+    ISISAreaAddress,
+    ISISRedistribution,
+    ISISRouteLeak,
+    ISISAdjacencySID,
+    ISISSRMappingEntry,
     ISISSRv6Locator,
+    ISISSummaryAddress,
 )
 from .objects import *
 from .ospf import (
@@ -69,7 +76,14 @@ __all__ = (
     'ISISSegmentRouting',
     'ISISFlexAlgo',
     'ISISPrefixSID',
+    'ISISAddressFamily',
+    'ISISAreaAddress',
+    'ISISRedistribution',
+    'ISISRouteLeak',
+    'ISISAdjacencySID',
+    'ISISSRMappingEntry',
     'ISISSRv6Locator',
+    'ISISSummaryAddress',
     # Objects -> AS Path
     'ASPath',
     'ASPathEntry',
