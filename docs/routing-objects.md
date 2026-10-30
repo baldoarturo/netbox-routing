@@ -227,6 +227,10 @@ Every route policy ends in a **deny of everything**, as on the routers. It is no
 
 An entry without conditions decides every route that reaches it, so the entries after it are never evaluated. It is **allowed**, but the page of the route policy shows an alert, above the entries, with the entry that stops the others and the ones that are left unreachable.
 
+### Searching what a route policy does with a route
+
+**Route Policies → Search Route Policy Match** takes a route and shows, for one policy or all of them, how it is evaluated, entry by entry, the way [explained above](#how-an-entry-is-evaluated): every condition of each entry with ✓ or ✗, the entry that decides, whether the result is **permit** or **deny**, what a permit entry **sets**, and the jumps to other policies followed to the end. The route is described with any of: prefix, AS path, communities, next hop, metric, origin, tag and weight. Everything is optional, but an entry that has a condition on a field you did not give is not met. The prefix lists, AS paths and community lists are evaluated with the rules of their own search tools: a prefix list or an AS path is met when its first matching entry permits, and a community list when the route carries all the communities of its permit entries. A route that no entry matches ends in the final deny. You need the permission to view route policy entries.
+
 ### Where a route policy is used
 
 The page of a route policy lists, with a link to the filtered list of each, where it is used: the BGP policy templates and peer address families (in and out), the OSPF instances, IS-IS instances and EIGRP routers that take it as their import or export policy, and the entries of other route policies that jump to it. A policy that appears there cannot be deleted.
