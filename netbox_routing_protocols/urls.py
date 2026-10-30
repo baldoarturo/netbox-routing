@@ -237,38 +237,15 @@ urlpatterns = [
     path('bfd/profile/', include(get_model_urls(app_name, 'bfdprofile', detail=False))),
     path('bfd/profile/<int:pk>/', include(get_model_urls(app_name, 'bfdprofile'))),
     # BGP
-    path('bgp/setting/', include(get_model_urls(app_name, 'bgpsetting', detail=False))),
-    path('bgp/setting/<int:pk>/', include(get_model_urls(app_name, 'bgpsetting'))),
     path(
-        'bgp/peer-template/',
-        include(get_model_urls(app_name, 'bgppeertemplate', detail=False)),
+        'bgp/instance/', include(get_model_urls(app_name, 'bgpinstance', detail=False))
     ),
+    path('bgp/instance/<int:pk>/', include(get_model_urls(app_name, 'bgpinstance'))),
     path(
-        'bgp/peer-template/<int:pk>/',
-        include(get_model_urls(app_name, 'bgppeertemplate')),
+        'bgp/peer-group/',
+        include(get_model_urls(app_name, 'bgppeergroup', detail=False)),
     ),
-    path(
-        'bgp/policy-template/',
-        include(get_model_urls(app_name, 'bgppolicytemplate', detail=False)),
-    ),
-    path(
-        'bgp/policy-template/<int:pk>/',
-        include(get_model_urls(app_name, 'bgppolicytemplate')),
-    ),
-    path(
-        'bgp/session-template/',
-        include(get_model_urls(app_name, 'bgpsessiontemplate', detail=False)),
-    ),
-    path(
-        'bgp/session-template/<int:pk>/',
-        include(get_model_urls(app_name, 'bgpsessiontemplate')),
-    ),
-    path('bgp/router/', include(get_model_urls(app_name, 'bgprouter', detail=False))),
-    path('bgp/router/<int:pk>/', include(get_model_urls(app_name, 'bgprouter'))),
-    path('bgp/scope/', include(get_model_urls(app_name, 'bgpscope', detail=False))),
-    path('bgp/scope/<int:pk>/', include(get_model_urls(app_name, 'bgpscope'))),
-    path('bgp/scope/', include(get_model_urls(app_name, 'bgpscope', detail=False))),
-    path('bgp/scope/<int:pk>/', include(get_model_urls(app_name, 'bgpscope'))),
+    path('bgp/peer-group/<int:pk>/', include(get_model_urls(app_name, 'bgppeergroup'))),
     path(
         'bgp/address-family/',
         include(get_model_urls(app_name, 'bgpaddressfamily', detail=False)),

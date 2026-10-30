@@ -9,11 +9,11 @@ from utilities.testing import APITestCase
 
 from netbox_routing_protocols.helpers import route_policy as route_policy_helpers
 from netbox_routing_protocols.models.objects import IMPLICIT_SEQUENCE
+from netbox_routing_protocols.tests.bgp.base import create_peer_address_family
 from netbox_routing_protocols.models import (
     ASPath,
     CommunityList,
     PrefixList,
-    BGPPolicyTemplate,
     RoutePolicy,
     RoutePolicyEntry,
 )
@@ -37,9 +37,7 @@ class RoutePolicyDeleteTestCase(SuperuserMixin, TestCase):
         RoutePolicyEntry.objects.create(
             route_policy=cls.used, sequence=10, action='permit'
         )
-        cls.template = BGPPolicyTemplate.objects.create(
-            name='Template', routepolicy_in=cls.used
-        )
+        cls.template = create_peer_address_family(routepolicy_in=cls.used)
 
     def test_the_single_delete_is_refused_and_names_the_user(self):
         self.login()

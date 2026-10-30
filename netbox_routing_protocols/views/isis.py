@@ -822,9 +822,11 @@ ISISREDISTRIBUTION_QUERYSET = ISISRedistribution.objects.select_related(
     'instance__vrf',
     'ospf_source__device',
     'eigrp_source__device',
+    'bgp_source__device',
+    'bgp_source__vrf',
     'bgp_source__asn',
     'isis_source__device',
-).prefetch_related('bgp_source__assigned_object')
+)
 
 
 @register_model_view(ISISRedistribution, name='list', path='', detail=False)

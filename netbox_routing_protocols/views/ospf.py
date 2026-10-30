@@ -543,13 +543,15 @@ REDISTRIBUTION_SELECT_RELATED = (
     'instance__vrf',
     'ospf_source__device',
     'eigrp_source__device',
+    'bgp_source__device',
+    'bgp_source__vrf',
     'bgp_source__asn',
     'isis_source__device',
     'route_policy',
 )
 REDISTRIBUTION_QUERYSET = OSPFRedistribution.objects.select_related(
     *REDISTRIBUTION_SELECT_RELATED
-).prefetch_related('bgp_source__assigned_object')
+)
 
 
 @register_model_view(OSPFRedistribution, name='list', path='', detail=False)

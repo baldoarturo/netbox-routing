@@ -28,7 +28,7 @@ from netbox_routing_protocols.choices import (
 )
 from netbox_routing_protocols.constants.isis import ISISSETTING_ASSIGNMENT_MODELS
 from netbox_routing_protocols.models import (
-    BGPRouter,
+    BGPInstance,
     EIGRPRouter,
     OSPFInstance,
     ISISInstance,
@@ -510,7 +510,7 @@ class ISISRedistributionFilterSet(NetBoxModelFilterSet):
     )
     bgp_source_id = django_filters.ModelMultipleChoiceFilter(
         field_name='bgp_source',
-        queryset=BGPRouter.objects.all(),
+        queryset=BGPInstance.objects.all(),
         label=_('BGP Source (ID)'),
     )
     isis_source_id = django_filters.ModelMultipleChoiceFilter(

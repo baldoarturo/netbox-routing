@@ -8,11 +8,11 @@ from .eigrp import *
 
 __all__ = (
     'StaticRouteFilterSet',
-    'BGPSettingFilterSet',
-    'BGPRouterFilterSet',
-    'BGPScopeFilterSet',
+    'BGPInstanceFilterSet',
     'BGPAddressFamilyFilterSet',
+    'BGPPeerGroupFilterSet',
     'BGPPeerFilterSet',
+    'BGPPeerAddressFamilyFilterSet',
     'OSPFInstanceFilterSet',
     'OSPFAreaFilterSet',
     'OSPFInterfaceFilterSet',

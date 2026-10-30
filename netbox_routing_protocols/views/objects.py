@@ -46,7 +46,6 @@ from netbox_routing_protocols.filtersets.objects import *
 from netbox_routing_protocols.forms.objects import *
 from netbox_routing_protocols.models import (
     BGPPeerAddressFamily,
-    BGPPolicyTemplate,
     CommunityList,
 )
 from netbox_routing_protocols.models.objects import *
@@ -148,7 +147,7 @@ class PrefixListView(GetRelatedModelsMixin, ObjectView):
 
     def get_extra_context(self, request, instance):
         # Where the list is used: its entries, the route policy entries that match it and
-        # the BGP policy templates and peer address families that filter with it
+        # the BGP peer address families that filter with it
         return {
             'related_models': self.get_related_models(
                 request,
@@ -1206,12 +1205,6 @@ class ASPathView(GetRelatedModelsMixin, ObjectView):
                         .filter(route_policy_entries__match_aspath=instance)
                         .distinct(),
                         'match_aspath_id',
-                    ),
-                    (
-                        BGPPolicyTemplate.objects.restrict(request.user, 'view')
-                        .filter(in_use)
-                        .distinct(),
-                        'aspath_id',
                     ),
                     (
                         BGPPeerAddressFamily.objects.restrict(request.user, 'view')

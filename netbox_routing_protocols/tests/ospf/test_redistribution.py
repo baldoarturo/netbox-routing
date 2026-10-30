@@ -9,7 +9,7 @@ from netbox_routing_protocols.filtersets import OSPFRedistributionFilterSet
 from netbox_routing_protocols.forms import OSPFRedistributionForm
 from netbox_routing_protocols.models import (
     RoutePolicy,
-    BGPRouter,
+    BGPInstance,
     EIGRPRouter,
     ISISInstance,
     OSPFInstance,
@@ -51,20 +51,15 @@ def _create_fixtures(cls):
         device=cls.other_device, process_tag='core'
     )
     rir = RIR.objects.create(name='RIR', slug='rir')
-    cls.bgp = BGPRouter.objects.create(
+    cls.bgp = BGPInstance.objects.create(
         name='BGP',
         asn=ASN.objects.create(asn=65000, rir=rir),
-        assigned_object=cls.device,
+        device=cls.device,
     )
-    cls.other_bgp = BGPRouter.objects.create(
+    cls.other_bgp = BGPInstance.objects.create(
         name='Other BGP',
         asn=ASN.objects.create(asn=65001, rir=rir),
-        assigned_object=cls.other_device,
-    )
-    cls.site_bgp = BGPRouter.objects.create(
-        name='Site BGP',
-        asn=ASN.objects.create(asn=65002, rir=rir),
-        assigned_object=cls.device.site,
+        device=cls.other_device,
     )
 
 
@@ -189,14 +184,13 @@ class OSPFRedistributionModelTestCase(TestCase):
             ('eigrp', {'eigrp_source': self.other_eigrp}),
             ('isis', {'isis_source': self.other_isis}),
             ('bgp', {'bgp_source': self.other_bgp}),
-            ('bgp', {'bgp_source': self.site_bgp}),
         ):
             with self.subTest(protocol=protocol):
                 with self.assertRaises(ValidationError) as cm:
                     self._redistribution(protocol=protocol, **source).full_clean()
                 self.assertIn(f'{protocol}_source', cm.exception.error_dict)
 
-    def test_bgp_router_must_be_assigned_to_the_instance_device(self):
+    def test_bgp_instance_must_be_on_the_instance_device(self):
         self._redistribution(protocol='bgp', bgp_source=self.bgp).full_clean()
 
     def test_limits(self):
@@ -475,7 +469,7 @@ class OSPFRedistributionAPITestCase(
     user_permissions = (
         'netbox_routing_protocols.view_ospfinstance',
         'netbox_routing_protocols.view_eigrprouter',
-        'netbox_routing_protocols.view_bgprouter',
+        'netbox_routing_protocols.view_bgpinstance',
         'netbox_routing_protocols.view_isisinstance',
         'dcim.view_device',
         'ipam.view_asn',

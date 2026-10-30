@@ -28,7 +28,7 @@ from netbox_routing_protocols.choices.ospf import (
 )
 from netbox_routing_protocols.models import (
     OSPFAuthenticationMixin,
-    BGPRouter,
+    BGPInstance,
     EIGRPRouter,
     ISISInstance,
     OSPFArea,
@@ -423,7 +423,7 @@ class OSPFRedistributionFilterSet(NetBoxModelFilterSet):
     )
     bgp_source_id = django_filters.ModelMultipleChoiceFilter(
         field_name='bgp_source',
-        queryset=BGPRouter.objects.all(),
+        queryset=BGPInstance.objects.all(),
         label=_('BGP Source (ID)'),
     )
     isis_source_id = django_filters.ModelMultipleChoiceFilter(

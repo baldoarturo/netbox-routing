@@ -2,7 +2,6 @@ import hashlib
 from itertools import pairwise
 
 import netaddr
-from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -1887,7 +1886,7 @@ class OSPFRedistribution(PrimaryModel):
         null=True,
     )
     bgp_source = models.ForeignKey(
-        to='netbox_routing_protocols.BGPRouter',
+        to='netbox_routing_protocols.BGPInstance',
         related_name='ospf_redistributions',
         on_delete=models.CASCADE,
         verbose_name=_('BGP Source'),
@@ -2056,16 +2055,7 @@ class OSPFRedistribution(PrimaryModel):
             )
 
     def _source_is_on_instance_device(self):
-        source = self.source
-        if self.protocol == OSPFRedistributionProtocolChoices.BGP:
-            # A BGP router is assigned to a generic object (device, site, ...)
-            device = self.instance.device
-            return (
-                source.assigned_object_type_id
-                == ContentType.objects.get_for_model(device).pk
-                and source.assigned_object_id == device.pk
-            )
-        return source.device_id == self.instance.device_id
+        return self.source.device_id == self.instance.device_id
 
 
 class OSPFVirtualLink(

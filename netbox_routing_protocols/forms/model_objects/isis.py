@@ -19,7 +19,7 @@ from netbox_routing_protocols.choices import (
     ISISSettingChoices,
 )
 from netbox_routing_protocols.models import (
-    BGPRouter,
+    BGPInstance,
     EIGRPRouter,
     OSPFInstance,
     ISISInstance,
@@ -849,7 +849,7 @@ class ISISRedistributionForm(PrimaryModelForm):
         query_params={'device_id': '$device'},
     )
     bgp_source = DynamicModelChoiceField(
-        queryset=BGPRouter.objects.all(),
+        queryset=BGPInstance.objects.all(),
         required=False,
         selector=True,
         label=_('BGP Source'),

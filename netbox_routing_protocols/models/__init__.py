@@ -38,13 +38,9 @@ from .static import StaticRoute
 
 __all__ = (
     # BGP
-    'BGPRouter',
-    'BGPScope',
+    'BGPInstance',
     'BGPAddressFamily',
-    'BGPPeerTemplate',
-    'BGPPolicyTemplate',
-    'BGPSessionTemplate',
-    'BGPSetting',
+    'BGPPeerGroup',
     'BGPPeer',
     'BGPPeerAddressFamily',
     # Communities

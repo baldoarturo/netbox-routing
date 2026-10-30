@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from netbox.api.serializers import NetBoxModelSerializer
-from netbox_routing_protocols.api._serializers.bgp import BGPRouterSerializer
+from netbox_routing_protocols.api._serializers.bgp import BGPInstanceSerializer
 from netbox_routing_protocols.api._serializers.eigrp import EIGRPRouterSerializer
 from netbox_routing_protocols.api._serializers.isis import ISISInstanceSerializer
 from netbox_routing_protocols.api._serializers.ospf import OSPFInstanceSerializer
@@ -25,7 +25,7 @@ class ISISRedistributionSerializer(NetBoxModelSerializer):
     instance = ISISInstanceSerializer(nested=True)
     ospf_source = OSPFInstanceSerializer(nested=True, required=False, allow_null=True)
     eigrp_source = EIGRPRouterSerializer(nested=True, required=False, allow_null=True)
-    bgp_source = BGPRouterSerializer(nested=True, required=False, allow_null=True)
+    bgp_source = BGPInstanceSerializer(nested=True, required=False, allow_null=True)
     isis_source = ISISInstanceSerializer(nested=True, required=False, allow_null=True)
 
     class Meta:

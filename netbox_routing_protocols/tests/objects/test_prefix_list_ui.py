@@ -19,7 +19,8 @@ from netbox_routing_protocols.helpers.prefix_list import (
     prefix_list_references,
     resequence,
 )
-from netbox_routing_protocols.models import BGPPolicyTemplate
+from netbox_routing_protocols.models import BGPPeerAddressFamily
+from netbox_routing_protocols.tests.bgp.base import create_peer_address_family
 from netbox_routing_protocols.models.objects import *
 
 __all__ = (
@@ -223,13 +224,13 @@ class PrefixListViewsTestCase(SuperuserMixin, TestCase):
             route_policy=route_policy, sequence=10, action='permit'
         )
         entry.match_prefix_list.add(prefix_list)
-        BGPPolicyTemplate.objects.create(name='Template', prefixlist_in=prefix_list)
+        create_peer_address_family(prefixlist_in=prefix_list)
         response = self.client.get(prefix_list.get_absolute_url())
         self.assertContains(response, f'prefixlist_in_id={prefix_list.pk}')
         pk = prefix_list.pk
         for link in (
             f'/plugins/routing/objects/route-policy-entry/?match_prefix_list_id={pk}',
-            f'/plugins/routing/bgp/policy-template/?prefixlist_in_id={pk}',
+            f'/plugins/routing/bgp/peer-address-family/?prefixlist_in_id={pk}',
             f'/plugins/routing/objects/prefix-list-entry/?prefix_list_id={pk}',
         ):
             self.assertContains(response, link)
@@ -371,9 +372,7 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
     def setUpTestData(cls):
         cls.used = PrefixList.objects.create(name='Used', family=4)
         cls.free = PrefixList.objects.create(name='Free', family=4)
-        cls.template = BGPPolicyTemplate.objects.create(
-            name='Template', prefixlist_in=cls.used
-        )
+        cls.template = create_peer_address_family(prefixlist_in=cls.used)
         route_policy = RoutePolicy.objects.create(name='Map')
         cls.route_policy_entry = RoutePolicyEntry.objects.create(
             route_policy=route_policy, sequence=10, action='permit'
@@ -382,7 +381,7 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
 
     def test_references_of_any_model_are_found(self):
         models = {model for model, objects in prefix_list_references(self.used)}
-        self.assertEqual(models, {BGPPolicyTemplate, RoutePolicyEntry})
+        self.assertEqual(models, {BGPPeerAddressFamily, RoutePolicyEntry})
         self.assertEqual(prefix_list_references(self.free), [])
 
     def test_the_delete_dialog_names_what_refers_to_the_list(self):
@@ -424,9 +423,7 @@ class PrefixListDeleteWarningTestCase(SuperuserMixin, TestCase):
             follow=True,
         )
         texts = [str(message) for message in response.context['messages']]
-        self.assertTrue(
-            any('are in use' in text and 'Template' in text for text in texts)
-        )
+        self.assertTrue(any('are in use' in text and 'Group' in text for text in texts))
 
 
 class ASPathDeleteWarningTestCase(SuperuserMixin, TestCase):

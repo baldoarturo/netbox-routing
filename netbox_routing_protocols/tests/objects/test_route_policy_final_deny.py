@@ -267,6 +267,13 @@ class FinalDenyMigrationTestCase(TransactionTestCase):
         executor.migrate(targets)
         return executor.loader.project_state(targets).apps
 
+    def tearDown(self):
+        # leave the database at the latest migration: the flush that follows only
+        # knows the tables of the current models
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+        super().tearDown()
+
     def test_existing_policies_get_it(self):
         before = [('netbox_routing_protocols', '0087_protocol_route_policies')]
         after = [('netbox_routing_protocols', '0088_routepolicy_jump_and_final_deny')]

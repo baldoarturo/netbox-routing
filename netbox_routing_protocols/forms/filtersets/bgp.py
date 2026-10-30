@@ -2,8 +2,8 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device
-from ipam.models import ASN, VRF, IPAddress
-from netbox.forms import NetBoxModelFilterSetForm, PrimaryModelFilterSetForm
+from ipam.models import ASN, VRF
+from netbox.forms import NetBoxModelFilterSetForm
 from netbox_routing_protocols.models import PrefixList, RoutePolicy
 from tenancy.forms import TenancyFilterForm
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
@@ -13,15 +13,11 @@ from netbox_routing_protocols.choices.bgp import *
 from netbox_routing_protocols.models.bgp import *
 
 __all__ = (
-    'BGPSettingFilterForm',
-    'BGPRouterFilterForm',
-    'BGPScopeFilterForm',
+    'BGPInstanceFilterForm',
     'BGPAddressFamilyFilterForm',
+    'BGPPeerGroupFilterForm',
     'BGPPeerFilterForm',
     'BGPPeerAddressFamilyFilterForm',
-    'BGPPeerTemplateFilterForm',
-    'BGPPolicyTemplateFilterForm',
-    'BGPSessionTemplateFilterForm',
     'BFDProfileFilterForm',
 )
 
@@ -53,12 +49,18 @@ class BGPPolicyFilterFormMixin(forms.Form):
     )
 
 
-class SessionFilterFormMixin(forms.Form):
-    local_as_id = DynamicModelMultipleChoiceField(
-        queryset=ASN.objects.all(),
+class BGPPeerConfigFilterFormMixin(forms.Form):
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=BGPInstance.objects.all(),
         required=False,
         selector=True,
-        label=_('Local AS'),
+        label=_('Instance'),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
     )
     remote_as_id = DynamicModelMultipleChoiceField(
         queryset=ASN.objects.all(),
@@ -66,33 +68,135 @@ class SessionFilterFormMixin(forms.Form):
         selector=True,
         label=_('Remote AS'),
     )
+    local_as_id = DynamicModelMultipleChoiceField(
+        queryset=ASN.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Local AS'),
+    )
+    bfd_id = DynamicModelMultipleChoiceField(
+        queryset=BFDProfile.objects.all(),
+        required=False,
+        selector=True,
+        label=_('BFD Profile'),
+    )
+    enabled = forms.NullBooleanField(
+        required=False,
+        label=_('Enabled'),
+        widget=forms.Select(
+            choices=((None, '---------'), (True, _('Yes')), (False, _('No')))
+        ),
+    )
 
 
-class BGPSettingFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
-    model = BGPSetting
+class BGPInstanceFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
+    model = BGPInstance
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
-        FieldSet('key'),
+        FieldSet('device_id', 'vrf_id', 'asn_id', name=_('BGP')),
+        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    vrf_id = DynamicModelMultipleChoiceField(
+        queryset=VRF.objects.all(),
+        required=False,
+        selector=True,
+        label=_('VRF'),
+    )
+    asn_id = DynamicModelMultipleChoiceField(
+        queryset=ASN.objects.all(),
+        required=False,
+        selector=True,
+        label=_('ASN'),
     )
     tag = TagFilterField(model)
 
 
-class BGPPeerTemplateFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
-    model = BGPPeerTemplate
+class BGPAddressFamilyFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
+    model = BGPAddressFamily
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
-        FieldSet('name'),
+        FieldSet('instance_id', 'device_id', 'vrf_id', 'address_family', name=_('BGP')),
+        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=BGPInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    vrf_id = DynamicModelMultipleChoiceField(
+        queryset=VRF.objects.all(),
+        required=False,
+        selector=True,
+        label=_('VRF'),
+    )
+    address_family = forms.MultipleChoiceField(
+        choices=BGPAddressFamilyChoices, required=False, label=_('Address Family')
     )
     tag = TagFilterField(model)
 
 
-class BGPPolicyTemplateFilterForm(
-    BGPPolicyFilterFormMixin, TenancyFilterForm, PrimaryModelFilterSetForm
+class BGPPeerGroupFilterForm(
+    BGPPeerConfigFilterFormMixin, TenancyFilterForm, NetBoxModelFilterSetForm
 ):
-    model = BGPPolicyTemplate
+    model = BGPPeerGroup
     fieldsets = (
         FieldSet('q', 'filter_id', 'tag'),
-        FieldSet('name'),
+        FieldSet('instance_id', 'device_id', name=_('BGP')),
+        FieldSet('enabled', 'remote_as_id', 'local_as_id', 'bfd_id', name=_('Session')),
+        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
+    )
+    tag = TagFilterField(model)
+
+
+class BGPPeerFilterForm(
+    BGPPeerConfigFilterFormMixin, TenancyFilterForm, NetBoxModelFilterSetForm
+):
+    model = BGPPeer
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('instance_id', 'device_id', 'peer_group_id', 'status', name=_('BGP')),
+        FieldSet('enabled', 'remote_as_id', 'local_as_id', 'bfd_id', name=_('Session')),
+        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
+    )
+    peer_group_id = DynamicModelMultipleChoiceField(
+        queryset=BGPPeerGroup.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Peer Group'),
+    )
+    status = forms.MultipleChoiceField(
+        choices=BGPStatusChoices, required=False, label=_('Status')
+    )
+    tag = TagFilterField(model)
+
+
+class BGPPeerAddressFamilyFilterForm(
+    BGPPolicyFilterFormMixin, TenancyFilterForm, NetBoxModelFilterSetForm
+):
+    model = BGPPeerAddressFamily
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet(
+            'instance_id',
+            'peer_id',
+            'peer_group_id',
+            'address_family_id',
+            'enabled',
+            name=_('BGP'),
+        ),
         FieldSet(
             'prefixlist_in_id',
             'prefixlist_out_id',
@@ -102,143 +206,12 @@ class BGPPolicyTemplateFilterForm(
         ),
         FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
     )
-    name = forms.CharField()
-    tag = TagFilterField(model)
-
-
-class BGPSessionTemplateFilterForm(
-    SessionFilterFormMixin, TenancyFilterForm, PrimaryModelFilterSetForm
-):
-    model = BGPSessionTemplate
-    fieldsets = (
-        FieldSet('q', 'filter_id', 'tag'),
-        FieldSet('name'),
-        FieldSet('enabled', 'local_as_id', 'remote_as_id', name=_('Session')),
-        FieldSet('ttl', 'bfd', name=_('Parameters')),
-        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
-    )
-    tag = TagFilterField(model)
-
-
-class BGPRouterFilterForm(
-    TenancyFilterForm,
-    # ContactModelFilterForm,
-    PrimaryModelFilterSetForm,
-):
-    device_id = DynamicModelMultipleChoiceField(
-        queryset=Device.objects.all(),
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=BGPInstance.objects.all(),
         required=False,
         selector=True,
-        label=_('Device'),
+        label=_('Instance'),
     )
-    asn_id = DynamicModelMultipleChoiceField(
-        queryset=ASN.objects.all(),
-        required=False,
-        selector=True,
-        label=_('ASN'),
-    )
-    model = BGPRouter
-    fieldsets = (FieldSet('q', 'filter_id', 'tag', 'device_id', 'asn_id'),)
-    tag = TagFilterField(model)
-
-
-class BGPScopeFilterForm(
-    TenancyFilterForm,
-    # ContactModelFilterForm,
-    NetBoxModelFilterSetForm,
-):
-    router_id = DynamicModelMultipleChoiceField(
-        queryset=BGPRouter.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Router'),
-    )
-    vrf_id = DynamicModelMultipleChoiceField(
-        queryset=VRF.objects.all(),
-        required=False,
-        selector=True,
-        label=_('VRF'),
-    )
-    model = BGPScope
-    fieldsets = (FieldSet('q', 'filter_id', 'tag', 'router_id', 'vrf_id'),)
-    tag = TagFilterField(model)
-
-
-class BGPAddressFamilyFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
-    scope_id = DynamicModelMultipleChoiceField(
-        queryset=BGPScope.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Router'),
-    )
-    address_family = forms.MultipleChoiceField(
-        choices=BGPAddressFamilyChoices,
-        required=False,
-        label=_('Address Family'),
-    )
-    model = BGPAddressFamily
-    fieldsets = (FieldSet('q', 'filter_id', 'tag', 'scope_id', 'address_family'),)
-    tag = TagFilterField(model)
-
-
-class BGPPeerFilterForm(
-    TenancyFilterForm,
-    # ContactModelFilterForm,
-    NetBoxModelFilterSetForm,
-):
-    scope_id = DynamicModelMultipleChoiceField(
-        queryset=BGPScope.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Scope'),
-    )
-    peer_id = DynamicModelMultipleChoiceField(
-        queryset=IPAddress.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Peer'),
-    )
-    peer_group_id = DynamicModelMultipleChoiceField(
-        queryset=BGPPeerTemplate.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Peer Group'),
-    )
-    remote_as_id = DynamicModelMultipleChoiceField(
-        queryset=ASN.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Remote AS'),
-    )
-    local_as_id = DynamicModelMultipleChoiceField(
-        queryset=ASN.objects.all(),
-        required=False,
-        selector=True,
-        label=_('Local AS'),
-    )
-    model = BGPPeer
-    fieldsets = (
-        FieldSet(
-            'q',
-            'filter_id',
-            'tag',
-            'scope_id',
-            'peer_id',
-            'peer_group_id',
-            'remote_as_id',
-            'local_as_id',
-            'status',
-            'enabled',
-        ),
-    )
-    tag = TagFilterField(model)
-
-
-class BGPPeerAddressFamilyFilterForm(
-    TenancyFilterForm,
-    # ContactModelFilterForm,
-    NetBoxModelFilterSetForm,
-):
     peer_id = DynamicModelMultipleChoiceField(
         queryset=BGPPeer.objects.all(),
         required=False,
@@ -246,7 +219,7 @@ class BGPPeerAddressFamilyFilterForm(
         label=_('Peer'),
     )
     peer_group_id = DynamicModelMultipleChoiceField(
-        queryset=BGPPeerTemplate.objects.all(),
+        queryset=BGPPeerGroup.objects.all(),
         required=False,
         selector=True,
         label=_('Peer Group'),
@@ -257,16 +230,11 @@ class BGPPeerAddressFamilyFilterForm(
         selector=True,
         label=_('Address Family'),
     )
-    model = BGPPeerAddressFamily
-    fieldsets = (
-        FieldSet(
-            'q',
-            'filter_id',
-            'tag',
-            'peer_id',
-            'peer_group_id',
-            'address_family_id',
-            'enabled',
+    enabled = forms.NullBooleanField(
+        required=False,
+        label=_('Enabled'),
+        widget=forms.Select(
+            choices=((None, '---------'), (True, _('Yes')), (False, _('No')))
         ),
     )
     tag = TagFilterField(model)

@@ -2,12 +2,9 @@ import strawberry
 import strawberry_django
 
 from .bgp.types import (
-    BGPPeerTemplateType,
-    BGPPolicyTemplateType,
-    BGPSessionTemplateType,
-    BGPRouterType,
-    BGPScopeType,
+    BGPInstanceType,
     BGPAddressFamilyType,
+    BGPPeerGroupType,
     BGPPeerType,
     BGPPeerAddressFamilyType,
     BFDProfileType,
@@ -219,33 +216,15 @@ class RoutePolicyEntryQuery:
 
 
 @strawberry.type(name="Query")
-class BGPPeerTemplateQuery:
-    bgp_peer_template: BGPPeerTemplateType = strawberry_django.field()
-    bgp_peer_template_list: list[BGPPeerTemplateType] = strawberry_django.field()
+class BGPInstanceQuery:
+    bgp_instance: BGPInstanceType = strawberry_django.field()
+    bgp_instance_list: list[BGPInstanceType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
-class BGPPolicyTemplateQuery:
-    bgp_policy_template: BGPPolicyTemplateType = strawberry_django.field()
-    bgp_policy_template_list: list[BGPPolicyTemplateType] = strawberry_django.field()
-
-
-@strawberry.type(name="Query")
-class BGPSessionTemplateQuery:
-    bgp_session_template: BGPSessionTemplateType = strawberry_django.field()
-    bgp_session_template_list: list[BGPSessionTemplateType] = strawberry_django.field()
-
-
-@strawberry.type(name="Query")
-class BGPRouterQuery:
-    bgp_router: BGPRouterType = strawberry_django.field()
-    bgp_router_list: list[BGPRouterType] = strawberry_django.field()
-
-
-@strawberry.type(name="Query")
-class BGPScopeQuery:
-    bgp_scope: BGPScopeType = strawberry_django.field()
-    bgp_scope_list: list[BGPScopeType] = strawberry_django.field()
+class BGPPeerGroupQuery:
+    bgp_peer_group: BGPPeerGroupType = strawberry_django.field()
+    bgp_peer_group_list: list[BGPPeerGroupType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
@@ -288,12 +267,9 @@ schema = [
     PrefixListEntryQuery,
     RoutePolicyQuery,
     RoutePolicyEntryQuery,
-    BGPPeerTemplateQuery,
-    BGPPolicyTemplateQuery,
-    BGPSessionTemplateQuery,
-    BGPRouterQuery,
-    BGPScopeQuery,
+    BGPInstanceQuery,
     BGPAddressFamilyQuery,
+    BGPPeerGroupQuery,
     BGPPeerQuery,
     BGPPeerAddressFamilyQuery,
     BFDProfileQuery,

@@ -5,7 +5,8 @@ from django.urls import reverse
 from extras.models import Tag
 from users.models import User
 
-from netbox_routing_protocols.filtersets.bgp import BGPPolicyTemplateFilterSet
+from netbox_routing_protocols.filtersets.bgp import BGPPeerAddressFamilyFilterSet
+from netbox_routing_protocols.tests.bgp.base import create_peer_address_family
 from netbox_routing_protocols.filtersets.objects import (
     ASPathEntryFilterSet,
     ASPathFilterSet,
@@ -227,8 +228,6 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        from netbox_routing_protocols.models import BGPPolicyTemplate
-
         cls.aspath = ASPath.objects.create(name='Used')
         cls.free = ASPath.objects.create(name='Free')
         cls.policy = RoutePolicy.objects.create(name='Policy')
@@ -237,33 +236,13 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
             route_policy=cls.policy, sequence=10, action='permit'
         )
         entry.match_aspath.add(cls.aspath)
-        cls.inbound = BGPPolicyTemplate.objects.create(
-            name='Inbound', routepolicy_in=cls.policy
-        )
-        cls.outbound = BGPPolicyTemplate.objects.create(
-            name='Outbound', routepolicy_out=cls.policy
-        )
-        cls.unrelated = BGPPolicyTemplate.objects.create(
-            name='Unrelated', routepolicy_in=cls.other_policy
-        )
-        cls.BGPPolicyTemplate = BGPPolicyTemplate
+        cls.inbound = create_peer_address_family(routepolicy_in=cls.policy)
+        cls.outbound = create_peer_address_family(routepolicy_out=cls.policy)
+        cls.unrelated = create_peer_address_family(routepolicy_in=cls.other_policy)
 
     @staticmethod
     def policy_list():
-        return reverse(NS + 'bgppolicytemplate_list')
-
-    def test_peer_address_families_can_be_filtered_by_aspath(self):
-        from netbox_routing_protocols.filtersets.bgp import (
-            BGPPeerAddressFamilyFilterSet,
-        )
-        from netbox_routing_protocols.models import BGPPeerAddressFamily
-
-        self.assertIn('aspath_id', BGPPeerAddressFamilyFilterSet.base_filters)
-        qs = BGPPeerAddressFamilyFilterSet(
-            QueryDict(f'aspath_id={self.aspath.pk}'),
-            BGPPeerAddressFamily.objects.all(),
-        ).qs
-        self.assertEqual(list(qs), [])
+        return reverse(NS + 'bgppeeraddressfamily_list')
 
     def test_route_policy_filter(self):
         qs = RoutePolicyFilterSet(
@@ -272,14 +251,13 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
         self.assertEqual(set(qs), {self.policy})
 
     def test_bgp_filter_by_aspath_in_or_out(self):
-        qs = BGPPolicyTemplateFilterSet(
-            QueryDict(f'aspath_id={self.aspath.pk}'),
-            self.BGPPolicyTemplate.objects.all(),
+        queryset = type(self.inbound).objects.all()
+        qs = BGPPeerAddressFamilyFilterSet(
+            QueryDict(f'aspath_id={self.aspath.pk}'), queryset
         ).qs
         self.assertEqual(set(qs), {self.inbound, self.outbound})
-        qs = BGPPolicyTemplateFilterSet(
-            QueryDict(f'aspath_id={self.free.pk}'),
-            self.BGPPolicyTemplate.objects.all(),
+        qs = BGPPeerAddressFamilyFilterSet(
+            QueryDict(f'aspath_id={self.free.pk}'), queryset
         ).qs
         self.assertEqual(set(qs), set())
 
@@ -291,7 +269,7 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
         for name in (
             'routepolicy_list',
             'routepolicyentry_list',
-            'bgppolicytemplate_list',
+            'bgppeeraddressfamily_list',
         ):
             self.assertContains(page, reverse(NS + name))
 

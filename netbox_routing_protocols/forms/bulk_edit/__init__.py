@@ -49,13 +49,9 @@ __all__ = (
     # BFD
     'BFDProfileBulkEditForm',
     # BGP
-    'BGPPeerTemplateBulkEditForm',
-    'BGPPolicyTemplateBulkEditForm',
-    'BGPSessionTemplateBulkEditForm',
-    'BGPRouterBulkEditForm',
-    'BGPScopeBulkEditForm',
+    'BGPInstanceBulkEditForm',
     'BGPAddressFamilyBulkEditForm',
+    'BGPPeerGroupBulkEditForm',
     'BGPPeerBulkEditForm',
     'BGPPeerAddressFamilyBulkEditForm',
-    'BGPSettingBulkEditForm',
 )

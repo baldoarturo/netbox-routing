@@ -45,16 +45,6 @@ def route_policy_settings(action, set_actions):
     return fields, unmapped
 
 
-def resolve_assigned_object(item):
-    if getattr(item, 'device', None):
-        return item.device
-    elif getattr(item, 'virtualmachine', None):
-        return item.virtualmachine
-    elif getattr(item, 'site', None):
-        return item.site
-    return None
-
-
 def pks_from_through_relationship(item, column):
     local_class = item.__class__
     local_column = getattr(local_class, column)
@@ -113,121 +103,27 @@ class Command(BaseCommand):
                     'peer_group': {},
                 }
 
-                local_as_default = None
-                if sess := netbox_bgp.BGPSession.objects.filter(
-                    device__isnull=True, site__isnull=True, local_as__isnull=False
-                ).first():
-                    local_as_default = sess.local_as
-                elif sess := netbox_bgp.BGPSession.objects.filter(
-                    site__isnull=True, local_as__isnull=False
-                ).first():
-                    local_as_default = sess.local_as
-                elif sess := netbox_bgp.BGPSession.objects.filter(
-                    local_as__isnull=False
-                ).first():
-                    local_as_default = sess.local_as
-
-                if not local_as_default:
-                    raise Exception(
-                        _(
-                            'You must have at least one session with an ASN defined to allow the creation of a '
-                            'default router'
-                        )
-                    )
-
-                router = BGPRouter(
-                    name='default',
-                    asn=local_as_default,
-                    description='Default Router',
-                )
-                router.full_clean()
-                router.save()
-                mapping['router'][None] = router
-
-                scope = BGPScope(
-                    router=router,
-                    description='Default Scope',
-                )
-                scope.full_clean()
-                scope.save()
-
-                af = BGPAddressFamily(
-                    scope=scope,
-                    address_family='ipv4-unicast',
-                    description='Default v4 AF',
-                )
-                af.full_clean()
-                af.save()
-
-                af = BGPAddressFamily(
-                    scope=scope,
-                    address_family='ipv6-unicast',
-                    description='Default v6 AF',
-                )
-                af.full_clean()
-                af.save()
-
+                # One BGP instance per device (the global table); the sessions of a device
+                # whose local ASN differs from the instance's keep it as the peer's local AS
                 for item in netbox_bgp.BGPSession.objects.all():
-                    if not item.local_as:
-                        raise Exception(_('All BGP Sessions require a local ASN'))
-
-                    assigned_object = item.device or item.site
-                    if assigned_object in mapping['router']:
+                    if not item.device or not item.local_as:
+                        raise Exception(
+                            _('Every BGP session needs a device and a local ASN')
+                        )
+                    if item.device.pk in mapping['router']:
                         continue
-
-                    try:
-                        if item.device:
-                            router = BGPRouter.objects.get(
-                                device=assigned_object, asn=item.local_as
-                            )
-                        elif item.site:
-                            router = BGPRouter.objects.get(
-                                site=item.site, asn=item.local_as
-                            )
-                        else:
-                            router = BGPRouter.objects.get(asn=item.local_as)
-                    except BGPRouter.DoesNotExist:
-                        router = BGPRouter(
-                            assigned_object=assigned_object,
-                            asn=item.local_as,
-                        )
-                        router.full_clean()
-                        router.save()
-                        mapping['router'][assigned_object] = router
-                        if not mapping['router'].get(item.pk):
-                            mapping['router'][item.pk] = router
-
-                    try:
-                        scope = BGPScope.objects.get(router=router)
-                    except BGPScope.DoesNotExist:
-                        scope = BGPScope(
-                            router=router,
-                        )
-                        scope.full_clean()
-                        scope.save()
-
-                    try:
-                        af = BGPAddressFamily.objects.get(
-                            scope=scope, address_family='ipv4-unicast'
-                        )
-                    except BGPAddressFamily.DoesNotExist:
+                    router = BGPInstance(
+                        name=item.device.name,
+                        device=item.device,
+                        asn=item.local_as,
+                        description='Migrated from NetBox BGP',
+                    )
+                    router.full_clean()
+                    router.save()
+                    mapping['router'][item.device.pk] = router
+                    for address_family in ('ipv4-unicast', 'ipv6-unicast'):
                         af = BGPAddressFamily(
-                            scope=scope,
-                            address_family='ipv4-unicast',
-                            description='Default AF',
-                        )
-                        af.full_clean()
-                        af.save()
-
-                    try:
-                        af = BGPAddressFamily.objects.get(
-                            scope=scope, address_family='ipv6-unicast'
-                        )
-                    except BGPAddressFamily.DoesNotExist:
-                        af = BGPAddressFamily(
-                            scope=scope,
-                            address_family='ipv6-unicast',
-                            description='Default AF',
+                            instance=router, address_family=address_family
                         )
                         af.full_clean()
                         af.save()
@@ -474,125 +370,94 @@ class Command(BaseCommand):
                         entry.match_aspath.set(aspath)
                         mapping['route_policy_entry'][item.pk] = entry
 
-                for item in netbox_bgp.BGPPeerGroup.objects.all():
-
+                def peer_group_of(item, router):
+                    """The peer group of a session in the instance of its device (a
+                    netbox-bgp group is global: one copy per instance that uses it)"""
+                    key = (item.peer_group.pk, router.pk)
+                    if key in mapping['peer_group']:
+                        return mapping['peer_group'][key]
+                    group = item.peer_group
+                    entry = BGPPeerGroup(
+                        name=group.name,
+                        instance=router,
+                        description=group.description,
+                        comments=group.comments,
+                    )
+                    entry.full_clean()
+                    entry.save()
+                    mapping['peer_group'][key] = entry
                     if (
-                        item.import_policies.count() > 1
-                        or item.import_policies.count() > 1
+                        group.import_policies.count() > 1
+                        or group.export_policies.count() > 1
                     ):
-                        error = (
-                            f'Only 1 import or export policy is supported per Peer Template.  There are '
-                            f'{item.import_policies.count()} Import Policies and {item.export_policies.count()} Export'
-                            f' Policies. Only the first policy per type will be applied.'
+                        print(
+                            f'Only 1 import or export policy is supported per peer group. '
+                            f'{group.name} has {group.import_policies.count()} import and '
+                            f'{group.export_policies.count()} export policies; only the '
+                            f'first of each is applied.'
                         )
-                        # raise Exception(_(error))
-                        print(error)
-
-                    router = mapping['router'][None]
-                    scope = router.scopes.first()
-                    ipv4_af = scope.address_families.filter(
-                        address_family='ipv4-unicast'
-                    ).first()
-                    ipv6_af = scope.address_families.filter(
-                        address_family='ipv6-unicast'
-                    ).first()
-                    try:
-                        entry = BGPPeerTemplate.objects.get(name=item.name)
-                        if not mapping['peer_group'].get(item.pk):
-                            mapping['peer_group'][item.pk] = entry
-                    except BGPPeerTemplate.DoesNotExist:
-                        entry = BGPPeerTemplate(
-                            name=item.name,
-                            description=item.description,
-                            comments=item.comments,
-                        )
-                        entry.full_clean()
-                        entry.save()
-                        mapping['peer_group'][item.pk] = entry
-
-                    import_policies = (
-                        mapping['route_policy'][
-                            item.import_policies.first().routingpolicy.pk
-                        ]
-                        if item.import_policies
-                        else None
-                    )
-                    export_policies = (
-                        mapping['route_policy'][
-                            item.export_policies.first().routingpolicy.pk
-                        ]
-                        if item.export_policies
-                        else None
-                    )
-
-                    try:
-                        peer_af = BGPPeerAddressFamily.objects.get(
-                            peer_group=entry, address_family=ipv4_af
-                        )
-                    except BGPPeerAddressFamily.DoesNotExist:
+                    import_policy = group.import_policies.first()
+                    export_policy = group.export_policies.first()
+                    for address_family in router.address_families.all():
                         peer_af = BGPPeerAddressFamily(
-                            assigned_object=entry,
-                            address_family=ipv4_af,
-                            routepolicy_in=import_policies,
-                            routepolicy_out=export_policies,
+                            peer_group=entry,
+                            address_family=address_family,
+                            routepolicy_in=(
+                                mapping['route_policy'].get(
+                                    import_policy.routingpolicy.pk
+                                )
+                                if import_policy
+                                else None
+                            ),
+                            routepolicy_out=(
+                                mapping['route_policy'].get(
+                                    export_policy.routingpolicy.pk
+                                )
+                                if export_policy
+                                else None
+                            ),
                         )
                         peer_af.full_clean()
                         peer_af.save()
-
-                    try:
-                        peer_af = BGPPeerAddressFamily.objects.get(
-                            peer_group=entry, address_family=ipv6_af
-                        )
-                    except BGPPeerAddressFamily.DoesNotExist:
-                        peer_af = BGPPeerAddressFamily(
-                            assigned_object=entry,
-                            address_family=ipv6_af,
-                            routepolicy_in=import_policies,
-                            routepolicy_out=export_policies,
-                        )
-                        peer_af.full_clean()
-                        peer_af.save()
+                    return entry
 
                 for item in netbox_bgp.BGPSession.objects.all():
                     if (
                         item.import_policies.count() > 1
-                        or item.import_policies.count() > 1
+                        or item.export_policies.count() > 1
                     ):
-                        error = (
-                            f'Only 1 import or export policy is supported per Peer Session.  There are '
-                            f'{item.import_policies.count()} Import Policies and {item.export_policies.count()} Export'
-                            f' Policies. Only the first policy per type will be applied.'
+                        print(
+                            f'Only 1 import or export policy is supported per peer. '
+                            f'{item} has {item.import_policies.count()} import and '
+                            f'{item.export_policies.count()} export policies; only the '
+                            f'first of each is applied.'
                         )
-                        # raise Exception(_(error))
-                        print(error)
-                    assigned_object = resolve_assigned_object(item)
-                    router = mapping['router'][assigned_object]
-                    scope = router.scopes.first()
+                    router = mapping['router'][item.device.pk]
 
                     if item.local_address.address.version == 4:
-                        af = scope.address_families.filter(
+                        af = router.address_families.filter(
                             address_family='ipv4-unicast'
                         ).first()
                     else:
-                        af = scope.address_families.filter(
+                        af = router.address_families.filter(
                             address_family='ipv6-unicast'
                         ).first()
                     try:
                         peer = BGPPeer.objects.get(
-                            scope=scope, peer=item.remote_address, name=item.name
+                            instance=router, peer=item.remote_address
                         )
                     except BGPPeer.DoesNotExist:
                         peer = BGPPeer(
                             name=item.name,
-                            scope=scope,
+                            instance=router,
                             source=item.local_address,
                             peer=item.remote_address,
                             remote_as=item.remote_as,
-                            local_as=item.local_as,
+                            local_as=(
+                                item.local_as if item.local_as != router.asn else None
+                            ),
                             peer_group=(
-                                mapping['peer_group'].get(item.peer_group.pk)
-                                if item.peer_group
-                                else None
+                                peer_group_of(item, router) if item.peer_group else None
                             ),
                             enabled=True if item.status == 'active' else False,
                             tenant=item.tenant,
@@ -621,7 +486,7 @@ class Command(BaseCommand):
                         )
                     except BGPPeerAddressFamily.DoesNotExist:
                         peeraf = BGPPeerAddressFamily(
-                            assigned_object=peer,
+                            peer=peer,
                             address_family=af,
                             routepolicy_in=import_policy,
                             routepolicy_out=export_policy,
