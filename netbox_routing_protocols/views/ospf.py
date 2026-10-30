@@ -469,6 +469,12 @@ class OSPFNetworkDeleteView(ObjectDeleteView):
     queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
 
 
+@register_model_view(OSPFNetwork, name='bulk_import', detail=False)
+class OSPFNetworkBulkImportView(BulkImportView):
+    queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
+    model_form = OSPFNetworkImportForm
+
+
 @register_model_view(OSPFNetwork, name='bulk_edit', detail=False)
 class OSPFNetworkBulkEditView(BulkEditView):
     queryset = OSPFNetwork.objects.select_related(*NETWORK_SELECT_RELATED)
@@ -537,6 +543,12 @@ class OSPFRedistributionDeleteView(ObjectDeleteView):
     queryset = REDISTRIBUTION_QUERYSET
 
 
+@register_model_view(OSPFRedistribution, name='bulk_import', detail=False)
+class OSPFRedistributionBulkImportView(BulkImportView):
+    queryset = REDISTRIBUTION_QUERYSET
+    model_form = OSPFRedistributionImportForm
+
+
 @register_model_view(OSPFRedistribution, name='bulk_edit', detail=False)
 class OSPFRedistributionBulkEditView(BulkEditView):
     queryset = REDISTRIBUTION_QUERYSET
@@ -597,6 +609,12 @@ class OSPFVirtualLinkDeleteView(ObjectDeleteView):
     queryset = VIRTUAL_LINK_QUERYSET
 
 
+@register_model_view(OSPFVirtualLink, name='bulk_import', detail=False)
+class OSPFVirtualLinkBulkImportView(BulkImportView):
+    queryset = VIRTUAL_LINK_QUERYSET
+    model_form = OSPFVirtualLinkImportForm
+
+
 @register_model_view(OSPFVirtualLink, name='bulk_edit', detail=False)
 class OSPFVirtualLinkBulkEditView(BulkEditView):
     queryset = VIRTUAL_LINK_QUERYSET
@@ -654,6 +672,12 @@ class OSPFSummaryAddressEditView(ObjectEditView):
 @register_model_view(OSPFSummaryAddress, name='delete')
 class OSPFSummaryAddressDeleteView(ObjectDeleteView):
     queryset = SUMMARY_ADDRESS_QUERYSET
+
+
+@register_model_view(OSPFSummaryAddress, name='bulk_import', detail=False)
+class OSPFSummaryAddressBulkImportView(BulkImportView):
+    queryset = SUMMARY_ADDRESS_QUERYSET
+    model_form = OSPFSummaryAddressImportForm
 
 
 @register_model_view(OSPFSummaryAddress, name='bulk_edit', detail=False)
@@ -718,6 +742,12 @@ class OSPFNeighborDeleteView(ObjectDeleteView):
     queryset = NEIGHBOR_QUERYSET
 
 
+@register_model_view(OSPFNeighbor, name='bulk_import', detail=False)
+class OSPFNeighborBulkImportView(BulkImportView):
+    queryset = NEIGHBOR_QUERYSET
+    model_form = OSPFNeighborImportForm
+
+
 @register_model_view(OSPFNeighbor, name='bulk_edit', detail=False)
 class OSPFNeighborBulkEditView(BulkEditView):
     queryset = NEIGHBOR_QUERYSET
@@ -777,6 +807,12 @@ class OSPFAreaRangeDeleteView(ObjectDeleteView):
     queryset = AREA_RANGE_QUERYSET
 
 
+@register_model_view(OSPFAreaRange, name='bulk_import', detail=False)
+class OSPFAreaRangeBulkImportView(BulkImportView):
+    queryset = AREA_RANGE_QUERYSET
+    model_form = OSPFAreaRangeImportForm
+
+
 @register_model_view(OSPFAreaRange, name='bulk_edit', detail=False)
 class OSPFAreaRangeBulkEditView(BulkEditView):
     queryset = AREA_RANGE_QUERYSET
@@ -834,6 +870,12 @@ class OSPFPrefixSIDEditView(ObjectEditView):
 @register_model_view(OSPFPrefixSID, name='delete')
 class OSPFPrefixSIDDeleteView(ObjectDeleteView):
     queryset = PREFIX_SID_QUERYSET
+
+
+@register_model_view(OSPFPrefixSID, name='bulk_import', detail=False)
+class OSPFPrefixSIDBulkImportView(BulkImportView):
+    queryset = PREFIX_SID_QUERYSET
+    model_form = OSPFPrefixSIDImportForm
 
 
 @register_model_view(OSPFPrefixSID, name='bulk_edit', detail=False)

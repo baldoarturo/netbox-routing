@@ -38,7 +38,7 @@ Not production ready; the model and the migrations can still change. Each one ha
 * Dynamic routing
   * [EIGRP](docs/protocols/eigrp.md) ([tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413))
   * [BGP](docs/protocols/bgp.md) ([tracking #411](https://github.com/baldoarturo/netbox-routing-protocols/issues/411)): templates/group inheritance, IPv4/IPv6 AF and VRF, VPNv4
-  * [OSPF](docs/protocols/ospf.md) ([tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90))
+  * [OSPF, versions 2 (IPv4) and 3 (IPv6)](docs/protocols/ospf.md) ([tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90))
 * [BFD profiles](docs/bfd.md) ([tracking #414](https://github.com/baldoarturo/netbox-routing-protocols/issues/414))
 * Segment routing ([tracking #201](https://github.com/baldoarturo/netbox-routing-protocols/issues/201))
 
