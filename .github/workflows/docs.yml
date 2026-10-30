@@ -2,13 +2,8 @@ name: Docs
 
 # Builds the documentation (mkdocs --strict fails on broken links) and, when the
 # repository variable DOCS_PAGES is 'true', publishes it to GitHub Pages.
+# Not run on push to main: docs are checked locally (mkdocs build --strict). Manual only.
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - docs/**
-      - mkdocs.yml
-      - .github/workflows/docs.yml
   workflow_dispatch:
 
 permissions:
