@@ -1,0 +1,17 @@
+{% extends 'ui/panels/_base.html' %}
+{% load i18n %}
+
+{% block panel_content %}
+  <div class="alert alert-warning mb-0" role="alert">
+    <p class="mb-2">
+      {% blocktrans trimmed with sequence=stopper.sequence %}
+        Entry {{ sequence }} has no conditions: it decides every route that reaches it, so the entries below are never evaluated.
+      {% endblocktrans %}
+    </p>
+    <ul class="mb-0">
+      {% for entry in unreachable %}
+        <li><a href="{{ entry.get_absolute_url }}">{{ entry.sequence }}</a> {{ entry.get_action_display }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endblock panel_content %}

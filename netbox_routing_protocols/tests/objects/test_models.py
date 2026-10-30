@@ -679,7 +679,6 @@ class RoutePolicyEntryTestCase(TestCase):
                     route_policy=self.route_policy,
                     action='permit',
                     sequence=sequence,
-                    flow_control=sequence,
                 )
                 if valid:
                     entry.full_clean()

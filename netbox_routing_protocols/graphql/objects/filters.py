@@ -80,7 +80,8 @@ class RoutePolicyEntryFilter(PrimaryModelFilter):
     route_policy_id: ID | None = strawberry_django.filter_field()
     sequence: BigIntegerLookup | None = strawberry_django.filter_field()
     action: StrFilterLookup | None = strawberry_django.filter_field()
-    flow_control: BigIntegerLookup | None = strawberry_django.filter_field()
+    implicit: bool | None = strawberry_django.filter_field()
+    jump_policy_id: ID | None = strawberry_django.filter_field()
     match_prefix_list: (
         Annotated[
             'PrefixListFilter',

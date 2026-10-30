@@ -26,6 +26,7 @@ class RoutePolicyEntryAttributesTestCase(TestCase):
         cls.v4 = IPAddress.objects.create(address='192.0.2.1/24')
         cls.v6 = IPAddress.objects.create(address='2001:db8::1/64')
         cls.communities = CommunityList.objects.create(name='Communities')
+        cls.other = RoutePolicy.objects.create(name='Other')
 
     def test_every_attribute_is_saved(self):
         entry = make_entry(
@@ -86,7 +87,7 @@ class RoutePolicyEntryAttributesTestCase(TestCase):
             ('set_origin', 'igp'),
             ('set_tag', 1),
             ('set_weight', 1),
-            ('flow_control', 20),
+            ('jump_policy', self.other),
         ):
             with self.subTest(field):
                 with self.assertRaises(ValidationError) as ctx:
@@ -188,4 +189,4 @@ class RoutePolicyEntryAttributesAPITestCase(APITestCase):
         response = self.post(action='deny', set_metric=5)
         self.assertHttpStatus(response, 400)
         self.assertIn('set_metric', response.data)
-        self.assertFalse(RoutePolicyEntry.objects.exists())
+        self.assertFalse(RoutePolicyEntry.objects.filter(implicit=False).exists())
