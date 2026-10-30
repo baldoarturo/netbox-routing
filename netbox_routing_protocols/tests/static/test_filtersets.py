@@ -1,7 +1,7 @@
 import netaddr
 from django.test import TestCase
 
-from dcim.models import Device
+from dcim.models import Device, Interface
 from ipam.models import VRF
 from utilities.testing import create_test_device
 
@@ -83,8 +83,11 @@ class StaticRouteTestCase(TestCase):
         self.assertEqual(qs.count(), 3)
 
     def test_interface_next_hop(self):
-        StaticRoute.objects.filter(name='Route 1').update(interface_next_hop='Gi0/1')
-        params = {'interface_next_hop': ['gi0/1']}
+        interface = Interface.objects.create(
+            device=Device.objects.get(name='Device 1'), name='Gi0/1', type='1000base-t'
+        )
+        StaticRoute.objects.filter(name='Route 1').update(interface=interface)
+        params = {'interface': ['Gi0/1']}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     def test_route_tag(self):
@@ -123,8 +126,25 @@ class StaticRouteTestCase(TestCase):
         self.assertEqual(self.filterset({'within': 'bad'}, qs).qs.count(), 0)
 
     def test_q_matches_interface_and_description(self):
+        interface = Interface.objects.create(
+            device=Device.objects.get(name='Device 1'), name='Tunnel7', type='virtual'
+        )
         StaticRoute.objects.filter(name='Route 1').update(
-            interface_next_hop='Tunnel7', description='uplink to ISP'
+            interface=interface, description='uplink to ISP'
         )
         self.assertEqual(self.filterset({'q': 'Tunnel7'}, self.queryset).qs.count(), 1)
         self.assertEqual(self.filterset({'q': 'uplink'}, self.queryset).qs.count(), 1)
+
+    def test_next_hop_type_and_leaking(self):
+        other = VRF.objects.create(name='Other')
+        StaticRoute.objects.filter(name='Route 1').update(
+            next_hop_type='blackhole', next_hop=None
+        )
+        StaticRoute.objects.filter(name='Route 2').update(next_hop_vrf=other)
+        qs = self.queryset
+        self.assertEqual(
+            self.filterset({'next_hop_type': ['blackhole']}, qs).qs.count(), 1
+        )
+        self.assertEqual(
+            self.filterset({'next_hop_vrf_id': [other.pk]}, qs).qs.count(), 1
+        )

@@ -59,13 +59,12 @@ class StaticRouteTestCase(
         cls.bulk_edit_data = {
             'distance': 10,
             'tag': 7,
-            'interface_next_hop': 'Gi0/1',
         }
 
         cls.csv_data = (
-            'devices,vrf,prefix,next_hop,interface_next_hop,distance,tag',
+            'devices,vrf,prefix,next_hop,next_hop_type,distance,tag',
             'Device 1,,10.1.0.0/16,10.10.10.9,,5,3',
-            '"Device 1,Device 2",Test VRF,10.2.0.0/16,,Gi0/1,1,',
+            '"Device 1,Device 2",Test VRF,10.2.0.0/16,,blackhole,1,',
         )
 
         cls.csv_update_data = (

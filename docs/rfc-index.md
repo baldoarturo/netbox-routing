@@ -20,7 +20,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 3787](https://www.rfc-editor.org/rfc/rfc3787) | IS-IS recommendations for hello padding | [IS-IS interfaces](protocols/isis.md#interfaces) |
 | [RFC 4136](https://www.rfc-editor.org/rfc/rfc4136) | OSPF refresh and flooding reduction | [OSPF interfaces](protocols/ospf.md#other-interface-options) |
 | [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) | BGP-4 | [BGP](protocols/bgp.md), [AS paths](routing-objects.md#as-paths), [Route policies](routing-objects.md#route-policies) (the path attributes they match and set) |
-| [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291) | IPv6 addressing | [Prefix lists](routing-objects.md#prefix-lists) |
+| [RFC 4291](https://www.rfc-editor.org/rfc/rfc4291) | IPv6 addressing | [Prefix lists](routing-objects.md#prefix-lists), [Static routes](protocols/static.md#what-the-plugin-checks) |
 | [RFC 4360](https://www.rfc-editor.org/rfc/rfc4360) | BGP extended communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 4364](https://www.rfc-editor.org/rfc/rfc4364) | BGP/MPLS VPNs | [BGP](protocols/bgp.md#address-families) |
 | [RFC 4632](https://www.rfc-editor.org/rfc/rfc4632) | CIDR | [Prefix lists](routing-objects.md#prefix-lists) |
@@ -29,6 +29,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 4724](https://www.rfc-editor.org/rfc/rfc4724) | BGP graceful restart | [BGP settings](protocols/bgp.md#settings) |
 | [RFC 4760](https://www.rfc-editor.org/rfc/rfc4760) | BGP multiprotocol extensions | [BGP address families](protocols/bgp.md#address-families) |
 | [RFC 4761](https://www.rfc-editor.org/rfc/rfc4761) | VPLS using BGP | [BGP](protocols/bgp.md#address-families) |
+| [RFC 4861](https://www.rfc-editor.org/rfc/rfc4861) | IPv6 neighbor discovery (link-local next hops need an interface) | [Static routes](protocols/static.md#what-the-plugin-checks) |
 | [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082) | Generalized TTL security | [BGP peers](protocols/bgp.md#peers), [OSPF interfaces](protocols/ospf.md#other-interface-options) |
 | [RFC 5120](https://www.rfc-editor.org/rfc/rfc5120) | IS-IS multi-topology | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 5130](https://www.rfc-editor.org/rfc/rfc5130) | IS-IS administrative tags | [IS-IS interfaces](protocols/isis.md#interfaces), [redistribution](protocols/isis.md#redistribution) |
@@ -65,6 +66,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 8092](https://www.rfc-editor.org/rfc/rfc8092) | BGP large communities | [Routing objects](routing-objects.md#communities) |
 | [RFC 8326](https://www.rfc-editor.org/rfc/rfc8326) | Graceful BGP session shutdown | [Routing objects](routing-objects.md#well-known-communities) |
 | [RFC 8333](https://www.rfc-editor.org/rfc/rfc8333) | Micro-loop prevention | [IS-IS](protocols/isis.md#fast-reroute-and-micro-loops) |
+| [RFC 8349](https://www.rfc-editor.org/rfc/rfc8349) | YANG data model for routing management (static routes, special next hops, route preference) | [Static routes](protocols/static.md) |
 | [RFC 8405](https://www.rfc-editor.org/rfc/rfc8405) | SPF back-off delay algorithm | [OSPF](protocols/ospf.md#timers), [IS-IS](protocols/isis.md#timers) |
 | [RFC 8667](https://www.rfc-editor.org/rfc/rfc8667) | IS-IS segment routing | [IS-IS](protocols/isis.md#segment-routing) |
 | [RFC 8665](https://www.rfc-editor.org/rfc/rfc8665) | OSPF segment routing | [OSPF](protocols/ospf.md#prefix-sids) |

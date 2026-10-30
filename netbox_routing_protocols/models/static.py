@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from dcim.models import Device
 from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
+from netbox_routing_protocols.choices import StaticRouteNextHopTypeChoices
 from netbox_routing_protocols.fields.ip import IPAddressField
 
 __all__ = ('StaticRoute',)
@@ -32,12 +33,45 @@ class StaticRoute(PrimaryModel):
         blank=True,
         null=True,
     )
-    interface_next_hop = models.CharField(
-        max_length=100,
-        verbose_name='Interface Next Hop',
-        help_text='Forwarding interface, for routes without IP address as next hop',
+    interface = models.ForeignKey(
+        to='dcim.Interface',
+        on_delete=models.CASCADE,
+        related_name='static_routes',
+        verbose_name=_('Interface Next Hop'),
+        help_text=_(
+            'Outgoing interface, for routes without an IP address as next hop. '
+            'The route is then carried by the device of the interface only'
+        ),
         blank=True,
         null=True,
+    )
+    next_hop_type = models.CharField(
+        max_length=20,
+        choices=StaticRouteNextHopTypeChoices,
+        default=StaticRouteNextHopTypeChoices.FORWARD,
+        blank=True,
+        verbose_name=_('Next Hop Type'),
+        help_text=_(
+            'Forward through an address and/or interface, or one of the special '
+            'next hops of RFC 8349 (blackhole, unreachable, prohibit, receive)'
+        ),
+    )
+    next_hop_vrf = models.ForeignKey(
+        to='ipam.VRF',
+        on_delete=models.PROTECT,
+        related_name='staticroutes_next_hop',
+        verbose_name=_('Next Hop VRF'),
+        help_text=_(
+            'Route leaking: the VRF in which the next hop is resolved, when it is '
+            'not the VRF of the route'
+        ),
+        blank=True,
+        null=True,
+    )
+    next_hop_global = models.BooleanField(
+        default=False,
+        verbose_name=_('Next Hop in the Global Table'),
+        help_text=_('Route leaking: resolve the next hop in the global routing table'),
     )
     name = models.CharField(
         max_length=50,
@@ -74,7 +108,10 @@ class StaticRoute(PrimaryModel):
         'devices',
         'prefix',
         'next_hop',
-        'interface_next_hop',
+        'interface',
+        'next_hop_type',
+        'next_hop_vrf',
+        'next_hop_global',
         'vrf',
         'distance',
         'tag',
@@ -98,12 +135,14 @@ class StaticRoute(PrimaryModel):
         ]
         if self.vrf:
             name.append(f'VRF: {self.vrf}')
-        if self.next_hop or self.interface_next_hop:
+        if self.next_hop_type != StaticRouteNextHopTypeChoices.FORWARD:
+            name.append(self.next_hop_type)
+        elif self.next_hop or self.interface_id:
             name.append('via')
             if self.next_hop:
                 name.append(f'{self.next_hop}')
-            if self.interface_next_hop:
-                name.append(f'{self.interface_next_hop}')
+            if self.interface_id:
+                name.append(f'{self.interface}')
         return ' '.join(name)
 
     def get_absolute_url(self):
@@ -112,16 +151,42 @@ class StaticRoute(PrimaryModel):
     def clean(self):
         super().clean()
         errors = {}
-        if not self.interface_next_hop and not self.next_hop:
+        special = self.next_hop_type != StaticRouteNextHopTypeChoices.FORWARD
+        if special:
+            for field in ('next_hop', 'interface', 'next_hop_vrf'):
+                if getattr(self, f'{field}_id' if field != 'next_hop' else field):
+                    errors[field] = _(
+                        'A {type} route has no next hop, interface or next hop VRF.'
+                    ).format(type=self.next_hop_type)
+            if self.next_hop_global:
+                errors['next_hop_global'] = _(
+                    'A {type} route has no next hop in any table.'
+                ).format(type=self.next_hop_type)
+        elif not self.interface_id and not self.next_hop:
             errors['next_hop'] = _(
                 "A route requires set either an IP next hop or an Interface next hop."
             )
+        if self.next_hop_vrf_id and self.next_hop_global:
+            errors['next_hop_global'] = _(
+                'Choose a next hop VRF or the global table, not both.'
+            )
+        if not special and (self.next_hop_vrf_id or self.next_hop_global):
+            if not self.next_hop:
+                errors['next_hop'] = _(
+                    'Route leaking needs an IP next hop to resolve in the other table.'
+                )
+            elif self.next_hop_vrf_id and self.next_hop_vrf_id == self.vrf_id:
+                errors['next_hop_vrf'] = _('The next hop VRF is the VRF of the route.')
+            elif self.next_hop_global and not self.vrf_id:
+                errors['next_hop_global'] = _(
+                    'The route is already in the global table.'
+                )
         prefix = netaddr.IPNetwork(str(self.prefix)) if self.prefix else None
         if prefix is not None and prefix.ip != prefix.network:
             errors['prefix'] = _(
                 'The prefix has host bits set, use {network} instead.'
             ).format(network=prefix.cidr)
-        if self.next_hop:
+        if self.next_hop and 'next_hop' not in errors:
             nh = netaddr.IPAddress(str(self.next_hop))
             if prefix is not None and nh.version != prefix.version:
                 errors['next_hop'] = _(
@@ -131,8 +196,8 @@ class StaticRoute(PrimaryModel):
                 errors['next_hop'] = _(
                     'The next hop must be a usable unicast address (not unspecified, loopback or multicast).'
                 )
-            elif nh.version == 6 and nh.is_link_local() and not self.interface_next_hop:
-                errors['interface_next_hop'] = _(
+            elif nh.version == 6 and nh.is_link_local() and not self.interface_id:
+                errors['interface'] = _(
                     'A link-local next hop is only meaningful on a link: '
                     'set the interface next hop (RFC 4291, RFC 4861).'
                 )
@@ -142,29 +207,39 @@ class StaticRoute(PrimaryModel):
     def duplicates_on(self, devices):
         """
         Devices among `devices` that already carry another route with the same
-        VRF, prefix, next hop and interface next hop.
+        VRF, prefix, next hop type, next hop, interface and next hop table.
         """
         routes = StaticRoute.objects.filter(
-            vrf=self.vrf, prefix=self.prefix, next_hop=self.next_hop
+            vrf=self.vrf,
+            prefix=self.prefix,
+            next_hop=self.next_hop,
+            next_hop_type=self.next_hop_type,
+            interface=self.interface,
+            next_hop_vrf=self.next_hop_vrf,
+            next_hop_global=self.next_hop_global,
         ).exclude(pk=self.pk)
-        if self.interface_next_hop:
-            routes = routes.filter(interface_next_hop=self.interface_next_hop)
-        else:
-            routes = routes.filter(
-                Q(interface_next_hop__isnull=True) | Q(interface_next_hop='')
-            )
         return Device.objects.filter(
             pk__in=[d.pk for d in devices], static_routes__in=routes
         ).distinct()
 
     def validate_devices(self, devices):
+        errors = []
+        if self.interface_id:
+            others = [d for d in devices if d.pk != self.interface.device_id]
+            if others:
+                errors.append(
+                    _(
+                        'The interface {interface} belongs to {device}: '
+                        'the route can only be assigned to that device.'
+                    ).format(interface=self.interface, device=self.interface.device)
+                )
         duplicated = list(self.duplicates_on(devices))
         if duplicated:
             names = ', '.join(str(d) for d in duplicated[:5])
-            raise ValidationError(
-                {
-                    'devices': _(
-                        'These devices already have a route with the same VRF, prefix and next hop: {names}'
-                    ).format(names=names)
-                }
+            errors.append(
+                _(
+                    'These devices already have a route with the same VRF, prefix and next hop: {names}'
+                ).format(names=names)
             )
+        if errors:
+            raise ValidationError({'devices': errors})

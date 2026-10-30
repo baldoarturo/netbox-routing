@@ -11,7 +11,6 @@ class StaticRouteIndex(SearchIndex):
         ('name', 100),
         ('prefix', 200),
         ('next_hop', 300),
-        ('interface_next_hop', 300),
         ('tag', 400),
         ('description', 500),
         ('comments', 5000),
