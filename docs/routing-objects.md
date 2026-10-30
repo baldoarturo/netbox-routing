@@ -564,6 +564,8 @@ type of the chosen list.
 
 **Routing → Community → Search Community Match**
 
+![Search Community Match for no-export: the entry that matches, with the well-known name](images/community-match.png)
+
 Type the communities a route carries, separated by spaces or commas (`65000:100 no-export
 rt:65000:1 65000:1:2`; any type, and the well-known names work) and the page shows, as you type,
 which community list entries match them, **in which sequence**, and whether the entry permits or
