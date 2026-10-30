@@ -25,6 +25,7 @@ __all__ = (
     'ISISFlexAlgoImportForm',
     'ISISPrefixSIDImportForm',
     'ISISSRv6LocatorImportForm',
+    'ISISAddressFamilyImportForm',
     'ISISSRMappingEntryImportForm',
     'ISISAdjacencySIDImportForm',
     'ISISAreaAddressImportForm',

@@ -119,6 +119,14 @@ urlpatterns = [
     ),
     path('isis/flex-algo/<int:pk>/', include(get_model_urls(app_name, 'isisflexalgo'))),
     path(
+        'isis/address-family/',
+        include(get_model_urls(app_name, 'isisaddressfamily', detail=False)),
+    ),
+    path(
+        'isis/address-family/<int:pk>/',
+        include(get_model_urls(app_name, 'isisaddressfamily')),
+    ),
+    path(
         'isis/sr-mapping-entry/',
         include(get_model_urls(app_name, 'isissrmappingentry', detail=False)),
     ),

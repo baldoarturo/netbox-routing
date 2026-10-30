@@ -33,6 +33,7 @@ from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
     ISISSRMappingEntry,
     ISISAdjacencySID,
     ISISAreaAddress,
@@ -52,6 +53,7 @@ __all__ = (
     'ISISFlexAlgoFilterForm',
     'ISISPrefixSIDFilterForm',
     'ISISSRv6LocatorFilterForm',
+    'ISISAddressFamilyFilterForm',
     'ISISSRMappingEntryFilterForm',
     'ISISAdjacencySIDFilterForm',
     'ISISAreaAddressFilterForm',
@@ -440,6 +442,50 @@ class ISISAdjacencySIDFilterForm(NetBoxModelFilterSetForm):
     protected = forms.NullBooleanField(
         required=False,
         label=_('Protected'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    tag = TagFilterField(model)
+
+
+class ISISAddressFamilyFilterForm(NetBoxModelFilterSetForm):
+    model = ISISAddressFamily
+    fieldsets = (
+        FieldSet('q', 'filter_id', 'tag'),
+        FieldSet('device_id', 'instance_id', name=_('IS-IS')),
+        FieldSet(
+            'address_family',
+            'metric_style',
+            'distance',
+            'maximum_paths',
+            'default_originate',
+            name=_('Address Family'),
+        ),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    instance_id = DynamicModelMultipleChoiceField(
+        queryset=ISISInstance.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Instance'),
+    )
+    address_family = forms.MultipleChoiceField(
+        choices=ISISAddressFamilyChoices,
+        required=False,
+        label=_('Address Family'),
+    )
+    metric_style = forms.MultipleChoiceField(
+        choices=ISISMetricStyleChoices, required=False, label=_('Metric Style')
+    )
+    distance = forms.IntegerField(required=False, label=_('Distance'))
+    maximum_paths = forms.IntegerField(required=False, label=_('Maximum Paths'))
+    default_originate = forms.NullBooleanField(
+        required=False,
+        label=_('Default Route Origination'),
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     tag = TagFilterField(model)

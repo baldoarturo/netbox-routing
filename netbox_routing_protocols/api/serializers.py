@@ -31,6 +31,7 @@ __all__ = (
     'ISISFlexAlgoSerializer',
     'ISISPrefixSIDSerializer',
     'ISISSRv6LocatorSerializer',
+    'ISISAddressFamilySerializer',
     'ISISSRMappingEntrySerializer',
     'ISISAdjacencySIDSerializer',
     'ISISAreaAddressSerializer',

@@ -37,6 +37,7 @@ from .isis.types import (
     ISISFlexAlgoType,
     ISISPrefixSIDType,
     ISISSRv6LocatorType,
+    ISISAddressFamilyType,
     ISISSRMappingEntryType,
     ISISAdjacencySIDType,
     ISISAreaAddressType,
@@ -120,6 +121,8 @@ class ISISQuery:
 
     isis_flex_algo: ISISFlexAlgoType = strawberry_django.field()
     isis_flex_algo_list: list[ISISFlexAlgoType] = strawberry_django.field()
+    isis_address_family: ISISAddressFamilyType = strawberry_django.field()
+    isis_address_family_list: list[ISISAddressFamilyType] = strawberry_django.field()
     isis_sr_mapping_entry: ISISSRMappingEntryType = strawberry_django.field()
     isis_sr_mapping_entry_list: list[ISISSRMappingEntryType] = strawberry_django.field()
     isis_adjacency_sid: ISISAdjacencySIDType = strawberry_django.field()

@@ -18,6 +18,7 @@ def build_menus():
     menu_items = (
         ('isisinstance', 'Instances'),
         ('isisinterface', 'Interfaces'),
+        ('isisaddressfamily', 'Address Families'),
         ('isisareaaddress', 'Area Addresses'),
         ('isissetting', 'Settings'),
         ('isislevel', 'Levels'),

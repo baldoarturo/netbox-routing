@@ -17,6 +17,7 @@ __all__ = (
     'ISISFlexAlgoPanel',
     'ISISPrefixSIDPanel',
     'ISISSRv6LocatorPanel',
+    'ISISAddressFamilyPanel',
     'ISISSRMappingEntryPanel',
     'ISISAdjacencySIDPanel',
     'ISISAreaAddressPanel',
@@ -318,4 +319,16 @@ class ISISAdjacencySIDPanel(panels.ObjectAttributesPanel):
     interface = attrs.RelatedObjectAttr('interface', label=_('Interface'), linkify=True)
     sid_label = attrs.NumericAttr('sid_label', label=_('SID Label'))
     protected = attrs.BooleanAttr('protected', label=_('Protected'))
+    description = attrs.TextAttr('description', label=_('Description'))
+
+
+class ISISAddressFamilyPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'), linkify=True)
+    address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
+    metric_style = attrs.TextAttr('metric_style', label=_('Metric Style'))
+    distance = attrs.NumericAttr('distance', label=_('Administrative Distance'))
+    maximum_paths = attrs.NumericAttr('maximum_paths', label=_('Maximum Paths'))
+    default_originate = attrs.BooleanAttr(
+        'default_originate', label=_('Default Route Origination')
+    )
     description = attrs.TextAttr('description', label=_('Description'))

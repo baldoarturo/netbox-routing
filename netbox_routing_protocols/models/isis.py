@@ -24,6 +24,7 @@ from netbox_routing_protocols.constants.isis import (
     ISISSETTING_ASSIGNMENT_MODELS,
 )
 from netbox_routing_protocols.helpers.isis import (
+    NARROW_METRIC_MAX,
     auth_errors,
     metric_errors,
     net_error,
@@ -508,6 +509,19 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
             raise ValidationError(errors)
         self._clean_children()
 
+    def metric_style_for(self, address_family):
+        """The metric style of an address family: its own when the family sets one,
+        else the one of the instance."""
+        if self.pk is not None and address_family:
+            style = (
+                self.address_families.filter(address_family=address_family)
+                .values_list('metric_style', flat=True)
+                .first()
+            )
+            if style:
+                return style
+        return self.metric_style
+
     @property
     def area_address_list(self):
         """The NET plus the area addresses added to the instance."""
@@ -880,7 +894,13 @@ class ISISInterface(PrimaryModel):
             )
         )
         if self.instance_id:
-            errors.update(metric_errors(self, ('metric',), self.instance.metric_style))
+            errors.update(
+                metric_errors(
+                    self,
+                    ('metric',),
+                    self.instance.metric_style_for(self.address_family),
+                )
+            )
         # The circuit type must share a level with the IS type of the instance.
         if (
             self.instance_id
@@ -1155,7 +1175,13 @@ class ISISInterfaceLevel(PrimaryModel):
         errors.update(auth_errors(self, 'hello_auth_type', 'hello_auth_key'))
         if self.interface_id:
             instance = self.interface.instance
-            errors.update(metric_errors(self, ('metric',), instance.metric_style))
+            errors.update(
+                metric_errors(
+                    self,
+                    ('metric',),
+                    instance.metric_style_for(self.interface.address_family),
+                )
+            )
             allowed = type_levels(self.interface.circuit_type) & type_levels(
                 instance.is_type
             )
@@ -1934,7 +1960,11 @@ class ISISRedistribution(PrimaryModel):
             )
         if not scope_levels(self.level) & type_levels(instance.is_type):
             errors['level'] = _('The instance does not run this level.')
-        errors.update(metric_errors(self, ('metric',), instance.metric_style))
+        errors.update(
+            metric_errors(
+                self, ('metric',), instance.metric_style_for(self.address_family)
+            )
+        )
         if errors:
             raise ValidationError(errors)
 
@@ -2037,7 +2067,16 @@ class ISISSummaryAddress(PrimaryModel):
         if self.instance_id:
             if not scope_levels(self.level) & type_levels(self.instance.is_type):
                 errors['level'] = _('The instance does not run this level.')
-            errors.update(metric_errors(self, ('metric',), self.instance.metric_style))
+            family = None
+            if self.prefix not in (None, ''):
+                try:
+                    version = netaddr.IPNetwork(str(self.prefix)).version
+                    family = 'ipv4' if version == 4 else 'ipv6'
+                except (netaddr.AddrFormatError, ValueError):
+                    pass
+            errors.update(
+                metric_errors(self, ('metric',), self.instance.metric_style_for(family))
+            )
         if errors:
             raise ValidationError(errors)
 
@@ -2389,5 +2428,105 @@ class ISISAdjacencySID(PrimaryModel):
                     'start': sr.srlb_start,
                     'end': sr.srlb_start + sr.srlb_range - 1,
                 }
+        if errors:
+            raise ValidationError(errors)
+
+
+class ISISAddressFamily(PrimaryModel):
+    """
+    Settings of one address family of an instance. An IS-IS process carries IPv4 and
+    IPv6 in the same adjacencies (RFC 1195, RFC 5308), but vendors let some of its
+    settings differ by family (IOS-XR ``address-family ipv4|ipv6 unicast``, Junos,
+    Nokia). A field left empty uses the value of the instance.
+    """
+
+    instance = models.ForeignKey(
+        to='netbox_routing_protocols.ISISInstance',
+        related_name='address_families',
+        on_delete=models.CASCADE,
+        verbose_name=_('Instance'),
+    )
+    address_family = models.CharField(
+        verbose_name=_('Address Family'),
+        choices=choices.ISISAddressFamilyChoices,
+        default=choices.ISISAddressFamilyChoices.IPV4,
+        max_length=4,
+    )
+    metric_style = models.CharField(
+        verbose_name=_('Metric style'),
+        max_length=20,
+        choices=choices.ISISMetricStyleChoices,
+        blank=True,
+        default='',
+        help_text=_('Empty uses the metric style of the instance.'),
+    )
+    distance = models.PositiveSmallIntegerField(
+        verbose_name=_('Administrative distance'),
+        blank=True,
+        null=True,
+        help_text=_('Empty uses the distance of the instance.'),
+    )
+    maximum_paths = models.PositiveSmallIntegerField(
+        verbose_name=_('Maximum paths'),
+        blank=True,
+        null=True,
+        help_text=_('Empty uses the maximum paths of the instance.'),
+    )
+    default_originate = models.BooleanField(
+        verbose_name=_('Default route origination'),
+        blank=True,
+        null=True,
+        help_text=_('Originate a default route of this family into IS-IS.'),
+    )
+
+    clone_fields = (
+        'instance',
+        'address_family',
+        'metric_style',
+        'distance',
+        'maximum_paths',
+        'default_originate',
+    )
+    prerequisite_models = ('netbox_routing_protocols.ISISInstance',)
+
+    class Meta:
+        verbose_name = 'IS-IS Address Family'
+        verbose_name_plural = 'IS-IS Address Families'
+        ordering = ('instance', 'address_family')
+        constraints = (
+            models.UniqueConstraint(
+                fields=('instance', 'address_family'),
+                name='%(app_label)s_%(class)s_unique_instance_family',
+                violation_error_message=_(
+                    'The instance already has settings for this address family.'
+                ),
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.instance} {self.get_address_family_display()}'
+
+    def get_absolute_url(self):
+        return reverse(
+            'plugins:netbox_routing_protocols:isisaddressfamily', args=[self.pk]
+        )
+
+    def clean(self):
+        super().clean()
+        errors = range_errors(self, (('distance', 1, 255), ('maximum_paths', 1, None)))
+        if self.instance_id and self.metric_style == 'narrow':
+            narrow_limit = NARROW_METRIC_MAX
+            if (
+                self.instance.interfaces.filter(
+                    address_family=self.address_family, metric__gt=narrow_limit
+                ).exists()
+                or self.instance.redistributions.filter(
+                    address_family=self.address_family, metric__gt=narrow_limit
+                ).exists()
+            ):
+                errors['metric_style'] = _(
+                    'The family has metrics above %(limit)s, which a narrow metric '
+                    'style cannot carry.'
+                ) % {'limit': narrow_limit}
         if errors:
             raise ValidationError(errors)

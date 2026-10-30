@@ -35,6 +35,7 @@ from netbox_routing_protocols.models import (
     ISISSegmentRouting,
     ISISSetting,
     ISISSRv6Locator,
+    ISISAddressFamily,
     ISISSRMappingEntry,
     ISISAdjacencySID,
     ISISRedistribution,
@@ -53,6 +54,7 @@ __all__ = (
     'ISISFlexAlgoBulkEditForm',
     'ISISPrefixSIDBulkEditForm',
     'ISISSRv6LocatorBulkEditForm',
+    'ISISAddressFamilyBulkEditForm',
     'ISISSRMappingEntryBulkEditForm',
     'ISISAdjacencySIDBulkEditForm',
     'ISISRedistributionBulkEditForm',
@@ -779,3 +781,29 @@ class ISISAdjacencySIDBulkEditForm(NetBoxModelBulkEditForm):
     model = ISISAdjacencySID
     fieldsets = (FieldSet('protected'), FieldSet('description'))
     nullable_fields = ('description',)
+
+
+class ISISAddressFamilyBulkEditForm(NetBoxModelBulkEditForm):
+    metric_style = forms.ChoiceField(
+        label=_('Metric Style'),
+        choices=add_blank_choice(ISISMetricStyleChoices),
+        required=False,
+    )
+    distance = forms.IntegerField(
+        label=_('Distance'), min_value=1, max_value=255, required=False
+    )
+    maximum_paths = forms.IntegerField(
+        label=_('Maximum Paths'), min_value=1, required=False
+    )
+    default_originate = _boolean(_('Default Route Origination'))
+    description = forms.CharField(
+        label=_('Description'), max_length=200, required=False
+    )
+    comments = CommentField()
+
+    model = ISISAddressFamily
+    fieldsets = (
+        FieldSet('metric_style', 'distance', 'maximum_paths', 'default_originate'),
+        FieldSet('description'),
+    )
+    nullable_fields = ('distance', 'maximum_paths', 'description')

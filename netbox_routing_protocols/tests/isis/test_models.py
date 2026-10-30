@@ -20,6 +20,7 @@ from netbox_routing_protocols.models import (
     ISISLevel,
     ISISPrefixSID,
     ISISSRv6Locator,
+    ISISAddressFamily,
     ISISSRMappingEntry,
     ISISAdjacencySID,
     ISISAreaAddress,
@@ -44,6 +45,7 @@ __all__ = (
     'ISISAreaAddressTestCase',
     'ISISAuthenticationTestCase',
     'ISISSegmentRoutingExtrasTestCase',
+    'ISISAddressFamilyTestCase',
     'ISISNetTestCase',
     'ISISRangeTestCase',
     'ISISSegmentRoutingRulesTestCase',
@@ -1457,3 +1459,76 @@ class ISISSegmentRoutingExtrasTestCase(TestCase):
         self.interface.full_clean()
         self.interface.delay_metric = 16777216
         self.assertRejects(self.interface, 'delay_metric')
+
+
+class ISISAddressFamilyTestCase(TestCase):
+    """Settings by address family of an instance (#445)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.instance = ISISInstance.objects.create(
+            device=cls.device, metric_style='wide', distance=115, maximum_paths=4
+        )
+        cls.interface = ISISInterface.objects.create(
+            instance=cls.instance,
+            interface=Interface.objects.create(
+                name='Eth1', device=cls.device, type='virtual'
+            ),
+            address_family='ipv6',
+        )
+
+    def assertRejects(self, obj, field):
+        with self.assertRaises(ValidationError) as ctx:
+            obj.full_clean()
+        self.assertIn(field, ctx.exception.error_dict)
+
+    def test_empty_family_uses_the_instance(self):
+        ISISAddressFamily(instance=self.instance, address_family='ipv6').full_clean()
+        self.assertEqual(self.instance.metric_style_for('ipv6'), 'wide')
+
+    def test_family_metric_style_overrides_the_instance(self):
+        ISISAddressFamily.objects.create(
+            instance=self.instance, address_family='ipv4', metric_style='narrow'
+        )
+        self.assertEqual(self.instance.metric_style_for('ipv4'), 'narrow')
+        self.assertEqual(self.instance.metric_style_for('ipv6'), 'wide')
+
+    def test_narrow_family_limits_the_metrics_of_its_interfaces(self):
+        ISISAddressFamily.objects.create(
+            instance=self.instance, address_family='ipv6', metric_style='narrow'
+        )
+        self.interface.metric = 64
+        self.assertRejects(self.interface, 'metric')
+        self.interface.metric = 63
+        self.interface.full_clean()
+
+    def test_narrow_is_refused_with_wide_metrics_in_use(self):
+        self.interface.metric = 500
+        self.interface.save()
+        self.assertRejects(
+            ISISAddressFamily(
+                instance=self.instance, address_family='ipv6', metric_style='narrow'
+            ),
+            'metric_style',
+        )
+
+    def test_ranges(self):
+        for field, value in (('distance', 0), ('distance', 256), ('maximum_paths', 0)):
+            with self.subTest(field=field, value=value):
+                self.assertRejects(
+                    ISISAddressFamily(
+                        instance=self.instance,
+                        address_family='ipv4',
+                        **{field: value},
+                    ),
+                    field,
+                )
+
+    def test_unique_per_family(self):
+        ISISAddressFamily.objects.create(instance=self.instance, address_family='ipv4')
+        self.assertRejects(
+            ISISAddressFamily(instance=self.instance, address_family='ipv4'),
+            '__all__',
+        )
+        ISISAddressFamily(instance=self.instance, address_family='ipv6').full_clean()
