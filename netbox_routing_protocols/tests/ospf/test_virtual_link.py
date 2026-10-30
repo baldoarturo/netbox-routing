@@ -79,7 +79,7 @@ class OSPFVirtualLinkModelTestCase(TestCase):
             (10, 40, 5, 1),
         )
         self.assertEqual(link.message_digest_algorithm, 'md5')
-        self.assertEqual(str(link), '9.9.9.9 via area 1')
+        self.assertEqual(str(link), '9.9.9.9 via area 1 (Instance 1)')
 
     def test_the_transit_area_must_be_a_standard_area(self):
         self._assert_invalid('transit_area', transit_area=self.backbone)

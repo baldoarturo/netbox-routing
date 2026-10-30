@@ -346,7 +346,7 @@ class OSPFAreaBulkImportView(BulkImportView):
 @register_model_view(OSPFInterface, name='list', path='', detail=False)
 class OSPFInterfaceListView(ObjectListView):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
     table = OSPFInterfaceTable
     filterset = OSPFInterfaceFilterSet
@@ -356,7 +356,7 @@ class OSPFInterfaceListView(ObjectListView):
 @register_model_view(OSPFInterface)
 class OSPFInterfaceView(ObjectView):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
@@ -382,7 +382,7 @@ class OSPFInterfaceView(ObjectView):
 @register_model_view(OSPFInterface, name='edit')
 class OSPFInterfaceEditView(ObjectEditView):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
     form = OSPFInterfaceForm
 
@@ -390,14 +390,14 @@ class OSPFInterfaceEditView(ObjectEditView):
 @register_model_view(OSPFInterface, name='delete')
 class OSPFInterfaceDeleteView(ObjectDeleteView):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
 
 
 @register_model_view(OSPFInterface, name='bulk_import', detail=False)
 class OSPFInterfaceBulkImportView(BulkImportView):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
     model_form = OSPFInterfaceImportForm
 
@@ -405,7 +405,7 @@ class OSPFInterfaceBulkImportView(BulkImportView):
 @register_model_view(OSPFInterface, name='bulk_edit', detail=False)
 class OSPFInterfaceBulkEditView(BulkEditView):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
     filterset = OSPFInterfaceFilterSet
     table = OSPFInterfaceTable
@@ -415,7 +415,7 @@ class OSPFInterfaceBulkEditView(BulkEditView):
 @register_model_view(OSPFInterface, name='bulk_delete', detail=False)
 class OSPFInterfaceBulkDeleteView(BulkDeleteView):
     queryset = OSPFInterface.objects.select_related(
-        'instance__device', 'instance__vrf', 'area', 'interface__device'
+        'instance__device', 'instance__vrf', 'area__instance', 'interface__device'
     )
     filterset = OSPFInterfaceFilterSet
     table = OSPFInterfaceTable
@@ -427,7 +427,7 @@ class OSPFInterfaceBulkDeleteView(BulkDeleteView):
 NETWORK_SELECT_RELATED = (
     'ospf_interface__instance__device',
     'ospf_interface__instance__vrf',
-    'ospf_interface__area',
+    'ospf_interface__area__instance',
     'ospf_interface__interface__device',
     'ip_address',
 )
@@ -676,7 +676,7 @@ class OSPFSummaryAddressBulkDeleteView(BulkDeleteView):
 NEIGHBOR_QUERYSET = OSPFNeighbor.objects.select_related(
     'ospf_interface__instance__device',
     'ospf_interface__instance__vrf',
-    'ospf_interface__area',
+    'ospf_interface__area__instance',
     'ospf_interface__interface__device',
 )
 

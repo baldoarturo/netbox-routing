@@ -1082,6 +1082,20 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
                 raise ValidationError(
                     {'router_id': _('The router ID cannot be 0.0.0.0.')}
                 )
+            if self.pk and any(
+                netaddr.IPAddress(str(remote).split('/')[0]) == router_id
+                for remote in self.virtual_links.values_list(
+                    'remote_router_id', flat=True
+                )
+            ):
+                raise ValidationError(
+                    {
+                        'router_id': _(
+                            'A virtual link of the instance has this router ID as '
+                            'its remote router.'
+                        )
+                    }
+                )
 
 
 class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
@@ -1175,7 +1189,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         )
 
     def __str__(self):
-        return f'{self.area_id}'
+        return f'{self.area_id} ({self.instance.name})'
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:ospfarea', args=[self.pk])
@@ -1259,6 +1273,7 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
         super().clean()
         self._clean_traffic_engineering()
         self._clean_area_type_options()
+        self._clean_dependents()
         self._clean_authentication()
         self._clean_interface_authentication()
         self._clean_fast_reroute()
@@ -1287,6 +1302,41 @@ class OSPFArea(OSPFAuthenticationMixin, PrimaryModel):
                     'fast_reroute': _(
                         'Interfaces of the area use fast reroute, which needs it '
                         'enabled on the area.'
+                    )
+                }
+            )
+
+    def _clean_dependents(self):
+        """What hangs from the area has to stay valid with its type."""
+        if not self.pk:
+            return
+        if (
+            self.area_type != OSPFAreaTypeChoices.STANDARD
+            and self.virtual_links.exists()
+        ):
+            raise ValidationError(
+                {
+                    'area_type': _(
+                        'Virtual links cross this area: it has to be a standard '
+                        'area (RFC 2328 C.4).'
+                    )
+                }
+            )
+        if (
+            self.area_type
+            not in (
+                OSPFAreaTypeChoices.NSSA,
+                OSPFAreaTypeChoices.TNSSA,
+            )
+            and self.ranges.filter(
+                range_type=OSPFRangeTypeChoices.NSSA_EXTERNAL
+            ).exists()
+        ):
+            raise ValidationError(
+                {
+                    'area_type': _(
+                        'The area has type 7 to type 5 ranges, which only exist '
+                        'on NSSA areas (RFC 3101).'
                     )
                 }
             )
@@ -1526,7 +1576,7 @@ class OSPFInterface(
         ordering = ('instance', 'area', 'interface')  # Name may be non-unique
 
     def __str__(self):
-        return f'{self.interface.name}'
+        return f'{self.interface.device} {self.interface.name}'
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing_protocols:ospfinterface', args=[self.pk])
