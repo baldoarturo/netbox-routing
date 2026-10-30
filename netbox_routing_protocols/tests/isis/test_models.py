@@ -6,12 +6,16 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from dcim.models import Interface
+from ipam.models import VRF
+from utilities.exceptions import AbortRequest
 from utilities.testing import create_test_device
 
 from netbox_routing_protocols.models import (
     ISISFlexAlgo,
     ISISInstance,
     ISISInterface,
+    ISISInterfaceLevel,
+    ISISLevel,
     ISISPrefixSID,
     ISISSRv6Locator,
     ISISSegmentRouting,
@@ -27,6 +31,7 @@ __all__ = (
     'ISISSegmentRoutingCleanTestCase',
     'ISISSRv6LocatorModelTestCase',
     'ISISMigrationStateTestCase',
+    'ISISConsistencyTestCase',
 )
 
 
@@ -625,3 +630,100 @@ class ISISMigrationStateTestCase(TestCase):
         self.assertEqual(
             dropped, [], f'CreateModel bases dropped DeleteMixin for: {dropped}'
         )
+
+
+class ISISConsistencyTestCase(TestCase):
+    """Rules between the instance, its interfaces and its levels (#419, #420, #421)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='Device 1')
+        cls.other_device = create_test_device(name='Device 2')
+        cls.vrf = VRF.objects.create(name='VRF 1')
+        cls.instance = ISISInstance.objects.create(
+            device=cls.device, process_tag='CORE', is_type='level-1-2'
+        )
+
+    def _interface(self, **kwargs):
+        kwargs.setdefault('device', self.device)
+        return Interface.objects.create(name='eth0', type='virtual', **kwargs)
+
+    def test_interface_vrf_must_match_instance(self):
+        entry = ISISInterface(
+            instance=self.instance,
+            interface=self._interface(vrf=self.vrf),
+            address_family='ipv4',
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            entry.clean()
+        self.assertIn('interface', ctx.exception.message_dict)
+
+    def test_interface_vrf_matching_is_accepted(self):
+        instance = ISISInstance.objects.create(
+            device=self.device, process_tag='VRF', vrf=self.vrf
+        )
+        ISISInterface(
+            instance=instance,
+            interface=self._interface(vrf=self.vrf),
+            address_family='ipv4',
+        ).clean()
+
+    def test_moving_interface_to_another_vrf_is_refused(self):
+        interface = self._interface()
+        ISISInterface.objects.create(
+            instance=self.instance, interface=interface, address_family='ipv4'
+        )
+        interface.vrf = self.vrf
+        with self.assertRaises(AbortRequest):
+            interface.save()
+
+    def test_changing_instance_device_is_refused_with_interfaces(self):
+        ISISInterface.objects.create(
+            instance=self.instance,
+            interface=self._interface(),
+            address_family='ipv4',
+        )
+        self.instance.device = self.other_device
+        with self.assertRaises(ValidationError):
+            self.instance.clean()
+
+    def test_circuit_type_must_share_a_level_with_is_type(self):
+        self.instance.is_type = 'level-1'
+        entry = ISISInterface(
+            instance=self.instance,
+            interface=self._interface(),
+            address_family='ipv4',
+            circuit_type='level-2-only',
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            entry.clean()
+        self.assertIn('circuit_type', ctx.exception.message_dict)
+
+    def test_interface_level_must_be_run_by_circuit(self):
+        entry = ISISInterface.objects.create(
+            instance=self.instance,
+            interface=self._interface(),
+            address_family='ipv4',
+            circuit_type='level-1',
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            ISISInterfaceLevel(interface=entry, level=2).clean()
+        self.assertIn('level', ctx.exception.message_dict)
+        ISISInterfaceLevel(interface=entry, level=1).clean()
+
+    def test_changing_is_type_is_refused_with_existing_level(self):
+        ISISLevel.objects.create(instance=self.instance, level=1)
+        self.instance.is_type = 'level-2-only'
+        with self.assertRaises(ValidationError):
+            self.instance.clean()
+
+    def test_level_not_run_is_accepted_when_disabled(self):
+        self.instance.is_type = 'level-2-only'
+        ISISLevel(instance=self.instance, level=1, disabled=True).clean()
+
+    def test_wide_metrics_only_conflicts_with_narrow_style(self):
+        self.instance.metric_style = 'narrow'
+        level = ISISLevel(instance=self.instance, level=1, wide_metrics_only=True)
+        with self.assertRaises(ValidationError) as ctx:
+            level.clean()
+        self.assertIn('wide_metrics_only', ctx.exception.message_dict)

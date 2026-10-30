@@ -18,7 +18,11 @@ from netbox_routing_protocols.constants.isis import (
     ISISSETTING_ASSIGNMENT_MODEL_NAMES,
     ISISSETTING_ASSIGNMENT_MODELS,
 )
-from netbox_routing_protocols.helpers.isis import NET_RE, auth_pair_errors
+from netbox_routing_protocols.helpers.isis import (
+    NET_RE,
+    auth_pair_errors,
+    type_levels,
+)
 from netbox_routing_protocols.models.policy import RoutePolicyMixin
 
 __all__ = (
@@ -436,6 +440,29 @@ class ISISInstance(RoutePolicyMixin, PrimaryModel):
             errors['net'] = _('Enter a valid NET, e.g. 49.0001.0000.0000.0001.00.')
         if errors:
             raise ValidationError(errors)
+        self._clean_children()
+
+    def _clean_children(self):
+        """A change of device, VRF, IS type or metric style must not leave interfaces
+        or levels that the new values make invalid."""
+        if self.pk is None:
+            return
+        problems = []
+        children = [
+            *self.interfaces.select_related('interface'),
+            *self.levels.all(),
+        ]
+        for child in children:
+            child.instance = self
+            try:
+                child.clean()
+            except ValidationError as e:
+                problems.append(f'{child} ({"; ".join(e.messages)})')
+        if problems:
+            raise ValidationError(
+                _('This change makes related objects invalid: %(problems)s.')
+                % {'problems': ', '.join(problems[:5])}
+            )
 
     def __str__(self):
         tag = self.process_tag or 'default'
@@ -611,6 +638,27 @@ class ISISInterface(PrimaryModel):
             msg = _('IS-IS Instance Device and Interface Device must match.')
             errors['instance'] = msg
             errors['interface'] = msg
+        elif (
+            self.instance_id
+            and self.interface_id
+            and self.interface.vrf_id != self.instance.vrf_id
+        ):
+            errors['interface'] = _(
+                'The interface is in {interface_vrf} but the IS-IS instance '
+                'is in {instance_vrf}.'
+            ).format(
+                interface_vrf=self.interface.vrf or _('the global routing table'),
+                instance_vrf=self.instance.vrf or _('the global routing table'),
+            )
+        # The circuit type must share a level with the IS type of the instance.
+        if (
+            self.instance_id
+            and self.circuit_type
+            and not type_levels(self.circuit_type) & type_levels(self.instance.is_type)
+        ):
+            errors['circuit_type'] = _(
+                'The circuit type does not run any level of the instance IS type.'
+            )
         # Hello auth type and key are only meaningful together (mirrors ISISInstance).
         errors.update(
             auth_pair_errors(
@@ -622,6 +670,23 @@ class ISISInterface(PrimaryModel):
         )
         if errors:
             raise ValidationError(errors)
+        self._clean_levels()
+
+    def _clean_levels(self):
+        """Interface levels must be levels the circuit (or, by default, the instance) runs."""
+        if self.pk is None or not self.instance_id:
+            return
+        allowed = type_levels(self.circuit_type) & type_levels(self.instance.is_type)
+        bad = [str(lv.level) for lv in self.levels.all() if lv.level not in allowed]
+        if bad:
+            raise ValidationError(
+                {
+                    'circuit_type': _(
+                        'Interface levels exist for levels this circuit does not run: %(levels)s.'
+                    )
+                    % {'levels': ', '.join(bad)}
+                }
+            )
 
     def __str__(self):
         return f'{self.interface} ({self.address_family})'
@@ -720,6 +785,18 @@ class ISISLevel(PrimaryModel):
         errors = auth_pair_errors(
             self.auth_type, self.auth_key, 'auth_type', 'auth_key'
         )
+        if self.instance_id:
+            if (
+                self.level not in type_levels(self.instance.is_type)
+                and not self.disabled
+            ):
+                errors['level'] = _(
+                    'The instance IS type does not run this level; mark it disabled.'
+                )
+            if self.wide_metrics_only and self.instance.metric_style == 'narrow':
+                errors['wide_metrics_only'] = _(
+                    'Wide metrics only conflicts with the narrow metric style of the instance.'
+                )
         if errors:
             raise ValidationError(errors)
 
@@ -781,6 +858,21 @@ class ISISInterfaceLevel(PrimaryModel):
                 name='netbox_routing_protocols_isisinterfacelevel_interface_level_unique',
             ),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.interface_id:
+            allowed = type_levels(self.interface.circuit_type) & type_levels(
+                self.interface.instance.is_type
+            )
+            if self.level not in allowed:
+                raise ValidationError(
+                    {
+                        'level': _(
+                            'The circuit of this interface does not run this level.'
+                        )
+                    }
+                )
 
     def __str__(self):
         return f'{self.interface} L{self.level}'
