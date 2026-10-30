@@ -1,7 +1,7 @@
 # NetBox Routing Protocols
 
 > [!WARNING]
-> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **static routes, prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
+> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **static routes, route policies, prefix lists, AS paths, communities, OSPF and IS-IS** are considered ready; everything else is still in progress.
 
 A NetBox plugin to **document the routing configuration of your network**: static routes, BGP,
 OSPFv2/OSPFv3, IS-IS and EIGRP, together with the objects they use (prefix lists, route policies, AS paths,
@@ -22,7 +22,7 @@ instance?"* is one search away, next to the rest of your inventory.
 | --- | --- | --- |
 | [Static routes](protocols/static.md) | Prefix, next hop or special next hop (blackhole, unreachable, prohibit, receive), interface, VRF and route leaking, distance, tag, the devices that carry the route | Ready |
 | [BGP](protocols/bgp.md) | Routers, VRF scopes, address families, peers, session/peer/policy templates, settings | Work in progress ([Tracking #411](https://github.com/baldoarturo/netbox-routing-protocols/issues/411)) |
-| [OSPF (OSPFv2 for IPv4 and OSPFv3 for IPv6)](protocols/ospf.md) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | Work in progress ([Tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90)) |
+| [OSPF (OSPFv2 for IPv4 and OSPFv3 for IPv6)](protocols/ospf.md) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | Ready |
 | [IS-IS](protocols/isis.md) | Instances, area addresses, address families, interfaces, levels, authentication (HMAC-SHA, key chains), redistribution, summary addresses, route leaking, segment routing (prefix-SIDs, adjacency-SIDs, mapping entries), Flex-Algo, SRv6 | Ready |
 | [EIGRP](protocols/eigrp.md) | Routers (classic and named), address families, networks, interfaces | Work in progress ([Tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)) |
 | [Route policies](routing-objects.md) | Route policies, route policy entries | Ready |
