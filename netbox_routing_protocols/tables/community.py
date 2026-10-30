@@ -17,9 +17,7 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(verbose_name=_('Name'), linkify=True)
     community = tables.Column(verbose_name=_('Community'), linkify=True)
     type = columns.ChoiceFieldColumn()
-    well_known = tables.Column(
-        verbose_name=_('Well-known'), orderable=False, empty_values=()
-    )
+    well_known = tables.Column(verbose_name=_('Well-known'), orderable=False)
     role = tables.Column(verbose_name=_('Role'), linkify=True)
     status = columns.ChoiceFieldColumn()
     entry_count = columns.LinkedCountColumn(
