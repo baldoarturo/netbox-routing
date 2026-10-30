@@ -7,7 +7,14 @@ from django.utils.translation import gettext_lazy as _
 __all__ = (
     'NET_RE',
     'auth_pair_errors',
+    'type_levels',
 )
+
+
+def type_levels(value):
+    """The IS-IS levels an IS type or circuit type runs; an empty value is the
+    default level-1-2 (ISO 10589 / RFC 1195)."""
+    return {'level-1': {1}, 'level-2-only': {2}}.get(value, {1, 2})
 
 
 # A NET (Network Entity Title) is hex bytes written as dot-separated groups: a

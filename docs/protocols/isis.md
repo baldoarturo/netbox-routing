@@ -106,12 +106,14 @@ The settings of the instance **for one level**: one record per instance and leve
 | Disabled | Switch the level off on this instance. |
 | Authentication type / key | Level authentication, see above. |
 
+The level must be one the instance's IS type runs (a Level-1-only instance has no Level-2 record unless it is marked *Disabled*), and *Wide metrics only* cannot be used with the narrow metric style.
+
 ## Interfaces
 
 **IS-IS → Interfaces**
 
 A device interface that takes part in IS-IS, **one record per address family**: an interface that
-runs IPv4 and IPv6 has two. The interface must be on the instance's device.
+runs IPv4 and IPv6 has two. The interface must be on the instance's device and in the instance's VRF (or both in the global table). The circuit type must share a level with the instance's IS type (RFC 1195, ISO 10589). Changing the device, VRF or IS type later is refused while it would leave interfaces or levels that break these rules.
 
 | Field | Meaning |
 | --- | --- |
@@ -131,7 +133,7 @@ runs IPv4 and IPv6 has two. The interface must be on the instance's device.
 
 Open an interface and use its *Levels* tab (there is no menu entry for this object).
 
-Settings that differ **per level on one interface**: metric, hello interval, hello multiplier (how
+Settings that differ **per level on one interface** (only for levels the interface's circuit type runs): metric, hello interval, hello multiplier (how
 many hellos can be missed), **priority** for the DIS election (higher wins) and passive.
 
 ## Segment routing
