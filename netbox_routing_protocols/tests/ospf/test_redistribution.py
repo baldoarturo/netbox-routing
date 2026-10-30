@@ -8,12 +8,15 @@ from utilities.testing import APIViewTestCases, ViewTestCases, create_test_devic
 from netbox_routing_protocols.filtersets import OSPFRedistributionFilterSet
 from netbox_routing_protocols.forms import OSPFRedistributionForm
 from netbox_routing_protocols.models import (
-    RoutePolicy,
+    BGPAddressFamily,
     BGPInstance,
+    EIGRPAddressFamily,
     EIGRPRouter,
+    ISISAddressFamily,
     ISISInstance,
     OSPFInstance,
     OSPFRedistribution,
+    RoutePolicy,
 )
 from netbox_routing_protocols.tests.base import IPAddressFieldMixin, LeanCoreTestsMixin
 
@@ -42,11 +45,16 @@ def _create_fixtures(cls):
     cls.other_instance = OSPFInstance.objects.create(
         name='Other', device=cls.other_device, router_id='9.9.9.9'
     )
+    cls.vrf = cls.instances[0].vrf
     cls.eigrp = EIGRPRouter.objects.create(device=cls.device, mode='classic', pid=100)
+    EIGRPAddressFamily.objects.create(router=cls.eigrp, vrf=cls.vrf, family=4)
     cls.other_eigrp = EIGRPRouter.objects.create(
         device=cls.other_device, mode='classic', pid=100
     )
-    cls.isis = ISISInstance.objects.create(device=cls.device, process_tag='core')
+    cls.isis = ISISInstance.objects.create(
+        device=cls.device, process_tag='core', vrf=cls.vrf
+    )
+    ISISAddressFamily.objects.create(instance=cls.isis, address_family='ipv4')
     cls.other_isis = ISISInstance.objects.create(
         device=cls.other_device, process_tag='core'
     )
@@ -55,7 +63,9 @@ def _create_fixtures(cls):
         name='BGP',
         asn=ASN.objects.create(asn=65000, rir=rir),
         device=cls.device,
+        vrf=cls.vrf,
     )
+    BGPAddressFamily.objects.create(instance=cls.bgp, address_family='ipv4-unicast')
     cls.other_bgp = BGPInstance.objects.create(
         name='Other BGP',
         asn=ASN.objects.create(asn=65001, rir=rir),
@@ -80,12 +90,13 @@ class OSPFRedistributionModelTestCase(TestCase):
         self.assertIsNone(redistribution.source)
 
     def test_ospf_route_types(self):
+        # the display only: another OSPF instance is never a valid source (see the
+        # rejection test below)
         redistribution = self._redistribution(
             protocol='ospf',
             ospf_source=self.instances[1],
             ospf_match=['internal', 'external-1', 'nssa-external-2'],
         )
-        redistribution.full_clean()
         self.assertEqual(
             redistribution.ospf_match_display,
             'Internal, External Type 1, NSSA External Type 2',
@@ -94,6 +105,15 @@ class OSPFRedistributionModelTestCase(TestCase):
         self.assertEqual(
             self._redistribution(protocol='static').ospf_match_display, '—'
         )
+
+    def test_another_ospf_instance_is_never_a_source(self):
+        # one OSPF instance per device, VRF and IP version: the other one of the same
+        # device runs in another VRF or family (#528)
+        with self.assertRaises(ValidationError) as cm:
+            self._redistribution(
+                protocol='ospf', ospf_source=self.instances[1]
+            ).full_clean()
+        self.assertIn('ospf_source', cm.exception.error_dict)
 
     def test_ospf_route_types_are_checked(self):
         with self.assertRaises(ValidationError) as cm:
@@ -136,7 +156,6 @@ class OSPFRedistributionModelTestCase(TestCase):
 
     def test_every_protocol_with_its_source_is_valid(self):
         for protocol, source in (
-            ('ospf', {'ospf_source': self.instances[1]}),
             ('eigrp', {'eigrp_source': self.eigrp}),
             ('bgp', {'bgp_source': self.bgp}),
             ('isis', {'isis_source': self.isis}),
@@ -255,7 +274,7 @@ class OSPFRedistributionFormTestCase(TestCase):
                 )
                 self.assertNotIn('ospf_match', form.fields)
 
-    def test_the_route_types_are_saved_and_cleared_with_the_protocol(self):
+    def test_the_route_types_need_an_ospf_source_of_the_same_vrf_and_family(self):
         form = OSPFRedistributionForm(
             data={
                 'instance': self.instances[0].pk,
@@ -266,22 +285,8 @@ class OSPFRedistributionFormTestCase(TestCase):
                 'subnets': 'on',
             }
         )
-        self.assertTrue(form.is_valid(), form.errors)
-        redistribution = form.save()
-        self.assertEqual(redistribution.ospf_match, ['internal', 'external-2'])
-        form = OSPFRedistributionForm(
-            data={
-                'instance': self.instances[0].pk,
-                'protocol': 'static',
-                'metric_type': '2',
-                'subnets': 'on',
-            },
-            instance=redistribution,
-        )
-        self.assertTrue(form.is_valid(), form.errors)
-        form.save()
-        redistribution.refresh_from_db()
-        self.assertEqual(redistribution.ospf_match, [])
+        self.assertFalse(form.is_valid())
+        self.assertIn('ospf_source', form.errors)
 
     def test_only_the_source_of_the_selected_protocol_is_shown(self):
         for protocol, field in (
@@ -441,7 +446,7 @@ class OSPFRedistributionViewTestCase(
             )
         )
         cls.form_data = {
-            'instance': cls.instances[1].pk,
+            'instance': cls.instances[0].pk,
             'protocol': 'isis',
             'isis_source': cls.isis.pk,
             'metric': 20,
@@ -495,7 +500,7 @@ class OSPFRedistributionAPITestCase(
         )
         cls.create_data = [
             {
-                'instance': cls.instances[1].pk,
+                'instance': cls.instances[0].pk,
                 'protocol': 'isis',
                 'isis_source': cls.isis.pk,
                 'metric': 20,

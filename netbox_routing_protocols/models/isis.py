@@ -13,6 +13,7 @@ from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
 from netbox_routing_protocols import choices
+from netbox_routing_protocols.helpers.redistribution import source_problem
 from netbox_routing_protocols.choices.isis import (
     ISISLevelScopeChoices,
     ISISRedistributionMetricTypeChoices,
@@ -1947,17 +1948,24 @@ class ISISRedistribution(PrimaryModel):
             return
 
         instance = self.instance
-        if (
-            self.protocol == ISISRedistributionProtocolChoices.ISIS
-            and self.isis_source_id == self.instance_id
-        ):
+        if self.protocol == ISISRedistributionProtocolChoices.ISIS:
+            # a protocol never redistributes into itself on the same device, VRF and
+            # address family (#528)
             errors['isis_source'] = _(
-                'An IS-IS instance cannot be redistributed into itself.'
+                'IS-IS cannot redistribute into IS-IS on the same device, VRF and '
+                'address family.'
             )
-        elif self.source is not None and not self._source_is_on_instance_device():
-            errors[self.SOURCE_FIELDS[self.protocol]] = _(
-                'The source must be on the same device as the IS-IS instance.'
+        elif self.source is not None:
+            # the same device, the same VRF and the same IP version (#528)
+            problem = source_problem(
+                self.protocol,
+                self.source,
+                instance.device_id,
+                instance.vrf_id,
+                self.address_family,
             )
+            if problem:
+                errors[self.SOURCE_FIELDS[self.protocol]] = problem
         if not scope_levels(self.level) & type_levels(instance.is_type):
             errors['level'] = _('The instance does not run this level.')
         errors.update(
@@ -1967,9 +1975,6 @@ class ISISRedistribution(PrimaryModel):
         )
         if errors:
             raise ValidationError(errors)
-
-    def _source_is_on_instance_device(self):
-        return self.source.device_id == self.instance.device_id
 
 
 class ISISSummaryAddress(PrimaryModel):

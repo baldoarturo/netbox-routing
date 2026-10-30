@@ -121,23 +121,26 @@ class OSPFBulkImportTestCase(TestCase):
         self.assertEqual(obj.route_policy, self.policy)
         self.assertEqual(OSPFRedistribution.objects.count(), 1)
 
-    def test_redistribution_of_ospf_with_route_types(self):
-        other = OSPFInstance.objects.create(
+    def test_ospf_cannot_redistribute_into_ospf(self):
+        # OSPF never takes OSPF routes on the same device, VRF and address family:
+        # the only OSPF instance of that VRF is the one itself (#528)
+        OSPFInstance.objects.create(
             name='Other',
             device=self.devices[1],
             router_id='9.9.9.9',
             vrf=VRF.objects.create(name='VRF 1'),
         )
-        obj = self._save(
-            OSPFRedistributionImportForm,
-            device='Device 2',
-            instance='Main',
-            protocol='ospf',
-            ospf_source='Other',
-            ospf_match='internal,external-1',
+        form = OSPFRedistributionImportForm(
+            data={
+                'device': 'Device 2',
+                'instance': 'Main',
+                'protocol': 'ospf',
+                'ospf_source': 'Other',
+                'ospf_match': 'internal,external-1',
+            }
         )
-        self.assertEqual(obj.ospf_source, other)
-        self.assertEqual(obj.ospf_match, ['internal', 'external-1'])
+        self.assertFalse(form.is_valid())
+        self.assertIn('ospf_source', form.errors)
 
     def test_virtual_link(self):
         obj = self._save(

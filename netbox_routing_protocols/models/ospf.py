@@ -14,6 +14,7 @@ from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
 from netbox_routing_protocols import choices
+from netbox_routing_protocols.helpers.redistribution import source_problem
 from netbox_routing_protocols.choices.ospf import (
     OSPFAddressFamilyChoices,
     OSPFFastRerouteChoices,
@@ -2025,37 +2026,26 @@ class OSPFRedistribution(PrimaryModel):
         if not self.instance_id or self.source is None:
             return
         if self.protocol == OSPFRedistributionProtocolChoices.OSPF:
-            if self.ospf_source_id == self.instance_id:
-                raise ValidationError(
-                    {
-                        'ospf_source': _(
-                            'An OSPF instance cannot be redistributed into itself.'
-                        )
-                    }
-                )
-        if (
-            self.protocol == OSPFRedistributionProtocolChoices.OSPF
-            and self.ospf_source.address_family != self.instance.address_family
-        ):
+            # a protocol never redistributes into itself on the same device, VRF and
+            # address family: there is only one OSPF instance for them (#528)
             raise ValidationError(
                 {
                     'ospf_source': _(
-                        'The source runs another address family: IPv4 and IPv6 '
-                        'routes cannot be redistributed into one another.'
+                        'OSPF cannot redistribute into OSPF on the same device, VRF '
+                        'and address family.'
                     )
                 }
             )
-        if not self._source_is_on_instance_device():
-            raise ValidationError(
-                {
-                    self.SOURCE_FIELDS[self.protocol]: _(
-                        'The source must be on the same device as the OSPF instance.'
-                    )
-                }
-            )
-
-    def _source_is_on_instance_device(self):
-        return self.source.device_id == self.instance.device_id
+        # the same device, the same VRF and the same IP version (#528)
+        problem = source_problem(
+            self.protocol,
+            self.source,
+            self.instance.device_id,
+            self.instance.vrf_id,
+            self.instance.address_family,
+        )
+        if problem:
+            raise ValidationError({self.SOURCE_FIELDS[self.protocol]: problem})
 
 
 class OSPFVirtualLink(
