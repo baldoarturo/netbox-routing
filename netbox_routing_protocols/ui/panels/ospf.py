@@ -254,7 +254,9 @@ class OSPFRedistributionPanel(panels.ObjectAttributesPanel):
     subnets = attrs.BooleanAttr('subnets', label=_('Subnets'))
     route_tag = attrs.NumericAttr('route_tag', label=_('Route Tag'))
     ospf_match = attrs.TextAttr('ospf_match_display', label=_('OSPF Route Types'))
-    route_policy = attrs.TextAttr('route_policy', label=_('Route Policy'))
+    route_policy = attrs.RelatedObjectAttr(
+        'route_policy', linkify=True, label=_('Route Policy')
+    )
     description = attrs.TextAttr('description', label=_('Description'))
 
 

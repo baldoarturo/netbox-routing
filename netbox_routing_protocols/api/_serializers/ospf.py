@@ -237,6 +237,7 @@ class OSPFRedistributionSerializer(NetBoxModelSerializer):
     eigrp_source = EIGRPRouterSerializer(nested=True, required=False, allow_null=True)
     bgp_source = BGPRouterSerializer(nested=True, required=False, allow_null=True)
     isis_source = ISISInstanceSerializer(nested=True, required=False, allow_null=True)
+    route_policy = RoutePolicySerializer(nested=True, required=False, allow_null=True)
 
     class Meta:
         model = OSPFRedistribution

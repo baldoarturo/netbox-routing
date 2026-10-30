@@ -8,6 +8,7 @@ from utilities.testing import APIViewTestCases, ViewTestCases, create_test_devic
 from netbox_routing_protocols.filtersets import OSPFRedistributionFilterSet
 from netbox_routing_protocols.forms import OSPFRedistributionForm
 from netbox_routing_protocols.models import (
+    RoutePolicy,
     BGPRouter,
     EIGRPRouter,
     ISISInstance,
@@ -26,6 +27,7 @@ __all__ = (
 
 
 def _create_fixtures(cls):
+    cls.policies = [RoutePolicy.objects.create(name=f'Policy {i}') for i in (1, 2)]
     cls.device = create_test_device(name='Device 1')
     cls.other_device = create_test_device(name='Device 2')
     cls.instances = [
@@ -363,7 +365,7 @@ class OSPFRedistributionFilterSetTestCase(TestCase):
                     instance=cls.instances[0],
                     protocol='static',
                     metric=10,
-                    route_policy='TO-OSPF',
+                    route_policy=cls.policies[0],
                 ),
                 OSPFRedistribution(
                     instance=cls.instances[0],
@@ -413,7 +415,7 @@ class OSPFRedistributionFilterSetTestCase(TestCase):
         self.assertEqual(self.count({'ospf_match': ['external-2']}), 0)
 
     def test_q(self):
-        self.assertEqual(self.count({'q': 'TO-OSPF'}), 1)
+        self.assertEqual(self.count({'q': 'Policy 1'}), 1)
         self.assertEqual(self.count({'q': 'Instance 1'}), 2)
 
 
@@ -452,11 +454,11 @@ class OSPFRedistributionViewTestCase(
             'metric_type': '1',
             'subnets': True,
             'route_tag': 5,
-            'route_policy': 'ISIS-TO-OSPF',
+            'route_policy': cls.policies[0].pk,
         }
         cls.bulk_edit_data = {
             'description': 'A test description',
-            'route_policy': 'POLICY',
+            'route_policy': cls.policies[1].pk,
         }
 
     def _get_base_url(self):
@@ -481,7 +483,7 @@ class OSPFRedistributionAPITestCase(
 
     bulk_update_data = {'description': 'A test description'}
     # Changing the protocol of an existing object also needs its source changed
-    update_data = {'metric': 30, 'route_policy': 'UPDATED'}
+    update_data = {'metric': 30}
 
     @classmethod
     def setUpTestData(cls):
@@ -503,6 +505,30 @@ class OSPFRedistributionAPITestCase(
                 'protocol': 'isis',
                 'isis_source': cls.isis.pk,
                 'metric': 20,
-                'route_policy': 'ISIS-TO-OSPF',
+                'route_policy': cls.policies[0].pk,
             },
         ]
+
+
+class OSPFRedistributionRoutePolicyTestCase(TestCase):
+    """The route policy of a redistribution is an object that cannot be deleted in use."""
+
+    @classmethod
+    def setUpTestData(cls):
+        _create_fixtures(cls)
+        cls.redistribution = OSPFRedistribution.objects.create(
+            instance=cls.instances[0], protocol='static', route_policy=cls.policies[0]
+        )
+
+    def test_policy_in_use_cannot_be_deleted(self):
+        from django.db.models import ProtectedError
+
+        with self.assertRaises(ProtectedError):
+            self.policies[0].delete()
+
+    def test_filter_by_policy(self):
+        qs = OSPFRedistributionFilterSet(
+            {'route_policy': [self.policies[0].name]},
+            OSPFRedistribution.objects.all(),
+        ).qs
+        self.assertEqual(list(qs), [self.redistribution])

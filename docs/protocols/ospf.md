@@ -62,7 +62,7 @@ An instance is one OSPF process: "OSPF on this device, in this VRF".
 | Import policy | Optional [route policy](../routing-objects.md#route-policies) that filters the routes OSPF **installs** in the routing table (Cisco `distribute-list route-map … in`, Juniper `import`). |
 | Export policy | Optional route policy that filters the routes **injected into** OSPF from other sources (Cisco `redistribute … route-map`, Juniper `export`). |
 
-A route policy that an instance uses **cannot be deleted**: choose another one, or clear the field, first.
+A route policy that an instance uses **cannot be deleted**: choose another one, or clear the field, first. The same goes for the one of a redistribution.
 
 ### Timers
 
@@ -292,7 +292,7 @@ router into an ASBR.
 | Metric type | **E1** or **E2**. With **E2** (the default) the metric stays the same across the OSPF domain; with **E1** the internal cost to reach the ASBR is added, which makes routers prefer the closer ASBR ([RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) §16.4.1). |
 | Subnets | Redistribute subnets, not only classful networks. On by default. |
 | Route tag | A tag set on the routes, to filter them later (RFC 2328 external route tag). |
-| Route policy | Name of a route policy/route policy applied to the routes. |
+| Route policy | Optional [route policy](../routing-objects.md#route-policies) applied to the redistributed routes (Cisco `redistribute … route-map`). A policy used here **cannot be deleted**. |
 | OSPF route types | When the source is OSPF, which kinds of routes to redistribute. |
 
 Rules: each protocol (and each source) can be redistributed once per instance; an OSPF instance cannot
@@ -394,7 +394,7 @@ In lists and selects, an OSPF interface is shown as `device interface` and an ar
 
 | Delete | Result |
 | --- | --- |
-| A route policy | Refused while an OSPF instance uses it as its import or export policy. |
+| A route policy | Refused while an OSPF instance uses it as its import or export policy, or a redistribution uses it. |
 | An OSPF instance | Refused while it has interfaces. Its unused areas, redistributions, virtual links, summary addresses and Prefix SIDs go with it. |
 | An area | Refused while it has interfaces; its ranges go with it. |
 | An OSPF interface | Its networks and neighbors go with it. |
@@ -461,7 +461,7 @@ OSPF instance
 │     instance → OSPF instance · protocol {Connected | Static | EIGRP | BGP | OSPF | IS-IS}
 │     · ospf_source → OSPF instance · eigrp_source → EIGRP router · bgp_source → BGP router
 │     · isis_source → IS-IS instance · metric · metric_type {Type 1 (E1) | Type 2 (E2)}
-│     · subnets? · route_tag · route_policy · ospf_match
+│     · subnets? · route_tag · route_policy → Route policy · ospf_match
 ├─ Summary address: instance → OSPF instance · prefix · not_advertise? · route_tag
 ├─ Virtual link
 │     instance → OSPF instance · transit_area → Area · remote_router_id

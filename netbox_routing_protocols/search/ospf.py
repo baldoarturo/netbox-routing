@@ -74,7 +74,6 @@ class OSPFNetworkIndex(SearchIndex):
 class OSPFRedistributionIndex(SearchIndex):
     model = OSPFRedistribution
     fields = (
-        ('route_policy', 100),
         ('description', 500),
         ('comments', 5000),
     )

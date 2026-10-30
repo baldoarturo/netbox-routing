@@ -210,7 +210,12 @@ class OSPFRedistributionType(PrimaryObjectType):
     metric_type: str
     subnets: bool
     route_tag: int | None
-    route_policy: str
+    route_policy: (
+        Annotated[
+            "RoutePolicyType", strawberry.lazy('netbox_routing_protocols.graphql.types')
+        ]
+        | None
+    )
     ospf_match: list[str]
 
 

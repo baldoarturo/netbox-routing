@@ -429,6 +429,17 @@ class OSPFRedistributionFilterSet(NetBoxModelFilterSet):
         queryset=ISISInstance.objects.all(),
         label=_('IS-IS Source (ID)'),
     )
+    route_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy',
+        queryset=RoutePolicy.objects.all(),
+        label=_('Route Policy (ID)'),
+    )
+    route_policy = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_policy__name',
+        queryset=RoutePolicy.objects.all(),
+        to_field_name='name',
+        label=_('Route Policy (Name)'),
+    )
     metric_type = django_filters.MultipleChoiceFilter(
         choices=OSPFExternalMetricTypeChoices,
         label=_('Metric Type'),
@@ -448,13 +459,15 @@ class OSPFRedistributionFilterSet(NetBoxModelFilterSet):
             'metric_type',
             'subnets',
             'route_tag',
+            'route_policy_id',
+            'route_policy',
         )
 
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
         qs_filter = Q(instance__name__icontains=value) | Q(
-            route_policy__icontains=value
+            route_policy__name__icontains=value
         )
         return queryset.filter(qs_filter)
 

@@ -1891,11 +1891,14 @@ class OSPFRedistribution(PrimaryModel):
         blank=True,
         null=True,
     )
-    route_policy = models.CharField(
+    route_policy = models.ForeignKey(
+        to='netbox_routing_protocols.RoutePolicy',
+        on_delete=models.PROTECT,
+        related_name='ospf_redistributions',
         verbose_name=_('Route Policy'),
-        help_text=_('Name of the route policy applied to the redistributed routes'),
-        max_length=100,
+        help_text=_('Route policy applied to the redistributed routes'),
         blank=True,
+        null=True,
     )
     ospf_match = ArrayField(
         base_field=models.CharField(max_length=20, choices=OSPFRouteTypeChoices),
