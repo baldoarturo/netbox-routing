@@ -1,5 +1,8 @@
 # NetBox Routing Protocols
 
+> [!WARNING]
+> **Work in progress, not production ready.** The data model, the API and the migrations can still change between versions, and there is no stable release yet. Only **prefix lists, AS paths and communities** are considered ready; everything else is still in progress.
+
 A NetBox plugin to **document the routing configuration of your network**: static routes, BGP,
 OSPF, IS-IS and EIGRP, together with the objects they use (prefix lists, route policies, AS paths,
 communities) and BFD profiles.
@@ -17,15 +20,16 @@ instance?"* is one search away, next to the rest of your inventory.
 
 | Area | What you can describe | Status |
 | --- | --- | --- |
-| [Static routes](protocols/static.md) | Prefix, next hop, interface, VRF, metric, tag, the devices that carry the route | Available |
-| [BGP](protocols/bgp.md) | Routers, VRF scopes, address families, peers, session/peer/policy templates, settings | Available |
-| [OSPF (v2, IPv4)](protocols/ospf.md) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | In progress: [full OSPFv2 tracking](https://github.com/baldoarturo/netbox-routing-protocols/issues/90) |
-| [IS-IS](protocols/isis.md) | Instances, interfaces, levels, authentication, segment routing, Flex-Algo, SRv6 | Available |
-| [EIGRP](protocols/eigrp.md) | Routers (classic and named), address families, networks, interfaces | Available |
-| [Routing objects](routing-objects.md) | Prefix lists, route policies, AS paths, communities and community lists | In progress: reviews of [route policies](https://github.com/baldoarturo/netbox-routing-protocols/issues/307) and [communities](https://github.com/baldoarturo/netbox-routing-protocols/issues/294); [AS paths](https://github.com/baldoarturo/netbox-routing-protocols/issues/280) is nearly done; prefix lists are reviewed |
-| [BFD](bfd.md) | Reusable BFD timer profiles | Available |
+| [Static routes](protocols/static.md) | Prefix, next hop, interface, VRF, metric, tag, the devices that carry the route | Work in progress ([Tracking #410](https://github.com/baldoarturo/netbox-routing-protocols/issues/410)) |
+| [BGP](protocols/bgp.md) | Routers, VRF scopes, address families, peers, session/peer/policy templates, settings | Work in progress ([Tracking #411](https://github.com/baldoarturo/netbox-routing-protocols/issues/411)) |
+| [OSPF (v2, IPv4)](protocols/ospf.md) | Instances, areas, interfaces, networks, authentication, redistribution, virtual links, summaries, ranges, neighbors, traffic engineering, segment routing, fast reroute | Work in progress ([Tracking #90](https://github.com/baldoarturo/netbox-routing-protocols/issues/90)) |
+| [IS-IS](protocols/isis.md) | Instances, interfaces, levels, authentication, segment routing, Flex-Algo, SRv6 | Work in progress ([Tracking #412](https://github.com/baldoarturo/netbox-routing-protocols/issues/412)) |
+| [EIGRP](protocols/eigrp.md) | Routers (classic and named), address families, networks, interfaces | Work in progress ([Tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)) |
+| [Route policies](routing-objects.md) | Route policies, route policy entries | Work in progress ([Tracking #307](https://github.com/baldoarturo/netbox-routing-protocols/issues/307)) |
+| [BFD](bfd.md) | Reusable BFD timer profiles | Work in progress ([Tracking #414](https://github.com/baldoarturo/netbox-routing-protocols/issues/414)) |
+| [Routing objects](routing-objects.md) | Prefix lists, AS paths, communities and community lists | Ready |
 
-Segment routing shared by all the protocols (SRGB, SRLB and prefix SIDs per device) is also in progress: [tracking](https://github.com/baldoarturo/netbox-routing-protocols/issues/201). "Available" means there is no open tracking issue for the area; it is not a guarantee of completeness. Progress is tracked with the "Tracking:" issues and the GitHub projects of this repository.
+Segment routing shared by all the protocols (SRGB, SRLB and prefix SIDs per device) is also work in progress ([Tracking #201](https://github.com/baldoarturo/netbox-routing-protocols/issues/201)). Progress is followed in the "Tracking:" issues and the GitHub projects of the repository.
 
 ## Where to start
 

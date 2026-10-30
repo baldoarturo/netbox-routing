@@ -21,24 +21,26 @@ The documentation for operators and users (every protocol and feature, with the 
 
 ## Features
 
-### Current features
+### Ready
 
-* Static routing
+* Routing objects
+  * Prefix lists
+  * AS paths
+  * Communities and community lists
+
+### Work in progress
+
+Not production ready; the model and the migrations can still change. Each one has a tracking issue.
+
+* [Static routing](https://github.com/baldoarturo/netbox-routing-protocols/issues/410)
 * Dynamic routing
-  * EIGRP
-  * BGP
-    * Templates/Group inheritance
-    * IPv4/IPv46 AF VRF support
-    * VPNv4 support
-  * OSPF
-
-### Under development
-
-
-### Roadmapped
-
-* Dynamic Routing
-  * IS-IS
+  * [EIGRP](https://github.com/baldoarturo/netbox-routing-protocols/issues/413)
+  * [BGP](https://github.com/baldoarturo/netbox-routing-protocols/issues/411) (templates/group inheritance, IPv4/IPv6 AF and VRF, VPNv4)
+  * [OSPF](https://github.com/baldoarturo/netbox-routing-protocols/issues/90)
+  * [IS-IS](https://github.com/baldoarturo/netbox-routing-protocols/issues/412)
+* [Route policies](https://github.com/baldoarturo/netbox-routing-protocols/issues/307)
+* [BFD profiles](https://github.com/baldoarturo/netbox-routing-protocols/issues/414)
+* [Segment routing](https://github.com/baldoarturo/netbox-routing-protocols/issues/201)
 
 # Requirements
 
