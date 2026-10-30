@@ -239,6 +239,24 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
         cls.inbound = create_peer_address_family(import_policy=cls.policy)
         cls.outbound = create_peer_address_family(export_policy=cls.policy)
         cls.unrelated = create_peer_address_family(import_policy=cls.other_policy)
+        # the policy also set on the instance, the peer group and a peer
+        instance = cls.inbound.address_family.instance
+        instance.import_policy = cls.policy
+        instance.save()
+        group = cls.inbound.peer_group
+        group.export_policy = cls.policy
+        group.save()
+        from ipam.models import IPAddress
+        from netaddr import IPNetwork
+
+        from netbox_routing_protocols.models import BGPPeer
+
+        cls.peer = BGPPeer.objects.create(
+            instance=instance,
+            peer=IPAddress.objects.create(address=IPNetwork('10.5.5.5/24')),
+            remote_as=group.remote_as or instance.asn,
+            import_policy=cls.policy,
+        )
 
     @staticmethod
     def policy_list():
@@ -270,6 +288,9 @@ class ASPathUsedByTestCase(SuperuserMixin, TestCase):
             'routepolicy_list',
             'routepolicyentry_list',
             'bgppeeraddressfamily_list',
+            'bgpinstance_list',
+            'bgppeergroup_list',
+            'bgppeer_list',
         ):
             self.assertContains(page, reverse(NS + name))
 

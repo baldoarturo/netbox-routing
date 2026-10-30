@@ -22,6 +22,8 @@ __all__ = (
     'BFDProfile',
 )
 
+_UNSET = object()
+
 # RFC 2385: implementations accept keys of at least 80 characters
 BGP_PASSPHRASE_MAX_LENGTH = 80
 
@@ -399,7 +401,7 @@ class BGPAddressFamily(PrimaryModel):
     instance = models.ForeignKey(
         verbose_name=_('Instance'),
         to='netbox_routing_protocols.BGPInstance',
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='address_families',
     )
     address_family = models.CharField(
@@ -520,7 +522,7 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
     instance = models.ForeignKey(
         verbose_name=_('Instance'),
         to='netbox_routing_protocols.BGPInstance',
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='peer_groups',
     )
     listen_limit = models.PositiveIntegerField(
@@ -604,14 +606,17 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
         import or export policy at any level (RFC 8212)"""
         if self.is_ibgp is not False:
             return []
+        peer_afs = list(
+            self.address_families.select_related('address_family__instance')
+        )
+        for peer_af in peer_afs:
+            peer_af.peer_group = self
         return [
             (peer_af, direction)
-            for peer_af in self.address_families.select_related(
-                'address_family__instance'
-            )
+            for peer_af in peer_afs
             if peer_af.enabled is not False
             for direction in ('import', 'export')
-            if peer_af.effective_policy(direction)[0] is None
+            if not peer_af.has_policy(direction, None)
         ]
 
 
@@ -695,7 +700,7 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     instance = models.ForeignKey(
         verbose_name=_('Instance'),
         to='netbox_routing_protocols.BGPInstance',
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='peers',
     )
     peer = models.ForeignKey(
@@ -729,7 +734,7 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     peer_group = models.ForeignKey(
         verbose_name=_('Peer Group'),
         to='netbox_routing_protocols.BGPPeerGroup',
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         related_name='peers',
         blank=True,
         null=True,
@@ -825,21 +830,31 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
             return []
         missing = []
         own = list(self.address_families.select_related('address_family__instance'))
-        inherited = []
+        group_afs = {}
         if self.peer_group_id:
-            taken = {peer_af.address_family_id for peer_af in own}
-            inherited = [
-                group_af
+            group_afs = {
+                group_af.address_family_id: group_af
                 for group_af in self.peer_group.address_families.select_related(
                     'address_family__instance'
                 )
-                if group_af.address_family_id not in taken
-            ]
+            }
+        for peer_af in own:
+            peer_af.peer = self
+        inherited = [
+            group_af
+            for group_af in group_afs.values()
+            if group_af.address_family_id not in {af.address_family_id for af in own}
+        ]
+        for group_af in inherited:
+            group_af.peer_group = self.peer_group
         for peer_af in own + inherited:
             if peer_af.enabled is False:
                 continue
+            group_af = (
+                group_afs.get(peer_af.address_family_id) if peer_af.peer_id else None
+            )
             for direction in ('import', 'export'):
-                if peer_af.effective_policy(direction)[0] is None:
+                if not peer_af.has_policy(direction, group_af):
                     missing.append((peer_af, direction))
         return missing
 
@@ -917,7 +932,7 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
     address_family = models.ForeignKey(
         verbose_name=_('Address Family'),
         to='netbox_routing_protocols.BGPAddressFamily',
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         related_name='peer_address_families',
     )
     enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
@@ -1084,24 +1099,41 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
             value = getattr(group_af, field)
         return value
 
-    def policy_chain(self, direction):
-        """The places a policy can be set, most specific first: (place, policy)
-        direction is 'import' or 'export'. The first one with a policy wins."""
-        field = f'{direction}_policy'
-        places = [(self, getattr(self, field))]
-        if group_af := self._group_address_family():
-            places.append((group_af, getattr(group_af, field)))
+    def _policy_places(self, group_af=_UNSET):
+        """The places a policy can be set, most specific first: the address family,
+        the same family of the peer group, the peer or the peer group, the peer group
+        of the peer, the instance. group_af is the family of the peer group when the
+        caller has it."""
+        places = [self]
+        if group_af is _UNSET:
+            group_af = self._group_address_family()
+        if group_af:
+            places.append(group_af)
         owner = self.assigned_object
-        places.append((owner, getattr(owner, field)))
+        places.append(owner)
         if self.peer_id and self.peer.peer_group_id:
-            places.append((self.peer.peer_group, getattr(self.peer.peer_group, field)))
-        instance = self.address_family.instance
-        places.append((instance, getattr(instance, field)))
+            places.append(self.peer.peer_group)
+        places.append(self.address_family.instance)
         return places
 
-    def effective_policy(self, direction):
+    def policy_chain(self, direction, group_af=_UNSET):
+        """[(place, policy)], most specific first; direction is 'import' or 'export'.
+        The first one with a policy wins."""
+        field = f'{direction}_policy'
+        return [
+            (place, getattr(place, field)) for place in self._policy_places(group_af)
+        ]
+
+    def has_policy(self, direction, group_af=_UNSET):
+        """Whether any level sets a policy, without loading it"""
+        field = f'{direction}_policy_id'
+        return any(
+            getattr(place, field) is not None for place in self._policy_places(group_af)
+        )
+
+    def effective_policy(self, direction, group_af=_UNSET):
         """(policy, place it comes from) or (None, None) when no level sets one"""
-        for place, policy in self.policy_chain(direction):
+        for place, policy in self.policy_chain(direction, group_af):
             if policy is not None:
                 return policy, place
         return None, None

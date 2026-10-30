@@ -328,8 +328,8 @@ decided in general.
 
 It shows the entries with an **Add entry** button (the form opens with the AS-path chosen, the next
 sequence suggested and *permit* preselected), and where the AS-path is used, like a prefix list: the
-route policy entries that match it, their route policies, and the BGP peer
-address families that apply those policies (in or out), each with a link to the filtered list.
+route policy entries that match it, their route policies, and the BGP instances, peer
+groups, peers and peer address families that apply those policies (import or export), each with a link to the filtered list.
 **Duplicate** copies an AS-path with all its entries under a new name (suggested: `<name> copy`).
 
 The lists and the entry tables have the edit, delete and changelog buttons, and can be filtered by

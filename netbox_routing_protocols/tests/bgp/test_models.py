@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, RestrictedError
 from django.test import TestCase
 
 from dcim.models import Interface
@@ -27,6 +27,7 @@ __all__ = (
     'BGPAuthenticationTestCase',
     'BGPRouteReflectorTestCase',
     'BGPUnnumberedPeerTestCase',
+    'BGPDeleteTestCase',
     'BGPListenRangeTestCase',
 )
 
@@ -640,3 +641,39 @@ class BGPListenRangeTestCase(BGPInstanceMixin, VRFMixin, TestCase):
         instance.vrf = self.vrf
         self.assertEqual(instance.vrf_route_distinguisher, self.vrf.rd)
         self.assertEqual(instance.vrf_import_targets_display, '')
+
+
+class BGPDeleteTestCase(BGPInstanceMixin, AddressesMixin, TestCase):
+    """The children of an instance go with it; what is in use cannot be deleted alone"""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.ipv4 = BGPAddressFamily.objects.create(
+            instance=cls.bgp_instance, address_family='ipv4-unicast'
+        )
+        cls.group = BGPPeerGroup.objects.create(
+            name='G', instance=cls.bgp_instance, remote_as=cls.asns[1]
+        )
+        cls.peer = BGPPeer.objects.create(
+            instance=cls.bgp_instance, peer=cls.peer_address, peer_group=cls.group
+        )
+        BGPPeerAddressFamily.objects.create(peer=cls.peer, address_family=cls.ipv4)
+
+    def test_the_instance_is_deleted_with_everything_below(self):
+        self.bgp_instance.delete()
+        for model in (
+            BGPAddressFamily,
+            BGPPeerGroup,
+            BGPPeer,
+            BGPPeerAddressFamily,
+        ):
+            self.assertFalse(model.objects.exists(), model.__name__)
+
+    def test_what_is_in_use_cannot_be_deleted_alone(self):
+        with self.assertRaises(RestrictedError):
+            self.ipv4.delete()
+        with self.assertRaises(RestrictedError):
+            self.group.delete()
+        self.peer.delete()
+        self.group.delete()

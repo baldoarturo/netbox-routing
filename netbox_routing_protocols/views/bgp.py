@@ -74,7 +74,15 @@ __all__ = (
 #
 @register_model_view(BGPInstance, name='list', path='', detail=False)
 class BGPInstanceListView(ObjectListView):
-    queryset = BGPInstance.objects.select_related('device', 'vrf', 'asn', 'tenant')
+    queryset = BGPInstance.objects.select_related(
+        'device',
+        'vrf',
+        'asn',
+        'confederation_identifier',
+        'import_policy',
+        'export_policy',
+        'tenant',
+    ).prefetch_related('confederation_peers')
     filterset = BGPInstanceFilterSet
     filterset_form = BGPInstanceFilterForm
     table = BGPInstanceTable
@@ -82,7 +90,15 @@ class BGPInstanceListView(ObjectListView):
 
 @register_model_view(BGPInstance)
 class BGPInstanceView(ObjectView):
-    queryset = BGPInstance.objects.select_related('device', 'vrf', 'asn', 'tenant')
+    queryset = BGPInstance.objects.select_related(
+        'device',
+        'vrf',
+        'asn',
+        'confederation_identifier',
+        'import_policy',
+        'export_policy',
+        'tenant',
+    ).prefetch_related('confederation_peers')
     template_name = 'generic/object.html'
     layout = layout.SimpleLayout(
         left_panels=[
@@ -103,7 +119,15 @@ class BGPInstanceView(ObjectView):
 @register_model_view(BGPInstance, name='add', detail=False)
 @register_model_view(BGPInstance, name='edit')
 class BGPInstanceEditView(ObjectEditView):
-    queryset = BGPInstance.objects.select_related('device', 'vrf', 'asn', 'tenant')
+    queryset = BGPInstance.objects.select_related(
+        'device',
+        'vrf',
+        'asn',
+        'confederation_identifier',
+        'import_policy',
+        'export_policy',
+        'tenant',
+    ).prefetch_related('confederation_peers')
     form = BGPInstanceForm
 
 
@@ -278,6 +302,8 @@ class BGPPeerGroupListView(ObjectListView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerGroupFilterSet
@@ -294,6 +320,8 @@ class BGPPeerGroupView(ObjectView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     template_name = 'generic/object.html'
@@ -325,6 +353,8 @@ class BGPPeerGroupEditView(ObjectEditView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     form = BGPPeerGroupForm
@@ -339,6 +369,8 @@ class BGPPeerGroupDeleteView(ObjectDeleteView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
 
@@ -352,6 +384,8 @@ class BGPPeerGroupBulkEditView(BulkEditView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerGroupFilterSet
@@ -368,6 +402,8 @@ class BGPPeerGroupBulkDeleteView(BulkDeleteView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerGroupFilterSet
@@ -383,6 +419,8 @@ class BGPPeerGroupPeersView(ObjectChildrenView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     child_model = BGPPeer
@@ -408,6 +446,8 @@ class BGPPeerGroupPeerAddressFamilysView(ObjectChildrenView):
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     child_model = BGPPeerAddressFamily
@@ -537,11 +577,14 @@ class BGPPeerListView(ObjectListView):
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface__device',
         'source',
         'peer_group',
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerFilterSet
@@ -556,11 +599,14 @@ class BGPPeerView(ObjectView):
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface__device',
         'source',
         'peer_group',
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     template_name = 'generic/object.html'
@@ -590,11 +636,14 @@ class BGPPeerEditView(ObjectEditView):
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface__device',
         'source',
         'peer_group',
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     form = BGPPeerForm
@@ -607,11 +656,14 @@ class BGPPeerDeleteView(ObjectDeleteView):
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface__device',
         'source',
         'peer_group',
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
 
@@ -623,11 +675,14 @@ class BGPPeerBulkEditView(BulkEditView):
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface__device',
         'source',
         'peer_group',
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerFilterSet
@@ -642,11 +697,14 @@ class BGPPeerBulkDeleteView(BulkDeleteView):
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface__device',
         'source',
         'peer_group',
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     filterset = BGPPeerFilterSet
@@ -660,11 +718,14 @@ class BGPPeerPeerAddressFamilysView(ObjectChildrenView):
         'instance__vrf',
         'instance__asn',
         'peer',
+        'interface__device',
         'source',
         'peer_group',
         'remote_as',
         'local_as',
         'bfd',
+        'import_policy',
+        'export_policy',
         'tenant',
     )
     child_model = BGPPeerAddressFamily

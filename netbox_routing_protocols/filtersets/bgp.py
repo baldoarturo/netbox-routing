@@ -134,7 +134,10 @@ class PeerConfigFilterSetMixin(RoutePolicyFilterSetMixin):
 
 @register_filterset
 class BGPInstanceFilterSet(
-    RoutePolicyFilterSetMixin, TenancyFilterSet, NetBoxModelFilterSet
+    ASPathUsageFilterSetMixin,
+    RoutePolicyFilterSetMixin,
+    TenancyFilterSet,
+    NetBoxModelFilterSet,
 ):
     device_id = django_filters.ModelMultipleChoiceFilter(
         field_name='device',
@@ -233,7 +236,10 @@ class BGPAddressFamilyFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
 
 @register_filterset
 class BGPPeerGroupFilterSet(
-    PeerConfigFilterSetMixin, TenancyFilterSet, NetBoxModelFilterSet
+    ASPathUsageFilterSetMixin,
+    PeerConfigFilterSetMixin,
+    TenancyFilterSet,
+    NetBoxModelFilterSet,
 ):
     class Meta:
         model = BGPPeerGroup
@@ -295,7 +301,10 @@ class BGPListenRangeFilterSet(NetBoxModelFilterSet):
 
 @register_filterset
 class BGPPeerFilterSet(
-    PeerConfigFilterSetMixin, TenancyFilterSet, NetBoxModelFilterSet
+    ASPathUsageFilterSetMixin,
+    PeerConfigFilterSetMixin,
+    TenancyFilterSet,
+    NetBoxModelFilterSet,
 ):
     peer_id = django_filters.ModelMultipleChoiceFilter(
         field_name='peer',

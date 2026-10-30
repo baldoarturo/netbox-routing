@@ -8,7 +8,7 @@
   "bgpaddressfamily:api_list_objects": 12,
   "bgpaddressfamily:list_objects_with_permission": 16,
   "bgpinstance:api_list_objects": 13,
-  "bgpinstance:list_objects_with_permission": 16,
+  "bgpinstance:list_objects_with_permission": 17,
   "bgplistenrange:api_list_objects": 12,
   "bgplistenrange:list_objects_with_permission": 16,
   "bgppeer:api_list_objects": 12,
