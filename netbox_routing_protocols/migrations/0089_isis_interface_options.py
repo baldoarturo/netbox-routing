@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('netbox_routing_protocols', '0087_protocol_route_policies'),
+        ('netbox_routing_protocols', '0088_routepolicy_jump_and_final_deny'),
     ]
 
     operations = [
