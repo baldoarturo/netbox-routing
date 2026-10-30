@@ -186,7 +186,7 @@ class RoutePolicyFilterSet(NetBoxModelFilterSet):
         if not value.strip():
             return queryset
         qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
 
 
 @register_filterset
@@ -308,4 +308,4 @@ class RoutePolicyEntryFilterSet(NetBoxModelFilterSet):
             return queryset
         qs_filter = Q(route_policy__name__icontains=value)
         qs_filter |= Q(description__icontains=value)
-        return queryset.filter(qs_filter).distinct()
+        return queryset.filter(qs_filter)
