@@ -37,6 +37,7 @@ __all__ = (
     'ISISRangeTestCase',
     'ISISSegmentRoutingRulesTestCase',
     'ISISLongTailSettingTestCase',
+    'ISISInterfaceOptionsTestCase',
 )
 
 
@@ -987,3 +988,46 @@ class ISISLongTailSettingTestCase(TestCase):
         self._setting('max_area_addresses', '3').clean()
         with self.assertRaises(ValidationError):
             self._setting('max_area_addresses', '255').clean()
+
+
+class ISISInterfaceOptionsTestCase(TestCase):
+    """Per-interface options and per-level hello authentication (#448)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        device = create_test_device(name='Device 1')
+        instance = ISISInstance.objects.create(device=device)
+        cls.isis_interface = ISISInterface.objects.create(
+            instance=instance,
+            interface=Interface.objects.create(
+                name='eth0', device=device, type='virtual'
+            ),
+            address_family='ipv4',
+            hello_padding=False,
+            ldp_sync=True,
+            three_way_handshake=False,
+            route_tag=100,
+        )
+
+    def test_options_are_saved(self):
+        self.isis_interface.refresh_from_db()
+        self.assertIs(self.isis_interface.hello_padding, False)
+        self.assertIs(self.isis_interface.ldp_sync, True)
+        self.assertIsNone(self.isis_interface.prefix_suppression)
+        self.assertEqual(self.isis_interface.route_tag, 100)
+
+    def test_route_tag_range(self):
+        self.isis_interface.route_tag = 4294967296
+        with self.assertRaises(ValidationError) as ctx:
+            self.isis_interface.clean()
+        self.assertIn('route_tag', ctx.exception.message_dict)
+
+    def test_level_hello_auth_needs_type_and_key(self):
+        level = ISISInterfaceLevel(
+            interface=self.isis_interface, level=1, hello_auth_type='md5'
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            level.clean()
+        self.assertIn('hello_auth_key', ctx.exception.message_dict)
+        level.hello_auth_key = 'secret'
+        level.clean()

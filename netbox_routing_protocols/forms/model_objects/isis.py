@@ -322,6 +322,14 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'mesh_group',
             name=_('Timers'),
         ),
+        FieldSet(
+            'hello_padding',
+            'ldp_sync',
+            'prefix_suppression',
+            'three_way_handshake',
+            'route_tag',
+            name=_('Options'),
+        ),
         FieldSet('hello_auth_type', 'hello_auth_key', name=_('Authentication')),
     )
 
@@ -343,6 +351,11 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'retransmit_interval',
             'lsp_interval',
             'mesh_group',
+            'hello_padding',
+            'ldp_sync',
+            'prefix_suppression',
+            'route_tag',
+            'three_way_handshake',
             'hello_auth_type',
             'hello_auth_key',
             'description',
@@ -515,6 +528,7 @@ class ISISInterfaceLevelForm(PrimaryModelForm):
             'passive',
             name=_('Attributes'),
         ),
+        FieldSet('hello_auth_type', 'hello_auth_key', name=_('Authentication')),
     )
 
     class Meta:
@@ -527,6 +541,8 @@ class ISISInterfaceLevelForm(PrimaryModelForm):
             'hello_multiplier',
             'priority',
             'passive',
+            'hello_auth_type',
+            'hello_auth_key',
             'description',
             'comments',
             'tags',
