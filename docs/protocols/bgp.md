@@ -195,6 +195,18 @@ Deleting an instance deletes everything below it (address families, peer groups,
 their address families). The delete page lists every object that goes with it, with the count of each kind, before you confirm. An address family that a peer address family uses, and a peer group that has peers,
 cannot be deleted alone: delete or move what uses them first.
 
+## Importing (CSV)
+
+Every BGP object can be imported from a CSV file (**BGP → Instances → Import**, and the same on each object). The
+objects are loaded in this order, each one after the ones it refers to: instances, address families, peer groups,
+listen ranges, peers, peer address families.
+
+A row names its instance by **device** and **VRF** (empty VRF: the global table), like the instance page does. The
+names and addresses of the other objects are resolved inside that instance: a peer group by its name, a neighbor by
+its address in the VRF of the instance, an interface by its name on the device, a prefix by its address in the VRF
+of the instance. A row whose device has no instance in that VRF is refused with the reason. Policies, prefix lists,
+BFD profiles and ASNs are named globally, as in the other objects.
+
 ## Field reference
 
 Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a field that can be left empty (it then inherits, or is not set).

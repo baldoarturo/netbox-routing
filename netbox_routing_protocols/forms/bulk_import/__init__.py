@@ -1,3 +1,4 @@
+from .bgp import *
 from .community import *
 from .eigrp import *
 from .isis import *
@@ -6,6 +7,13 @@ from .ospf import *
 from .static import *
 
 __all__ = (
+    # BGP
+    'BGPInstanceImportForm',
+    'BGPAddressFamilyImportForm',
+    'BGPPeerGroupImportForm',
+    'BGPListenRangeImportForm',
+    'BGPPeerImportForm',
+    'BGPPeerAddressFamilyImportForm',
     # Community
     'CommunityImportForm',
     'CommunityListImportForm',
