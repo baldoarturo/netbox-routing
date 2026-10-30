@@ -77,7 +77,6 @@ class OSPFAddressFamilyTestCase(TestCase):
         self._assert_invalid(self.v6, 'address_family')
 
     def test_te_router_address_follows_the_family(self):
-        self.v6.opaque_capability = True
         self.v6.te_router_address = '10.0.0.1'
         self._assert_invalid(self.v6, 'te_router_address')
 
@@ -171,7 +170,7 @@ class OSPFAddressFamilyTestCase(TestCase):
         ).full_clean()
         self._assert_invalid(
             OSPFPrefixSID(
-                instance=self.v6, prefix='2001:db8::1/64', sid=1, node_sid=True
+                instance=self.v6, prefix='2001:db8::/64', sid=1, node_sid=True
             ),
             'node_sid',
         )

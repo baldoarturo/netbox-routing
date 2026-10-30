@@ -110,6 +110,7 @@ class OSPFInstanceForm(PrimaryModelForm):
             'IPv4 is OSPFv2 (RFC 2328), IPv6 is OSPFv3 (RFC 5340). It cannot be '
             'changed once the instance exists'
         ),
+        required=False,
         widget=HTMXSelect(),
     )
     import_policy = DynamicModelChoiceField(
@@ -197,6 +198,8 @@ class OSPFInstanceForm(PrimaryModelForm):
                 self.fields[name].required = False
 
     def clean(self):
+        if not self.cleaned_data.get('address_family'):
+            self.cleaned_data['address_family'] = OSPFAddressFamilyChoices.IPV4
         if not self.cleaned_data.get('default_originate_metric_type'):
             self.cleaned_data['default_originate_metric_type'] = (
                 OSPFExternalMetricTypeChoices.TYPE_2

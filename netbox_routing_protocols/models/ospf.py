@@ -699,7 +699,7 @@ class OSPFInstance(OSPFAuthenticationMixin, RoutePolicyMixin, PrimaryModel):
             'Stable address of the router in the traffic engineering LSAs, usually '
             'a loopback (RFC 3630 2.4.1). Empty uses the router ID'
         ),
-        protocol='IPv4',
+        protocol='both',
         blank=True,
         null=True,
     )
