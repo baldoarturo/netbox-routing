@@ -21,6 +21,7 @@ from netbox_routing_protocols.forms.bulk_import import (
 )
 from netbox_routing_protocols.forms.objects import RoutePolicyEntryForm
 from netbox_routing_protocols.helpers import route_policy as helpers
+from netbox_routing_protocols.models.objects import IMPLICIT_SEQUENCE
 from netbox_routing_protocols.models import (
     ASPath,
     CommunityList,
@@ -97,7 +98,7 @@ class RoutePolicyEntryFormTestCase(SuperuserMixin, TestCase):
         )
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().sequence, 7)
-        entry = RoutePolicyEntry.objects.get()
+        entry = RoutePolicyEntry.objects.get(implicit=False)
         form = RoutePolicyEntryForm(
             data={'route_policy': self.policy.pk, 'action': 'deny', 'sequence': ''},
             instance=entry,
@@ -276,7 +277,7 @@ class RoutePolicyImportTestCase(TestCase):
                 .order_by('sequence')
                 .values_list('sequence', 'action', 'set_tag')
             ),
-            [(10, 'permit', 5), (20, 'deny', None)],
+            [(10, 'permit', 5), (20, 'deny', None), (IMPLICIT_SEQUENCE, 'deny', None)],
         )
 
 
@@ -363,7 +364,7 @@ class RoutePolicyPagesTestCase(SuperuserMixin, TestCase):
         self.assertEqual(copy.description, 'Copied')
         self.assertEqual(
             list(copy.route_policy_entries.values_list('sequence', 'action')),
-            [(10, 'permit'), (20, 'deny')],
+            [(10, 'permit'), (20, 'deny'), (IMPLICIT_SEQUENCE, 'deny')],
         )
         first = copy.route_policy_entries.get(sequence=10)
         self.assertEqual(list(first.match_prefix_list.all()), [self.prefix_list])
@@ -376,7 +377,7 @@ class RoutePolicyPagesTestCase(SuperuserMixin, TestCase):
         )
         self.assertEqual(first.description, 'First')
         # the source did not change
-        self.assertEqual(self.policy.route_policy_entries.count(), 2)
+        self.assertEqual(self.policy.route_policy_entries.count(), 3)
 
     def test_the_duplicate_needs_the_permission_to_add_entries(self):
         user = User.objects.create_user('limited', 'l@example.com', 'x')
@@ -416,7 +417,9 @@ class RoutePolicyFiltersTestCase(TestCase):
         return set(RoutePolicyFilterSet(params, RoutePolicy.objects.all()).qs)
 
     def entries(self, **params):
-        return set(RoutePolicyEntryFilterSet(params, RoutePolicyEntry.objects.all()).qs)
+        # the final deny of every policy is not one of the entries of the test
+        queryset = RoutePolicyEntryFilterSet(params, RoutePolicyEntry.objects.all()).qs
+        return {entry for entry in queryset if not entry.implicit}
 
     def test_the_policies(self):
         self.assertEqual(self.policies(q='edge'), {self.first})
