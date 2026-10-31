@@ -53,7 +53,9 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 5340](https://www.rfc-editor.org/rfc/rfc5340) | OSPF for IPv6 (OSPFv3) | [OSPF](protocols/ospf.md) |
 | [RFC 5709](https://www.rfc-editor.org/rfc/rfc5709) | OSPFv2 HMAC-SHA authentication | [OSPF authentication](protocols/ospf.md#authentication) |
 | [RFC 5880](https://www.rfc-editor.org/rfc/rfc5880) | BFD | [BFD](bfd.md) |
+| [RFC 5881](https://www.rfc-editor.org/rfc/rfc5881) | BFD for IPv4 and IPv6 (single hop) | [BFD](bfd.md) |
 | [RFC 5882](https://www.rfc-editor.org/rfc/rfc5882) | Generic application of BFD | [IS-IS interfaces](protocols/isis.md#interfaces) |
+| [RFC 5883](https://www.rfc-editor.org/rfc/rfc5883) | BFD for multihop paths | [BFD](bfd.md) |
 | [RFC 6119](https://www.rfc-editor.org/rfc/rfc6119) | IPv6 traffic engineering in IS-IS | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6232](https://www.rfc-editor.org/rfc/rfc6232) | IS-IS purge originator identification | [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier | [BGP instances](protocols/bgp.md#instances) |

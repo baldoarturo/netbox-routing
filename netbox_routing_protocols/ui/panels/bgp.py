@@ -268,7 +268,7 @@ class BFDProfilePanel(panels.ObjectAttributesPanel):
 
 
 class BFDProfileSessionPanel(panels.ObjectAttributesPanel):
-    min_rx_int = attrs.NumericAttr('min_rx_int', label=_('Min Receive'))
-    min_tx_int = attrs.NumericAttr('min_tx_int', label=_('Min Transmit'))
+    min_rx_int = attrs.NumericAttr('min_rx_int', label=_('Min Receive (ms)'))
+    min_tx_int = attrs.NumericAttr('min_tx_int', label=_('Min Transmit (ms)'))
     multiplier = attrs.NumericAttr('multiplier', label=_('Multiplier'))
     hold = attrs.NumericAttr('hold', label=_('Hold Time'))
