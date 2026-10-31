@@ -1752,16 +1752,28 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
 class BFDProfile(PrimaryModel):
     name = models.CharField(verbose_name=_('Name'), max_length=100)
     min_tx_int = models.PositiveIntegerField(
-        verbose_name=_('Min TX Interval'),
+        verbose_name=_('Min TX Interval (ms)'),
         validators=[MinValueValidator(60), MaxValueValidator(60000)],
+        help_text=_(
+            'Milliseconds. RFC 5880 section 4.1 (Desired Min TX Interval) gives this '
+            'interval in microseconds: 300 ms here is 300000 in the RFC.'
+        ),
     )
     min_rx_int = models.PositiveIntegerField(
-        verbose_name=_('Min RX Interval'),
+        verbose_name=_('Min RX Interval (ms)'),
         validators=[MinValueValidator(60), MaxValueValidator(60000)],
+        help_text=_(
+            'Milliseconds. RFC 5880 section 4.1 (Required Min RX Interval) gives this '
+            'interval in microseconds: 300 ms here is 300000 in the RFC.'
+        ),
     )
     multiplier = models.PositiveSmallIntegerField(
         verbose_name=_('Multiplier'),
         validators=[MinValueValidator(1), MaxValueValidator(255)],
+        help_text=_(
+            'Detect Mult (RFC 5880 section 4.1): consecutive packets that may be lost '
+            'before the session is down. Detection time = multiplier x negotiated interval.'
+        ),
     )
     hold = models.PositiveIntegerField(
         verbose_name=_('Hold Time'),
