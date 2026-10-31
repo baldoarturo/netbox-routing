@@ -5,6 +5,7 @@ from netaddr import AddrFormatError, IPNetwork
 from dcim.models import Device, Interface
 from ipam.models import ASN, VRF, IPAddress, Prefix
 from netbox.forms import NetBoxModelImportForm
+from tenancy.models import Tenant
 from utilities.forms.fields import CSVChoiceField, CSVModelChoiceField
 
 from netbox_routing_protocols.choices.bgp import (
@@ -26,6 +27,7 @@ from netbox_routing_protocols.models import (
 )
 
 __all__ = (
+    'BFDProfileImportForm',
     'BGPInstanceImportForm',
     'BGPAddressFamilyImportForm',
     'BGPPeerGroupImportForm',
@@ -482,3 +484,26 @@ class BGPPeerAddressFamilyImportForm(_InstanceRowMixin, NetBoxModelImportForm):
             self.instance.peer_group = group
         self.instance.address_family = af
         return cleaned
+
+
+class BFDProfileImportForm(NetBoxModelImportForm):
+    tenant = CSVModelChoiceField(
+        queryset=Tenant.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text=_('Tenant name'),
+    )
+
+    class Meta:
+        model = BFDProfile
+        fields = (
+            'name',
+            'min_tx_int',
+            'min_rx_int',
+            'multiplier',
+            'hold',
+            'tenant',
+            'description',
+            'comments',
+            'tags',
+        )

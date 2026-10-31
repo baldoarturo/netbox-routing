@@ -92,6 +92,7 @@ __all__ = (
     'BFDProfileDeleteView',
     'BFDProfileBulkEditView',
     'BFDProfileBulkDeleteView',
+    'BFDProfileBulkImportView',
     'BFDProfilePeersView',
     'BFDProfilePeerGroupsView',
 )
@@ -1342,6 +1343,12 @@ class BFDProfileBulkDeleteView(BulkDeleteView):
     queryset = BFDProfile.objects.select_related('tenant')
     filterset = BFDProfileFilterSet
     table = BFDProfileTable
+
+
+@register_model_view(BFDProfile, name='bulk_import', detail=False)
+class BFDProfileBulkImportView(BulkImportView):
+    queryset = BFDProfile.objects.select_related('tenant')
+    model_form = BFDProfileImportForm
 
 
 @register_model_view(BFDProfile, name='peers')
