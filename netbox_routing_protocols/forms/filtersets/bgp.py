@@ -453,5 +453,17 @@ class BFDProfileFilterForm(
             'filter_id',
             'tag',
         ),
+        FieldSet(
+            'min_tx_int',
+            'min_rx_int',
+            'multiplier',
+            'hold',
+            name=_('BFD Parameters'),
+        ),
+        FieldSet('tenant_group_id', 'tenant_id', name=_('Tenancy')),
     )
+    min_tx_int = forms.IntegerField(required=False, label=_('Min TX Interval (ms)'))
+    min_rx_int = forms.IntegerField(required=False, label=_('Min RX Interval (ms)'))
+    multiplier = forms.IntegerField(required=False, label=_('Multiplier'))
+    hold = forms.IntegerField(required=False, label=_('Hold Time'))
     tag = TagFilterField(model)
