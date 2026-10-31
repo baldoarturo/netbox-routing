@@ -1365,7 +1365,8 @@ class BFDProfilePeersView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(bfd=parent)
+        # The queryset of the peer list, with the objects its table shows
+        return BGPPeerListView.queryset.filter(bfd=parent)
 
 
 @register_model_view(BFDProfile, name='peer_groups')
@@ -1382,4 +1383,5 @@ class BFDProfilePeerGroupsView(ObjectChildrenView):
     )
 
     def get_children(self, request, parent):
-        return self.child_model.objects.filter(bfd=parent)
+        # The queryset of the peer group list, with the objects its table shows
+        return BGPPeerGroupListView.queryset.filter(bfd=parent)
