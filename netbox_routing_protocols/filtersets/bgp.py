@@ -16,6 +16,7 @@ from netbox_routing_protocols.models import (
     RoutePolicy,
 )
 from tenancy.filtersets import TenancyFilterSet
+from utilities.filters import MultiValueNumberFilter
 from utilities.filtersets import register_filterset
 
 from netbox_routing_protocols.choices.bgp import *
@@ -530,11 +531,15 @@ class BGPPeerAddressFamilyFilterSet(
 
 
 @register_filterset
-class BFDProfileFilterSet(NetBoxModelFilterSet):
+class BFDProfileFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
+    min_tx_int = MultiValueNumberFilter(label=_('Min TX Interval (ms)'))
+    min_rx_int = MultiValueNumberFilter(label=_('Min RX Interval (ms)'))
+    multiplier = MultiValueNumberFilter(label=_('Multiplier'))
+    hold = MultiValueNumberFilter(label=_('Hold Time'))
 
     class Meta:
         model = BFDProfile
-        fields = ('name',)
+        fields = ('name', 'min_tx_int', 'min_rx_int', 'multiplier', 'hold')
 
     def search(self, queryset, name, value):
         if not value.strip():

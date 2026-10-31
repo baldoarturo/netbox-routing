@@ -11,7 +11,7 @@ from django.db import migrations, models
 def forward_migrate(apps, schema_editor):
     BGPPeer = apps.get_model('netbox_routing_protocols', 'BGPPeer')
     BGPSessionTemplate = apps.get_model('netbox_routing_protocols', 'BGPSessionTemplate')
-    BFDProfile = apps.get_model('netbox_routing_protocols', 'BFDPRofile')
+    BFDProfile = apps.get_model('netbox_routing_protocols', 'BFDProfile')
 
     for peer in BGPPeer.objects.all():
         if peer.bfd_enabled:
@@ -33,7 +33,7 @@ def forward_migrate(apps, schema_editor):
 
 
 def reverse_migrate(apps, schema_editor):
-    BFDProfile = apps.get_model('netbox_routing_protocols', 'BFDPRofile')
+    BFDProfile = apps.get_model('netbox_routing_protocols', 'BFDProfile')
     for profile in BFDProfile.objects.all():
         for peer in profile.bgp_peers.all():
             peer.bfd_enabled = True
