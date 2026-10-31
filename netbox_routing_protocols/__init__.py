@@ -1,12 +1,14 @@
 from netbox.plugins import PluginConfig
 from importlib.metadata import metadata
 
-plugin = metadata('netbox_routing_protocols')
+plugin = metadata('netbox-routing-models')
 
 
 class NetboxRouting(PluginConfig):
-    name = plugin.get('Name').replace('-', '_')
-    verbose_name = plugin.get('Name').replace('-', ' ').title()
+    # The distribution is published as netbox-routing-models, but the app
+    # label, URLs and migrations stay under the module name.
+    name = 'netbox_routing_protocols'
+    verbose_name = 'Netbox Routing Protocols'
     description = plugin.get('Summary')
     version = plugin.get('Version')
     author = plugin.get('Author')
