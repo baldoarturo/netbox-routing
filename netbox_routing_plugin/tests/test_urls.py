@@ -417,6 +417,7 @@ class URLTestCase(TestCase):
                 'bfdprofile_changelog',
                 'bfdprofile_bulk_edit',
                 'bfdprofile_bulk_delete',
+                'bfdprofile_bulk_import',
                 'bfdprofile_peers',
                 'bfdprofile_peer_groups',
                 'bgpinstance',

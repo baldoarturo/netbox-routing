@@ -10,8 +10,8 @@ detect failures in the same time points at the same profile.
 | Field | Meaning (RFC 5880 name) |
 | --- | --- |
 | Name | How the profile is referred to. |
-| Min TX interval | The minimum interval the router wants to send BFD packets at (*Desired Min TX Interval*). |
-| Min RX interval | The minimum interval it can receive them at (*Required Min RX Interval*). |
+| Min TX interval (ms) | The minimum interval the router wants to send BFD packets at (*Desired Min TX Interval*), in **milliseconds**. |
+| Min RX interval (ms) | The minimum interval it can receive them at (*Required Min RX Interval*), in **milliseconds**. |
 | Multiplier | How many consecutive packets may be lost before the session is declared down (*Detect Mult*). The detection time is the negotiated interval times this value. |
 | Hold | Optional hold time, for platforms that have one. It is not part of the RFC. |
 | Tenant | Optional owner. |
@@ -27,6 +27,18 @@ Profiles can also be imported from CSV (**BFD Profile → Import**): one row per
 
 > **Note.** The plugin does not check the intervals against what your platform supports. Choose values your
 > hardware can sustain: a profile with very small intervals on a busy router causes false failures.
+
+> **Units.** The timers are entered in **milliseconds**. RFC 5880 (section 4.1) gives the same intervals in
+> **microseconds**, so 300 ms is 300000 in the RFC. The plugin does not convert them: enter milliseconds.
+
+## Not implemented yet
+
+The plugin does not model these parts of RFC 5880 and its companions, so a profile cannot set them:
+
+* authentication (RFC 5880 section 6.7);
+* the echo function (RFC 5880 section 6.4);
+* demand mode (RFC 5880 section 6.6) and the active/passive role (RFC 5880 section 6.1);
+* the choice between single-hop sessions (RFC 5881) and multihop sessions (RFC 5883).
 
 ## Field reference
 
