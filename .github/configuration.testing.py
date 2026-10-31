@@ -17,7 +17,7 @@ DATABASE = {
 }
 
 # CI_BASE_SCHEMA builds the cached NetBox-only schema (no plugin migrations)
-PLUGINS = [] if os.environ.get('CI_BASE_SCHEMA') else ['netbox_routing_protocols']
+PLUGINS = [] if os.environ.get('CI_BASE_SCHEMA') else ['netbox_routing_plugin']
 
 REDIS = {
     'tasks': {

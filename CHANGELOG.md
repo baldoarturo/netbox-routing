@@ -2,7 +2,7 @@
 
 ## 1.0.0
 
-First release on PyPI, as `netbox-routing-models` (the name `netbox-routing-protocols` was already taken on PyPI). The Python module and the plugin name stay `netbox_routing_protocols`.
+First release on PyPI, as `netbox-routing-plugin` (the name `netbox-routing-protocols` was already taken on PyPI). The Python module, and the name to put in `PLUGINS`, is `netbox_routing_plugin`.
 
 Supports NetBox 4.7 and later.
 

@@ -1,4 +1,4 @@
 include README.md
 include LICENSE
-recursive-include netbox_routing_protocols/templates *
-recursive-include netbox_routing_protocols/static *
+recursive-include netbox_routing_plugin/templates *
+recursive-include netbox_routing_plugin/static *
