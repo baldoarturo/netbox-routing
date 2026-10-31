@@ -6,19 +6,20 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "netbox-routing-protocols"
+name = "netbox-routing-models"
 authors = [
-    { name = "Daniel Sheppard", email = "dans@dansheps.com" }
+    { name = "Arturo" }
 ]
 maintainers = [
-    { name = "Daniel Sheppard", email = "dans@dansheps.com" },
+    { name = "Arturo" },
 ]
 description = "A NetBox Routing Plugin"
 readme = "README.md"
 requires-python = ">=3.12"
 keywords = ["netbox-plugin", ]
-version = "0.5.1"
-license = { file = "LICENSE" }
+version = "1.0.0"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 classifiers = [
     'Development Status :: 4 - Beta',
     'Framework :: Django',
@@ -29,7 +30,6 @@ classifiers = [
     'Intended Audience :: Information Technology',
     'Intended Audience :: System Administrators',
     'Intended Audience :: Telecommunications Industry',
-    'License :: OSI Approved :: Apache Software License',
     'Natural Language :: English',
     "Programming Language :: Python :: 3",
     'Programming Language :: Python :: 3.12',
@@ -54,7 +54,8 @@ Source = "https://github.com/baldoarturo/netbox-routing-protocols"
 Tracker = "https://github.com/baldoarturo/netbox-routing-protocols/issues"
 
 [tool.setuptools.packages.find]
-exclude = ["netbox_routing_protocols.tests"]
+include = ["netbox_routing_protocols*"]
+exclude = ["netbox_routing_protocols.tests", "netbox_routing_protocols.tests.*"]
 
 [tool.black]
 skip-string-normalization = 1
