@@ -31,6 +31,7 @@ The documentation for operators and users (every protocol and feature, with the 
 * [Static routes](docs/protocols/static.md) (special next hops, interface, route leaking)
 * [OSPF, versions 2 (IPv4) and 3 (IPv6)](docs/protocols/ospf.md) (instances, areas, interfaces, authentication with key rollover, redistribution, virtual links, ranges, neighbors, traffic engineering, segment routing, fast reroute)
 * [IS-IS](docs/protocols/isis.md) (instances, levels, interfaces, authentication, redistribution, route leaking, segment routing, Flex-Algo, SRv6)
+* [BGP](docs/protocols/bgp.md) (instances, address families, peer groups, peers, listen ranges, redistribution, originated networks and aggregates, route policy; RFC 4271 and its extensions)
 
 ### Work in progress
 
@@ -38,7 +39,6 @@ Not production ready; the model and the migrations can still change. Each one ha
 
 * Dynamic routing
   * [EIGRP](docs/protocols/eigrp.md) ([tracking #413](https://github.com/baldoarturo/netbox-routing-protocols/issues/413))
-  * [BGP](docs/protocols/bgp.md) ([tracking #411](https://github.com/baldoarturo/netbox-routing-protocols/issues/411)): peer groups, IPv4/IPv6 AF and VRF, VPNv4
 * [BFD profiles](docs/bfd.md) ([tracking #414](https://github.com/baldoarturo/netbox-routing-protocols/issues/414))
 * Segment routing ([tracking #201](https://github.com/baldoarturo/netbox-routing-protocols/issues/201))
 

@@ -232,6 +232,44 @@ its address in the VRF of the instance, an interface by its name on the device, 
 of the instance. A row whose device has no instance in that VRF is refused with the reason. Policies, prefix lists,
 BFD profiles and ASNs are named globally, as in the other objects.
 
+## RFCs
+
+The RFCs this page refers to, by number. The [RFC index](../rfc-index.md) goes the other way, from each RFC to the features that use it.
+
+| RFC | Name |
+| --- | --- |
+| [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) | BGP communities (standard, well-known) |
+| [RFC 2385](https://www.rfc-editor.org/rfc/rfc2385) | TCP MD5 signature option |
+| [RFC 2918](https://www.rfc-editor.org/rfc/rfc2918) | Route refresh capability for BGP-4 |
+| [RFC 4271](https://www.rfc-editor.org/rfc/rfc4271) | BGP-4 |
+| [RFC 4360](https://www.rfc-editor.org/rfc/rfc4360) | BGP extended communities |
+| [RFC 4364](https://www.rfc-editor.org/rfc/rfc4364) | BGP/MPLS VPNs |
+| [RFC 4456](https://www.rfc-editor.org/rfc/rfc4456) | BGP route reflection |
+| [RFC 4486](https://www.rfc-editor.org/rfc/rfc4486) | Subcodes for the BGP Cease notification (maximum number of prefixes) |
+| [RFC 4659](https://www.rfc-editor.org/rfc/rfc4659) | BGP-MPLS IP virtual private network extension for IPv6 VPN |
+| [RFC 4684](https://www.rfc-editor.org/rfc/rfc4684) | Route-target constrained distribution |
+| [RFC 4724](https://www.rfc-editor.org/rfc/rfc4724) | BGP graceful restart |
+| [RFC 4760](https://www.rfc-editor.org/rfc/rfc4760) | BGP multiprotocol extensions |
+| [RFC 4761](https://www.rfc-editor.org/rfc/rfc4761) | VPLS using BGP |
+| [RFC 5065](https://www.rfc-editor.org/rfc/rfc5065) | BGP confederations |
+| [RFC 5082](https://www.rfc-editor.org/rfc/rfc5082) | Generalized TTL security |
+| [RFC 5396](https://www.rfc-editor.org/rfc/rfc5396) | Textual representation of AS numbers |
+| [RFC 5549](https://www.rfc-editor.org/rfc/rfc5549) | IPv4 NLRI with an IPv6 next hop |
+| [RFC 5880](https://www.rfc-editor.org/rfc/rfc5880) | Bidirectional Forwarding Detection (BFD) |
+| [RFC 5925](https://www.rfc-editor.org/rfc/rfc5925) | The TCP authentication option (TCP-AO) |
+| [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier |
+| [RFC 6793](https://www.rfc-editor.org/rfc/rfc6793) | Four-octet AS numbers |
+| [RFC 6996](https://www.rfc-editor.org/rfc/rfc6996) | Autonomous System (AS) reservation for private use |
+| [RFC 7432](https://www.rfc-editor.org/rfc/rfc7432) | BGP MPLS-based Ethernet VPN |
+| [RFC 7752](https://www.rfc-editor.org/rfc/rfc7752) | BGP link-state |
+| [RFC 7911](https://www.rfc-editor.org/rfc/rfc7911) | BGP additional paths |
+| [RFC 8092](https://www.rfc-editor.org/rfc/rfc8092) | BGP large communities |
+| [RFC 8212](https://www.rfc-editor.org/rfc/rfc8212) | Default eBGP route propagation behavior without policies |
+| [RFC 8326](https://www.rfc-editor.org/rfc/rfc8326) | Graceful BGP session shutdown |
+| [RFC 8955](https://www.rfc-editor.org/rfc/rfc8955) | Dissemination of flow specification rules |
+| [RFC 8956](https://www.rfc-editor.org/rfc/rfc8956) | Dissemination of flow specification rules for IPv6 |
+| [RFC 9494](https://www.rfc-editor.org/rfc/rfc9494) | Long-lived graceful restart communities |
+
 ## Field reference
 
 Every object also has `description`, `comments`, tags and custom fields, which are not repeated below. Names are the ones used by the REST API and the CSV import; the web form shows the same words with spaces. `?` marks a field that can be left empty (it then inherits, or is not set).

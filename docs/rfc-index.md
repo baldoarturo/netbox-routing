@@ -12,6 +12,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 1997](https://www.rfc-editor.org/rfc/rfc1997) | BGP communities (standard, well-known) | [Routing objects](routing-objects.md#communities) |
 | [RFC 2328](https://www.rfc-editor.org/rfc/rfc2328) | OSPF version 2 | [OSPF](protocols/ospf.md) |
 | [RFC 2385](https://www.rfc-editor.org/rfc/rfc2385) | TCP MD5 signature option | [BGP peers](protocols/bgp.md#peers) |
+| [RFC 5925](https://www.rfc-editor.org/rfc/rfc5925) | The TCP authentication option (TCP-AO), not supported | [BGP peers](protocols/bgp.md#peers) |
 | [RFC 2973](https://www.rfc-editor.org/rfc/rfc2973) | IS-IS mesh groups | [IS-IS interfaces](protocols/isis.md#interfaces) |
 | [RFC 3101](https://www.rfc-editor.org/rfc/rfc3101) | OSPF NSSA | [OSPF areas](protocols/ospf.md#areas), [ranges](protocols/ospf.md#area-ranges) |
 | [RFC 3623](https://www.rfc-editor.org/rfc/rfc3623) | OSPF graceful restart | [OSPF instances](protocols/ospf.md#stability-and-maintenance) |
@@ -58,6 +59,7 @@ feature, start here. Vendor features without an RFC are marked as such on the pr
 | [RFC 6286](https://www.rfc-editor.org/rfc/rfc6286) | AS-wide unique BGP identifier | [BGP instances](protocols/bgp.md#instances) |
 | [RFC 6549](https://www.rfc-editor.org/rfc/rfc6549) | OSPFv2 multi-instance | [OSPF instances](protocols/ospf.md#identity) |
 | [RFC 6793](https://www.rfc-editor.org/rfc/rfc6793) | Four-octet AS numbers | [BGP instances](protocols/bgp.md#instances), [AS paths](routing-objects.md#as-paths) |
+| [RFC 6996](https://www.rfc-editor.org/rfc/rfc6996) | Autonomous System (AS) reservation for private use | [BGP peer address families](protocols/bgp.md#peer-address-families) |
 | [RFC 6860](https://www.rfc-editor.org/rfc/rfc6860) | Hiding transit-only networks | [OSPF interfaces](protocols/ospf.md#other-interface-options), [IS-IS settings](protocols/isis.md#settings) |
 | [RFC 6987](https://www.rfc-editor.org/rfc/rfc6987) | OSPF stub router advertisement | [OSPF instances](protocols/ospf.md#stability-and-maintenance) |
 | [RFC 7432](https://www.rfc-editor.org/rfc/rfc7432) | BGP MPLS-based Ethernet VPN | [BGP](protocols/bgp.md#address-families) |
