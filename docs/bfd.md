@@ -23,6 +23,8 @@ Where it is used:
 * OSPF, IS-IS and EIGRP interfaces only have a **BFD on/off** switch; they do not use profiles, because
   the timers of those protocols come from the interface configuration of the device.
 
+Profiles can also be imported from CSV (**BFD Profile → Import**): one row per profile, with the tenant given by name.
+
 > **Note.** The plugin does not check the intervals against what your platform supports. Choose values your
 > hardware can sustain: a profile with very small intervals on a busy router causes false failures.
 
