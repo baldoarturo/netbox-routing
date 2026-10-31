@@ -7,7 +7,7 @@ repos:
       - id: ruff-check
         name: "Ruff linter"
         args: [ --config, ruff.toml ]
-        files: ^netbox_routing_protocols/
+        files: ^netbox_routing_plugin/
   - repo: https://github.com/psf/black
     rev: 26.10.1
     hooks:
@@ -15,5 +15,5 @@ repos:
         name: "Black"
         # the options (single quotes kept) are in pyproject.toml; pre-commit passes
         # the files one by one, so the migrations excluded there are excluded here too
-        files: ^netbox_routing_protocols/
-        exclude: ^netbox_routing_protocols/migrations/
+        files: ^netbox_routing_plugin/
+        exclude: ^netbox_routing_plugin/migrations/

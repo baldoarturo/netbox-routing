@@ -1,0 +1,314 @@
+import django_tables2 as tables
+from django.utils.html import format_html, format_html_join
+from django.utils.translation import gettext_lazy as _
+
+from netbox.tables import NetBoxTable, columns
+from netbox_routing_plugin.helpers.route_policy import describe_settings
+from netbox_routing_plugin.models.objects import *
+
+__all__ = (
+    'ASPathTable',
+    'ASPathEntryTable',
+    'PrefixListTable',
+    'PrefixListEntryTable',
+    'RoutePolicyTable',
+    'RoutePolicyEntryTable',
+)
+
+
+class PrefixListTable(NetBoxTable):
+    name = tables.Column(linkify=True, verbose_name=_('Name'))
+    family = tables.Column(
+        accessor='get_family_display', order_by=('family',), verbose_name=_('Family')
+    )
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_plugin:prefixlistentry_list',
+        url_params={'prefix_list_id': 'pk'},
+        verbose_name=_('Entries'),
+    )
+    tags = columns.TagColumn(url_name='plugins:netbox_routing_plugin:prefixlist_list')
+
+    class Meta(NetBoxTable.Meta):
+        model = PrefixList
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'family',
+            'entry_count',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = (
+            'pk',
+            'name',
+            'family',
+            'entry_count',
+            'description',
+            'actions',
+        )
+
+
+class PrefixListEntryTable(NetBoxTable):
+    prefix_list = tables.Column(verbose_name=_('Prefix List'), linkify=True)
+    prefix = tables.TemplateColumn(
+        template_code=(
+            '{% if record.any_prefix %}<span class="badge text-bg-secondary">any</span>'
+            '{% else %}<a href="{{ record.prefix.get_absolute_url }}">{{ record.prefix }}</a>'
+            '{% endif %}'
+        ),
+        order_by=('any_prefix', 'prefix'),
+        verbose_name=_('Prefix'),
+    )
+    action = columns.ChoiceFieldColumn()
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_routing_plugin:prefixlistentry_list'
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = PrefixListEntry
+        fields = (
+            'pk',
+            'id',
+            'prefix_list',
+            'sequence',
+            'action',
+            'prefix',
+            'ge',
+            'le',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'prefix_list',
+            'sequence',
+            'action',
+            'prefix',
+            'ge',
+            'le',
+            'description',
+            'actions',
+        )
+
+
+class RoutePolicyTable(NetBoxTable):
+    name = tables.Column(linkify=True, verbose_name=_('Name'))
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_plugin:routepolicyentry_list',
+        url_params={'route_policy_id': 'pk'},
+        verbose_name=_('Entries'),
+    )
+    tags = columns.TagColumn(url_name='plugins:netbox_routing_plugin:routepolicy_list')
+
+    class Meta(NetBoxTable.Meta):
+        model = RoutePolicy
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'entry_count',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = ('pk', 'name', 'entry_count', 'description', 'actions')
+
+
+class RoutePolicyEntryTable(NetBoxTable):
+    route_policy = tables.Column(verbose_name=_('Route Policy'), linkify=True)
+    action = columns.ChoiceFieldColumn()
+    jump_policy = tables.Column(verbose_name=_('Jump to Route Policy'), linkify=True)
+    implicit = columns.BooleanColumn(verbose_name=_('Final deny'))
+    matches_everything = columns.BooleanColumn(
+        verbose_name=_('Matches every route'), orderable=False
+    )
+    match_prefix_list = columns.ManyToManyColumn(
+        linkify_item=True, verbose_name=_('Match Prefix Lists'), orderable=False
+    )
+    match_aspath = columns.ManyToManyColumn(
+        linkify_item=True, verbose_name=_('Match AS Paths'), orderable=False
+    )
+    match_community_list = columns.ManyToManyColumn(
+        linkify_item=True, verbose_name=_('Match Community Lists'), orderable=False
+    )
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_routing_plugin:routepolicyentry_list'
+    )
+    match_next_hop = tables.Column(verbose_name=_('Match Next Hop'), linkify=True)
+    match_origin = tables.Column(verbose_name=_('Match Origin'))
+    set_next_hop = tables.Column(verbose_name=_('Set Next Hop'), linkify=True)
+    set_aspath_prepend = tables.Column(
+        accessor='aspath_prepend_text',
+        orderable=False,
+        verbose_name=_('Set AS-Path Prepend'),
+    )
+    set_community_list = tables.Column(
+        verbose_name=_('Set Community List'), linkify=True
+    )
+    set_community_mode = tables.Column(verbose_name=_('Set Community Mode'))
+    set_metric_mode = tables.Column(verbose_name=_('Set Metric Mode'))
+    set_origin = tables.Column(verbose_name=_('Set Origin'))
+    match = tables.Column(empty_values=(), orderable=False, verbose_name=_('Match'))
+    set = tables.Column(empty_values=(), orderable=False, verbose_name=_('Set'))
+
+    @staticmethod
+    def _lines(lines):
+        return format_html_join('', '<div>{}</div>', ((line,) for line in lines))
+
+    def render_match(self, record):
+        lines = []
+        for label, objects in (
+            (_('Prefix list'), record.match_prefix_list.all()),
+            (_('AS path'), record.match_aspath.all()),
+            (_('Community list'), record.match_community_list.all()),
+        ):
+            if objects:
+                lines.append(
+                    format_html(
+                        '{}: {}',
+                        label,
+                        format_html_join(
+                            ', ',
+                            '<a href="{}">{}</a>',
+                            ((o.get_absolute_url(), o) for o in objects),
+                        ),
+                    )
+                )
+        if record.match_next_hop_id:
+            lines.append(
+                format_html(
+                    '{}: <a href="{}">{}</a>',
+                    _('Next hop'),
+                    record.match_next_hop.get_absolute_url(),
+                    record.match_next_hop.address.ip,
+                )
+            )
+        for label, value in (
+            (_('Metric'), record.match_metric),
+            (_('Origin'), record.match_origin),
+            (_('Tag'), record.match_tag),
+            (_('Weight'), record.match_weight),
+        ):
+            if value not in (None, ''):
+                lines.append(format_html('{}: {}', label, value))
+        return self._lines(lines or [_('any')])
+
+    def render_set(self, record):
+        return self._lines(describe_settings(record) or ['—'])
+
+    class Meta(NetBoxTable.Meta):
+        model = RoutePolicyEntry
+        fields = (
+            'pk',
+            'id',
+            'route_policy',
+            'sequence',
+            'action',
+            'jump_policy',
+            'implicit',
+            'matches_everything',
+            'match',
+            'set',
+            'match_prefix_list',
+            'match_aspath',
+            'match_community_list',
+            'match_next_hop',
+            'match_metric',
+            'match_origin',
+            'match_tag',
+            'match_weight',
+            'set_local_preference',
+            'set_next_hop',
+            'set_aspath_prepend',
+            'set_community_list',
+            'set_community_mode',
+            'set_metric',
+            'set_metric_mode',
+            'set_origin',
+            'set_tag',
+            'set_weight',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'route_policy',
+            'sequence',
+            'action',
+            'jump_policy',
+            'match',
+            'set',
+            'description',
+            'actions',
+        )
+
+
+class ASPathTable(NetBoxTable):
+    name = tables.Column(linkify=True, verbose_name=_('Name'))
+    entry_count = columns.LinkedCountColumn(
+        viewname='plugins:netbox_routing_plugin:aspathentry_list',
+        url_params={'aspath_id': 'pk'},
+        verbose_name=_('Entries'),
+    )
+    tags = columns.TagColumn(url_name='plugins:netbox_routing_plugin:aspath_list')
+
+    class Meta(NetBoxTable.Meta):
+        model = ASPath
+        fields = (
+            'pk',
+            'id',
+            'name',
+            'entry_count',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = ('pk', 'name', 'entry_count', 'description', 'actions')
+
+
+class ASPathEntryTable(NetBoxTable):
+    aspath = tables.Column(verbose_name=_('AS Path'), linkify=True)
+    action = columns.ChoiceFieldColumn()
+    tags = columns.TagColumn(url_name='plugins:netbox_routing_plugin:aspathentry_list')
+
+    class Meta(NetBoxTable.Meta):
+        model = ASPathEntry
+        fields = (
+            'pk',
+            'id',
+            'aspath',
+            'sequence',
+            'action',
+            'pattern',
+            'description',
+            'tags',
+            'created',
+            'last_updated',
+            'actions',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'aspath',
+            'sequence',
+            'action',
+            'pattern',
+            'description',
+            'actions',
+        )

@@ -5,7 +5,7 @@ only adds what is missing.
 
     cd <netbox>/netbox
     NETBOX_CONFIGURATION=configuration_dev PYTHONPATH=<repo>/dev:<repo> \
-    PLUGIN_MODULE=netbox_routing_protocols PLUGIN_DEV_DB=netbox_routing_protocols_dev \
+    PLUGIN_MODULE=netbox_routing_plugin PLUGIN_DEV_DB=netbox_routing_plugin_dev \
         ../venv/bin/python manage.py shell < <repo>/dev/samples/carrier_communities.py
 
 Source: https://bgp.tools/communities/174, /6939 and /3549 (descriptions as they list them);
@@ -16,7 +16,7 @@ The well-known values are in RFC 1997, RFC 7999 and RFC 8326.
 from django.db import transaction
 
 from ipam.models import Role
-from netbox_routing_protocols.models.community import (
+from netbox_routing_plugin.models.community import (
     Community,
     CommunityList,
     CommunityListEntry,

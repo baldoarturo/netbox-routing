@@ -1,0 +1,268 @@
+import uuid
+
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.test import RequestFactory, TestCase
+from django.urls import reverse
+
+from users.models import User
+from utilities.testing import APITestCase
+
+from netbox_routing_plugin.forms.objects import ASPathEntryForm
+from netbox_routing_plugin.helpers.aspath import next_sequence
+from netbox_routing_plugin.models.objects import *
+
+
+def make_entry(aspath, sequence, pattern, action='permit'):
+    return ASPathEntry.objects.create(
+        aspath=aspath, sequence=sequence, action=action, pattern=pattern
+    )
+
+
+class ASPathHelpersTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Path')
+
+    def test_next_sequence(self):
+        self.assertEqual(next_sequence(self.aspath), 10)
+        make_entry(self.aspath, 10, '^1$')
+        self.assertEqual(next_sequence(self.aspath), 20)
+        make_entry(self.aspath, 25, '^2$')
+        self.assertEqual(next_sequence(self.aspath), 30)
+        self.assertEqual(next_sequence(self.aspath, after=40), 50)
+
+
+class ASPathEntryFormTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Path')
+
+    def request(self):
+        request = RequestFactory().get('/')
+        request.user = User.objects.create_superuser('f', 'f@example.com', 'x')
+        request.id = uuid.uuid4()
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        return request
+
+    def test_sequence_is_suggested_and_assigned(self):
+        make_entry(self.aspath, 10, '^1$')
+        form = ASPathEntryForm(initial={'aspath': self.aspath.pk})
+        self.assertEqual(form.initial['sequence'], 20)
+        form = ASPathEntryForm(
+            data={'aspath': self.aspath.pk, 'action': 'permit', 'pattern': '^2$'}
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().sequence, 20)
+
+    def test_a_repeated_pattern_is_rejected(self):
+        make_entry(self.aspath, 10, '^1$')
+        form = ASPathEntryForm(
+            data={
+                'aspath': self.aspath.pk,
+                'sequence': 20,
+                'action': 'deny',
+                'pattern': '^1$',
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('already has an entry with this pattern', str(form.errors))
+        # the same pattern in another AS-path is fine
+        other = ASPath.objects.create(name='Other')
+        form = ASPathEntryForm(
+            data={
+                'aspath': other.pk,
+                'sequence': 10,
+                'action': 'permit',
+                'pattern': '^1$',
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+
+class ASPathEntryAPITestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Path')
+        cls.other = ASPath.objects.create(name='Other')
+
+    def url(self):
+        return reverse('plugins-api:netbox_routing_plugin-api:aspathentry-list')
+
+    def post(self, data):
+        return self.client.post(self.url(), data, format='json', **self.header)
+
+    def test_empty_sequence_takes_the_next_one(self):
+        self.add_permissions('netbox_routing_plugin.add_aspathentry')
+        data = {'aspath': self.aspath.pk, 'action': 'permit', 'pattern': '^1$'}
+        response = self.post(data)
+        self.assertHttpStatus(response, 201)
+        self.assertEqual(response.data['sequence'], 10)
+        response = self.post({**data, 'pattern': '^2$'})
+        self.assertEqual(response.data['sequence'], 20)
+
+    def test_bulk_entries_are_consecutive(self):
+        self.add_permissions('netbox_routing_plugin.add_aspathentry')
+        rows = [
+            {'aspath': self.aspath.pk, 'action': 'permit', 'pattern': f'^{n}$'}
+            for n in range(3)
+        ] + [{'aspath': self.other.pk, 'action': 'permit', 'pattern': '^9$'}]
+        response = self.post(rows)
+        self.assertHttpStatus(response, 201)
+        self.assertEqual([row['sequence'] for row in response.data], [10, 20, 30, 10])
+
+    def test_a_repeated_pattern_is_rejected(self):
+        self.add_permissions('netbox_routing_plugin.add_aspathentry')
+        make_entry(self.aspath, 10, '^1$')
+        data = {'aspath': self.aspath.pk, 'action': 'deny', 'pattern': '^1$'}
+        response = self.post({**data, 'sequence': 20})
+        self.assertHttpStatus(response, 400)
+        self.assertIn('already has an entry with this pattern', str(response.data))
+        self.assertEqual(self.aspath.aspath_entries.count(), 1)
+        # the same pattern in another AS-path is fine
+        response = self.post({**data, 'aspath': self.other.pk})
+        self.assertHttpStatus(response, 201)
+        self.assertNotIn('warnings', response.data)
+
+    def test_a_repeated_pattern_inside_a_bulk_request_is_rejected(self):
+        self.add_permissions('netbox_routing_plugin.add_aspathentry')
+        rows = [
+            {'aspath': self.aspath.pk, 'action': 'permit', 'pattern': '^1$'},
+            {'aspath': self.aspath.pk, 'action': 'deny', 'pattern': '^1$'},
+        ]
+        response = self.post(rows)
+        self.assertHttpStatus(response, 400)
+        self.assertFalse(self.aspath.aspath_entries.exists())
+
+
+class ASPathAPIFieldsTestCase(APITestCase):
+    """Tags, custom fields, owner and timestamps are read and written over the API"""
+
+    def post(self, name, data):
+        return self.client.post(
+            reverse(f'plugins-api:netbox_routing_plugin-api:{name}-list'),
+            data,
+            format='json',
+            **self.header,
+        )
+
+    def test_fields_of_the_aspath_and_the_entry(self):
+        from extras.models import Tag
+
+        self.add_permissions(
+            'netbox_routing_plugin.add_aspath',
+            'netbox_routing_plugin.add_aspathentry',
+            'extras.view_tag',
+        )
+        tag = Tag.objects.create(name='edge', slug='edge')
+        response = self.post('aspath', {'name': 'API', 'tags': [{'name': 'edge'}]})
+        self.assertHttpStatus(response, 201)
+        for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
+            self.assertIn(field, response.data)
+        self.assertEqual([t['name'] for t in response.data['tags']], ['edge'])
+        response = self.post(
+            'aspathentry',
+            {
+                'aspath': response.data['id'],
+                'action': 'permit',
+                'pattern': '^1$',
+                'tags': [tag.pk],
+            },
+        )
+        self.assertHttpStatus(response, 201)
+        for field in ('owner', 'tags', 'custom_fields', 'created', 'last_updated'):
+            self.assertIn(field, response.data)
+        self.assertEqual([t['name'] for t in response.data['tags']], ['edge'])
+
+
+class ASPathGraphQLFiltersTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.aspath = ASPath.objects.create(name='Gql')
+        cls.first = make_entry(cls.aspath, 10, '^1$')
+        cls.second = make_entry(cls.aspath, 20, '^2$', 'deny')
+
+    def query(self, text):
+        response = self.client.post(
+            reverse('graphql'), {'query': text}, format='json', **self.header
+        )
+        self.assertHttpStatus(response, 200)
+        self.assertNotIn('errors', response.json(), response.json())
+        return response.json()['data']
+
+    def test_entries_can_be_filtered(self):
+        self.add_permissions(
+            'netbox_routing_plugin.view_aspath',
+            'netbox_routing_plugin.view_aspathentry',
+        )
+        for filters, expected in (
+            ('sequence: {filter_lookup: {exact: 20}}', [self.second]),
+            ('action: {exact: "deny"}', [self.second]),
+            ('pattern: {exact: "^1$"}', [self.first]),
+        ):
+            with self.subTest(filters):
+                data = self.query(
+                    f'{{ aspath_entry_list(filters: {{{filters}}}) {{ id pattern }} }}'
+                )
+                self.assertEqual(
+                    {int(row['id']) for row in data['aspath_entry_list']},
+                    {entry.pk for entry in expected},
+                )
+        data = self.query('{ aspath_list(filters: {name: {exact: "Gql"}}) { id } }')
+        self.assertEqual(len(data['aspath_list']), 1)
+        data = self.query('{ aspath_list(filters: {name: {exact: "None"}}) { id } }')
+        self.assertEqual(data['aspath_list'], [])
+
+
+class ASPathResequenceAPITestCase(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.aspath = ASPath.objects.create(name='Reseq')
+        make_entry(self.aspath, 3, '^1$')
+        make_entry(self.aspath, 4, '^2$')
+        self.url = reverse(
+            'plugins-api:netbox_routing_plugin-api:aspath-resequence',
+            kwargs={'pk': self.aspath.pk},
+        )
+        self.permissions = (
+            'netbox_routing_plugin.change_aspath',
+            'netbox_routing_plugin.view_aspath',
+        )
+
+    def sequences(self):
+        return list(
+            self.aspath.aspath_entries.order_by('sequence').values_list(
+                'sequence', flat=True
+            )
+        )
+
+    def test_resequence_with_defaults_and_values(self):
+        self.add_permissions(
+            *self.permissions, 'netbox_routing_plugin.change_aspathentry'
+        )
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 200)
+        self.assertEqual(response.data, {'changed': 2})
+        self.assertEqual(self.sequences(), [10, 20])
+        self.client.patch(
+            self.url, {'start': 100, 'step': 50}, format='json', **self.header
+        )
+        self.assertEqual(self.sequences(), [100, 150])
+
+    def test_invalid_values(self):
+        self.add_permissions(
+            *self.permissions, 'netbox_routing_plugin.change_aspathentry'
+        )
+        for data in ({'start': 'x'}, {'step': -1}, {'start': 4294967294, 'step': 10}):
+            with self.subTest(data):
+                response = self.client.patch(
+                    self.url, data, format='json', **self.header
+                )
+                self.assertHttpStatus(response, 400)
+        self.assertEqual(self.sequences(), [3, 4])
+
+    def test_it_needs_the_permission_to_change_entries(self):
+        self.add_permissions(*self.permissions)
+        response = self.client.patch(self.url, {}, format='json', **self.header)
+        self.assertHttpStatus(response, 403)
+        self.assertEqual(self.sequences(), [3, 4])
