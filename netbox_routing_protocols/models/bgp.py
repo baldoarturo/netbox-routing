@@ -84,6 +84,9 @@ class BGPPeerConfigMixin(RoutePolicyMixin, models.Model):
 
     remote_as = models.ForeignKey(
         verbose_name=_('Remote AS'),
+        help_text=_(
+            'Remote AS of the neighbor (RFC 4271). Empty inherits the value of the peer group'
+        ),
         to='ipam.ASN',
         on_delete=models.PROTECT,
         related_name='+',
@@ -92,15 +95,30 @@ class BGPPeerConfigMixin(RoutePolicyMixin, models.Model):
     )
     local_as = models.ForeignKey(
         verbose_name=_('Local AS'),
+        help_text=_(
+            'AS shown to the neighbor instead of the instance ASN, for AS migrations. '
+            'Empty inherits the value of the peer group'
+        ),
         to='ipam.ASN',
         on_delete=models.PROTECT,
         related_name='+',
         blank=True,
         null=True,
     )
-    enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
+    enabled = models.BooleanField(
+        verbose_name=_('Enabled'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Bring the sessions up. Off keeps the configuration without starting them. '
+            'Empty inherits the value of the peer group'
+        ),
+    )
     bfd = models.ForeignKey(
         verbose_name=_('BFD Profile'),
+        help_text=_(
+            'BFD profile for fast failure detection of the sessions (RFC 5880)'
+        ),
         to='netbox_routing_protocols.BFDProfile',
         on_delete=models.PROTECT,
         related_name='%(class)ss',
@@ -244,15 +262,25 @@ class BGPPeerConfigMixin(RoutePolicyMixin, models.Model):
 
 
 class BGPInstance(RoutePolicyMixin, PrimaryModel):
-    name = models.CharField(verbose_name=_('Name'), max_length=100)
+    name = models.CharField(
+        verbose_name=_('Name'),
+        max_length=100,
+        help_text=_(
+            'Name of the instance in your documentation (a router has no BGP name)'
+        ),
+    )
     device = models.ForeignKey(
         verbose_name=_('Device'),
+        help_text=_('Device that runs the BGP process'),
         to='dcim.Device',
         on_delete=models.PROTECT,
         related_name='bgp_instances',
     )
     vrf = models.ForeignKey(
         verbose_name=_('VRF'),
+        help_text=_(
+            'VRF of the instance. Empty for the global table; one instance per device and VRF'
+        ),
         to='ipam.VRF',
         on_delete=models.PROTECT,
         related_name='bgp_instances',
@@ -261,6 +289,9 @@ class BGPInstance(RoutePolicyMixin, PrimaryModel):
     )
     asn = models.ForeignKey(
         verbose_name=_('ASN'),
+        help_text=_(
+            'Local autonomous system number (RFC 4271). Four-octet AS numbers are accepted (RFC 6793)'
+        ),
         to='ipam.ASN',
         on_delete=models.PROTECT,
         related_name='bgp_instances',
@@ -339,6 +370,7 @@ class BGPInstance(RoutePolicyMixin, PrimaryModel):
     )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_instances',
@@ -460,15 +492,22 @@ class BGPInstance(RoutePolicyMixin, PrimaryModel):
 class BGPAddressFamily(PrimaryModel):
     instance = models.ForeignKey(
         verbose_name=_('Instance'),
+        help_text=_('BGP instance this address family belongs to'),
         to='netbox_routing_protocols.BGPInstance',
         on_delete=models.CASCADE,
         related_name='address_families',
     )
     address_family = models.CharField(
-        verbose_name=_('Address Family'), max_length=50, choices=BGPAddressFamilyChoices
+        verbose_name=_('Address Family'),
+        max_length=50,
+        choices=BGPAddressFamilyChoices,
+        help_text=_(
+            'Address family the instance routes (RFC 4760 multiprotocol extensions)'
+        ),
     )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_address_families',
@@ -490,19 +529,36 @@ class BGPAddressFamily(PrimaryModel):
         help_text=_('MED given to redistributed routes (RFC 4271)'),
     )
     default_originate = models.BooleanField(
-        verbose_name=_('Default Originate'), blank=True, null=True
+        verbose_name=_('Default Originate'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Originate a default route (0.0.0.0/0 or ::/0) to every neighbor of this address family'
+        ),
     )
     auto_summary = models.BooleanField(
-        verbose_name=_('Auto Summary'), blank=True, null=True
+        verbose_name=_('Auto Summary'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Summarize redistributed routes to their classful network. Legacy behaviour '
+            'that RFC 4271 does not define: leave it off'
+        ),
     )
     distance_ebgp = models.PositiveSmallIntegerField(
         verbose_name=_('eBGP Distance'),
+        help_text=_(
+            'Administrative distance of the routes learned from eBGP neighbors (vendor setting, not defined by an RFC)'
+        ),
         blank=True,
         null=True,
         validators=[MinValueValidator(1), MaxValueValidator(255)],
     )
     distance_ibgp = models.PositiveSmallIntegerField(
         verbose_name=_('iBGP Distance'),
+        help_text=_(
+            'Administrative distance of the routes learned from iBGP neighbors (vendor setting, not defined by an RFC)'
+        ),
         blank=True,
         null=True,
         validators=[MinValueValidator(1), MaxValueValidator(255)],
@@ -520,7 +576,12 @@ class BGPAddressFamily(PrimaryModel):
         help_text=_('RFC 7911'),
     )
     additional_paths_install = models.BooleanField(
-        verbose_name=_('Additional Paths (install)'), blank=True, null=True
+        verbose_name=_('Additional Paths (install)'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Install the additional paths received (RFC 7911, ADD-PATH) in the routing table'
+        ),
     )
     long_lived_stale_time = models.PositiveIntegerField(
         verbose_name=_('Long-Lived Graceful Restart Stale Time'),
@@ -578,9 +639,14 @@ class BGPAddressFamily(PrimaryModel):
 class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
     """A group of neighbors that share their configuration (a peer group)."""
 
-    name = models.CharField(verbose_name=_('Name'), max_length=100)
+    name = models.CharField(
+        verbose_name=_('Name'),
+        max_length=100,
+        help_text=_('Name of the peer group, unique in the instance'),
+    )
     instance = models.ForeignKey(
         verbose_name=_('Instance'),
+        help_text=_('BGP instance the peer group belongs to'),
         to='netbox_routing_protocols.BGPInstance',
         on_delete=models.CASCADE,
         related_name='peer_groups',
@@ -594,6 +660,7 @@ class BGPPeerGroup(BGPPeerConfigMixin, PrimaryModel):
     )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_peer_groups',
@@ -692,12 +759,17 @@ class BGPListenRange(PrimaryModel):
 
     peer_group = models.ForeignKey(
         verbose_name=_('Peer Group'),
+        help_text=_('Peer group that the dynamic neighbors of the range join'),
         to='netbox_routing_protocols.BGPPeerGroup',
         on_delete=models.CASCADE,
         related_name='listen_ranges',
     )
     prefix = models.ForeignKey(
         verbose_name=_('Prefix'),
+        help_text=_(
+            'Prefix from IPAM: any router in it may open a session to the peer group '
+            'without being configured as a neighbor'
+        ),
         to='ipam.Prefix',
         on_delete=models.PROTECT,
         related_name='bgp_listen_ranges',
@@ -773,12 +845,19 @@ class BGPRedistribution(PrimaryModel):
 
     address_family = models.ForeignKey(
         verbose_name=_('Address Family'),
+        help_text=_(
+            'Address family of the BGP instance the routes are redistributed into. Redistribution is per address family'
+        ),
         to='netbox_routing_protocols.BGPAddressFamily',
         on_delete=models.CASCADE,
         related_name='redistributions',
     )
     protocol = models.CharField(
         verbose_name=_('Protocol'),
+        help_text=_(
+            'Where the routes come from: connected or static routes of the device, or another '
+            'protocol of the same device, VRF and address family'
+        ),
         max_length=20,
         choices=BGPRedistributionProtocolChoices,
     )
@@ -787,6 +866,9 @@ class BGPRedistribution(PrimaryModel):
         related_name='bgp_redistributions',
         on_delete=models.CASCADE,
         verbose_name=_('OSPF Source'),
+        help_text=_(
+            'OSPF instance the routes are taken from: same device, same VRF, same address family'
+        ),
         blank=True,
         null=True,
     )
@@ -795,6 +877,9 @@ class BGPRedistribution(PrimaryModel):
         related_name='bgp_redistributions',
         on_delete=models.CASCADE,
         verbose_name=_('IS-IS Source'),
+        help_text=_(
+            'IS-IS instance the routes are taken from: same device, same VRF, same address family'
+        ),
         blank=True,
         null=True,
     )
@@ -837,6 +922,7 @@ class BGPRedistribution(PrimaryModel):
     )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_redistributions',
@@ -969,12 +1055,17 @@ class BGPOriginatedNetwork(PrimaryModel):
 
     address_family = models.ForeignKey(
         verbose_name=_('Address Family'),
+        help_text=_('Address family in which the prefix is originated'),
         to='netbox_routing_protocols.BGPAddressFamily',
         on_delete=models.CASCADE,
         related_name='originated_networks',
     )
     prefix = models.ForeignKey(
         verbose_name=_('Prefix'),
+        help_text=_(
+            'Prefix from IPAM that this router originates into BGP. It must be in the VRF of the '
+            'instance and of the IP version of the address family'
+        ),
         to='ipam.Prefix',
         on_delete=models.PROTECT,
         related_name='bgp_originated_networks',
@@ -982,6 +1073,7 @@ class BGPOriginatedNetwork(PrimaryModel):
 
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_originated_networks',
@@ -1029,12 +1121,17 @@ class BGPAggregate(PrimaryModel):
 
     address_family = models.ForeignKey(
         verbose_name=_('Address Family'),
+        help_text=_('Address family in which the aggregate is created'),
         to='netbox_routing_protocols.BGPAddressFamily',
         on_delete=models.CASCADE,
         related_name='aggregates',
     )
     prefix = models.ForeignKey(
         verbose_name=_('Prefix'),
+        help_text=_(
+            'Aggregate prefix from IPAM, created when the instance has more specific '
+            'routes in it (RFC 4271 section 9.2.2.2)'
+        ),
         to='ipam.Prefix',
         on_delete=models.PROTECT,
         related_name='bgp_aggregates',
@@ -1052,6 +1149,7 @@ class BGPAggregate(PrimaryModel):
 
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_aggregates',
@@ -1092,16 +1190,24 @@ class BGPAggregate(PrimaryModel):
 
 class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     name = models.CharField(
-        verbose_name=_('Name'), max_length=100, blank=True, null=True
+        verbose_name=_('Name'),
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text=_('Name of the neighbor in your documentation (optional)'),
     )
     instance = models.ForeignKey(
         verbose_name=_('Instance'),
+        help_text=_('BGP instance the neighbor belongs to'),
         to='netbox_routing_protocols.BGPInstance',
         on_delete=models.CASCADE,
         related_name='peers',
     )
     peer = models.ForeignKey(
         verbose_name=_('Peer Address'),
+        help_text=_(
+            'IP address of the neighbor (RFC 4271). Empty when the neighbor is reached through an interface'
+        ),
         to='ipam.IPAddress',
         on_delete=models.PROTECT,
         related_name='remote_peers',
@@ -1122,6 +1228,9 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     )
     source = models.ForeignKey(
         verbose_name=_('Source Address'),
+        help_text=_(
+            'Local address of the TCP session, when it must differ from the address of the interface'
+        ),
         to='ipam.IPAddress',
         on_delete=models.PROTECT,
         related_name='source_peers',
@@ -1130,6 +1239,7 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     )
     peer_group = models.ForeignKey(
         verbose_name=_('Peer Group'),
+        help_text=_('Peer group the neighbor inherits its session options from'),
         to='netbox_routing_protocols.BGPPeerGroup',
         on_delete=models.RESTRICT,
         related_name='peers',
@@ -1138,6 +1248,9 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     )
     status = models.CharField(
         verbose_name=_('Status'),
+        help_text=_(
+            'Lifecycle of the session in your documentation. It is not read from the network'
+        ),
         max_length=10,
         choices=BGPStatusChoices,
         null=True,
@@ -1145,6 +1258,7 @@ class BGPPeer(BGPPeerConfigMixin, PrimaryModel):
     )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_peers',
@@ -1320,6 +1434,9 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
 
     peer = models.ForeignKey(
         verbose_name=_('Peer'),
+        help_text=_(
+            'Neighbor this address family configures. Set either a peer or a peer group, not both'
+        ),
         to='netbox_routing_protocols.BGPPeer',
         on_delete=models.CASCADE,
         related_name='address_families',
@@ -1328,6 +1445,9 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
     )
     peer_group = models.ForeignKey(
         verbose_name=_('Peer Group'),
+        help_text=_(
+            'Peer group this address family configures. Set either a peer or a peer group, not both'
+        ),
         to='netbox_routing_protocols.BGPPeerGroup',
         on_delete=models.CASCADE,
         related_name='address_families',
@@ -1336,13 +1456,26 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
     )
     address_family = models.ForeignKey(
         verbose_name=_('Address Family'),
+        help_text=_(
+            'Address family of the session (RFC 4760 multiprotocol extensions)'
+        ),
         to='netbox_routing_protocols.BGPAddressFamily',
         on_delete=models.RESTRICT,
         related_name='peer_address_families',
     )
-    enabled = models.BooleanField(verbose_name=_('Enabled'), blank=True, null=True)
+    enabled = models.BooleanField(
+        verbose_name=_('Enabled'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Exchange the routes of this address family with the neighbor. Empty inherits from the peer group'
+        ),
+    )
     prefixlist_out = models.ForeignKey(
         verbose_name=_('Outbound Prefix List'),
+        help_text=_(
+            'Prefix list that filters the routes sent to the neighbor in this address family'
+        ),
         to='netbox_routing_protocols.PrefixList',
         on_delete=models.SET_NULL,
         related_name='peer_address_families_out',
@@ -1351,6 +1484,9 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
     )
     prefixlist_in = models.ForeignKey(
         verbose_name=_('Inbound Prefix List'),
+        help_text=_(
+            'Prefix list that filters the routes received from the neighbor in this address family'
+        ),
         to='netbox_routing_protocols.PrefixList',
         on_delete=models.SET_NULL,
         related_name='peer_address_families_in',
@@ -1368,10 +1504,20 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
         default=list,
     )
     next_hop_self = models.BooleanField(
-        verbose_name=_('Next Hop Self'), blank=True, null=True
+        verbose_name=_('Next Hop Self'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Set the next hop to the local address on the routes sent to the neighbor (RFC 4271 section 5.1.3)'
+        ),
     )
     remove_private_as = models.BooleanField(
-        verbose_name=_('Remove Private AS'), blank=True, null=True
+        verbose_name=_('Remove Private AS'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'Remove the private AS numbers (RFC 6996) from the AS path of the routes sent to the neighbor'
+        ),
     )
     allowas_in = models.PositiveSmallIntegerField(
         verbose_name=_('Allow AS In'),
@@ -1411,6 +1557,7 @@ class BGPPeerAddressFamily(RoutePolicyMixin, PrimaryModel):
     )
     tenant = models.ForeignKey(
         verbose_name=_('Tenant'),
+        help_text=_('Tenant that owns this object'),
         to='tenancy.Tenant',
         on_delete=models.PROTECT,
         related_name='bgp_peer_address_families',
